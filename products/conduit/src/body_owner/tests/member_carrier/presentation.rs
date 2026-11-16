@@ -21,6 +21,18 @@ fn native_member_profile(
     conduit_body::SpawnInvitationSecret,
     conduit_core::HostAdvertisement,
 ) {
+    native_member_named(owner, root, interactive, "fixture/native")
+}
+pub(super) fn native_member_named(
+    owner: &mut Owner,
+    root: &std::path::Path,
+    interactive: bool,
+    name: &str,
+) -> (
+    conduit_body::MembershipCredential,
+    conduit_body::SpawnInvitationSecret,
+    conduit_core::HostAdvertisement,
+) {
     let invitation = owner.issue_invitation(root, 60, None).unwrap();
     let mut provider = conduit_core::BaseProviderEntry {
         base_id: "fixture/framebuffer".into(),
@@ -48,15 +60,15 @@ fn native_member_profile(
     provider.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let mut ad = if interactive {
         conduit_conduitos_mask_offer::native_host_advertisement(
-            &"fixture/native".into(),
-            &"fixture/native/boot".into(),
+            &name.into(),
+            &format!("{name}/boot").into(),
             1,
             &provider,
         )
     } else {
         conduit_conduitos_mask_offer::native_read_only_host_advertisement(
-            &"fixture/native".into(),
-            &"fixture/native/boot".into(),
+            &name.into(),
+            &format!("{name}/boot").into(),
             1,
             &provider,
             conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
@@ -123,7 +135,7 @@ fn lines(
         session.as_str(),
     )
 }
-fn show(
+pub(super) fn show(
     owner: &mut Owner,
     seal: &conduit_face::RemoteOwnerMaskRouteSeal,
     sequence: u64,
@@ -150,7 +162,7 @@ fn show(
     )
     .unwrap()
 }
-fn request(c: &conduit_body::MembershipCredential) -> OwnerFaceSnapshotRequest {
+pub(super) fn request(c: &conduit_body::MembershipCredential) -> OwnerFaceSnapshotRequest {
     OwnerFaceSnapshotRequest {
         schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
         credential_id: c.credential_id.as_str().into(),

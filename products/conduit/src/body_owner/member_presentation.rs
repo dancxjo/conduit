@@ -45,8 +45,13 @@ impl MemberPresentationBasis {
     /// Recheck deserialized claims without cloning or allocating on success.
     /// Validation is internal coherence only, never authenticated membership.
     pub(crate) fn validate(&self) -> Result<(), String> {
-        let credential = &self.credential;
-        let host_advertisement = &self.host_advertisement;
+        Self::validate_facts(&self.credential, &self.host_advertisement)
+    }
+
+    pub(super) fn validate_facts(
+        credential: &MembershipCredential,
+        host_advertisement: &HostAdvertisement,
+    ) -> Result<(), String> {
         let ids = [
             credential.credential_id.as_str(),
             credential.body_id.as_str(),

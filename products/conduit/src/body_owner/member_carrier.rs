@@ -14,8 +14,15 @@ mod continuation;
 #[allow(dead_code)]
 #[path = "member_carrier/preparation.rs"]
 mod preparation;
+#[path = "member_carrier/presence.rs"]
+mod presence;
 #[path = "member_carrier/presentation.rs"]
 mod presentation;
+#[path = "member_carrier/viewers.rs"]
+mod viewers;
+pub(super) use viewers::ParkedViewer;
+#[path = "member_carrier/carrier_bound.rs"]
+mod carrier_bound;
 
 #[derive(Default)]
 pub(super) struct MemberCarrierCustody {
@@ -23,6 +30,13 @@ pub(super) struct MemberCarrierCustody {
     pending: Option<Pending>,
     active: Option<Active>,
     commands: Vec<preparation::PreparedRemoteBodyCommand>,
+    canonical: Option<
+        conduit_std_host::body_execution::ImagePreparedValue<
+            conduit_conduitos_mask_offer::CanonicalNativeGraphicalTemplate,
+        >,
+    >,
+    // Fixed issuer Box/key only; commands and canonical data own separate custody.
+    base_memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
 }
 /// Compact reference into the owner's independently retained admitted offer.
 /// Actual current records are re-resolved for each use; no copied advertisement
@@ -32,13 +46,15 @@ struct RetainedMember {
     offer: super::member_offers::PinnedMemberOffer,
 }
 impl RetainedMember {
-    fn prepare(owner: &Owner, member: &MemberPresentationBasis) -> Result<Self, String> {
-        owner.require_current_native_member(member)?;
-        Ok(Self {
-            credential: member.credential.clone(),
-            offer: owner.pin_admitted_member_offer(&member.host_advertisement)?,
-        })
+    fn current_offer<'a>(&self, owner: &'a Owner) -> Result<&'a HostAdvertisement, String> {
+        let offer = self
+            .offer
+            .current(&owner.current_host_offers, owner.session.evidence())
+            .ok_or("member carrier admitted offer custody changed")?;
+        owner.require_current_native_member_facts(&self.credential, offer)?;
+        Ok(offer)
     }
+
     fn presentation(&self, owner: &Owner) -> Result<MemberPresentationBasis, String> {
         let offer = self
             .offer
@@ -56,6 +72,9 @@ struct Pending {
     member: RetainedMember,
     deadline: Instant,
     session_deadline: Instant,
+    presence_proof_capacity: usize,
+    // Payload fields drop before their original counter witness.
+    memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
 }
 struct Active {
     session: CurrentMemberReceivingSession,
@@ -65,6 +84,8 @@ struct Active {
     member: RetainedMember,
     presence: Option<Presence>,
     route: Option<conduit_core::PlanId>,
+    presence_proof_capacity: usize,
+    _memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
 }
 struct Presence {
     clock: Instant,
@@ -90,17 +111,62 @@ impl Owner {
     pub(crate) fn prepare_current_member_carrier_receiver(
         &mut self,
     ) -> Result<FederationPeer, String> {
-        let custody = self
-            .member_carrier
-            .get_or_insert_with(|| Box::new(MemberCarrierCustody::default()));
-        if custody.key.is_none() {
-            let mut bytes = [0; 32];
-            getrandom::fill(&mut bytes).map_err(|e| e.to_string())?;
-            custody.key = Some(
-                SpawnInvitationSecret::from_csprng_bytes(bytes)
-                    .map_err(|e| format!("owner key: {e:?}"))?,
-            );
-            bytes.fill(0);
+        if self.host.has_image_custody() && self.member_carrier.is_none() {
+            let memory = self.host.root_preparation()?.clone();
+            let local = self.host.advertisement();
+            let peer_export = core::mem::size_of::<FederationPeer>()
+                .checked_add(local.host_id.0.capacity())
+                .and_then(|n| n.checked_add(local.boot_id.0.capacity()))
+                .ok_or("issuer reply backing overflow")?;
+            let bytes = core::mem::size_of::<MemberCarrierCustody>()
+                .checked_add(core::mem::size_of::<Box<MemberCarrierCustody>>())
+                .and_then(|n| n.checked_add(peer_export))
+                .ok_or("issuer backing overflow")?;
+            // SAFETY: one fixed Box with empty independently owned child stores,
+            // inline CSPRNG key, and one exact peer export. No unrelated catalogue
+            // clone or worker exists. The same lease drops after the Box fields.
+            let prepared = unsafe {
+                memory.prepare_value(bytes, bytes, || {
+                    let mut bytes = [0; 32];
+                    getrandom::fill(&mut bytes).map_err(|_| "owner key randomness unavailable")?;
+                    let key = SpawnInvitationSecret::from_csprng_bytes(bytes)
+                        .map_err(|error| format!("owner key: {error:?}"))?;
+                    bytes.fill(0);
+                    Ok(std::cell::RefCell::new(Some(Box::new(
+                        MemberCarrierCustody {
+                            key: Some(key),
+                            ..MemberCarrierCustody::default()
+                        },
+                    ))))
+                })
+            }?;
+            let mut custody = prepared
+                .value()
+                .borrow_mut()
+                .take()
+                .ok_or("prepared issuer absent")?;
+            custody.base_memory = Some(prepared.retain_memory());
+            self.member_carrier = Some(custody);
+        } else if self.host.has_image_custody()
+            && self
+                .member_carrier
+                .as_ref()
+                .is_some_and(|custody| custody.key.is_none())
+        {
+            return Err("original IMAGE issuer custody cannot be implicitly reconstructed".into());
+        } else if !self.host.has_image_custody() {
+            let custody = self
+                .member_carrier
+                .get_or_insert_with(|| Box::new(MemberCarrierCustody::default()));
+            if custody.key.is_none() {
+                let mut bytes = [0; 32];
+                getrandom::fill(&mut bytes).map_err(|error| error.to_string())?;
+                custody.key = Some(
+                    SpawnInvitationSecret::from_csprng_bytes(bytes)
+                        .map_err(|error| format!("owner key: {error:?}"))?,
+                );
+                bytes.fill(0);
+            }
         }
         self.member_carrier_peer()
     }
@@ -127,9 +193,26 @@ impl Owner {
         {
             return Err("member carrier requires finite authorized transport facts".into());
         }
-        let member = MemberPresentationBasis::new(credential.clone(), advertisement.clone())?;
-        self.require_current_native_member(&member)?;
-        let retained_member = RetainedMember::prepare(self, &member)?;
+        self.require_current_native_member_facts(credential, advertisement)?;
+        if self.host.has_image_custody() {
+            return self.begin_image_member_carrier(
+                credential,
+                advertisement,
+                line,
+                security,
+                expires_at_millis,
+                maximum_frames,
+                started,
+                now,
+            );
+        }
+        // Admission pressure refuses before cloning continuity, credentials or
+        // challenge facts and before changing the currently selected viewer.
+        self.select_native_viewer_credential(credential)?;
+        let retained_member = RetainedMember {
+            credential: credential.clone(),
+            offer: self.pin_admitted_member_offer(advertisement)?,
+        };
         let manager = self
             .admissions
             .as_ref()
@@ -222,6 +305,8 @@ impl Owner {
             member: retained_member,
             deadline: (started + Duration::from_secs(10)).min(session_deadline),
             session_deadline,
+            presence_proof_capacity: usize::MAX,
+            memory: None,
         });
         Ok((challenge, signature))
     }
@@ -231,6 +316,7 @@ impl Owner {
         challenge: &FederationChallenge,
         signature: [u8; 64],
     ) -> Result<FederationInspection, String> {
+        self.select_native_viewer_session(&challenge.session_id)?;
         let receiver = self.member_carrier_peer()?;
         let custody = self
             .member_carrier
@@ -248,7 +334,7 @@ impl Owner {
         if Instant::now() >= pending.deadline || Instant::now() >= pending.session_deadline {
             return Err("member carrier proof deadline expired".into());
         }
-        self.require_current_native_member(&pending.member.presentation(self)?)?;
+        pending.member.current_offer(self)?;
         let now = crate::durable_host::current_time_millis()?;
         if now >= challenge.expires_at_millis {
             return Err("member carrier session expired".into());
@@ -276,6 +362,8 @@ impl Owner {
             member: pending.member,
             presence: None,
             route: None,
+            presence_proof_capacity: pending.presence_proof_capacity,
+            _memory: pending.memory.take(),
         });
         Ok(inspection)
     }
@@ -287,11 +375,9 @@ impl Owner {
     ) -> Result<FederationInspection, String> {
         let receiver = self.member_carrier_peer()?;
         let active = self
-            .member_carrier
-            .as_ref()
-            .and_then(|c| c.active.as_ref())
+            .original_viewer_active(session_id)
             .ok_or("carrier session absent")?;
-        self.require_current_native_member(&active.member.presentation(self)?)?;
+        active.member.current_offer(self)?;
         if active.receiver != receiver
             || Instant::now() >= active.deadline
             || crate::durable_host::current_time_millis()? >= active.expires_at_millis
@@ -310,111 +396,12 @@ impl Owner {
         Ok(inspection)
     }
 
-    /// The protected carrier worker may renew reachability only for its exact
-    /// authenticated incarnation. This grants no Line, Mask or effect authority.
-    /// A missed short lease requires fresh carrier authentication; a late packet
-    /// cannot resurrect it merely because the overall session has time remaining.
-    pub(crate) fn renew_current_member_presence(
-        &mut self,
-        session_id: &conduit_core::LinkBindingId,
-        sequence: u64,
-    ) -> Result<conduit_body::HostPresenceLease, String> {
-        let inspection = self.inspect_current_member_carrier(session_id)?;
-        if sequence == 0 || sequence > u64::from(inspection.maximum_frames) {
-            return Err("member presence sequence exceeds carrier bounds".into());
-        }
-        let active = self
-            .member_carrier
-            .as_mut()
-            .and_then(|custody| custody.active.as_mut())
-            .ok_or("carrier session absent")?;
-        let remaining = active
-            .deadline
-            .saturating_duration_since(Instant::now())
-            .as_millis();
-        let lease_millis = PRESENCE_LEASE_MILLIS.min(remaining.min(u128::from(u64::MAX)) as u64);
-        if lease_millis == 0 {
-            return Err("member presence carrier expired".into());
-        }
-        let membership = &self.session.evidence().membership;
-        let part = &active.member.credential.part_id;
-        let sign =
-            conduit_core::SignId::from(format!("{}/presence/{sequence}", session_id.as_str()));
-        if let Some(presence) = active.presence.as_mut() {
-            let now = presence
-                .clock
-                .elapsed()
-                .as_millis()
-                .min(u128::from(u64::MAX)) as u64;
-            if presence
-                .table
-                .leases
-                .first()
-                .is_none_or(|lease| now >= lease.expires_at_millis)
-            {
-                return Err("member presence lease expired".into());
-            }
-            presence
-                .table
-                .renew(
-                    membership,
-                    part,
-                    session_id,
-                    sequence,
-                    now,
-                    lease_millis,
-                    sign,
-                )
-                .map_err(|error| format!("member presence renewal: {error:?}"))?;
-        } else {
-            if sequence != 1 {
-                return Err("member presence must start at sequence one".into());
-            }
-            let clock = conduit_body::HostPresenceClock::new(
-                session_id.as_str().into(),
-                conduit_body::HostPresenceClockScale::Milliseconds,
-                1,
-                1,
-            )
-            .map_err(|error| format!("member presence clock: {error:?}"))?;
-            let mut table = conduit_body::HostPresenceTable::new(
-                membership.body_id.clone(),
-                clock,
-                PRESENCE_LEASE_MILLIS,
-            )
-            .map_err(|error| format!("member presence table: {error:?}"))?;
-            let started = Instant::now();
-            table
-                .start(
-                    membership,
-                    part,
-                    session_id.clone(),
-                    sequence,
-                    0,
-                    lease_millis,
-                    sign,
-                )
-                .map_err(|error| format!("member presence start: {error:?}"))?;
-            active.presence = Some(Presence {
-                clock: started,
-                table,
-            });
-        }
-        let lease = active
-            .presence
-            .as_ref()
-            .and_then(|presence| presence.table.leases.first())
-            .cloned()
-            .ok_or("member presence absent")?;
-        self.refresh_member_carrier_route_presence()?;
-        Ok(lease)
-    }
-
     /// Drop only this exact pending or authenticated session, never its member attachment.
     pub(crate) fn retire_current_member_carrier(
         &mut self,
         session_id: &conduit_core::LinkBindingId,
     ) -> Result<(), String> {
+        self.select_native_viewer_session(session_id)?;
         let custody = self
             .member_carrier
             .as_mut()
@@ -437,9 +424,10 @@ impl Owner {
             return Err("carrier retirement differs from active session".into());
         }
         active.session.revoke_credential();
-        let route = active.route.take();
-        custody.active = None;
+        let mut retired = custody.active.take().ok_or("carrier session absent")?;
+        let route = retired.route.take();
         self.retire_member_carrier_route(route);
+        drop(retired);
         Ok(())
     }
 }
@@ -495,5 +483,23 @@ impl Owner {
             .and_then(|c| c.key.as_ref())
             .ok_or("member carrier owner key absent")?;
         receipt.attest(owner, member_key, |t| key.sign(t))
+    }
+}
+
+#[cfg(test)]
+impl Owner {
+    pub(in crate::durable_host::owner::controller) fn verify_native_viewer_image_custody(
+        &self,
+        session: &conduit_core::LinkBindingId,
+    ) -> Result<(), String> {
+        let active = self
+            .original_viewer_active(session)
+            .ok_or("viewer absent")?;
+        self.host.root_preparation()?.verify_retention(
+            active
+                ._memory
+                .as_ref()
+                .ok_or("viewer IMAGE custody absent")?,
+        )
     }
 }

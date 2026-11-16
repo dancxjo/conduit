@@ -5,9 +5,15 @@ impl Owner {
         &self,
         member: &MemberPresentationBasis,
     ) -> Result<(), String> {
-        member.validate()?;
-        let credential = &member.credential;
-        let offered = &member.host_advertisement;
+        self.require_current_native_member_facts(&member.credential, &member.host_advertisement)
+    }
+
+    pub(in crate::durable_host::owner::controller) fn require_current_native_member_facts(
+        &self,
+        credential: &MembershipCredential,
+        offered: &HostAdvertisement,
+    ) -> Result<(), String> {
+        MemberPresentationBasis::validate_facts(credential, offered)?;
         let current = self.session.evidence().membership.parts.iter().any(|part| {
             part.state == conduit_body::MembershipState::Admitted
                 && part.part_id == credential.part_id

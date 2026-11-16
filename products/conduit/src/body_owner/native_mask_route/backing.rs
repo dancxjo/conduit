@@ -199,3 +199,224 @@ pub(in crate::durable_host::owner::controller) fn prepare_seal_clone(
     // immutable result exposes no mutation that can grow this retained envelope.
     unsafe { host.prepare_selected_image_value(bytes, bytes, || Ok(seal.clone())) }
 }
+
+/// Closed owner-Plan payload. Local/speech child Plans are deliberately not
+/// part of the native-viewer factory and must obtain their own qualification.
+pub(in crate::durable_host::owner::controller) fn owner_plan_payload_bytes(
+    plan: &conduit_face::OwnerFacePlan,
+) -> Option<usize> {
+    let conduit_face::OwnerFacePlan {
+        plan_id,
+        body_id,
+        workload_revision: _,
+        face_id,
+        face_revision: _,
+        face_basis,
+        routes,
+    } = plan;
+    let mut n = Bytes::default();
+    n.add(plan_id.0.capacity())?;
+    n.add(body_id.retained_backing_bytes())?;
+    n.add(face_id.retained_backing_bytes())?;
+    n.basis(face_basis)?;
+    n.add(
+        routes
+            .capacity()
+            .checked_mul(size_of::<conduit_face::OwnerFaceChildRoute>())?,
+    )?;
+    for route in routes {
+        match route {
+            conduit_face::OwnerFaceChildRoute::Remote { seal } => {
+                n.add(size_of::<RemoteOwnerMaskRouteSeal>())?;
+                n.add(seal_payload_bytes(seal)?)?;
+            }
+            conduit_face::OwnerFaceChildRoute::Local { .. } => return None,
+        }
+    }
+    Some(n.0)
+}
+
+pub(in crate::durable_host::owner::controller) fn selected_route_payload_bytes(
+    route: &conduit_face::SelectedMaskPlotRoute,
+) -> Option<usize> {
+    let conduit_face::SelectedMaskPlotRoute {
+        route_id,
+        mask_plot,
+        plan_id,
+    } = route;
+    let mut n = Bytes::default();
+    n.add(route_id.capacity())?;
+    n.plot(mask_plot)?;
+    n.add(plan_id.0.capacity())?;
+    Some(n.0)
+}
+
+pub(in crate::durable_host::owner::controller) fn wardrobe_control_payload_bytes(
+    control: &conduit_face::MaskWardrobeControl,
+) -> Option<usize> {
+    let conduit_face::MaskWardrobeControl {
+        scoped_wardrobe,
+        active_plan_id,
+        selected,
+    } = control;
+    let conduit_face::BodyMaskWardrobe {
+        body_id,
+        wake_id,
+        wardrobe,
+    } = scoped_wardrobe;
+    let conduit_face::MaskWardrobe {
+        revision: _,
+        lifetime: _,
+        worn,
+        preference,
+    } = wardrobe;
+    let mut n = Bytes::default();
+    n.add(body_id.retained_backing_bytes())?;
+    if let Some(wake) = wake_id {
+        n.add(wake.retained_backing_bytes())?;
+    }
+    for plots in [worn, preference] {
+        n.add(plots.capacity().checked_mul(size_of::<PlotIdentity>())?)?;
+        for plot in plots {
+            n.plot(plot)?;
+        }
+    }
+    n.add(active_plan_id.0.capacity())?;
+    if let Some(selected) = selected {
+        n.add(selected_route_payload_bytes(selected)?)?;
+    }
+    Some(n.0)
+}
+
+/// Closed ordinary core verifier scratch for the single-fragment four-Gear
+/// native graph. Empty State/regions/fusions/pools/activations allocate no
+/// descendants. The normal verifier is still invoked after this admission.
+pub(in crate::durable_host::owner::controller) fn native_verification_workspace(
+    mask: &conduit_face::PlannedMaskPlot,
+) -> Option<usize> {
+    conduit_face::native_mask_plan_backing_bytes(mask)?;
+    let [fragment] = mask.plan.fragments.as_slice() else {
+        return None;
+    };
+    if fragment.placements.len() != 4
+        || fragment.connections.len() != 4
+        || fragment.fore_ports.len() != 3
+        || fragment.plan_fragments.len() != 1
+    {
+        return None;
+    }
+    let mut n = Bytes::default();
+    // verify_plan clones the Plot identity and top commitment; fragment
+    // verification owns a second commitment clone. Digest outputs are64B each.
+    n.plot(&mask.mask.plot_identity)?;
+    for _ in 0..2 {
+        n.add(size_of::<FragmentCommitment>())?;
+        n.strings(&[&fragment.host_id.0, &fragment.fragment_id.0])?;
+        n.add(64)?;
+    }
+    // Shared-pool placement references, all Cords, then the one-Cord occurrence,
+    // source and sink filter Vecs. Nonexact collect starts at capacity4; these
+    // closed sets never exceed4 and hence never reallocate.
+    for _ in [
+        "shared placements",
+        "all Cords",
+        "Cord occurrences",
+        "source",
+        "sink",
+    ] {
+        n.add(4usize.checked_mul(size_of::<&PlannedGear>())?)?;
+    }
+    Some(n.0)
+}
+
+pub(in crate::durable_host::owner::controller) fn basis_payload_bytes(
+    basis: &FaceBasis,
+) -> Option<usize> {
+    let mut n = Bytes::default();
+    n.basis(basis)?;
+    Some(n.0)
+}
+pub(in crate::durable_host::owner::controller) fn plot_payload_bytes(
+    plot: &PlotIdentity,
+) -> Option<usize> {
+    let mut n = Bytes::default();
+    n.plot(plot)?;
+    Some(n.0)
+}
+pub(in crate::durable_host::owner::controller) fn line_offer_payload_bytes(
+    line: &LineOffer,
+) -> Option<usize> {
+    let mut n = Bytes::default();
+    n.strings(&[
+        &line.line_id.0,
+        &line.availability.line_id.0,
+        &line.availability.binding_id.0,
+        &line.availability.sign_id.0,
+    ])?;
+    let binding = &line.binding;
+    n.strings(&[
+        &binding.binding_id.0,
+        &binding.base.0,
+        &binding.base_instance_id.0,
+    ])?;
+    n.endpoint(&binding.source)?;
+    n.endpoint(&binding.sink)?;
+    if let LinkCredentialReference::Opaque(value) = &binding.credential {
+        n.add(value.0.capacity())?;
+    }
+    if let LinkAuthorityReference::Grant(value) = &binding.authority {
+        n.add(value.0.capacity())?;
+    }
+    Some(n.0)
+}
+pub(in crate::durable_host::owner::controller) fn admitted_line_payload_bytes(
+    line: &LineOffer,
+) -> Option<usize> {
+    let total = line_offer_payload_bytes(line)?;
+    total
+        .checked_sub(line.availability.line_id.0.capacity())?
+        .checked_sub(line.availability.binding_id.0.capacity())?
+        .checked_sub(line.availability.sign_id.0.capacity())
+}
+
+impl super::super::face_wardrobe::OwnerFaceWardrobe {
+    pub(super) fn retain_native_memory(
+        &mut self,
+        memory: conduit_std_host::body_execution::ImageMemoryRetention,
+    ) {
+        self._memory = Some(memory);
+    }
+    pub(super) fn retain_native_show_memory(
+        &mut self,
+        memory: conduit_std_host::body_execution::ImageMemoryRetention,
+    ) {
+        self._show_memory = Some(memory);
+    }
+
+    /// Actual closed native-view payload, including each independently owned
+    /// Plan and Show. Rejects unsupported local/speech child owners; this
+    /// allocation-free receipt grants neither selection nor IMAGE capacity.
+    pub(super) fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            plan,
+            control,
+            acknowledged,
+            _show_memory: _,
+            _memory: _,
+        } = self;
+        let mut bytes = owner_plan_payload_bytes(plan)?
+            .checked_add(wardrobe_control_payload_bytes(control)?)?;
+        if let Some(acknowledged) = acknowledged {
+            let super::super::face_wardrobe::AcknowledgedShow {
+                selected,
+                child_route_plan_id,
+                show,
+            } = acknowledged;
+            bytes = bytes
+                .checked_add(selected_route_payload_bytes(selected)?)?
+                .checked_add(child_route_plan_id.0.capacity())?
+                .checked_add(show_payload_bytes(show)?)?;
+        }
+        Some(bytes)
+    }
+}

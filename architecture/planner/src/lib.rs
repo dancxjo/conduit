@@ -1033,3 +1033,7 @@ pub use language_coverage::{
 
 #[cfg(test)]
 mod language_coverage_tests;
+
+mod placement_identity;
+pub use placement_identity::canonical_placement_id;
+pub use startup::fixed_stateless_startup_order;

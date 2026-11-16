@@ -12,12 +12,16 @@ use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection
 pub(super) mod backing;
 #[path = "native_mask_route/graphical_plan.rs"]
 mod graphical_plan;
+#[path = "native_mask_route/graphical_template.rs"]
+mod graphical_template;
 #[path = "native_mask_route/member_basis.rs"]
 mod member_basis;
 #[path = "native_mask_route/member_leave.rs"]
 mod member_leave;
 #[path = "native_mask_route/profile.rs"]
 mod profile;
+#[path = "native_mask_route/staged.rs"]
+mod staged;
 
 enum SelectedRemoteMask<'a> {
     Native(
@@ -47,9 +51,21 @@ pub(super) struct NativeMaskRoute {
     acknowledged_show: Option<MaskShow>,
     expires_at_millis: u64,
     carrier_presence_deadline: Option<std::time::Instant>,
+    show_memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
+    memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
 }
 
 impl NativeMaskRoute {
+    pub(in crate::durable_host::owner::controller) fn backing_memory(
+        &self,
+    ) -> Option<conduit_std_host::body_execution::ImageMemoryRetention> {
+        self.memory.clone()
+    }
+
+    pub(in crate::durable_host::owner::controller) fn credential(&self) -> &MembershipCredential {
+        &self.credential
+    }
+
     /// The return grant is finite. A missing Part, changed Face, expired grant,
     /// or observed unavailable Line withdraws this witness from the owner Plan.
     /// A purportedly Ready but malformed Line remains a witness so admission
@@ -336,6 +352,8 @@ impl Owner {
             acknowledged_show: None,
             expires_at_millis,
             carrier_presence_deadline: None,
+            show_memory: None,
+            memory: None,
         });
         if let Err(error) = self.admit_native_face_route(&seal) {
             self.pending_native_mask = previous;
@@ -388,6 +406,17 @@ impl Owner {
     }
 
     pub(crate) fn acknowledge_native_mask_show(
+        &mut self,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        if self.host.has_image_custody() {
+            return self.acknowledge_image_native_show(request, show);
+        }
+        self.acknowledge_native_show_inner(request, show)
+    }
+
+    fn acknowledge_native_show_inner(
         &mut self,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,

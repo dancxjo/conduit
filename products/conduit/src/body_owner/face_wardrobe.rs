@@ -23,17 +23,19 @@ pub(crate) enum OwnerFaceWardrobeError {
 /// An acknowledged Show belongs to one selected child of the outer owner
 /// face Plan. It cannot be revived by selecting that child again.
 #[derive(Clone)]
-struct AcknowledgedShow {
-    selected: SelectedMaskPlotRoute,
-    child_route_plan_id: PlanId,
-    show: MaskShow,
+pub(super) struct AcknowledgedShow {
+    pub(super) selected: SelectedMaskPlotRoute,
+    pub(super) child_route_plan_id: PlanId,
+    pub(super) show: MaskShow,
 }
 
 #[derive(Clone)]
 pub(crate) struct OwnerFaceWardrobe {
-    plan: OwnerFacePlan,
-    control: MaskWardrobeControl,
-    acknowledged: Option<AcknowledgedShow>,
+    pub(super) plan: OwnerFacePlan,
+    pub(super) control: MaskWardrobeControl,
+    pub(super) acknowledged: Option<AcknowledgedShow>,
+    pub(super) _show_memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
+    pub(super) _memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
 }
 
 impl OwnerFaceWardrobe {
@@ -59,6 +61,8 @@ impl OwnerFaceWardrobe {
             plan,
             control,
             acknowledged: None,
+            _show_memory: None,
+            _memory: None,
         })
     }
 

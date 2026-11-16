@@ -182,13 +182,12 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
         }
         authority_bindings.sort();
 
-        let placement_id = PlacementId::from(hash_string(&format!(
-            "placement:{}:{}:{}:{}",
-            plot.checked_plot_id.as_str(),
-            gear.gear_id.as_str(),
-            host.host_id.as_str(),
-            capability.capability_id.as_str()
-        )));
+        let placement_id = crate::canonical_placement_id(
+            plot.checked_plot_id,
+            &gear.gear_id,
+            &host.host_id,
+            &capability.capability_id,
+        );
         placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
         planned_gears.push(conduit_core::planned_gear_from_parts! {
             realization_properties: capability.realization_properties.clone(),

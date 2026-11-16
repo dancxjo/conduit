@@ -491,3 +491,100 @@ fn validate_identity(value: &str) -> Result<(), HostPresenceRefusal> {
     }
     Ok(())
 }
+
+impl HostPresenceTable {
+    /// Actual owned descendant capacities, including Vec spare storage. This
+    /// observes a table; it neither renews presence nor reserves memory.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            body_id,
+            clock,
+            maximum_lease_millis: _,
+            revision: _,
+            dropped_event_count: _,
+            leases,
+            events,
+        } = self;
+        let mut bytes = body_id
+            .retained_backing_bytes()
+            .checked_add(clock.basis_id.capacity())?
+            .checked_add(
+                leases
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<HostPresenceLease>())?,
+            )?
+            .checked_add(
+                events
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<HostPresenceEvent>())?,
+            )?;
+        for lease in leases {
+            let HostPresenceLease {
+                part_id,
+                host_id,
+                boot_id,
+                offer_generation: _,
+                membership_proof_id,
+                session_binding_id,
+                sequence: _,
+                observed_at_millis: _,
+                expires_at_millis: _,
+                state: _,
+            } = lease;
+            bytes = bytes
+                .checked_add(part_id.retained_backing_bytes())?
+                .checked_add(host_id.0.capacity())?
+                .checked_add(boot_id.0.capacity())?
+                .checked_add(membership_proof_id.retained_backing_bytes())?
+                .checked_add(session_binding_id.0.capacity())?;
+        }
+        for event in events {
+            let HostPresenceEvent {
+                revision: _,
+                part_id,
+                host_id,
+                boot_id,
+                offer_generation: _,
+                membership_proof_id,
+                session_binding_id,
+                sequence: _,
+                observed_at_millis: _,
+                expires_at_millis: _,
+                sign_id,
+                kind: _,
+            } = event;
+            bytes = bytes
+                .checked_add(part_id.retained_backing_bytes())?
+                .checked_add(host_id.0.capacity())?
+                .checked_add(boot_id.0.capacity())?
+                .checked_add(membership_proof_id.retained_backing_bytes())?
+                .checked_add(session_binding_id.0.capacity())?
+                .checked_add(sign_id.0.capacity())?;
+        }
+        Some(bytes)
+    }
+}
+
+impl HostPresenceLease {
+    /// Actual owned identity capacities, excluding inline Self.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            part_id,
+            host_id,
+            boot_id,
+            offer_generation: _,
+            membership_proof_id,
+            session_binding_id,
+            sequence: _,
+            observed_at_millis: _,
+            expires_at_millis: _,
+            state: _,
+        } = self;
+        part_id
+            .retained_backing_bytes()
+            .checked_add(host_id.0.capacity())?
+            .checked_add(boot_id.0.capacity())?
+            .checked_add(membership_proof_id.retained_backing_bytes())?
+            .checked_add(session_binding_id.0.capacity())
+    }
+}

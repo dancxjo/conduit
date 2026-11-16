@@ -5,6 +5,12 @@ impl Owner {
         &mut self,
         credential: &MembershipCredential,
     ) {
+        if self
+            .select_existing_native_viewer_credential(credential)
+            .is_err()
+        {
+            return;
+        }
         let Some(route) = self
             .pending_native_mask
             .as_ref()
@@ -15,7 +21,11 @@ impl Owner {
         if let Some(wardrobe) = &mut self.face_wardrobe {
             wardrobe.forget_show_for(&route.seal.route_plan_id);
         }
+        let qualified = route.memory.is_some();
         self.pending_native_mask = None;
+        if qualified {
+            self.face_wardrobe = None;
+        }
     }
 }
 
@@ -48,6 +58,10 @@ impl Owner {
         if let Some(wardrobe) = &mut self.face_wardrobe {
             wardrobe.forget_show_for(&route.seal.route_plan_id);
         }
+        let qualified = route.memory.is_some();
         self.pending_native_mask = None;
+        if qualified {
+            self.face_wardrobe = None;
+        }
     }
 }

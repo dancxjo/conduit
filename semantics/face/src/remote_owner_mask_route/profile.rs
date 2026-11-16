@@ -9,6 +9,11 @@ pub enum RemoteMaskRouteProfile {
     HostedPresentation,
 }
 impl RemoteMaskRouteProfile {
+    /// Existing identity output limit only; no reservation or route authority.
+    pub fn identity_encoding_limit(self) -> usize {
+        self.maximum_bytes()
+    }
+
     pub(super) fn is_native(&self) -> bool {
         *self == Self::Native
     }

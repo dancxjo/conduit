@@ -3,13 +3,12 @@
 //! Preparation does not make another Body. The service journals the prepared
 //! biography before it transfers its one live Host into `Owner`.
 
-use super::{Owner, OwnerHost, state};
+use super::{state, Owner, OwnerHost};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::{HostAdvertisement, bind_sign};
-use conduit_std_host::StdHost;
+use conduit_core::{bind_sign, HostAdvertisement};
 use std::path::Path;
 
 pub(crate) struct PreparedBirth {
@@ -98,10 +97,10 @@ impl Owner {
         })
     }
 
-    pub(crate) fn from_prepared_born(host: StdHost, prepared: PreparedBirth) -> Self {
+    pub(crate) fn from_prepared_born(host: OwnerHost, prepared: PreparedBirth) -> Self {
         Self {
             prepared_admission_route: None,
-            host: OwnerHost::new(host),
+            host,
             session: prepared.session,
             resident: prepared.resident,
             resident_name: None,
@@ -120,6 +119,8 @@ impl Owner {
             pending_native_mask: None,
             pending_member_return: None,
             member_carrier: None,
+            parked_viewer: super::member_carrier::ParkedViewer::default(),
+            pending_native_response_backing: None,
             current_host_offers: Default::default(),
             attached_terminal_route: None,
             direct_spoken_route: None,

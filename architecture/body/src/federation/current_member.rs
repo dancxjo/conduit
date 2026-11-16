@@ -50,6 +50,34 @@ impl FederatedReceivingSession {
     }
 }
 impl CurrentMemberReceivingSession {
+    /// Allocation-free currentness observation, never an operation or Line
+    /// grant. Effect authorization still uses the original authorize entrance.
+    pub fn is_current(&self, membership: &BodyMembership, now_millis: u64) -> bool {
+        self.current_parts(membership).is_some()
+            && !self.session.credential_revoked
+            && now_millis < self.session.challenge.expires_at_millis
+    }
+
+    /// Borrow the original authenticated session identity without allocating an
+    /// inspection copy. This supplies neither currentness nor effect authority.
+    pub fn session_id(&self) -> &conduit_core::LinkBindingId {
+        &self.session.challenge.session_id
+    }
+
+    /// Actual owned descendant capacities, excluding inline Self. Observing
+    /// this value never renews the session or changes its original scope.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            session,
+            body_id,
+            part_id,
+        } = self;
+        session
+            .retained_backing_bytes()?
+            .checked_add(body_id.retained_backing_bytes())?
+            .checked_add(part_id.retained_backing_bytes())
+    }
+
     fn current_parts<'a>(&self, membership: &'a BodyMembership) -> Option<&'a [PartMembership]> {
         if membership.body_id != self.body_id {
             return None;

@@ -8,6 +8,9 @@ pub(super) fn serve_client(
     runtime: &mut DurableHostRuntime,
     token: &[u8; 32],
 ) -> Result<(), String> {
+    // Temporary native DTO custody is request-local, never an ambient allowance.
+    // Also retire an abandoned prior request before any auth/read/error return.
+    drop(runtime.take_native_response_backing());
     stream
         .set_read_timeout(Some(std::time::Duration::from_secs(2)))
         .map_err(|error| format!("bound local host control read: {error}"))?;
@@ -46,7 +49,8 @@ pub(super) fn serve_client(
         };
         // A malformed client or oversized response must not terminate the
         // retained Owner. No request is replayed after a transport failure.
-        if let Err(error) = write_frame(stream, &response) {
+        let response = runtime.guard_native_response(response);
+        if let Err(error) = response.write(stream) {
             eprintln!("local control response refused: {error}");
         }
     }

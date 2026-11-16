@@ -4,32 +4,32 @@
 extern crate alloc;
 mod canonical_template;
 pub use canonical_template::{
-    CanonicalNativeGraphicalTemplate, CanonicalNativeGraphicalTemplatePreparation,
-    canonical_native_graphical_template_preparation,
+    canonical_native_graphical_template_preparation, CanonicalNativeGraphicalTemplate,
+    CanonicalNativeGraphicalTemplatePreparation,
 };
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
+    authority_grant, kind_id, present_authority_requirement, resource_offer, resource_requirement,
     ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId,
     HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, authority_grant,
-    kind_id, present_authority_requirement, resource_offer, resource_requirement,
+    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION,
 };
 use conduit_face::{
-    FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, MaskPlot, PlannedMaskPlot,
-    RendererRealizationOffer, ResourceRendererRealizationOffer, ShowResourceSourceOffer,
     face_interaction_kind_projection, face_interaction_offer, face_tee_kind_projection,
     face_tee_offer, install_mask_plot_value_aliases, renderer_kind_projection, renderer_offer,
     resource_renderer_kind, resource_renderer_offer, show_resource_source_kind,
-    show_resource_source_offer,
+    show_resource_source_offer, FaceInteractionRealizationOffer, MaskPlot, PlannedMaskPlot,
+    RendererRealizationOffer, ResourceRendererRealizationOffer, ShowResourceSourceOffer,
+    MAX_RENDERER_VALUE_BYTES,
 };
 use conduit_planner::{
-    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
-    plan_expanded_authoring_with_options,
+    default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
+    ForeBoundaryKey, PlanningOptions,
 };
 use conduit_plot::{
-    ProfileCatalog, check_syntax_document, expand_canonical_plot_for_authoring,
-    parse_syntax_document,
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog,
 };
 
 mod implementation_closure;
@@ -87,6 +87,23 @@ pub fn prepare_native_stage_with_profile(
     profile: NativeMaskStorageProfile,
 ) -> Result<MaskStage, MaskOfferError> {
     prepare_stage_for_profile(Adapter::Native, advertisement, profile)
+}
+
+/// The original standard native Mask policy, shared by its ordinary planner
+/// and the closed template factory. The caller must select the actual target;
+/// this constructor supplies no membership, live provider or physical evidence.
+pub fn native_mask_present_grant(
+    host: &HostId,
+    boot: &conduit_core::BootId,
+) -> conduit_core::AuthorityGrant {
+    let requirement = present_authority_requirement(kind_id("face/base/conduitos-surface@1"));
+    authority_grant(
+        "conduitos/native-mask/present",
+        &requirement,
+        host.clone(),
+        boot.clone(),
+        CapabilityId::from("renderer-conduitos"),
+    )
 }
 
 fn prepare_stage_for_profile(
@@ -164,13 +181,9 @@ fn prepare_stage_for_profile(
     let empty_connections = alloc::collections::BTreeMap::new();
     let empty_lines = alloc::collections::BTreeMap::new();
     let authority_grants = if matches!(adapter, Adapter::Native) {
-        let requirement = present_authority_requirement(kind_id("face/base/conduitos-surface@1"));
-        vec![authority_grant(
-            "conduitos/native-mask/present",
-            &requirement,
-            advertisement.host_id.clone(),
-            advertisement.boot_id.clone(),
-            CapabilityId::from("renderer-conduitos"),
+        vec![native_mask_present_grant(
+            &advertisement.host_id,
+            &advertisement.boot_id,
         )]
     } else {
         Vec::new()

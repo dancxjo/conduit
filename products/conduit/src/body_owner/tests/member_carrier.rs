@@ -420,3 +420,7 @@ fn carrier_preparation_preserves_selected_absolute_expiry() {
         .unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(target_os = "linux")]
+#[path = "member_carrier/two_viewers.rs"]
+mod two_viewers;

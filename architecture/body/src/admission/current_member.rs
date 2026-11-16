@@ -13,6 +13,20 @@ pub struct CurrentMemberContinuity {
     peer: FederationPeer,
 }
 impl CurrentMemberContinuity {
+    /// Actual owned identity capacities only; descriptive, not transferable
+    /// continuity, admission or memory-reservation authority.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            body_id,
+            part_id,
+            peer,
+        } = self;
+        body_id
+            .retained_backing_bytes()
+            .checked_add(part_id.retained_backing_bytes())?
+            .checked_add(peer.retained_backing_bytes()?)
+    }
+
     pub fn body_id(&self) -> &BodyId {
         &self.body_id
     }

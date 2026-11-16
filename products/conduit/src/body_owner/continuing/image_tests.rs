@@ -155,7 +155,7 @@ fn ordinary_owner_worker_uses_image_receipt_or_refuses_before_start() {
 
 #[test]
 fn ingress_verification_refuses_while_worker_owns_host_without_panicking() {
-    let mut host = super::super::OwnerHost::new(host(64 * 1024 * 1024));
+    let mut host = super::super::OwnerHost::new(host(64 * 1024 * 1024)).unwrap();
     let input = host
         .retain_selected_image_fore_input(conduit_std_host::ExternalForeInput {
             front_port_id: "request".into(),

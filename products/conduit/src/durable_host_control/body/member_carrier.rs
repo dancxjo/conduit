@@ -12,7 +12,9 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
-        owner.prepare_current_member_carrier_receiver()
+        let peer = owner.prepare_current_member_carrier_receiver()?;
+        owner.capture_native_issuer_reply();
+        Ok(peer)
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_begin(
         &mut self,
@@ -26,14 +28,16 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
-        owner.begin_current_member_carrier(
+        let result = owner.begin_current_member_carrier(
             credential,
             advertisement,
             line,
             security,
             expires_at_millis,
             maximum_frames,
-        )
+        )?;
+        owner.capture_native_carrier_reply(&result.0.session_id);
+        Ok(result)
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_complete(
         &mut self,
@@ -43,12 +47,14 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
-        owner.complete_current_member_carrier(
+        let result = owner.complete_current_member_carrier(
             challenge,
             signature
                 .try_into()
                 .map_err(|_| "member carrier signature must be exactly64bytes")?,
-        )
+        )?;
+        owner.capture_native_carrier_reply(&result.session_id);
+        Ok(result)
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_mask_route(
         &mut self,
@@ -60,7 +66,7 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member presentation requires the live installed owner".into());
         };
-        if interaction_line.is_some() {
+        let result = if interaction_line.is_some() {
             owner.select_member_carrier_mask_route_with_interaction(
                 session,
                 face_line,
@@ -69,7 +75,9 @@ impl DurableHostRuntime {
             )
         } else {
             owner.select_member_carrier_mask_route(session, face_line, return_line)
-        }
+        }?;
+        owner.capture_native_route_reply();
+        Ok(result)
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_show(
         &mut self,
@@ -80,7 +88,9 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member presentation requires the live installed owner".into());
         };
-        owner.acknowledge_member_carrier_show(session, request, show)
+        owner.acknowledge_member_carrier_show(session, request, show)?;
+        owner.capture_native_route_reply();
+        Ok(())
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_interaction(
         &mut self,
@@ -105,16 +115,20 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member presence requires the live installed owner".into());
         };
-        owner.renew_current_member_presence(session, sequence)
+        let lease = owner.renew_current_member_presence(session, sequence)?;
+        owner.capture_native_carrier_reply(session);
+        Ok(lease)
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_inspect(
-        &self,
+        &mut self,
         session: &LinkBindingId,
     ) -> Result<FederationInspection, String> {
-        let HostSource::Body { owner, .. } = &self.host else {
+        let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
-        owner.inspect_current_member_carrier(session)
+        let inspection = owner.inspect_current_member_carrier(session)?;
+        owner.capture_native_carrier_reply(session);
+        Ok(inspection)
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_retire(
         &mut self,
@@ -123,7 +137,12 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
-        owner.retire_current_member_carrier(session)
+        owner.capture_native_carrier_reply(session);
+        let result = owner.retire_current_member_carrier(session);
+        if result.is_err() {
+            owner.take_native_response_backing();
+        }
+        result
     }
 }
 

@@ -107,6 +107,15 @@ fn offer_digest(offer: &HostAdvertisement) -> Option<[u8; 32]> {
     Some(writer.0.finalize().into())
 }
 impl PinnedMemberOffer {
+    pub(super) fn from_current_offer(offer: &HostAdvertisement) -> Result<Self, String> {
+        Ok(Self {
+            host: offer.host_id.clone(),
+            boot: offer.boot_id.clone(),
+            generation: offer.offer_generation,
+            digest: offer_digest(offer).ok_or("member offer digest failed")?,
+        })
+    }
+
     pub(super) fn matches(&self, offer: &HostAdvertisement) -> bool {
         offer.host_id == self.host
             && offer.boot_id == self.boot
@@ -140,11 +149,6 @@ impl Owner {
             .current_hosts(self.session.evidence())
             .find(|retained| *retained == offer)
             .ok_or("member offer has no exact current admitted custody")?;
-        Ok(PinnedMemberOffer {
-            host: retained.host_id.clone(),
-            boot: retained.boot_id.clone(),
-            generation: retained.offer_generation,
-            digest: offer_digest(retained).ok_or("member offer digest failed")?,
-        })
+        PinnedMemberOffer::from_current_offer(retained)
     }
 }

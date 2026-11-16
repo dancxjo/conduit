@@ -160,6 +160,11 @@ impl CurrentOwnerFaceRoute<'_> {
 }
 
 impl OwnerFacePlan {
+    /// Existing documentary identity output limit, not a memory or route grant.
+    pub const fn identity_encoding_limit() -> usize {
+        MAX_OWNER_FACE_PLAN_BYTES
+    }
+
     pub fn seal_current(
         session: &BodyLifecycleSession,
         face: &Face,

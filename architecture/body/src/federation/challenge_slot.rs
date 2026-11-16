@@ -8,6 +8,21 @@ pub struct CurrentMemberChallengeSlot {
     consumed: bool,
 }
 impl CurrentMemberChallengeSlot {
+    /// Actual pending owned capacities, excluding inline Self. Empty/consumed
+    /// slots own no descendants; inspection never rearms an issuance.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            pending,
+            consumed: _,
+        } = self;
+        match pending {
+            None => Some(0),
+            Some((member, challenge)) => member
+                .retained_backing_bytes()?
+                .checked_add(challenge.retained_backing_bytes()?),
+        }
+    }
+
     /// Retain one challenge built from actual caller-owned nonce/session/Line
     /// facts. Nonce unpredictability and globally fresh session issuance remain
     /// the caller's obligation. A consumed slot can never be rearmed.

@@ -213,6 +213,85 @@ fn line(
     }
 }
 
+/// Allocation-free equality to the existing standard graphical Line recipe.
+/// These are authenticated worker facts, not discovery or new Line authority.
+/// The caller must separately retain original carrier/credential/provider proof.
+pub(crate) fn matches_standard_graphical_scope(
+    owner: &HostAdvertisement,
+    target: &HostAdvertisement,
+    credential: &str,
+    reference: &str,
+    lines: [&LineOffer; 3],
+) -> bool {
+    fn joined(mut value: &str, parts: &[&str]) -> bool {
+        for part in parts {
+            let Some(rest) = value.strip_prefix(part) else {
+                return false;
+            };
+            value = rest;
+        }
+        value.is_empty()
+    }
+    for (index, direction) in ["face", "return", "interaction"].into_iter().enumerate() {
+        let line = lines[index];
+        let binding = &line.binding;
+        let (source, sink) = if index == 0 {
+            (owner, target)
+        } else {
+            (target, owner)
+        };
+        if line.contract != CONTRACT
+            || line.availability.availability != LineAvailability::Ready
+            || line.availability.line_id != line.line_id
+            || line.availability.binding_id != binding.binding_id
+            || !joined(
+                line.line_id.as_str(),
+                &["line/native-owner/", reference, "/", direction],
+            )
+            || !joined(
+                binding.binding_id.as_str(),
+                &["binding/native-owner/", reference, "/", direction],
+            )
+            || !joined(
+                binding.base_instance_id.as_str(),
+                &["base-instance/native-owner/", reference],
+            )
+            || !joined(
+                line.availability.sign_id.as_str(),
+                &["sign/native-owner/", reference, "/", direction, "/ready"],
+            )
+            || binding.base.as_str() != "conduit.base/authenticated-tls-websocket@1"
+            || binding.source.host_id != source.host_id
+            || binding.source.boot_id != source.boot_id
+            || binding.sink.host_id != sink.host_id
+            || binding.sink.boot_id != sink.boot_id
+            || !joined(
+                binding.source.endpoint_id.as_str(),
+                &[
+                    "endpoint/native-owner/",
+                    reference,
+                    "/",
+                    direction,
+                    "/source",
+                ],
+            )
+            || !joined(
+                binding.sink.endpoint_id.as_str(),
+                &["endpoint/native-owner/", reference, "/", direction, "/sink"],
+            )
+            || !matches!(&binding.credential, LinkCredentialReference::Opaque(value) if value.as_str() == credential)
+            || !matches!(&binding.authority, LinkAuthorityReference::Grant(value) if joined(value.as_str(), &["grant/native-owner/",reference]))
+            || binding.limits.maximum_in_flight_items != 1
+            || binding.limits.maximum_payload_bytes != 64 * 1024
+            || binding.limits.maximum_frame_bytes != 64 * 1024
+            || binding.limits.maximum_buffered_bytes != 128 * 1024
+        {
+            return false;
+        }
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

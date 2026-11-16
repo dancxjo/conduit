@@ -108,6 +108,9 @@ mod client_frame;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
+#[cfg(unix)]
+#[path = "durable_host_control/native_reply.rs"]
+mod native_reply;
 #[cfg(target_os = "linux")]
 #[path = "durable_host_control/notebook.rs"]
 pub(crate) mod notebook;

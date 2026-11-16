@@ -256,6 +256,18 @@ impl RemoteOwnerMaskRouteSeal {
         {
             return Err(RemoteOwnerMaskRouteError::MissingOrInvalidLine);
         }
+        #[cfg(feature = "std")]
+        let face_bytes = crate::bounded_json::encode(
+            face,
+            face_line.binding.limits.maximum_payload_bytes as usize,
+        )
+        .map_err(|error| match error {
+            crate::bounded_json::EncodingError::Invalid => RemoteOwnerMaskRouteError::InvalidFace,
+            crate::bounded_json::EncodingError::Capacity { .. } => {
+                RemoteOwnerMaskRouteError::FaceExceedsLine
+            }
+        })?;
+        #[cfg(not(feature = "std"))]
         let face_bytes =
             serde_json::to_vec(face).map_err(|_| RemoteOwnerMaskRouteError::InvalidFace)?;
         if face_bytes.len() > face_line.binding.limits.maximum_payload_bytes as usize {
@@ -488,6 +500,18 @@ impl RemoteOwnerMaskRouteSeal {
         if show.show.lifecycle != ManifestationLifecycle::Available || show.show.failure.is_some() {
             return Err(RemoteOwnerMaskRouteError::ShowUnavailable);
         }
+        #[cfg(feature = "std")]
+        let bytes = crate::bounded_json::encode(
+            show,
+            self.return_line.binding.limits.maximum_payload_bytes as usize,
+        )
+        .map_err(|error| match error {
+            crate::bounded_json::EncodingError::Invalid => RemoteOwnerMaskRouteError::InvalidShow,
+            crate::bounded_json::EncodingError::Capacity { .. } => {
+                RemoteOwnerMaskRouteError::ReturnExceedsLine
+            }
+        })?;
+        #[cfg(not(feature = "std"))]
         let bytes = serde_json::to_vec(show).map_err(|_| RemoteOwnerMaskRouteError::InvalidShow)?;
         self.validate_return_payload(bytes.len())
     }

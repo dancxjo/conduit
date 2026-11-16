@@ -95,6 +95,12 @@ pub struct FederatedReceivingSession {
 }
 
 impl FederatedReceivingSession {
+    /// Actual owned descendant capacities; excludes inline Self. No authority
+    /// or allocation is created by observing this cooperative backing receipt.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.challenge.retained_backing_bytes()
+    }
+
     /// Trusted-key entrance: both challenge keys must already be authenticated
     /// by its caller. Received self-asserted keys are not membership evidence.
     /// Current installed members should use `establish_for_current_member`.
@@ -304,3 +310,98 @@ fn hash_identity(hash: &mut Sha256, value: &str) {
 
 #[cfg(test)]
 mod tests;
+
+impl FederationPeer {
+    /// Owned identity capacities, excluding inline Self and allocator metadata.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.host_id
+            .0
+            .capacity()
+            .checked_add(self.boot_id.0.capacity())
+    }
+}
+impl FederationChallenge {
+    /// Owned descendant capacities, excluding inline Self. Exhaustive field
+    /// destructuring requires review when the challenge representation changes.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            session_id,
+            line_id,
+            line_security: _,
+            initiator,
+            responder,
+            nonce: _,
+            expires_at_millis: _,
+            maximum_frames: _,
+        } = self;
+        session_id
+            .0
+            .capacity()
+            .checked_add(line_id.0.capacity())?
+            .checked_add(initiator.retained_backing_bytes()?)?
+            .checked_add(responder.retained_backing_bytes()?)
+    }
+}
+
+#[cfg(test)]
+mod backing_receipt_tests {
+    use super::*;
+    use alloc::string::String;
+    #[test]
+    fn challenge_receipt_counts_spare_identity_capacity_without_allocation() {
+        let mut host = String::with_capacity(256);
+        host.push_str("host");
+        let peer = FederationPeer {
+            host_id: HostId(host),
+            boot_id: BootId::from("boot"),
+            offer_generation: OfferGeneration(1),
+            verifying_key: [1; 32],
+        };
+        let challenge = FederationChallenge {
+            session_id: LinkBindingId::from("session"),
+            line_id: LineId::from("line"),
+            line_security: LineSecurity::AuthenticatedEncrypted,
+            initiator: peer.clone(),
+            responder: peer,
+            nonce: [1; 32],
+            expires_at_millis: 1000,
+            maximum_frames: 1,
+        };
+        let expected = challenge.session_id.0.capacity()
+            + challenge.line_id.0.capacity()
+            + challenge.initiator.host_id.0.capacity()
+            + challenge.initiator.boot_id.0.capacity()
+            + challenge.responder.host_id.0.capacity()
+            + challenge.responder.boot_id.0.capacity();
+        assert_eq!(challenge.retained_backing_bytes(), Some(expected));
+        assert!(expected >= 256);
+        assert_eq!(
+            CurrentMemberChallengeSlot::default().retained_backing_bytes(),
+            Some(0)
+        );
+    }
+}
+
+impl FederationInspection {
+    /// Owned identity capacities only; never a currentness/effect grant.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            session_id,
+            line_id,
+            line_security: _,
+            authenticated_peer_host,
+            authenticated_peer_boot,
+            peer_offer_generation: _,
+            membership_current: _,
+            next_sequence: _,
+            maximum_frames: _,
+            credential_current: _,
+        } = self;
+        session_id
+            .0
+            .capacity()
+            .checked_add(line_id.0.capacity())?
+            .checked_add(authenticated_peer_host.0.capacity())?
+            .checked_add(authenticated_peer_boot.0.capacity())
+    }
+}

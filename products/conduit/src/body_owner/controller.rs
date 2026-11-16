@@ -8,8 +8,8 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::HostAdvertisement;
 use conduit_core::bind_sign;
+use conduit_core::HostAdvertisement;
 use conduit_face::{Face, OwnerFaceSnapshotRequest};
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -106,7 +106,7 @@ mod remote_spoken_route;
 mod remote_terminal_route;
 #[path = "wardrobe_face.rs"]
 mod wardrobe_face;
-pub(crate) use clock_interval::{CLOCK_RUN_MAXIMUM_MILLIS, ClockAction, is_clock_control_intent};
+pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
@@ -150,13 +150,72 @@ pub(crate) fn clock_interval_action() -> &'static str {
 pub(crate) struct OwnerHost {
     current: Option<StdHost>,
     advertised: HostAdvertisement,
+    root_preparation: Option<conduit_std_host::body_execution::ImageRootPreparationOwner>,
 }
 
 impl OwnerHost {
-    fn new(host: StdHost) -> Self {
-        Self {
+    pub(crate) fn prepare(
+        host: &StdHost,
+    ) -> Result<Option<conduit_std_host::body_execution::ImageRootPreparationOwner>, String> {
+        if host.image_identity().is_some() {
+            Ok(Some(host.image_root_preparation_owner()?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn new(host: StdHost) -> Result<Self, String> {
+        let preparation = Self::prepare(&host)?;
+        Self::from_prepared(host, preparation).map_err(|(_, error)| error)
+    }
+
+    // On verification failure return the original Host, so a publication
+    // caller can restore custody even after its recoverable journal exists.
+    #[expect(
+        clippy::result_large_err,
+        reason = "Return original affine Host on refusal without allocating on the failure path"
+    )]
+    pub(crate) fn from_prepared(
+        host: StdHost,
+        root_preparation: Option<conduit_std_host::body_execution::ImageRootPreparationOwner>,
+    ) -> Result<Self, (StdHost, String)> {
+        let checked = match (&root_preparation, host.image_identity()) {
+            (Some(owner), Some(_)) => owner.verify_host(&host),
+            (None, None) => Ok(()),
+            _ => Err("Birth changed original IMAGE preparation lifetime".into()),
+        };
+        if let Err(error) = checked {
+            return Err((host, error));
+        }
+        Ok(Self {
             advertised: host.advertisement().clone(),
             current: Some(host),
+            root_preparation,
+        })
+    }
+
+    pub(crate) fn has_image_custody(&self) -> bool {
+        self.root_preparation.is_some()
+    }
+    pub(crate) fn optional_root_preparation(
+        &self,
+    ) -> Option<&conduit_std_host::body_execution::ImageRootPreparationOwner> {
+        self.root_preparation.as_ref()
+    }
+
+    pub(crate) fn root_preparation(
+        &self,
+    ) -> Result<&conduit_std_host::body_execution::ImageRootPreparationOwner, String> {
+        self.root_preparation
+            .as_ref()
+            .ok_or_else(|| "Root preparation requires original IMAGE custody".into())
+    }
+
+    fn verify_root_preparation_host(&self, host: &StdHost) -> Result<(), String> {
+        match (&self.root_preparation, host.image_identity()) {
+            (Some(owner), Some(_)) => owner.verify_host(host),
+            (None, None) => Ok(()),
+            _ => Err("Body Play changed original IMAGE preparation lifetime".into()),
         }
     }
 
@@ -168,6 +227,11 @@ impl OwnerHost {
     }
 
     pub(crate) fn take_for_play(&mut self) -> Result<StdHost, String> {
+        self.verify_root_preparation_host(
+            self.current
+                .as_ref()
+                .ok_or("Body Play already owns the Host")?,
+        )?;
         let host = self
             .current
             .take()
@@ -178,9 +242,18 @@ impl OwnerHost {
 
     pub(crate) fn restore_after_play(&mut self, host: StdHost) -> Result<(), String> {
         if self.current.is_some() || host.advertisement() != &self.advertised {
+            if let Some(owner) = &self.root_preparation {
+                owner.invalidate();
+            }
             return Err(
                 "Body Play returned a different Host advertisement or duplicate Host".into(),
             );
+        }
+        if let Err(error) = self.verify_root_preparation_host(&host) {
+            if let Some(owner) = &self.root_preparation {
+                owner.invalidate();
+            }
+            return Err(error);
         }
         self.advertised = host.advertisement().clone();
         self.current = Some(host);
@@ -228,6 +301,14 @@ impl OwnerHost {
     }
 }
 
+impl Drop for OwnerHost {
+    fn drop(&mut self) {
+        if let Some(owner) = &self.root_preparation {
+            owner.invalidate();
+        }
+    }
+}
+
 impl Deref for OwnerHost {
     type Target = StdHost;
 
@@ -262,6 +343,8 @@ pub(crate) struct Owner {
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     pending_member_return: Option<member_return::PendingMemberReturn>,
     member_carrier: Option<Box<member_carrier::MemberCarrierCustody>>,
+    parked_viewer: member_carrier::ParkedViewer,
+    pending_native_response_backing: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
     current_host_offers: conduit_body::CurrentHostOffers,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
@@ -369,7 +452,7 @@ impl Owner {
             BodyLifecycleSession::open(evidence).map_err(debug)?
         };
         Ok(Self {
-            host: OwnerHost::new(host),
+            host: OwnerHost::new(host)?,
             session,
             resident: Some(resident),
             resident_name: None,
@@ -388,6 +471,8 @@ impl Owner {
             pending_native_mask: None,
             pending_member_return: None,
             member_carrier: None,
+            parked_viewer: member_carrier::ParkedViewer::default(),
+            pending_native_response_backing: None,
             current_host_offers: conduit_body::CurrentHostOffers::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
@@ -412,7 +497,7 @@ impl Owner {
                 .map_err(debug)?;
         let resident = session.evidence().body.workset.plots().first().cloned();
         Ok(Self {
-            host: OwnerHost::new(host),
+            host: OwnerHost::new(host)?,
             session,
             resident,
             resident_name: None,
@@ -431,6 +516,8 @@ impl Owner {
             pending_native_mask: None,
             pending_member_return: None,
             member_carrier: None,
+            parked_viewer: member_carrier::ParkedViewer::default(),
+            pending_native_response_backing: None,
             current_host_offers: conduit_body::CurrentHostOffers::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,

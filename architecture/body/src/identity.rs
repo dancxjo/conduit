@@ -138,3 +138,23 @@ mod backing_tests {
         assert_eq!(wake.retained_backing_bytes(), wake.0.capacity());
     }
 }
+
+impl PartId {
+    /// Actual String capacity, excluding inline identity and allocator metadata.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.0.capacity()
+    }
+}
+impl MembershipProofId {
+    /// Actual String capacity, excluding inline identity and allocator metadata.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.0.capacity()
+    }
+}
+#[cfg(feature = "authenticated-admission")]
+impl MembershipCredentialId {
+    /// Actual String capacity, excluding inline identity and allocator metadata.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.0.capacity()
+    }
+}

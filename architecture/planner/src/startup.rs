@@ -24,6 +24,16 @@ pub(crate) fn startup_order(
         .filter(|placement| starts_from_admitted_host_input(placement))
         .map(|placement| placement.placement_id.clone())
         .collect::<BTreeSet<_>>();
+    if placements.len() <= 4 && delayed.is_empty() {
+        return Ok(
+            fixed_stateless_startup_order(placements, connections).map(|order| {
+                order[..placements.len()]
+                    .iter()
+                    .map(|&index| placements[index].placement_id.clone())
+                    .collect()
+            }),
+        );
+    }
     let mut remaining = placements
         .iter()
         .map(|placement| placement.placement_id.clone())
@@ -147,3 +157,37 @@ pub(crate) fn startup_dependencies(
 
 #[cfg(test)]
 mod tests;
+
+/// Exact ordinary lexical startup policy for at most four already checked,
+/// stateless placements. The returned indices borrow no authority. Callers must
+/// establish that no delayed State input exists; this helper does no admission.
+/// No heap allocation occurs here; unused array entries are zero.
+pub fn fixed_stateless_startup_order(
+    placements: &[PlannedGear],
+    connections: &[PlannedConnection],
+) -> Option<[usize; 4]> {
+    if placements.len() > 4 {
+        return None;
+    }
+    let mut remaining = [true; 4];
+    let mut order = [0; 4];
+    for result in order.iter_mut().take(placements.len()) {
+        let next = (0..placements.len())
+            .filter(|&index| remaining[index])
+            .filter(|&index| {
+                starts_from_admitted_host_input(&placements[index])
+                    || connections.iter().all(|connection| {
+                        connection.source_placement_id == connection.sink_placement_id
+                            || connection.source_placement_id != placements[index].placement_id
+                            || !placements.iter().enumerate().any(|(other, placement)| {
+                                remaining[other]
+                                    && placement.placement_id == connection.sink_placement_id
+                            })
+                    })
+            })
+            .min_by(|&a, &b| placements[a].placement_id.cmp(&placements[b].placement_id))?;
+        remaining[next] = false;
+        *result = next;
+    }
+    Some(order)
+}

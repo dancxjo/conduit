@@ -543,3 +543,23 @@ fn admission_transcript(
         expires_at_millis,
     )
 }
+
+impl MembershipCredential {
+    /// Owned capacities only; descriptive and independent of credential validity.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Self {
+            credential_id,
+            body_id,
+            part_id,
+            host_id,
+            boot_id,
+            issued_at_millis: _,
+        } = self;
+        credential_id
+            .retained_backing_bytes()
+            .checked_add(body_id.retained_backing_bytes())?
+            .checked_add(part_id.retained_backing_bytes())?
+            .checked_add(host_id.0.capacity())?
+            .checked_add(boot_id.0.capacity())
+    }
+}

@@ -41,6 +41,13 @@ impl Owner {
         face_line: &LineOffer,
         return_line: &LineOffer,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        self.select_native_viewer_session(session)?;
+        if self.host.has_image_custody() {
+            return Err(
+                "IMAGE native view requires the qualified original three-Line interactive profile"
+                    .into(),
+            );
+        }
         let (member, deadline, expires) = self.present_member_carrier(session)?;
         let expected = crate::durable_host::routed_join::native_lines::offer_pair(
             self.host.advertisement(),
@@ -67,6 +74,16 @@ impl Owner {
         return_line: &LineOffer,
         interaction_line: Option<&LineOffer>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        self.select_native_viewer_session(session)?;
+        if self.host.has_image_custody() {
+            return self.select_image_native_view(
+                session,
+                face_line,
+                return_line,
+                interaction_line
+                    .ok_or("standard IMAGE native view requires original prepared input Line")?,
+            );
+        }
         let (member, deadline, expires) = self.present_member_carrier(session)?;
         let expected = crate::durable_host::routed_join::native_lines::offer_graphical(
             self.host.advertisement(),
@@ -101,7 +118,12 @@ impl Owner {
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
     ) -> Result<(), String> {
-        let (_, deadline, _) = self.present_member_carrier(session)?;
+        self.select_native_viewer_session(session)?;
+        let deadline = if self.host.has_image_custody() {
+            self.native_carrier_view(session)?.deadline
+        } else {
+            self.present_member_carrier(session)?.1
+        };
         let route = self
             .member_carrier
             .as_ref()
@@ -122,8 +144,15 @@ impl Owner {
         show: &MaskShow,
         interaction: &conduit_face::FaceInteraction,
     ) -> Result<(), String> {
-        let (member, deadline, _) = self.present_member_carrier(session)?;
-        let c = &member.credential;
+        self.select_native_viewer_session(session)?;
+        let legacy;
+        let (c, deadline) = if self.host.has_image_custody() {
+            let view = self.native_carrier_view(session)?;
+            (view.credential, view.deadline)
+        } else {
+            legacy = self.present_member_carrier(session)?;
+            (&legacy.0.credential, legacy.1)
+        };
         if !request.has_exact_basis()
             || request.credential_id != c.credential_id.as_str()
             || request.body_id != c.body_id

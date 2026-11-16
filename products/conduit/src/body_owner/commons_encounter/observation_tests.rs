@@ -16,7 +16,7 @@ fn boot_and_generation_require_current_authenticated_owner_observation() {
     let mut unobserved_generation = current.clone();
     unobserved_generation.offer_generation = OfferGeneration(current.offer_generation.0 + 1);
     for stale in [unobserved_boot, unobserved_generation] {
-        owner.host = OwnerHost::new(StdHost::from_advertisement(stale.clone()).unwrap());
+        owner.host = OwnerHost::new(StdHost::from_advertisement(stale.clone()).unwrap()).unwrap();
         assert_eq!(
             commons.project(Some(&owner), &stale).unwrap_err(),
             "commons/current-owner-observation-unavailable"
@@ -28,6 +28,6 @@ fn boot_and_generation_require_current_authenticated_owner_observation() {
             "commons/current-owner-observation-unavailable"
         );
     }
-    owner.host = OwnerHost::new(StdHost::from_advertisement(current).unwrap());
+    owner.host = OwnerHost::new(StdHost::from_advertisement(current).unwrap()).unwrap();
     assert_eq!(owner.truth(), before);
 }
