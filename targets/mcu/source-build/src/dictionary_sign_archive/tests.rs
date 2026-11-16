@@ -119,3 +119,40 @@ fn other_registered_implementation_is_not_the_exact_archive_code() {
     )
     .is_err());
 }
+
+#[test]
+fn emission_preserves_checked_dimensions_and_separate_logical_and_physical_limits() {
+    let c = checked(SOURCE, true, false).unwrap();
+    let selected = CheckedDictionarySignArchiveConstruction::from_configuration(&c)
+        .unwrap()
+        .unwrap();
+    assert_eq!(selected.cfg_selection(), "dictionary_sign_archive");
+    let output = selected.rust_module();
+    for constant in [
+        "DICTIONARY_ARCHIVE_EVENTS: usize = 128",
+        "DICTIONARY_ARCHIVE_TEMPLATES: usize = 4",
+        "DICTIONARY_ARCHIVE_SEGMENTS: usize = 48",
+        "DICTIONARY_ARCHIVE_REQUEST_LANES: usize = 2",
+        "DICTIONARY_ARCHIVE_REMOTE_STREAMS: usize = 2",
+        "retained_events: 32768",
+        "retained_bytes: 2097152",
+        "archive_backing_bytes: 8192",
+        "transfer_overlap_bytes: 12288",
+    ] {
+        assert!(output.contains(constant), "missing {constant}");
+    }
+    let zero = SOURCE
+        .replace("request_lanes: 2", "request_lanes: 0")
+        .replace("remote_streams: 2", "remote_streams: 0");
+    let selected = CheckedDictionarySignArchiveConstruction::from_configuration(
+        &checked(&zero, true, false).unwrap(),
+    )
+    .unwrap()
+    .unwrap();
+    assert!(selected
+        .rust_module()
+        .contains("DICTIONARY_ARCHIVE_REQUEST_LANES: usize = 0"));
+    assert!(selected
+        .rust_module()
+        .contains("DICTIONARY_ARCHIVE_REMOTE_STREAMS: usize = 0"));
+}

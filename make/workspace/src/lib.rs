@@ -21,6 +21,10 @@ mod environment_tests;
 
 /// The finite package environment explicitly chosen by this repository's tooling.
 pub fn package_set() -> MakePackageSet {
+    let dictionary_archive = conduit_host_make::dictionary_sign_archive::DictionarySignArchivePackage::for_targets(vec![
+        "esp32/xtensa-lx6/hw-463-esp-wroom-32".into(),
+        "conduitos/thumbv6m/pico-w".into(),
+    ]).expect("workspace dictionary archive targets are finite");
     MakePackageSet::compose(&[
         &AvrProMicroMakePackage,
         &HostedMakePackage,
@@ -31,6 +35,7 @@ pub fn package_set() -> MakePackageSet {
         &Rp2040MakePackage,
         &RaspberryPiMakePackage,
         &LinearFramebufferMakeExtension,
+        &dictionary_archive,
     ])
     .expect("workspace make package composition is valid")
 }
@@ -41,3 +46,6 @@ pub fn catalog() -> MakeCatalog {
 
 #[cfg(test)]
 mod graphical_host_tests;
+
+#[cfg(test)]
+mod dictionary_sign_archive_tests;
