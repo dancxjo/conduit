@@ -139,7 +139,8 @@ impl<
         const A: usize,
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+        const UNRESOLVED_NODES: usize,
+    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES, UNRESOLVED_NODES>
 where
     D: StepBack<P>,
     S: ValueStorage,
@@ -189,10 +190,26 @@ impl<
         const A: usize,
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
+        const UNRESOLVED_NODES: usize,
     >
     PreparedKernelStorage<
         D,
-        FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>,
+        FixedScheduler<
+            D,
+            S,
+            E,
+            N,
+            C,
+            P,
+            Q,
+            R,
+            T,
+            H,
+            A,
+            TERMINAL_ROWS,
+            PHASE_BYTES,
+            UNRESOLVED_NODES,
+        >,
         N,
     >
 where

@@ -57,9 +57,10 @@ impl StepBack<2> for Back {
         StepOutcome::Await
     }
 }
-type Kernel<const M: usize, const B: usize = 100> =
-    FixedScheduler<Back, FixedValueStore<2, 8>, FixedSignLog<64>, 1, 2, 2, 2, 1, 1, 0, 1, M, B>;
-type Prepared<const M: usize, const B: usize = 100> = PreparedKernelStorage<Back, Kernel<M, B>, 1>;
+type Kernel<const M: usize, const B: usize = 100, const U: usize = 1> =
+    FixedScheduler<Back, FixedValueStore<2, 8>, FixedSignLog<64>, 1, 2, 2, 2, 1, 1, 0, 1, M, B, U>;
+type Prepared<const M: usize, const B: usize = 100, const U: usize = 1> =
+    PreparedKernelStorage<Back, Kernel<M, B, U>, 1>;
 fn write(
     nodes: &mut [NodeSpec<2>; 1],
     cords: &mut [CordSpec; 2],
@@ -107,9 +108,16 @@ fn prepare_profile<const M: usize, const B: usize>(
     maximum: usize,
     actual: &[[Option<AssignedTerminalTransduction>; 2]; 1],
 ) -> Result<Prepared<M, B>, KernelPreparationError> {
+    prepare_unresolved_profile::<M, B, 1>(linked, maximum, actual)
+}
+fn prepare_unresolved_profile<const M: usize, const B: usize, const U: usize>(
+    linked: bool,
+    maximum: usize,
+    actual: &[[Option<AssignedTerminalTransduction>; 2]; 1],
+) -> Result<Prepared<M, B, U>, KernelPreparationError> {
     let values = FixedValueStore::new(16).unwrap();
     if linked {
-        Kernel::<M, B>::prepare_boxed_with_linked_table_writer(
+        Kernel::<M, B, U>::prepare_boxed_with_linked_table_writer(
             values,
             signs(),
             maximum,
@@ -119,7 +127,7 @@ fn prepare_profile<const M: usize, const B: usize>(
             write,
         )
     } else {
-        Kernel::<M, B>::prepare_boxed_with_table_writer(
+        Kernel::<M, B, U>::prepare_boxed_with_table_writer(
             values,
             signs(),
             maximum,
@@ -142,6 +150,8 @@ fn bound<const M: usize>(linked: bool) -> Box<Kernel<M>> {
 
 #[path = "phase_terminal_tests.rs"]
 mod phase_terminal_tests;
+#[path = "unresolved_storage_tests.rs"]
+mod unresolved_storage_tests;
 #[test]
 fn linked_terminal_normal_and_abnormal_execution_matches_inline_without_allocating() {
     let mut inline = bound::<1>(false);
@@ -176,7 +186,7 @@ fn linked_terminal_normal_and_abnormal_execution_matches_inline_without_allocati
 trait NormalTerminal {
     fn close_and_drain(&mut self);
 }
-impl<const M: usize, const B: usize> NormalTerminal for Kernel<M, B> {
+impl<const M: usize, const B: usize, const U: usize> NormalTerminal for Kernel<M, B, U> {
     fn close_and_drain(&mut self) {
         self.close_remote_input(RemoteEndpointId(0), CordId(0))
             .unwrap();
