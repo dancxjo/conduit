@@ -55,7 +55,7 @@ for original in (repo/'targets/mcu/source-build/src/source_composition').glob('*
  dst=generated/('source_'+original.name)
  if dst.exists() or dst.is_symlink():dst.unlink()
  dst.symlink_to(original)
-env=dict(os.environ,OUT_DIR=str(generated.resolve()),CPU_BOARD_SOURCE=str(repo/'targets/esp32/firmware/host/src'))
+env=dict(os.environ,OUT_DIR=str(generated.resolve()),CPU_PROOF_OUTPUT=str(a.output.resolve()),CPU_BOARD_SOURCE=str(repo/'targets/esp32/firmware/host/src'))
 command=['rustc','--edition=2021','--cfg','fore_carrier','--cfg','record_service','--cfg','assigned_workset','-L',f'dependency={deps}','--crate-name','a422_cpu_factory',str(Path(__file__).with_name('probe.rs')),'-o',str(a.output/'probe')]
 for name,lib in sorted(selected.items()):command+=['--extern',f'{name}={lib}']
 with (a.output/'compile.log').open('w') as log:result=subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT)
@@ -68,7 +68,7 @@ digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
 trace=(a.output/'run.log').read_text()
 started='CPU_FACTORY_STARTED' in trace
 entered='original_complete_factory_called=true' in trace
-effects='CPU_SOURCE_HISTORY' in trace
+effects=('CPU_SOURCE_HISTORY' in trace or 'CPU_FULL_MEDIA_PRESERVED' in trace)
 receipt={
  'scope':'Fresh public Root signed three-fragment ingress and unchanged complete factory; conditional original renderer/admission/Start',
  'fresh_public_root_admission':'CPU_AUTHORITY_GATE public_root_spawn=true' in (a.output/'run.log').read_text(),
@@ -81,6 +81,7 @@ receipt={
  'fixture_sources_sha256':{p.name:digest(p) for p in sorted(Path(__file__).parent.glob('*.rs'))},
  'constructor_exit':result.returncode,'compile_log_sha256':digest(a.output/'compile.log'),'run_log_sha256':digest(a.output/'run.log'),
  'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,'original_Source_execution_completed':effects and result.returncode==0,
+ 'recording_state':'full pre-existing residence; zero new Source records' if 'CPU_FULL_MEDIA_PRESERVED' in trace else 'new Source records recovered' if 'CPU_SOURCE_HISTORY' in trace else 'not checked',
  'not_proved':([] if started else ['Successful complete Source preparation','Renderer preparation and whole admission/Start'])+([] if effects else ['Provider effects or continuing Play'])+['Target stack/heap/ABI fit','Physical device execution'],
 }
 (a.output/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')

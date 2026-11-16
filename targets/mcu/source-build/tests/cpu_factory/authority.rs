@@ -143,12 +143,18 @@ pub fn verify_public_admission() {
     let authority = Authority::new();
     let seed = authority.seed();
     let mut actual = authority.host();
+    let storage = crate::equipment::RecordingStorage::new();
+    let storage = if crate::full_residence::selected() {
+        crate::full_residence::prepopulate(storage)
+    } else {
+        storage
+    };
     let equipment = crate::equipment::Equipment::new(
         &actual,
         &authority.bootstrap.body_id,
         crate::equipment::Capture,
         crate::equipment::Wire,
-        crate::equipment::RecordingStorage::new(),
+        storage,
     );
     assert!(equipment.recording.recovery().unwrap().is_ok());
     equipment.publish(&mut actual).unwrap();

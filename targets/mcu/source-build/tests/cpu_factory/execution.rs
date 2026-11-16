@@ -72,7 +72,11 @@ pub fn drive<F: Future>(future: F, face: &LocalPublicationFace) -> bool {
     }
     crate::effects::check_frames();
     assert_eq!(crate::effects::CAPTURES.load(SeqCst) as u64, target);
-    assert!(crate::effects::PROGRAMS.load(SeqCst) > 0);
+    if crate::full_residence::selected() {
+        assert_eq!(crate::effects::PROGRAMS.load(SeqCst), 0);
+    } else {
+        assert!(crate::effects::PROGRAMS.load(SeqCst) > 0);
+    }
     let age = crate::cpu_time::now_ms() - crate::effects::last_frame_ms();
     let fresh = age <= crate::config::RENDERER_PAGE_PERIOD_MS * 5;
     println!(
@@ -84,6 +88,10 @@ pub fn drive<F: Future>(future: F, face: &LocalPublicationFace) -> bool {
     fresh
 }
 pub fn recover() {
+    if crate::full_residence::selected() {
+        crate::full_residence::verify_after_quiescence();
+        return;
+    }
     use conduit_resource_snapshot::append::{
         DurableRecordIndex, PreparedNorRecordResidence, RecordRead, RecordResidenceId,
     };

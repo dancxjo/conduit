@@ -62,6 +62,14 @@ pub struct RecordingStorage {
     retain: bool,
 }
 impl RecordingStorage {
+    pub fn capture_fixture_media(&self, name: &str) {
+        let output = std::env::var_os("CPU_PROOF_OUTPUT").expect("CPU proof output directory");
+        std::fs::write(std::path::PathBuf::from(output).join(name), &self.bytes).unwrap();
+    }
+    pub fn digest(&self) -> [u8; 32] {
+        use sha2::Digest;
+        sha2::Sha256::digest(&self.bytes).into()
+    }
     pub fn from_retained(bytes: Vec<u8>) -> Self {
         Self {
             bytes,
@@ -115,7 +123,12 @@ impl conduit_resource_snapshot::nor::NorStorage for RecordingStorage {
         bytes: &[u8],
     ) -> Result<(), conduit_resource_snapshot::nor::NorRefusal> {
         use conduit_resource_snapshot::nor::NorRefusal;
-        crate::effects::require();
+        let fixture_setup = crate::full_residence::seeding();
+        if fixture_setup {
+            assert!(!crate::effects::enabled());
+        } else {
+            crate::effects::require();
+        }
         if offset % 256 != 0 || bytes.len() != 256 {
             return Err(NorRefusal::Geometry);
         }
@@ -129,7 +142,11 @@ impl conduit_resource_snapshot::nor::NorStorage for RecordingStorage {
         for (old, new) in target.iter_mut().zip(bytes) {
             *old &= *new;
         }
-        crate::effects::PROGRAMS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        if fixture_setup {
+            crate::full_residence::SEED_PROGRAMS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        } else {
+            crate::effects::PROGRAMS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
         Ok(())
     }
 }

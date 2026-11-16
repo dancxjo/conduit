@@ -8,6 +8,7 @@ mod cpu_time;
 mod effects;
 mod execution;
 mod factory;
+mod full_residence;
 mod payload;
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
