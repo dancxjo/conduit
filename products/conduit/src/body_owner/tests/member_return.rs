@@ -295,3 +295,37 @@ fn wrong_nonce_still_spends_the_original_finite_proof_budget() {
     assert_eq!(f.owner.session.evidence(), &before);
     std::fs::remove_dir_all(f.root).unwrap();
 }
+
+#[test]
+fn policy_refusal_cannot_reset_a_previously_spent_proof_attempt() {
+    let mut f = pending_return_fixture("host/return-retained-budget");
+    let mut forged = f.proof.clone();
+    forged.signature[0] ^= 1;
+    assert!(f
+        .owner
+        .complete_member_return_at(&f.root, &forged, f.now, f.at)
+        .is_err());
+    f.owner.plan(&source()).unwrap();
+    for _ in 0..=conduit_body::MAX_ADMISSION_ATTEMPTS {
+        assert_eq!(
+            f.owner
+                .complete_member_return_at(&f.root, &f.proof, f.now, f.at)
+                .unwrap_err(),
+            "member return: NotLulled",
+        );
+    }
+    f.owner.lull().unwrap();
+    for _ in 1..conduit_body::MAX_ADMISSION_ATTEMPTS {
+        assert!(f
+            .owner
+            .complete_member_return_at(&f.root, &forged, f.now, f.at)
+            .is_err());
+    }
+    assert_eq!(
+        f.owner
+            .complete_member_return_at(&f.root, &f.proof, f.now, f.at)
+            .unwrap_err(),
+        "member return proof attempts exhausted",
+    );
+    std::fs::remove_dir_all(f.root).unwrap();
+}
