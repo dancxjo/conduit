@@ -3,7 +3,8 @@
 //! not physical remote, live carrier, screen-reader or human enactment evidence.
 use super::*;
 use conduit_human::{
-    ButtonSequenceOutcome, ButtonSequenceStep, InputButtonPhase, InputButtonTransition,
+    ButtonSequenceOutcome, ButtonSequenceRefusal, ButtonSequenceStep, InputButtonPhase,
+    InputButtonTransition,
 };
 use conduit_std_host::terminal_face_mask::{
     TerminalButtonSequence, TerminalFaceMask, TerminalInputOutcome, TerminalKeyboard,
@@ -100,6 +101,33 @@ fn gesture_and_keyboard_terminal_inputs_reach_the_same_running_owner_action() {
         owner.acknowledge_native_mask_show(&request, &show).unwrap();
         let prior_revision = owner.thermostat_live.as_ref().unwrap().revision;
         let interaction = if remote_sequence {
+            let mut interrupted = TerminalButtonSequence::prepare(&mask, &show, &DOUBLE).unwrap();
+            for (sequence, pressed) in [
+                (0, true),
+                (1, false),
+                (3, true),
+                (4, true),
+                (5, false),
+                (6, true),
+                (7, false),
+            ] {
+                let outcome = interrupted
+                    .observe(&mut mask, &button(pressed, sequence), 1)
+                    .unwrap();
+                if sequence >= 3 {
+                    assert_eq!(
+                        outcome.recognition,
+                        ButtonSequenceOutcome::Rejected(ButtonSequenceRefusal::InputGap)
+                    );
+                }
+                assert!(outcome.interaction.is_none());
+                assert_eq!(
+                    owner.thermostat_live.as_ref().unwrap().revision,
+                    prior_revision
+                );
+            }
+            // This fixture has now supplied a neutral released observation for
+            // its sole control; a separate fresh recognizer is explicit below.
             let mut cancelled = TerminalButtonSequence::prepare(&mask, &show, &DOUBLE).unwrap();
             assert!(cancelled
                 .observe(&mut mask, &button(true, 0), 1)

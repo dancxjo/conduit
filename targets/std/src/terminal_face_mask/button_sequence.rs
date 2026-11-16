@@ -14,6 +14,8 @@ use conduit_human::{
 pub enum TerminalButtonSequenceRefusal {
     Pattern(ButtonSequenceRefusal),
     Encounter(TerminalError),
+    Cancelled,
+    AlreadyRecognized,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -22,13 +24,19 @@ pub struct TerminalButtonSequenceOutcome {
     pub interaction: Option<FaceInteraction>,
 }
 
+#[derive(Clone, Copy)]
+enum EncounterEnd {
+    Cancelled,
+    Recognized,
+}
+
 pub struct TerminalButtonSequence<'a> {
     recognizer: ButtonSequence<'a>,
     // A stale fence, never authority: the Mask checks its current encounter on
     // every sample, and the execution/owner still validate the returned action.
     expected: MaskShow,
     focus: TerminalControl,
-    retired: bool,
+    ended: Option<EncounterEnd>,
 }
 
 impl<'a> TerminalButtonSequence<'a> {
@@ -53,14 +61,14 @@ impl<'a> TerminalButtonSequence<'a> {
             recognizer,
             expected: expected.clone(),
             focus,
-            retired: false,
+            ended: None,
         })
     }
 
     /// Loss/cancellation retires this encounter. Prepare a fresh shortcut only
     /// after the ordinary input-source and current Show checks succeed again.
     pub fn cancel(&mut self) -> ButtonSequenceOutcome {
-        self.retired = true;
+        self.ended.get_or_insert(EncounterEnd::Cancelled);
         self.recognizer.cancel()
     }
 
@@ -70,7 +78,13 @@ impl<'a> TerminalButtonSequence<'a> {
         event: &InputButtonTransition,
         interaction_sequence: u64,
     ) -> Result<TerminalButtonSequenceOutcome, TerminalButtonSequenceRefusal> {
-        let encounter = if self.retired || mask.focus != Some(self.focus) {
+        if let Some(end) = self.ended {
+            return Err(match end {
+                EncounterEnd::Cancelled => TerminalButtonSequenceRefusal::Cancelled,
+                EncounterEnd::Recognized => TerminalButtonSequenceRefusal::AlreadyRecognized,
+            });
+        }
+        let encounter = if mask.focus != Some(self.focus) {
             Err(TerminalError::StaleShow)
         } else {
             mask.check_show(&self.expected)
@@ -81,7 +95,7 @@ impl<'a> TerminalButtonSequence<'a> {
         }
         let recognition = self.recognizer.observe(event);
         let interaction = if recognition == ButtonSequenceOutcome::Recognized {
-            self.retired = true;
+            self.ended = Some(EncounterEnd::Recognized);
             match mask
                 .input(TerminalInput::Apply, &self.expected, interaction_sequence)
                 .map_err(TerminalButtonSequenceRefusal::Encounter)?

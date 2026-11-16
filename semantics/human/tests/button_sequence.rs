@@ -85,25 +85,28 @@ fn cancelling_held_pattern_drains_release_before_fresh_recognition() {
 }
 
 #[test]
-fn ordered_occurrence_gap_and_replay_cancel_partial_recognition() {
-    let mut recognition = ButtonSequence::prepare(&DOUBLE).unwrap();
-    recognition.observe(&event("remote/confirm", true, 20));
-    assert_eq!(
-        recognition.observe(&event("remote/confirm", false, 22)),
-        Outcome::Rejected(Refusal::InputGap)
-    );
-    assert_eq!(
-        recognition.observe(&event("remote/confirm", true, 21)),
-        Outcome::Rejected(Refusal::OutOfOrder)
-    );
-    assert_eq!(
-        recognition.observe(&event("remote/confirm", false, 23)),
-        Outcome::Pending { matched: 0 }
-    );
-    assert_eq!(
-        recognition.observe(&event("remote/confirm", false, 24)),
-        Outcome::Rejected(Refusal::UnmatchedRelease)
-    );
+fn continuity_failures_remain_terminal_even_after_cancellation() {
+    for (next, reason) in [(22, Refusal::InputGap), (20, Refusal::OutOfOrder)] {
+        let mut recognition = ButtonSequence::prepare(&DOUBLE).unwrap();
+        recognition.observe(&event("remote/confirm", true, 20));
+        assert_eq!(
+            recognition.observe(&event("remote/confirm", false, next)),
+            Outcome::Rejected(reason)
+        );
+        assert_eq!(recognition.cancel(), Outcome::Cancelled);
+        for (sequence, pressed) in [
+            (23, false),
+            (24, true),
+            (25, false),
+            (26, true),
+            (27, false),
+        ] {
+            assert_eq!(
+                recognition.observe(&event("remote/confirm", pressed, sequence)),
+                Outcome::Rejected(reason)
+            );
+        }
+    }
 }
 
 #[test]
@@ -161,4 +164,23 @@ fn preparation_refuses_empty_oversized_and_unbalanced_patterns() {
         }]),
         Err(Refusal::ButtonIdentity)
     ));
+}
+
+#[test]
+fn gap_cannot_rearm_a_held_button_after_partial_sequence() {
+    let mut recognition = ButtonSequence::prepare(&DOUBLE).unwrap();
+    recognition.observe(&event("remote/confirm", true, 0));
+    recognition.observe(&event("remote/confirm", false, 1));
+    // A press arrives after a lost occurrence. Its later held report must not
+    // become the first press of a fresh pattern on this interrupted source.
+    assert_eq!(
+        recognition.observe(&event("remote/confirm", true, 3)),
+        Outcome::Rejected(Refusal::InputGap)
+    );
+    for (sequence, pressed) in [(4, true), (5, false), (6, true), (7, false)] {
+        assert_eq!(
+            recognition.observe(&event("remote/confirm", pressed, sequence)),
+            Outcome::Rejected(Refusal::InputGap)
+        );
+    }
 }

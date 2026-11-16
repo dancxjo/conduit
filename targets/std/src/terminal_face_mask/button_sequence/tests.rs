@@ -101,7 +101,12 @@ fn released_sequence_returns_the_same_offered_action_as_ordinary_enter() {
         .unwrap()
         .interaction
         .unwrap();
-    assert!(sequence.observe(&mut mask, &event(false, 2), 2).is_err());
+    assert_eq!(
+        sequence
+            .observe(&mut mask, &event(false, 2), 2)
+            .unwrap_err(),
+        TerminalButtonSequenceRefusal::AlreadyRecognized
+    );
     let (mut keyboard_mask, keyboard_show) = focused();
     let input = TerminalKeyboard::default().push(b'\r').unwrap().unwrap();
     let TerminalInputOutcome::Interaction(ordinary) =
@@ -125,7 +130,12 @@ fn changed_focus_show_and_explicit_loss_cannot_complete_an_old_sequence() {
     let (mut fresh, current) = focused();
     let mut cancelled = TerminalButtonSequence::prepare(&fresh, &current, &PATTERN).unwrap();
     assert_eq!(cancelled.cancel(), ButtonSequenceOutcome::Cancelled);
-    assert!(cancelled.observe(&mut fresh, &event(true, 0), 1).is_err());
+    assert_eq!(
+        cancelled
+            .observe(&mut fresh, &event(true, 0), 1)
+            .unwrap_err(),
+        TerminalButtonSequenceRefusal::Cancelled
+    );
 }
 
 #[test]
@@ -146,4 +156,28 @@ fn absent_focus_and_unacknowledged_or_forged_show_refuse_preparation() {
     let (mask, mut show) = focused();
     show.show_id = serde_json::from_str("\"fixture/forged\"").unwrap();
     assert!(TerminalButtonSequence::prepare(&mask, &show, &PATTERN).is_err());
+}
+
+#[test]
+fn broken_shortcut_source_preserves_the_ordinary_keyboard_alternative() {
+    let (mut mask, show) = focused();
+    let mut shortcut = TerminalButtonSequence::prepare(&mask, &show, &PATTERN).unwrap();
+    shortcut.observe(&mut mask, &event(true, 0), 1).unwrap();
+    let gap = shortcut.observe(&mut mask, &event(false, 2), 1).unwrap();
+    assert_eq!(
+        gap.recognition,
+        ButtonSequenceOutcome::Rejected(ButtonSequenceRefusal::InputGap)
+    );
+    assert!(gap.interaction.is_none());
+    assert!(shortcut
+        .observe(&mut mask, &event(true, 3), 1)
+        .unwrap()
+        .interaction
+        .is_none());
+    let enter = TerminalKeyboard::default().push(b'\r').unwrap().unwrap();
+    let TerminalInputOutcome::Interaction(ordinary) = mask.input(enter, &show, 1).unwrap() else {
+        panic!("keyboard alternative must remain available")
+    };
+    assert_eq!(ordinary.action_id, "complete");
+    assert!(shortcut.observe(&mut mask, &event(false, 4), 2).is_err());
 }
