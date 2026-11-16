@@ -1,0 +1,46 @@
+{
+  "scope": "Typed Std worker-provider half only; no executable offer/Root registration, transport, devices, native admission or durable recording claims",
+  "cohort_base": "8cebe9cddd",
+  "dependency": "42ef0351ad record-result correlation helper, cherry-picked as8ea0c5344a; original MCU/source delivery lane not yet origin/dev",
+  "implementation": "targets/std/src/fore_record_read.rs; existing NativeSourceWorkerProvider and install_native_source_worker remain the sole execution/admission path",
+  "bounds": {
+    "result_bytes": 837,
+    "frame_scratch_bytes": 4096,
+    "frame_scratch_origin": "existing MAX_PICO_ADMISSION_FRAME_BYTES; worker stack, no new transport grant",
+    "maximum_requests": "explicit finite lifetime budget; never reset across child Plays",
+    "frames_per_attempt": 6,
+    "total_frames": "checked maximum_requests*6 <= original remaining budget; rechecked each call",
+    "deadline": "minimum of independently selected per-call/original/worker remaining bounds; cancellation budget validated"
+  },
+  "checks": [
+    "Canonical Count input and correlated canonical read result before existing result transport ACK",
+    "Zero/overflow/unfunded lifetime refusal",
+    "Missing callback, transport backpressure, unknown outcome and malformed/wrong-index results fence the original lease; no retry",
+    "Canonical application Busy stays a result; no fabricated busy outcome for transport backpressure",
+    "Cancellation never claims remote retirement or durable commitment"
+  ],
+  "qualification": {
+    "focused_tests_passed": 7,
+    "compiler": "rustc1.98.1 -Dwarnings",
+    "strict_clippy": "exact provider/tests and actual worker.rs directly compiled; terminal0",
+    "full_std_crate_check": "not performed; cached old Std graph incomplete; no heavy rebuild",
+    "real_root_lease_bridge": "not implemented/tested"
+  },
+  "test_dependency_provenance": {
+    "resource_rlib": "/tmp/conduit-preparation-refusal-20261116/debug/deps/libconduit_resource_snapshot-608051e15bdc4d66.rlib",
+    "resource_rlib_sha256": "5884ec66ac6ed3ec6e00a23c1c57071669a42ba0afe3ceb9ff2f8ffd761a9ce1",
+    "resource_features": [
+      "default"
+    ],
+    "resource_core_fingerprint": 13246880158075842855,
+    "actual_worker_module_compiled": "targets/std/src/selected_native_source/worker.rs, no stub worker trait"
+  },
+  "unresolved_ownership_bridge": [
+    "N owns original RetainedForeClient/OwnedForeTransport and synchronous per-call AuthorizedForeProbe guard.",
+    "No current API transfers an original scope-checked non-clonable lease to a static Send worker while Root retains approval/descriptor and unknown-outcome custody.",
+    "OriginalRecordReadFore unsafe correspondence trait states those obligations; matching IDs cannot construct authority.",
+    "Root must recheck original authorization each call, preserve total frame accounting and keep original custody beyond a dropped/cancelled worker lease.",
+    "Do not register an executable offer until the real admission/ownership bridge and matching NativeSourceDefinition are integrated."
+  ],
+  "delivery": "Purpose branch only; no new PR queue slot or current-dev adoption claim"
+}

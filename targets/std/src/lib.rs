@@ -10,6 +10,7 @@ mod selected_text_file;
 #[cfg(target_os = "linux")]
 pub use selected_text_file::{NativeTextFileDefinition, TextFileInitialization};
 mod selected_native_source;
+pub mod fore_record_read;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod selected_scanout;
 pub mod source_check;

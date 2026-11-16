@@ -20,6 +20,7 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+conduit-resource-snapshot = { path = "../../mechanisms/io/resource-snapshot" }
 ed25519-dalek = "2.2"
 conduitos = { path = "../conduitos", features = ["native-compositor-core"], optional = true }
 conduit-conduitos-mask-offer = { path = "../conduitos/mask-offer", optional = true }
