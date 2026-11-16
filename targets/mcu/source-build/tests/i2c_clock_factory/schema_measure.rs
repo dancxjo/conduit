@@ -241,8 +241,30 @@ impl SchemaObservation {
     }
 }
 
+fn parts(profiles: &[Profile]) -> (usize, usize, usize) {
+    profiles.iter().fold(
+        (0, 0, 0),
+        |(canonical_bytes, headers, payload), profile| match profile {
+            Profile::Canonical(bytes) => (canonical_bytes + *bytes as usize, headers, payload),
+            Profile::Schema {
+                canonical,
+                maximum_bytes,
+            } => (
+                canonical_bytes,
+                headers + canonical.len(),
+                payload + *maximum_bytes as usize - canonical.len(),
+            ),
+        },
+    )
+}
 fn main() {
     let canonical_extent: usize = profiles().map(|p| maximum(p) as usize).sum();
+    let cords = parts(profiles::CORD_VALUE_PROFILES);
+    let steps = parts(profiles::STEP_VALUE_PROFILES);
+    let native_results: usize = profiles::NATIVE_RESULT_CAPACITIES
+        .iter()
+        .map(|v| *v as usize)
+        .sum();
     let mut unique_headers = 0;
     let mut unique_header_bytes = 0;
     let mut duplicated_header_bytes = 0;
@@ -283,6 +305,11 @@ fn main() {
             + std::mem::size_of_val(profiles::NATIVE_RESULT_CAPACITIES),
         "canonical_schema_bytes_repeated_per_slot":duplicated_header_bytes,
         "dense_schema_node_payload_extent":dense_node_payload,
+        "cord_canonical_payload":cords.0, "cord_repeated_schema_headers":cords.1,
+        "cord_schema_node_payload":cords.2,
+        "step_canonical_payload":steps.0, "step_repeated_schema_headers":steps.1,
+        "step_schema_node_payload":steps.2,
+        "dense_mutable_payload_floor_before_metadata":cords.0 + steps.0 + native_results + dense_node_payload,
         "all_profile_canonical_extent":canonical_extent,
         "native_result_capacities":profiles::NATIVE_RESULT_CAPACITIES,
         "canonical":canonical.json(), "dense_schema":dense_schema.json(),

@@ -83,7 +83,7 @@ fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
     let connections = BTreeMap::new();
     let residents = [&image];
     let make = |host, boundaries| {
-        compile(Inputs {
+        let input = Inputs {
             plot: &plot,
             checked_source: Some(&checked),
             host,
@@ -114,7 +114,33 @@ fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
             },
             maxima: c::AssignedPlanMaxima::TINY_HOST,
             maximum_fore_ports: 2,
-        })
+        };
+        let inert = lower(&input)?;
+        let estimate = e::assigned_runtime_state_bytes(inert.generated.kernel()).map_err(debug)?;
+        let limited = Inputs {
+            maxima: c::AssignedPlanMaxima {
+                encoded_bytes: 0,
+                runtime_state_bytes: 0,
+                ..input.maxima
+            },
+            ..input
+        };
+        let inspection = lower(&limited)?;
+        assert_eq!(inert.plan, inspection.plan);
+        assert_eq!(
+            inert.generated.kernel().cord_value_bytes,
+            inspection.generated.kernel().cord_value_bytes
+        );
+        assert!(
+            compile(limited).is_err(),
+            "inspection must not bypass original encoding bounds"
+        );
+        let layout = compile(input)?;
+        assert_eq!(
+            u32::from_le_bytes(layout.projection_template[12..16].try_into().unwrap()),
+            estimate
+        );
+        Ok::<_, String>(layout)
     };
     let layout = make(&host, &boundaries).unwrap();
     let mut restarted = host.clone();
