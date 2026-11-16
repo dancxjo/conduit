@@ -2,7 +2,7 @@
 use super::*;
 use std::io::Write;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Request {
     original_policy_sha256: String,
@@ -11,6 +11,75 @@ struct Request {
     expected: BodyBiographyEvidence,
     /// Retire, rather than replay, every recorded one-shot deployment request.
     retire_actions: bool,
+    /// OS-local planning pins only; independently authenticated current offers
+    /// must still match before any placement or execution authority exists.
+    #[serde(default)]
+    configuration_pin_replacements: Vec<ConfigurationPinReplacement>,
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ConfigurationPinReplacement {
+    host_id: String,
+    expected_configuration_id: String,
+    checked_configuration_id: String,
+}
+
+fn replace_configuration_pins(
+    selection: &mut Selection,
+    replacements: &[ConfigurationPinReplacement],
+) -> Result<(), String> {
+    if replacements.len() > conduit_body::MAX_BODY_PLOTS {
+        return Err("Source configuration pin replacements exceed finite workset bounds".into());
+    }
+    let configuration_id =
+        |id: &str| valid_digest(id) && !id[7..].bytes().any(|byte| byte.is_ascii_uppercase());
+    // Validate the complete replacement set against the unchanged old policy.
+    // One Host may own several entries; every existing pin must match the CAS.
+    for (index, replacement) in replacements.iter().enumerate() {
+        if replacement.host_id.is_empty()
+            || replacement.host_id.len() > 256
+            || !configuration_id(&replacement.expected_configuration_id)
+            || !configuration_id(&replacement.checked_configuration_id)
+            || replacement.expected_configuration_id == replacement.checked_configuration_id
+            || replacements[..index]
+                .iter()
+                .any(|prior| prior.host_id == replacement.host_id)
+        {
+            return Err(
+                "Source configuration pin replacement is invalid, duplicate or unchanged".into(),
+            );
+        }
+        let mut found = false;
+        for intent in selection
+            .local_fore_adapters
+            .iter()
+            .filter(|intent| intent.host_id.as_str() == replacement.host_id)
+        {
+            found = true;
+            if intent.configuration_id != replacement.expected_configuration_id {
+                return Err(
+                    "Source configuration pin differs from its independently reviewed old pin"
+                        .into(),
+                );
+            }
+        }
+        if !found {
+            return Err("Source configuration pin replacement names an unselected Host".into());
+        }
+    }
+    for replacement in replacements {
+        for intent in selection
+            .local_fore_adapters
+            .iter_mut()
+            .filter(|intent| intent.host_id.as_str() == replacement.host_id)
+        {
+            intent
+                .configuration_id
+                .clone_from(&replacement.checked_configuration_id);
+        }
+    }
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -36,7 +105,8 @@ fn candidate(
     let mut selection: Selection = serde_json::from_slice(original).map_err(|e| e.to_string())?;
     if selection.release_bundle_sha256 != request.previous_release_bundle_sha256
         || installation.release_bundle_sha256 != request.installed_release_bundle_sha256
-        || selection.release_bundle_sha256 == installation.release_bundle_sha256
+        || (selection.release_bundle_sha256 == installation.release_bundle_sha256
+            && request.configuration_pin_replacements.is_empty())
         || selection.expected.body_id != current.body_id
         || &request.expected != current
     {
@@ -48,6 +118,12 @@ fn candidate(
         plays: selection.plays.len(),
         continuation_outputs: selection.continuation_outputs.len(),
     };
+    // Validate ALL original one-shot intents under their original release
+    // before either discarding them or changing any configuration pin.
+    let mut original_installation = installation.clone();
+    original_installation.release_bundle_sha256 = request.previous_release_bundle_sha256.clone();
+    validate_selection(&selection, &original_installation)?;
+    replace_configuration_pins(&mut selection, &request.configuration_pin_replacements)?;
     if !request.retire_actions
         && retired.admissions + retired.returns + retired.plays + retired.continuation_outputs != 0
     {
@@ -55,11 +131,6 @@ fn candidate(
             "Source re-selection requires explicit retirement of recorded one-shot actions".into(),
         );
     }
-    // Keep the original, complete policy valid under its original release too.
-    // No malformed old intent may be laundered by discarding it first.
-    let mut original_installation = installation.clone();
-    original_installation.release_bundle_sha256 = request.previous_release_bundle_sha256.clone();
-    validate_selection(&selection, &original_installation)?;
     // expected was the pre-adoption CAS basis; it need not have the new workset.
     // The unchanged captured File must still check to CURRENT committed work below.
     selection.release_bundle_sha256 = installation.release_bundle_sha256.clone();
@@ -227,6 +298,7 @@ pub(crate) fn reselect(state_dir: &Path, request_path: &Path) -> Result<(), Stri
             "selected_policy_sha256": digest(&replacement),
             "original_policy_audit": audit,
             "retired_actions": retired,
+            "configuration_pin_replacements": request.configuration_pin_replacements.len(),
             "source_adopted": false,
             "body_changed": false,
             "execution_authorized": false,
