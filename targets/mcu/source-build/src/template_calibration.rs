@@ -65,6 +65,80 @@ pub struct Calibration {
 }
 
 pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibration, String> {
+    let entries = with_entries(workset, &input, |source, other, args| {
+        let layout = template::compile(args)?;
+        let source_to_kernel = source
+            .plot
+            .expanded
+            .gears
+            .iter()
+            .map(|gear| {
+                let mut selected = layout.nodes.iter().filter(|(_, id)| id == &gear.gear_id);
+                let node = selected
+                    .next()
+                    .ok_or("calibration lost checked Source node")?
+                    .0;
+                if selected.next().is_some() {
+                    return Err("calibration duplicated checked Source node".into());
+                }
+                Ok(node)
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        let offer_images = other
+            .iter()
+            .map(|offer| {
+                e::generate_capability_offer_image(offer, input.maximum_offer_image_bytes)
+                    .map_err(debug)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let mask_roles = selected_mask_roles(&source.plot, &layout)?;
+        let append_status = selected_append_status(&source.plot, &layout)?;
+        Ok(Entry {
+            name: source.name.clone(),
+            mask_roles,
+            append_status,
+            source_document_id: source.plot.expanded.source_document_id.clone(),
+            checked_plot_id: source.plot.expanded.checked_plot_id.clone(),
+            expanded_plot_id: source.plot.expanded.expanded_plot_id.clone(),
+            layout,
+            other: other.to_vec(),
+            source_to_kernel,
+            offer_images,
+        })
+    })?;
+    Ok(Calibration {
+        entries,
+        installed_values_identity: workset.installed_values.identity(),
+    })
+}
+
+/// The original checked entry and native geometry before assignment encoding.
+/// Profiles are Rust source for immutable linked schemas, not initialized data.
+pub struct InertEntry {
+    pub name: String,
+    pub lowering: template::InertLowering,
+    pub value_profiles_rust: Option<String>,
+}
+pub fn inspect(workset: &workset::Workset, input: Inputs<'_>) -> Result<Vec<InertEntry>, String> {
+    with_entries(workset, &input, |source, _, args| {
+        let lowering = template::lower(&args)?;
+        let value_profiles_rust = lowering.value_profiles(&args)?;
+        Ok(InertEntry {
+            name: source.name.clone(),
+            lowering,
+            value_profiles_rust,
+        })
+    })
+}
+fn with_entries<T>(
+    workset: &workset::Workset,
+    input: &Inputs<'_>,
+    mut finish: impl FnMut(
+        &workset::Entry,
+        &[c::CapabilityOffer],
+        template::Inputs<'_>,
+    ) -> Result<T, String>,
+) -> Result<Vec<T>, String> {
     workset
         .installed_values
         .validate_configuration(input.checked_host)?;
@@ -112,7 +186,7 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
         let others: Vec<_> = other.iter().collect();
         let empty = BTreeMap::new();
         let line_candidates = BTreeMap::new();
-        let layout = template::compile(template::Inputs {
+        let args = template::Inputs {
             plot: &source.plot,
             checked_source: Some(&workset.checked_source),
             host: input.host,
@@ -134,50 +208,10 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
             computations: input.computations,
             maxima: input.maxima,
             maximum_fore_ports: input.maximum_fore_ports,
-        })?;
-        let source_to_kernel = source
-            .plot
-            .expanded
-            .gears
-            .iter()
-            .map(|gear| {
-                let mut selected = layout.nodes.iter().filter(|(_, id)| id == &gear.gear_id);
-                let node = selected
-                    .next()
-                    .ok_or("calibration lost checked Source node")?
-                    .0;
-                if selected.next().is_some() {
-                    return Err("calibration duplicated checked Source node".into());
-                }
-                Ok(node)
-            })
-            .collect::<Result<Vec<_>, String>>()?;
-        let offer_images = other
-            .iter()
-            .map(|offer| {
-                e::generate_capability_offer_image(offer, input.maximum_offer_image_bytes)
-                    .map_err(debug)
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        let mask_roles = selected_mask_roles(&source.plot, &layout)?;
-        let append_status = selected_append_status(&source.plot, &layout)?;
-        entries.push(Entry {
-            name: source.name.clone(),
-            mask_roles,
-            append_status,
-            source_document_id: source.plot.expanded.source_document_id.clone(),
-            checked_plot_id: source.plot.expanded.checked_plot_id.clone(),
-            expanded_plot_id: source.plot.expanded.expanded_plot_id.clone(),
-            layout,
-            other,
-            source_to_kernel,
-            offer_images,
-        });
+        };
+        entries.push(finish(source, &other, args)?);
     }
-    Ok(Calibration {
-        entries,
-        installed_values_identity: workset.installed_values.identity(),
-    })
+    Ok(entries)
 }
 
 impl Calibration {

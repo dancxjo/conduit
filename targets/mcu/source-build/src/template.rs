@@ -89,7 +89,28 @@ pub struct Layout {
 /// Independently generate the immutable receiver layout. Current runtime
 /// assignments still need signed containment, original finite admission and
 /// actual local provider/Fore possession; this helper issues none of those.
-pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
+/// Host-only checked native geometry. No assignment is encoded or approved;
+/// this carries no provider possession, runtime admission or Start authority.
+pub struct InertLowering {
+    pub plan: c::Plan,
+    pub generated: e::GeneratedForePlan,
+    resident: Vec<e::BoundResidentExpression>,
+    fragment_seal_recipe: c::FragmentSealRecipe,
+}
+impl InertLowering {
+    /// Existing explicit schema representation, never inferred from Kind names.
+    pub fn value_profiles(&self, input: &Inputs<'_>) -> Result<Option<String>, String> {
+        value_profiles::emit(
+            self.generated.kernel(),
+            &self.plan.fragments[0],
+            input.resident,
+            &input.plot.expanded,
+            input.checked_source,
+        )
+    }
+}
+
+pub fn lower(input: &Inputs<'_>) -> Result<InertLowering, String> {
     if !input.planning.line_offers.is_empty()
         || !input.planning.connection_bases.is_empty()
         || !input.planning.line_candidates.is_empty()
@@ -147,6 +168,22 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         input.maximum_fore_ports,
     )
     .map_err(|e| format!("native lowering: {e:?}"))?;
+    Ok(InertLowering {
+        plan,
+        generated,
+        resident,
+        fragment_seal_recipe,
+    })
+}
+
+pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
+    let InertLowering {
+        plan,
+        generated,
+        resident,
+        fragment_seal_recipe,
+    } = lower(&input)?;
+    let fragment = &plan.fragments[0];
     let bytes = generated
         .encode_with_resident_computations(input.maxima, &resident)
         .map_err(|e| format!("assigned encoding: {e:?}"))?;

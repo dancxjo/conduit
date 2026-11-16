@@ -169,6 +169,25 @@ pub fn compile_with_physical_bases(
     input: Input<'_>,
     physical: &[NativeBaseSelection<'_>],
 ) -> Result<t::Calibration, String> {
+    with_physical_description(workset, input, physical, t::compile)
+}
+
+/// Inspect the same checked, inert Source descriptions without encoding an
+/// assigned document. Host-tooling bounds here are not physical resource grants.
+pub fn inspect_with_physical_bases(
+    workset: &workset::Workset,
+    input: Input<'_>,
+    physical: &[NativeBaseSelection<'_>],
+) -> Result<Vec<t::InertEntry>, String> {
+    with_physical_description(workset, input, physical, t::inspect)
+}
+
+fn with_physical_description<T>(
+    workset: &workset::Workset,
+    input: Input<'_>,
+    physical: &[NativeBaseSelection<'_>],
+    finish: impl FnOnce(&workset::Workset, t::Inputs<'_>) -> Result<T, String>,
+) -> Result<T, String> {
     if physical.len() != input.native.len()
         || physical.iter().enumerate().any(|(index, selected)| {
             selected.base.is_empty()
@@ -379,7 +398,7 @@ pub fn compile_with_physical_bases(
         });
     }
     let residents = input.resident.iter().collect::<Vec<_>>();
-    t::compile(
+    finish(
         workset,
         t::Inputs {
             checked_host: input.checked,
