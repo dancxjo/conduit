@@ -3,8 +3,6 @@
 use super::*;
 
 pub(crate) struct RetainedSourcePreparation {
-    source: ImagePreparedValue<OwnedSourceCheckInput>,
-    caller: ImagePreparedValue<()>,
     body: conduit_body::BodyId,
     snapshot: SourceSnapshotRevision,
     entries: Vec<String>,
@@ -15,6 +13,9 @@ pub(crate) struct RetainedSourcePreparation {
     )]
     caller_workspace_bytes: usize,
     adapters: Vec<super::super::local_fore_policy::LocalForeAdapterIntent>,
+    // Drop derived metadata before returning its original IMAGE backing.
+    source: ImagePreparedValue<OwnedSourceCheckInput>,
+    caller: ImagePreparedValue<()>,
 }
 impl PreparedFileSource {
     /// Called only with the same OS selection checked by original preparation.
