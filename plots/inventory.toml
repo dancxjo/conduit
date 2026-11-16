@@ -700,7 +700,15 @@ browser_safe_not_applicable = "the finite seven-segment Show needs a selected de
 
 [[plots]]
 slug = "creche"
-title = "Crèche preparation"
+title = "Crib Body preparation"
 entry = "creche/main"
 deterministic = { package = "conduit", test = "lib", case = "plot_source::creche_tests::shipped_creche_is_an_ordinary_checked_product_plot" }
 browser_safe_not_applicable = "preparing another Body requires an admitted Host Call and exact owner-bound deployment authority; this oracle checks ordinary Source, not browser realization"
+
+[[plots]]
+slug = "womb"
+title = "Womb member Seed preparation"
+entry = "womb/main"
+workspace_catalog = false
+deterministic = { package = "conduit-body-make", test = "womb_runtime_contract", case = "womb_is_a_checked_plot_with_a_distinct_propagation_kind_and_fore" }
+browser_safe_not_applicable = "requires an installed Womb owner and selected builder; Source and kernel fixture evidence does not establish browser Body execution or admission"

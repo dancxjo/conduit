@@ -175,11 +175,18 @@ reallocate and deallocate zero bytes/objects. The checked Source cannot use a
 Crèche-equipped Host as an implicit Womb builder. The existing eight Crèche
 kernel tests also pass, including pressure, hard cancellation and late completion.
 All 59 make/body library tests and 18 focused installed Std Crèche tests pass.
-The supported `cargo xtask check creche-preparation` suite passes, including
+The preparation suite passes, including
 both Source/kernel protocols, eight Linux builder regressions and the existing
 product Source test. Strict make/body library/test Clippy and the evidence
-retention guard also pass. The suite's current identifier is retained while
-the user-directed Crib naming migration is coordinated with its owners.
+retention guard also pass. Its canonical entrance is now
+`cargo xtask check crib-preparation`; `creche-preparation` remains a thin CLI
+alias for retained instructions and proof. Current UI naming migration is
+coordinated with the relevant owners.
+The explicit Plot inventory and its checker catalogue now include Womb.
+`cargo xtask check plots check` passes all **111 canonical Plots**, and
+`cargo xtask check plots run --deterministic --plot womb` passes its registered
+Source oracle. Womb is excluded from the Workspace shelf until installed
+execution support exists; no availability or Plan/Play claim is inferred.
 These are checked Source and deterministic production-kernel proofs with
 fixture evidence, not an installed Womb Body Play or artifact/join chain.
 
@@ -189,3 +196,8 @@ patch is retained locally in ignored `target/proof/creche-womb/`; this chat has
 not changed the owned `products/conduit/src/plot_source.rs`. Installed builder
 ownership, ordinary Face progress and the authenticated browser-target slice
 remain unfinished.
+The first-join slice does not establish Seed issuer continuity across owner
+restarts. Successor authority remains a separate concern under
+[#6409](https://github.com/dancxjo/conduit/issues/6409) and
+[#6340](https://github.com/dancxjo/conduit/issues/6340); changing a contact or
+owner pin is not an authority handoff.
