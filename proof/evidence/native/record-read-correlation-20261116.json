@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.proof/record-read-correlation@1",
+  "source_commit": "42ef0351ad",
+  "delivery_base": "8cebe9cddd771d70fb2ff287031b1753978cd3b2",
+  "branch": "fix/cohort-record-read-correlation-20261116",
+  "package": "conduit-resource-snapshot",
+  "test_command": "cargo +1.98.1 test --locked -p conduit-resource-snapshot --lib",
+  "test_result": {
+    "passed": 42,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_clippy": {
+    "command": "cargo +1.98.1 clippy --locked -p conduit-resource-snapshot --lib --tests --no-deps -- -D warnings",
+    "exit_code": 0
+  },
+  "semantics": [
+    "canonical schema validation",
+    "exact requested physical index for Recorded and Gap",
+    "End cannot skip an existing requested index",
+    "non-record outcomes preserved without retry"
+  ],
+  "authority_granted": false,
+  "device_io": false,
+  "durable_recording_or_reclamation_proved": false,
+  "current_dev_dependency_absent": true,
+  "no_std_crate": true,
+  "test_log_sha256": "7e4670a9d6dabb88ce2b38749a99f8fc945009248f046eb8163f29c6f1e91cba",
+  "clippy_log_sha256": "8a931a6f2a7eafd2d1100bfd6654148199323261e86a1a36faed2d37231c5735"
+}

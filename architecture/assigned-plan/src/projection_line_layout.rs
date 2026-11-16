@@ -88,8 +88,9 @@ impl AssignedLocalProjectionTemplate<'_> {
             // descriptive pins cannot masquerade as an independently selected
             // installation. Their authorization remains outside this codec.
             if line.payload()[54..166]
-                .chunks_exact(16)
-                .any(|id| id == [0; 16])
+                .as_chunks::<16>()
+                .0
+                .contains(&[0; 16])
                 || line.payload()[166..].iter().all(|b| *b == 0)
             {
                 return Err(E::Bindings);

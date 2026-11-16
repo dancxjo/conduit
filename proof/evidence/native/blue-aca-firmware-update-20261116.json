@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.proof/blue-aca-update@1",
+  "request_id": "703c8c9ab1a645f88c94ec1720f8e10c",
+  "image": "aca04148bde0f16e7a219865dcf8696f6542f20065448a1e60e6133c800fbb80",
+  "application_sha256": "aaedd4be793998915d1a9b2fed6642e556b6f390bbc2794b39f379fc8e296128",
+  "seed_sha256": "ae036dc4799e00bf652baef600da2bbcc05e9fec6a9764950b85a69bb9fcdeed",
+  "before_flash_sha256": "e15e7b39c23f554647c61c83390f4cc9a0e04f1694743e595c2894193fff5623",
+  "after_flash_sha256": "664fa1474530c613e08d8475e5048d73c47f9c1a45a3e57a220dbc3ae2f1470b",
+  "only_reviewed_app_and_seed_changed": true,
+  "all_observation_slots_unchanged": true,
+  "network_and_membership_unchanged": true,
+  "reset_command_completed": true,
+  "serial_closed": true,
+  "observed_tty_owners": [],
+  "application_boot_authenticated": false,
+  "admitted_measurement_display_or_history_commit_proved": false,
+  "original_claim_retirement_proved": false
+}
