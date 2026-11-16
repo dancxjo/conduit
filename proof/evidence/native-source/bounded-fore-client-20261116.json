@@ -10,7 +10,6 @@
   "original_frame_time_cancellation_bounds_preserved": true,
   "tested_peer_fifo_bytes": 128,
   "maximum_unread_bytes": 126,
-  "schedule_variants": 512,
   "first_route_orders": 2,
   "handshake_attempted_frames": 8,
   "actual_selected_tests": {
@@ -41,5 +40,7 @@
   "retained_log_sha256": {
     "tests": "35bfc835b28894a37a6f9d031b3ea3196757a9a8ef5977c79b3688b9412a1394",
     "clippy": "c1cc7d5e8b989eba839acfa69250db0ee61fbbafe0f05787e14fc5a91d1dcac2"
-  }
+  },
+  "schedules_per_first_route": 256,
+  "total_schedule_cases": 512
 }
