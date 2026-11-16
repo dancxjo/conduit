@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.operator/obsolete-continuation-retirement@1",
+  "request_id": "7861317ce979d35b4c2b1269880f468d",
+  "root_boot": "boot/installed/5db86955f74102528fc2d9c6ce2c73fc389d5cf9f7221860e101cf137fc9d778",
+  "before_flash_sha256": "259a57ae90937b64dfee9e1b30185b5bcb7cf06d94aba6634ad5971643874166",
+  "after_flash_sha256": "55a814425d883f8a9e6e2314db10a1604e1b44212364c59a542dbfc3e2f6b3a6",
+  "seed_sha256": "33e982c7476a29f0044083f43bc9a038310b43e05358487c70f0e5a7db108408",
+  "retired_prefix_backup_sha256": "68cf046a92e25d5f1f3141911221fc37fe5f2b3928328b5f9bcb1a0971a792e4",
+  "only_obsolete_prefix_and_seed_changed": true,
+  "all_observation_slots_unchanged": true,
+  "network_and_membership_unchanged": true,
+  "application_unchanged": true,
+  "bootloader_and_partition_table_unchanged": true,
+  "serial_closed": true,
+  "native_measurement_or_display_progress_proved": false,
+  "durable_recording_claimed": false
+}

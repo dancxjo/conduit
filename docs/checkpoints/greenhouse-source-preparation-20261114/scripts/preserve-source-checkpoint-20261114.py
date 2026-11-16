@@ -25,6 +25,7 @@ try:
  names += ['yellow-dictionary-three-lane-target-qualification-20261116.json','yellow-dictionary-three-lane-make-20261116.log']
  names += ['blue-manager-root-flash-receipt-20261116.json']
  names += ['blue-uart-startup-readonly-audit-20261116.json','blue-stale-continuation-startup-audit-20261116.json','blue-policy-reconstruction-20261116.json']
+ names += ['blue-prefix-retirement-receipt-20261116.json']
  for name in names:
   p=root/'outputs'/name
   if p.is_file():put('evidence/'+name,p.read_bytes())
@@ -149,6 +150,7 @@ Current dev was refreshed and is already included. Threebee/owner UI is a separa
 """
  put('CONTINUE-HERE.md',note.encode())
  put('deployment-tools/verify-flash-replacement.py',(root/'work/deployment-tools/verify-flash-replacement.py').read_bytes())
+ put('tools/reconstruct-blue-a422-policy-20261116.py',(root/'work/factory-tools/reconstruct-blue-a422-policy-20261116.py').read_bytes())
  tree=git('write-tree');commit=git('commit-tree',tree,'-p',old,'-p',head,input=b'Preserve selected shared-stock Source factory and measured preparation savings\n')
  for p in paths:
   if (repo/p).is_file():assert run('show',f'{commit}:{p}')==(repo/p).read_bytes(),p
