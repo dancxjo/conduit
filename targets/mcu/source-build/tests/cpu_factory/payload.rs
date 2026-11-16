@@ -6,6 +6,58 @@ use sha2::{Digest, Sha256};
 fn id(s: &str) -> c::AssignedIdentity {
     c::AssignedIdentity::from_text(s)
 }
+fn placement(
+    template: &[u8],
+    checked: &str,
+    gears: &[(u16, &str)],
+    fore: &c::FreshAssignedFore<'_>,
+    host: &c::HostAdvertisement,
+) -> String {
+    let mut selected = None;
+    for record in c::AssignedPlanRecords::new(template).unwrap() {
+        let record = record.unwrap();
+        if record.tag != c::ASSIGNED_HOST_CALL
+            || u16::from_le_bytes(record.payload[..2].try_into().unwrap()) != fore.local_node
+        {
+            continue;
+        }
+        let Some(binding) = c::assigned_native_binding(record.payload).unwrap() else {
+            continue;
+        };
+        let mut bases = host
+            .bases
+            .iter()
+            .filter(|base| id(base.base_id.as_str()) == binding.base);
+        let base = bases.next().expect("actual native Fore owner");
+        assert!(bases.next().is_none());
+        let mut capabilities = base
+            .capability_ids
+            .iter()
+            .filter(|capability| id(capability.as_str()) == binding.capability);
+        let capability = capabilities.next().expect("actual Fore capability");
+        assert!(capabilities.next().is_none());
+        if let Some(prior) = selected {
+            assert_eq!(prior, capability.as_str());
+        } else {
+            selected = Some(capability.as_str());
+        }
+    }
+    let gear = gears
+        .iter()
+        .find(|(node, _)| *node == fore.local_node)
+        .unwrap()
+        .1;
+    String::from_utf8(
+        c::planned_placement_identity_bytes(
+            checked,
+            gear,
+            host.host_id.as_str(),
+            selected.expect("independent native capability"),
+        )
+        .to_vec(),
+    )
+    .unwrap()
+}
 fn projection(
     template: &[u8],
     digest: &[u8; 32],
@@ -131,11 +183,35 @@ pub fn workset(
     let mut documents = Vec::new();
     macro_rules! entry {
         ($m:ident,$index:expr,$line:expr) => {{
+            let placements: Vec<String> = s::$m::FRESH_FORE
+                .iter()
+                .map(|fore| {
+                    if $line {
+                        placement(
+                            s::$m::PROJECTION_TEMPLATE,
+                            s::$m::CHECKED_PLOT_ID,
+                            s::$m::GEAR_IDS,
+                            fore,
+                            context.actual,
+                        )
+                    } else {
+                        fore.placement.to_owned()
+                    }
+                })
+                .collect();
+            let fresh: Vec<_> = s::$m::FRESH_FORE
+                .iter()
+                .zip(&placements)
+                .map(|(fore, placement)| c::FreshAssignedFore {
+                    placement: placement.as_str(),
+                    ..*fore
+                })
+                .collect();
             let projection = projection(
                 s::$m::PROJECTION_TEMPLATE,
                 &s::$m::PROJECTION_TEMPLATE_DIGEST,
                 s::$m::MAXIMA,
-                s::$m::FRESH_FORE,
+                &fresh,
                 context.actual,
                 issuers,
                 $index,
