@@ -151,6 +151,37 @@ unsafe impl ExecutionSigns for HostedSignLog {
         HostedSignLog::events(self)
     }
 }
+/// Unrepresentable accounting must conservatively fail checked later sizing,
+/// never wrap or silently charge less than the exact original allocation owner.
+fn external_sign_backing(total: Option<usize>, inline: usize) -> usize {
+    total
+        .and_then(|bytes| bytes.checked_sub(inline))
+        .unwrap_or(usize::MAX)
+}
+// SAFETY: LiveSignLog's sealed backends retain the same fixed active allocations
+// and exact archive allocation, with no execution-time growth. Its owned total
+// includes inline Self; that wrapper is already counted by kernel storage and
+// must be subtracted exactly once. Overflow becomes MAX, which cannot coexist
+// with the nonzero original kernel allocation in checked retained sizing.
+unsafe impl<
+        const E: usize,
+        const R: usize,
+        const S: usize,
+        A: conduit_kernel::live_sign_archive::LiveArchiveBackend<E, R, S>,
+    > ExecutionSigns for conduit_kernel::live_sign_archive::LiveSignLog<E, R, S, A>
+{
+    fn external_backing_bytes(&self) -> usize {
+        external_sign_backing(self.owned_backing_bytes(), core::mem::size_of::<Self>())
+    }
+    fn events(&self) -> impl Iterator<Item = KernelEvent> {
+        conduit_kernel::live_sign_archive::LiveSignLog::events(self)
+    }
+}
+
+#[cfg(test)]
+#[path = "execution_sign_storage_tests.rs"]
+mod sign_storage_tests;
+
 /// `H` funds sparse binding addresses; `K` independently funds pending calls.
 /// `Q` independently funds queue slots, including multi-item Cord queues.
 /// `M` selects inline terminal rows; `F` funds retained abnormal-phase bytes.
