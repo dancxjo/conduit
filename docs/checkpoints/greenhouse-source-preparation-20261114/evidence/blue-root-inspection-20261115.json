@@ -1,0 +1,8 @@
+{
+  "captured_unix": 1794805429.8244822,
+  "host": "victus.local",
+  "device": "blue",
+  "exit": 0,
+  "query": "Root Inspect only; no provisioning/admission/Start",
+  "refusal": "Unexpected framing"
+}

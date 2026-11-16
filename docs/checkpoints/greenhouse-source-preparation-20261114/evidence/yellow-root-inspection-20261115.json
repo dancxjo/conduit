@@ -1,0 +1,8 @@
+{
+  "captured_unix": 1794805430.4556892,
+  "host": "motherbrain.local",
+  "device": "yellow",
+  "exit": 0,
+  "query": "Root Inspect only; no provisioning/admission/Start",
+  "inspection": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"74e7842341056d8d73a01ba85e3ca2173ea7b61d53450083ff577e0452023661\",\"fragments\":[{\"observed_events\":935,\"completed_calls\":935,\"overwritten_slots\":934,\"last\":{\"sequence\":21461,\"node\":0,\"port\":null,\"request\":314,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":6,\"completed_calls\":0,\"overwritten_slots\":5,\"last\":{\"sequence\":15,\"node\":2,\"port\":null,\"request\":null,\"kind\":\"BackCompleted\"},\"condition\":\"refused\",\"refusal\":{\"phase\":\"output-delivery\",\"error\":\"\\\"output runner refused\\\"\",\"truncated\":false}},{\"observed_events\":2,\"completed_calls\":1,\"overwritten_slots\":1,\"last\":{\"sequence\":19,\"node\":0,\"port\":null,\"request\":null,\"kind\":\"RunCancelled\"},\"condition\":\"refused\",\"refusal\":{\"phase\":\"runner\",\"error\":\"outcome=Failed/HostCallFailed/768 runner=Observer(HostCall(Failed, Some(Failure { code: HostCall\",\"truncated\":true}}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":315,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":\"capacity\"},\"control_refusal\":null}"
+}

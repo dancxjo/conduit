@@ -1,6 +1,6 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: 8e5fc2cb55e25aa1eb3d3e697e458f17feb035c8. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: 816230877a05e1e9e3c21e8e2bb7f55d460ce9f7. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
 ## Resumed 2026-11-15: checked routed-abnormal stock
 
