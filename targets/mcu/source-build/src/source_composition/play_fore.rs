@@ -2,7 +2,7 @@
 // independent owned members of the SAME complete admitted/Started workset.
 use super::*;
 #[cfg(fore_carrier)]
-#[path="play_fore_layout.rs"]
+#[path="source_play_fore_layout.rs"]
 mod layout_recipe;
 #[cfg(fore_carrier)]
 use conduit_mcu_host_runtime::{
