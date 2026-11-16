@@ -1,0 +1,17 @@
+{
+  "scope": "Same fixed 112-byte peer/session identity interval checked in seven16-byte chunks; allocation-free behavior-preserving lint repair",
+  "base": "8cebe9cddd771d70fb2ff287031b1753978cd3b2",
+  "source_sha256": "8861c1702c5ad2feb97643f521e908786f64333b59aa25b4002afb9598185967",
+  "qualification": {
+    "toolchain": "1.98.1",
+    "actual_assigned_plan_default_tests": 43,
+    "failed": 0,
+    "strict_clippy_test": "PASS -D warnings",
+    "method": "Exact crate source copied to isolated temporary tree with original allocation-probe fixture; direct rustc/clippy-driver --test and explicit test/feature check-cfg; no shared cache write"
+  },
+  "not_claimed": [
+    "serde feature union",
+    "full workspace lint",
+    "firmware rebuild or deployment"
+  ]
+}
