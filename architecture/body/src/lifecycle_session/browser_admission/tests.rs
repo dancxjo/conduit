@@ -4,7 +4,7 @@ use crate::{
     CandidateObservation, DiscoveryProofId, MembershipProofId, PartId,
 };
 use alloc::vec;
-use conduit_core::{HostProfileId, OfferGeneration, PROTOCOL_VERSION};
+use conduit_core::*;
 use ed25519_dalek::{Signer, SigningKey};
 fn host() -> HostId {
     "host/owner".into()
@@ -214,3 +214,5 @@ fn pending_realization_refuses_browser_admission_without_resetting_it() {
     );
     assert_eq!(session.realization, before);
 }
+
+mod unused_member_return;
