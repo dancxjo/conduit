@@ -288,3 +288,94 @@ fn unused_return_query_leaves_started_play_identity_exact() {
     assert_eq!(session.realization, before);
     assert_eq!(session.evidence, evidence);
 }
+
+#[test]
+fn signed_unused_return_preserves_started_play_and_bad_proof_is_atomic() {
+    let mut session = session();
+    let (mut manager, mut inventory, proof, key) = pending(&session);
+    let member = session
+        .admit_ambient_host(&mut manager, &mut inventory, &proof, 110, &host(), &boot())
+        .unwrap();
+    propose_empty_workset(&mut session);
+    let current = session.realization.as_ref().unwrap().clone();
+    let play = crate::BodyPlayIdentity::bind(&current.plan, 1);
+    let sign = |sequence| bind_sign(&host(), &boot(), Some(&play.active_play_id), sequence).sign_id;
+    let wake = current
+        .wake
+        .body_plan_ready(&current.plan, sign(0))
+        .unwrap()
+        .body_play_started(&current.plan, &play, sign(1))
+        .unwrap();
+    session.started(&host(), &boot(), play, wake).unwrap();
+    let fresh = advertisement("boot/browser/2");
+    let mut preparation = session.clone();
+    preparation
+        .observe_host_lost(&member.host_id, &member.boot_id, &host(), &boot())
+        .unwrap();
+    let challenge = manager
+        .begin_return(
+            &preparation.evidence.membership,
+            &member.part_id,
+            &fresh,
+            [3; 32],
+            120,
+            200,
+        )
+        .unwrap();
+    let expires = challenge.expires_at_millis;
+    let signature = key.sign(&challenge.signing_transcript()).to_bytes();
+    let proof = PartReturnProof {
+        admission_id: challenge.admission_id,
+        body_id: challenge.body_id,
+        part_id: challenge.part_id,
+        host_id: challenge.host_id,
+        boot_id: challenge.boot_id,
+        nonce: challenge.nonce,
+        signature,
+    };
+    let before = session.evidence.clone();
+    let realization = session.realization.clone();
+    let manager_before = manager.clone();
+    let mut bad = proof.clone();
+    bad.signature[0] ^= 1;
+    assert!(session
+        .admit_returning_unused_host(&mut manager, &fresh, &bad, 130, &host(), &boot())
+        .is_err());
+    assert_eq!(session.evidence, before);
+    assert_eq!(session.realization, realization);
+    assert_eq!(manager, manager_before);
+    assert_eq!(
+        session.admit_returning_host(&mut manager, &fresh, &proof, 130, &host(), &boot()),
+        Err(Error::NotLulled)
+    );
+    let mut referenced = session.clone();
+    referenced.realization.as_mut().unwrap().plan.plots[0].plan =
+        structural_plan("referenced", member.host_id.as_str());
+    let referenced_before = referenced.evidence.clone();
+    let referenced_plan = referenced.realization.clone();
+    assert_eq!(
+        referenced.admit_returning_unused_host(&mut manager, &fresh, &proof, 130, &host(), &boot()),
+        Err(Error::NotLulled)
+    );
+    assert_eq!(referenced.evidence, referenced_before);
+    assert_eq!(referenced.realization, referenced_plan);
+    assert_eq!(manager, manager_before);
+    let mut wrong_part = proof.clone();
+    wrong_part.part_id = PartId::bind(&before.body_id, "foreign", 9).unwrap();
+    assert!(session
+        .admit_returning_unused_host(&mut manager, &fresh, &wrong_part, 130, &host(), &boot())
+        .is_err());
+    assert!(session
+        .admit_returning_unused_host(&mut manager, &fresh, &proof, expires + 1, &host(), &boot())
+        .is_err());
+    assert_eq!(session.evidence, before);
+    assert_eq!(session.realization, realization);
+    assert_eq!(manager, manager_before);
+    let returned = session
+        .admit_returning_unused_host(&mut manager, &fresh, &proof, 130, &host(), &boot())
+        .unwrap();
+    assert_eq!(returned.part_id, member.part_id);
+    assert_eq!(returned.boot_id, fresh.boot_id);
+    assert_eq!(session.realization, realization);
+    session.evidence.validate().unwrap();
+}
