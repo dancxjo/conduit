@@ -10,7 +10,7 @@ pub(super) struct SnapshotState {
     record: PreparedSnapshotRecord,
     reference: Vec<u8>,
     authority: AuthorityBinding,
-    pending: Option<conduit_kernel::RequestId>,
+    pending: Option<(HostCallRequest, bool)>,
 }
 impl SnapshotState {
     pub(super) fn prepare(placement: &PlannedGear) -> Result<Self, String> {
@@ -75,7 +75,7 @@ pub(super) fn begin(
             .map_err(debug_error)?;
         return Ok(None);
     }
-    state.pending = Some(request.request);
+    state.pending = Some((request, publish));
     Ok(Some(PendingHostEffect {
         request,
         effect: BrowserHostEffect::Snapshot { publish },
@@ -96,9 +96,14 @@ pub(in crate::plot_runner) fn describe<'a>(
     let BrowserHostEffect::Snapshot { publish } = pending.effect else {
         return Err("not a snapshot request".into());
     };
-    let state = scheduler.snapshots[usize::from(pending.request.node.0)]
-        .as_ref()
+    let state = scheduler
+        .snapshots
+        .get(usize::from(pending.request.node.0))
+        .and_then(Option::as_ref)
         .ok_or("snapshot was not prepared")?;
+    if state.pending != Some((pending.request, publish)) {
+        return Err("snapshot request is stale or mismatched".into());
+    }
     Ok(StorageRequest {
         effect_kind: if publish {
             "resource-publish"
@@ -124,11 +129,13 @@ pub(super) fn complete(
     let BrowserHostEffect::Snapshot { publish } = pending.effect else {
         return Err("not a snapshot request".into());
     };
-    let state = scheduler.snapshots[usize::from(pending.request.node.0)]
-        .as_ref()
+    let state = scheduler
+        .snapshots
+        .get(usize::from(pending.request.node.0))
+        .and_then(Option::as_ref)
         .ok_or("snapshot was not prepared")?;
-    if state.pending != Some(pending.request.request) {
-        return Err("snapshot completion is stale".into());
+    if state.pending != Some((pending.request, publish)) {
+        return Err("snapshot request is stale or mismatched".into());
     }
     let result = result.and_then(|record| match (publish, record) {
         (true, None) => Ok(state.reference.as_slice()),
