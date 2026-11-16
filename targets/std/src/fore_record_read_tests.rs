@@ -251,3 +251,29 @@ fn timeout_is_selected_by_original_and_worker_budgets_not_diagnostic_constant() 
         Err((_, PreparationRefusal::Timeout))
     ));
 }
+
+#[test]
+fn changed_original_budget_and_invalid_input_do_not_start_io() {
+    let mut worker = prepared(Lease::new(ReadResult::End(0), 12), 2);
+    worker.original.frames = 5;
+    let mut out = [0; READ_RESULT_BYTES];
+    assert_eq!(
+        worker.perform(
+            &conduit_core::encode_count(0),
+            &mut out,
+            Duration::from_secs(1),
+            || false
+        ),
+        Err(WorkerFailure::Profile)
+    );
+    assert_eq!(worker.original.calls.load(Ordering::SeqCst), 0);
+    for input in [vec![0; 7], conduit_core::encode_count(u64::MAX).to_vec()] {
+        let mut worker = prepared(Lease::new(ReadResult::End(0), 6), 1);
+        assert_eq!(
+            worker.perform(&input, &mut out, Duration::from_secs(1), || false),
+            Err(WorkerFailure::InvalidOutput)
+        );
+        assert_eq!(worker.original.calls.load(Ordering::SeqCst), 0);
+        assert!(worker.is_fenced());
+    }
+}

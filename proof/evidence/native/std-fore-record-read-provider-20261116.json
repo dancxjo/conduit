@@ -17,10 +17,11 @@
     "Zero/overflow/unfunded lifetime refusal",
     "Missing callback, transport backpressure, unknown outcome and malformed/wrong-index results fence the original lease; no retry",
     "Canonical application Busy stays a result; no fabricated busy outcome for transport backpressure",
-    "Cancellation never claims remote retirement or durable commitment"
+    "Cancellation never claims remote retirement or durable commitment",
+    "Changed original remaining-frame budget and malformed/out-of-u32 Count inputs refuse without starting IO."
   ],
   "qualification": {
-    "focused_tests_passed": 7,
+    "focused_tests_passed": 8,
     "compiler": "rustc1.98.1 -Dwarnings",
     "strict_clippy": "exact provider/tests and actual worker.rs directly compiled; terminal0",
     "full_std_crate_check": "not performed; cached old Std graph incomplete; no heavy rebuild",
