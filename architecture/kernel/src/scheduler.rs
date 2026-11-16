@@ -69,6 +69,7 @@ mod retirement;
 mod route_membership;
 mod terminal_admission;
 mod terminal_storage;
+mod unresolved_storage;
 use ready_set::ReadySet;
 #[cfg(test)]
 mod scan_characterization;
@@ -1047,7 +1048,10 @@ impl CordState {
 /// rows; its complete `size_of::<Self>()` is still charged by preparation.
 /// `PHASE_BYTES` funds retained abnormal-finalization bytes only. A smaller
 /// profile refuses any such selected finalizer; public abnormal values and
-/// Cord/unresolved storage retain their full independent100-byte envelope.
+/// Cord and unresolved values retain their full independent 100-byte envelope.
+/// `UNRESOLVED_NODES=NODES` retains routed abnormal-origin evidence per node.
+/// Zero removes that stock only for topology without AbnormalTerminal Cords;
+/// spontaneous unrouted abnormal errors still return their complete value.
 pub struct FixedScheduler<
     D,
     S,
@@ -1062,6 +1066,7 @@ pub struct FixedScheduler<
     const PENDING_REQUESTS: usize = 0,
     const TERMINAL_ROWS: usize = NODES,
     const PHASE_BYTES: usize = { CanonicalValue::MAXIMUM_BYTES },
+    const UNRESOLVED_NODES: usize = NODES,
 > where
     D: StepBack<PORTS>,
     S: ValueStorage,
@@ -1072,7 +1077,7 @@ pub struct FixedScheduler<
     terminal_inputs_consumed: [[bool; PORTS]; NODES],
     terminal_phases: [Option<ActiveTerminalPhase<PHASE_BYTES>>; NODES],
     terminal_cancellation_pending: [bool; NODES],
-    unresolved_abnormal: [Option<UnresolvedAbnormal>; NODES],
+    unresolved_abnormal: [Option<UnresolvedAbnormal>; UNRESOLVED_NODES],
     projected_recovery_source: [Option<NodeId>; NODES],
     recovery_for_cord: [Option<NodeId>; CORDS],
     cord_specs: [CordSpec; CORDS],
@@ -1132,6 +1137,7 @@ impl<
         const PENDING_REQUESTS: usize,
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
+        const UNRESOLVED_NODES: usize,
     >
     FixedScheduler<
         D,
@@ -1147,6 +1153,7 @@ impl<
         PENDING_REQUESTS,
         TERMINAL_ROWS,
         PHASE_BYTES,
+        UNRESOLVED_NODES,
     >
 where
     D: StepBack<PORTS>,
@@ -1183,6 +1190,9 @@ where
         signs: E,
     ) -> Result<Self, SchedulerError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
+        unresolved_storage::validate_capacity::<UNRESOLVED_NODES, NODES>(
+            &cord_specs[..active_cords],
+        )?;
         if PORTS == 0 || QUEUE_SLOTS == 0 || !routes.is_sealed() {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -1204,7 +1214,7 @@ where
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
-            unresolved_abnormal: [None; NODES],
+            unresolved_abnormal: [None; UNRESOLVED_NODES],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
             quiescence_cord_end: quiescence::quiescence_cord_end(&cord_specs[..active_cords]),
@@ -1291,6 +1301,9 @@ where
         signs: E,
     ) -> Result<Self, SchedulerError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
+        unresolved_storage::validate_capacity::<UNRESOLVED_NODES, NODES>(
+            &cord_specs[..active_cords],
+        )?;
         if PENDING_REQUESTS == 0 || !host_bindings.is_sealed() {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -1370,7 +1383,8 @@ where
     }
 
     fn drained_status(&self) -> Result<SchedulerStatus, SchedulerError> {
-        if let Some((node, unresolved)) = self.unresolved_abnormal[..self.active_nodes]
+        if let Some((node, unresolved)) = self.unresolved_abnormal
+            [..self.active_nodes.min(UNRESOLVED_NODES)]
             .iter()
             .copied()
             .enumerate()
@@ -2356,7 +2370,10 @@ where
                 self.set_ready(node, false);
                 self.close_outputs(node)?;
                 if let Some(source) = self.projected_recovery_source[node].take() {
-                    self.unresolved_abnormal[usize::from(source.0)] = None;
+                    *self
+                        .unresolved_abnormal
+                        .get_mut(usize::from(source.0))
+                        .ok_or(SchedulerError::InvalidPlan)? = None;
                     self.signs.record(
                         NodeId(as_u16(node)?),
                         self.terminal_transductions[node]
@@ -2438,7 +2455,11 @@ where
             else {
                 return Err(SchedulerError::InvalidPlan);
             };
-            let unresolved = self.unresolved_abnormal[usize::from(origin.0)]
+            let unresolved = self
+                .unresolved_abnormal
+                .get(usize::from(origin.0))
+                .copied()
+                .flatten()
                 .ok_or(SchedulerError::InvalidPlan)?;
             if unresolved.port != origin_port {
                 return Err(SchedulerError::InvalidPlan);
@@ -3628,6 +3649,9 @@ where
         if abnormal_targets == 0 {
             return Ok(false);
         }
+        if self.unresolved_abnormal.get(node).is_none() {
+            return Err(SchedulerError::InvalidPlan);
+        }
         self.ensure_sign_capacity(abnormal_targets)?;
         self.ensure_remote_sign_capacity(remote_closures)?;
         let bytes = terminal.as_slice();
@@ -3685,10 +3709,14 @@ where
                 )?;
             }
         }
-        if self.unresolved_abnormal[node].is_some() {
+        let unresolved = self
+            .unresolved_abnormal
+            .get_mut(node)
+            .ok_or(SchedulerError::InvalidPlan)?;
+        if unresolved.is_some() {
             return Err(SchedulerError::InvalidPlan);
         }
-        self.unresolved_abnormal[node] = Some(UnresolvedAbnormal {
+        *unresolved = Some(UnresolvedAbnormal {
             port: output,
             terminal,
         });

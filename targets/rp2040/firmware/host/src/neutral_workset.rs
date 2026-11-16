@@ -91,3 +91,11 @@ const fn phase_bytes<const W: usize>(
     0
 }
 pub const PHASE_BYTES: usize = phase_bytes(&layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+
+/// A node can retain unresolved publication truth only for an actual abnormal
+/// target. Kernel construction independently checks the complete Cord topology.
+pub const UNRESOLVED_NODES: usize = if layout::ABNORMAL_CORD_COUNT == 0 {
+    0
+} else {
+    N
+};

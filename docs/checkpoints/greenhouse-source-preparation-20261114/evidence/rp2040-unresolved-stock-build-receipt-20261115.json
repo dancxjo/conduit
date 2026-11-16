@@ -1,0 +1,17 @@
+{
+  "command": [
+    "python3",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/rp2040-source-fit-build.py",
+    "--candidate",
+    "work/two-stage-source-candidate-20261114",
+    "--log",
+    "outputs/rp2040-unresolved-stock-link-20261115.log"
+  ],
+  "pid": 3710537,
+  "exit": 0,
+  "minimum_root_free_bytes": 18720890880,
+  "watchdog_floor_bytes": 2147483648,
+  "watchdog_terminated": false,
+  "source_checkpoint": "0e7bfb3d9a4617d386d239d1f88a947b6d7688b5",
+  "physical_deployment": false
+}

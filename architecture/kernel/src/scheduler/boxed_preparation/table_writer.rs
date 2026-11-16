@@ -14,6 +14,7 @@ impl<
         const PENDING_REQUESTS: usize,
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
+        const UNRESOLVED_NODES: usize,
     >
     FixedScheduler<
         D,
@@ -29,6 +30,7 @@ impl<
         PENDING_REQUESTS,
         TERMINAL_ROWS,
         PHASE_BYTES,
+        UNRESOLVED_NODES,
     >
 where
     D: StepBack<PORTS>,
@@ -176,7 +178,7 @@ where
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
-            unresolved_abnormal: [None; NODES],
+            unresolved_abnormal: [None; UNRESOLVED_NODES],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
             quiescence_cord_end: quiescence_cord_end,
@@ -264,6 +266,9 @@ where
                 .expect("initialized bindings");
             let validate = || -> Result<_, KernelPreparationError> {
                 validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
+                unresolved_storage::validate_capacity::<UNRESOLVED_NODES, NODES>(
+                    &cords[..active_cords],
+                )?;
                 if PORTS == 0
                     || QUEUE_SLOTS == 0
                     || PENDING_REQUESTS == 0

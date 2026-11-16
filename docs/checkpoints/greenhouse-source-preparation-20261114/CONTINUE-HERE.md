@@ -1,8 +1,16 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: d863617e78b1e27ef290b53e6f67e9f11906b5fe. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: 8e5fc2cb55e25aa1eb3d3e697e458f17feb035c8. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
-## Latest change: qualification boundary
+## Resumed 2026-11-15: checked routed-abnormal stock
+
+Newest kernel U0 profile qualifies only actual topology without AbnormalTerminal Cords; default remains N full100-byte entries. Shared kernel265all-featuretests/3ignored,172no-defaulttests/3ignored, no-defaultcompile and strictClippy PASS. MCU adapter139tests/1ignored and strictlibClippy PASS; Source6tests and strictlib/testsClippy PASS. New ARM kernel31536 B vs39592, saving8056 B. Preparation entrance ELF c384f6489df37e7094e45cebf489bb24799ddd099c330d20b7d9996291f2b8ff links, flashmargin49708, static209088/stackregion61248, heap131072 unchanged. Not whole application fit or deployment. Read latest20261115receipts before historical values below.
+
+Actual native runner was found hard-coding the old full-storage aliases. Profile forwarding through the ordinary runner/native services is now qualified:140runtime library tests and21native integration tests PASS; strictallfeaturelib/testsClippy PASS. ActualQ1/M0/phase0/U0 I2C+clock execution preserves exactrequests/cancellation/retirement withzeroexecutionallocations. This is CPU provider evidence, not Source76 admission or hardware proof. Prototype still intentionally prepare/drops. No new hardware proof.
+
+Fanout reduction remains DISABLED: source audit found fallible-Sign partial-commit reference custody gap, tracked #6906. See fanout-proof-review-20261115.md. Do not count the6616candidatebytes as savings. Crèche/Womb narrow handoff is also saved, separate from MCU ownership.
+
+## Historical latest change: qualification boundary
 
 The shared kernel now also includes PHASE_BYTES specialization (258 kernel tests passed/3 ignored; no_alloc and strict lib/testsClippy pass). Default remains100. The new MCU adapter forwards this dimension, and the RP2040 prototype derives0 from the exact Source terminal matrix. The shared MCU adapter now compiles and passes139 runtime tests/1ignored. The NEW RP2040 Source-derived factory now passes complete original CPU64 preparation/Root preflight and no_std compilation: retained164853/peak166892 B, additional7600 B saved, total45501 B saved from the original baseline. The phase-profile ARM release now links; exact selected kernel39592 B vs47192 B with full phase payloads. See newest phase receipts, not historical linked-only figures below. Runtime heap/stack/Start remain unproved. A bounded shared-adapter test was completed after preservation; no new target build or device changes followed.
 

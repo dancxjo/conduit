@@ -142,7 +142,7 @@ fn smaller_phase_profiles_refuse_even_matching_finite_finalizers_before_effects(
     );
     assert_eq!(scheduler.terminal_transductions, CONTRACTS);
 }
-struct Spontaneous;
+pub(super) struct Spontaneous;
 impl StepBack<1> for Spontaneous {
     fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
         StepOutcome::Abnormal {
@@ -151,7 +151,7 @@ impl StepBack<1> for Spontaneous {
         }
     }
 }
-type SpontaneousKernel<const B: usize> = FixedScheduler<
+pub(super) type SpontaneousKernel<const B: usize, const U: usize = 1> = FixedScheduler<
     Spontaneous,
     FixedValueStore<2, 100>,
     FixedSignLog<64>,
@@ -165,8 +165,17 @@ type SpontaneousKernel<const B: usize> = FixedScheduler<
     1,
     0,
     B,
+    U,
 >;
 fn spontaneous<const B: usize>() -> Box<SpontaneousKernel<B>> {
+    prepare_spontaneous::<B, 1>(true)
+        .unwrap()
+        .bind([Spontaneous])
+}
+pub(super) fn prepare_spontaneous<const B: usize, const U: usize>(
+    routed: bool,
+) -> Result<PreparedKernelStorage<Spontaneous, SpontaneousKernel<B, U>, 1>, KernelPreparationError>
+{
     static NONE: [[Option<AssignedTerminalTransduction>; 1]; 1] = [[None]];
     SpontaneousKernel::prepare_boxed_with_linked_table_writer(
         FixedValueStore::new(100).unwrap(),
@@ -201,7 +210,9 @@ fn spontaneous<const B: usize>() -> Box<SpontaneousKernel<B>> {
                     sink: crate::CordEndpoint::Remote(RemoteEndpointId(i as u16)),
                 };
             }
-            cords[0] = cords[0].with_track(AssignedConnectionTrack::AbnormalTerminal);
+            if routed {
+                cords[0] = cords[0].with_track(AssignedConnectionTrack::AbnormalTerminal);
+            }
             routes.install(
                 NodeId(0),
                 PortId(0),
@@ -213,8 +224,6 @@ fn spontaneous<const B: usize>() -> Box<SpontaneousKernel<B>> {
             Ok((1, 2))
         },
     )
-    .unwrap()
-    .bind([Spontaneous])
 }
 #[test]
 fn zero_phase_bytes_preserve_full_spontaneous_cord_and_unresolved_truth() {

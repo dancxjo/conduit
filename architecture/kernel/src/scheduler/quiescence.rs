@@ -25,6 +25,7 @@ impl<
         const PENDING_REQUESTS: usize,
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
+        const UNRESOLVED_NODES: usize,
     >
     FixedScheduler<
         D,
@@ -40,6 +41,7 @@ impl<
         PENDING_REQUESTS,
         TERMINAL_ROWS,
         PHASE_BYTES,
+        UNRESOLVED_NODES,
     >
 where
     D: StepBack<PORTS>,

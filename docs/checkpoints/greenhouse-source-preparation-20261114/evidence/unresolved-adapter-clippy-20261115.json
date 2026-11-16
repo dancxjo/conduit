@@ -1,0 +1,38 @@
+[
+  {
+    "command": [
+      "cargo",
+      "+1.98.1",
+      "clippy",
+      "--locked",
+      "--manifest-path",
+      "targets/mcu/host-runtime/Cargo.toml",
+      "--all-features",
+      "--lib",
+      "--no-deps",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit": 0,
+    "log": "outputs/mcu-unresolved-stock-clippy-20261115.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "+1.98.1",
+      "clippy",
+      "--locked",
+      "-p",
+      "conduit-mcu-source-build",
+      "--lib",
+      "--tests",
+      "--no-deps",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit": 0,
+    "log": "outputs/source-unresolved-stock-clippy-20261115.log"
+  }
+]

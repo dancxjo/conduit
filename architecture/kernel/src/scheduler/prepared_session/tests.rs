@@ -34,11 +34,15 @@ impl ReusableStepBack<1> for Back {
     }
 }
 type Log = FixedSignLog<32>;
-type Session = PreparedKernelSession<Back, FixedValueStore<4, 16>, Log, 2, 0, 1, 1, 2, 0>;
+type Session<const U: usize = 2> =
+    PreparedKernelSession<Back, FixedValueStore<4, 16>, Log, 2, 0, 1, 1, 2, 0, 0, 0, 2, 100, U>;
 fn log() -> Log {
     Log::new(32 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap()
 }
 fn specimen(fail_once: bool) -> Session {
+    specimen_profile::<2>(fail_once)
+}
+fn specimen_profile<const U: usize>(fail_once: bool) -> Session<U> {
     let mut routes = FixedRoutes::<2, 0>::new(1);
     routes.seal().unwrap();
     let mut store = FixedValueStore::<4, 16>::new(64).unwrap();
@@ -72,7 +76,7 @@ fn specimen(fail_once: bool) -> Session {
     .unwrap();
     Session::new(Box::new(kernel)).unwrap_or_else(|_| panic!("fresh"))
 }
-fn drain(session: &mut Session) {
+fn drain<const U: usize>(session: &mut Session<U>) {
     for _ in 0..8 {
         if session.step().unwrap() == SchedulerStatus::Drained {
             return;
@@ -186,4 +190,32 @@ fn lost_resident_pin_refuses_before_reset_and_preserves_old_evidence() {
     );
     assert_eq!(session.kernel().drivers()[0].begins, 0);
     assert_eq!(session.kernel().signs().len(), count);
+}
+
+#[test]
+fn zero_unresolved_stock_rearms_the_same_resources_after_normal_drain() {
+    let mut full = specimen(false);
+    let mut zero = specimen_profile::<0>(false);
+    let address = zero.kernel() as *const _ as usize;
+    for _ in 0..3 {
+        drain(&mut full);
+        drain(&mut zero);
+        assert_eq!(
+            full.kernel()
+                .signs()
+                .events()
+                .collect::<alloc::vec::Vec<_>>(),
+            zero.kernel()
+                .signs()
+                .events()
+                .collect::<alloc::vec::Vec<_>>()
+        );
+        full.begin_next([true, true], log())
+            .unwrap_or_else(|_| panic!("full rearm"));
+        zero.begin_next([true, true], log())
+            .unwrap_or_else(|_| panic!("zero rearm"));
+        assert_eq!(zero.kernel() as *const _ as usize, address);
+    }
+    zero.cancel().unwrap();
+    assert!(zero.begin_next([true, true], log()).is_err());
 }

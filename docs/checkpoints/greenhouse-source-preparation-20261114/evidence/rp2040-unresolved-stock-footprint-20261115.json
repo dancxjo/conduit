@@ -1,0 +1,14 @@
+{
+  "assurance": "Preparation entrance ARM link only, not complete reachable Play or runtime heap/stack fit",
+  "source_checkpoint": "0e7bfb3d9a4617d386d239d1f88a947b6d7688b5",
+  "elf_sha256": "c384f6489df37e7094e45cebf489bb24799ddd099c330d20b7d9996291f2b8ff",
+  "flash_load_end": "0x10160dd4",
+  "flash_margin": 49708,
+  "static_extent": 209088,
+  "static_extent_definition": "__sheap - __sdata",
+  "stack_available": 61248,
+  "resident_owner_bytes": 9024,
+  "main_future_pool_bytes": 46520,
+  "heap_grant_bytes": 131072,
+  "physical_deployment": false
+}
