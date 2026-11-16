@@ -1,0 +1,58 @@
+{
+  "scope": "Exact source-only archive of previously untracked neutral firmware/CPU fixture; reference provenance, NOT executable deployment qualification",
+  "original_tree": "environment-extraction-integration-20261111",
+  "original_head": "9370f87747",
+  "files": {
+    "targets/rp2040/firmware/host/src/neutral_authority.rs": {
+      "bytes": 4739,
+      "sha256": "46d567deb7c5503aa778bc34ecc48a8d65c3e1bf9d336ecd47bf4370c6eba4b3"
+    },
+    "targets/rp2040/firmware/host/src/neutral_equipment.rs": {
+      "bytes": 1714,
+      "sha256": "41bcf78e2d9a4da467fdf4a8ef0446da8d0e986b420ee5223bafd8922aeeb14d"
+    },
+    "targets/rp2040/firmware/host/src/neutral_equipment_owners.rs": {
+      "bytes": 1061,
+      "sha256": "2a5b23506ef8ab0dba972ad45cab1f3b1f710a77d54cfdd9e2c247066f94fbc9"
+    },
+    "targets/rp2040/firmware/host/src/neutral_execution.rs": {
+      "bytes": 6574,
+      "sha256": "ecd1392f6f77ccb070ce756f9698c7bd32ce9ca4204b16617e4a76d1a0b34486"
+    },
+    "targets/rp2040/firmware/host/src/neutral_factory.rs": {
+      "bytes": 14638,
+      "sha256": "f6816afd15e95a42b8af651190c7a97d23fc7d163ac610c8e0c2e92983582915"
+    },
+    "targets/rp2040/firmware/host/src/neutral_preflight.rs": {
+      "bytes": 4097,
+      "sha256": "284a88696a1f43e9e5405fce6efea59b88495a1af7ff915a0310844a2d3e7457"
+    },
+    "targets/rp2040/firmware/host/src/neutral_root.rs": {
+      "bytes": 3650,
+      "sha256": "c9a55dd3f055e0f5fd61f2f159e527a40df0fe6b75d423c3653b306c83d0ff6d"
+    },
+    "targets/rp2040/firmware/host/src/neutral_service.rs": {
+      "bytes": 6309,
+      "sha256": "78365705f4e0f150bc31d72d253c3954e6cfd369498992b22db92234a6931e88"
+    },
+    "targets/rp2040/firmware/host/src/neutral_workset.rs": {
+      "bytes": 4184,
+      "sha256": "684dba80aaf7fcabaa49c12cc35afea3575ad5145b75380b63ee3fffdbcbb1a8"
+    },
+    "targets/rp2040/make/tests/neutral_source.rs": {
+      "bytes": 12300,
+      "sha256": "ffc8ed3d26cfddbd6d0cae94a492bb9a9285063a9171f431167d5896cc2f66e2"
+    },
+    "targets/rp2040/make/tests/neutral_source/exercise.rs": {
+      "bytes": 16142,
+      "sha256": "ccb7e9965041636f10d88934a4884c843007e94f03fc9504b44ed054d11a2c18"
+    },
+    "targets/rp2040/make/tests/neutral_source/positive.rs": {
+      "bytes": 21047,
+      "sha256": "d79ffc1b3c7ce88c5ce74c8e6cbb353b5065057c03064a0e2bcc1811515b632d"
+    }
+  },
+  "source_files_modified_in_original": false,
+  "generated_inputs_or_private_state_copied": false,
+  "compile_or_live_execution_claimed": false
+}
