@@ -1,4 +1,10 @@
-# Crèche
+# Crib: existing Body-creation preparation contract
+
+Crib makes Bodies; Womb makes member Seeds. This existing embodied preparation
+contract creates another Body. Same-Body
+Host propagation belongs to [Womb](../womb/README.md), whose distinct operation
+must not call Birth. The current `creche/prepare` contract and its evidence retain their
+original identities while that product integration is completed.
 
 `main.conduit` is an ordinary checked Plot invoking the `creche/prepare` Kind.
 It prepares another Body from an existing Body through one exact admitted Host

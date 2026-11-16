@@ -1,4 +1,8 @@
-# Crèche and Womb: implementation gap
+# Crib and Womb: implementation gap
+
+Current terminology, directed by the user: **Crib makes Bodies; Womb makes
+member Seeds.** Existing `creche` identifiers below locate the inspected
+implementation and retained evidence; they do not name a second lifecycle.
 
 Source inspection: `dev` at `4400d3dffc`, 15 November 2026. This is a design
 and source audit with the narrow deterministic qualification below, not a
@@ -109,13 +113,16 @@ their own proof classes. Full acceptance remains open until these runs exist.
 
 ## Integration gate
 
-The inspected source's [Integration run](https://github.com/dancxjo/conduit/actions/runs/43547912460)
+The original inspected source's [Integration run](https://github.com/dancxjo/conduit/actions/runs/43547912460)
 failed in `proof / target / raspberry-pi`: compiling the ARMv6 image reports
 E0433 at `targets/conduitos/src/arch/armv6/mod.rs:123`, where `mailbox::call`
 is referenced while the module declaration is gated on `armv6-product`.
 That file overlaps open [#6862](https://github.com/dancxjo/conduit/pull/6862).
 The existing integration owner must resolve or hand off that failure before
 feature admission; it is not part of Womb's browser implementation scope.
+The repair has since merged as [#6907](https://github.com/dancxjo/conduit/pull/6907),
+and this work was refreshed onto `dev=5d4116ad98`. Its containing Integration
+was queued at inspection; merged repair is not a release-acceptance claim.
 
 ## Local prerequisite qualification
 
@@ -150,3 +157,34 @@ The first cold build was stopped before tests to address disk pressure. Only
 this worktree's regenerable `target/debug` was removed after compilers stopped;
 source and `target/proof` were preserved. Free space rose from 8.8 GB to 26 GB,
 and was 23 GB after rebuilding without debug information or incremental caches.
+
+## Ordinary Womb contract
+
+Local [Womb Source](../../plots/womb/main.conduit) now checks and expands with a
+distinct `womb/prepare` Kind, request/outcome types and Host Call identity.
+Its Back and Crèche's Back share an extracted finite digest-call transaction;
+their semantic contracts, completion codecs and exact eligibility remain
+distinct. No new scheduler, configuration language, artifact pipeline or
+builder offer is introduced.
+
+The new kernel tests execute each classified outcome, retain unaccepted output
+without repeating effects, reject another request's completion, and keep
+mechanism denial/failure/cancellation distinct. Measured Steps allocate,
+reallocate and deallocate zero bytes/objects. The checked Source cannot use a
+Crèche-equipped Host as an implicit Womb builder. The existing eight Crèche
+kernel tests also pass, including pressure, hard cancellation and late completion.
+All 59 make/body library tests and 18 focused installed Std Crèche tests pass.
+The supported `cargo xtask check creche-preparation` suite passes, including
+both Source/kernel protocols, eight Linux builder regressions and the existing
+product Source test. Strict make/body library/test Clippy and the evidence
+retention guard also pass. The suite's current identifier is retained while
+the user-directed Crib naming migration is coordinated with its owners.
+These are checked Source and deterministic production-kernel proofs with
+fixture evidence, not an installed Womb Body Play or artifact/join chain.
+
+The product Source checker registration is reserved with the active
+**Greenhouse Body (2)** owner through the authorized parent handoff. Its minimal
+patch is retained locally in ignored `target/proof/creche-womb/`; this chat has
+not changed the owned `products/conduit/src/plot_source.rs`. Installed builder
+ownership, ordinary Face progress and the authenticated browser-target slice
+remain unfinished.
