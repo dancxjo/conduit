@@ -31,3 +31,6 @@ fn mixed_duplicate_missing_inventory_refuses_before_native_preparation() {
         assert_eq!(selected_nodes(inventory), Err("native-source-inventory"));
     }
 }
+
+#[path = "native_i2c_clock_borrow_tests.rs"]
+mod borrow_contract;

@@ -18,6 +18,7 @@ pub type I2cClockDrivers<'o, 'f, R, I, D, const E: usize, const N: usize> =
 pub fn prepare_fragment<
     'o,
     'f,
+    'work,
     R: PreparedResidents<E>,
     I: I2cProvider,
     D: MonotonicDeadlineProvider,
@@ -39,9 +40,9 @@ pub fn prepare_fragment<
 >(
     context: b::NativePreparationContext<'_>,
     policy: Policy<'_>,
-    approved: &'f b::DelegatedBodyFragment<'f>,
-    profile: &b::AssignedBodyPreparationProfile<'f>,
-    fore: &'f [c::AssignedForeRequirement],
+    approved: &'work b::DelegatedBodyFragment<'work>,
+    profile: &b::AssignedBodyPreparationProfile<'work>,
+    fore: &'work [c::AssignedForeRequirement],
     bus: &'o mut Option<ReadyI2cBase<I>>,
     clock: &'o mut Option<ReadyClockAtBase<D>>,
     bus_issuer: &mut Issuer,
