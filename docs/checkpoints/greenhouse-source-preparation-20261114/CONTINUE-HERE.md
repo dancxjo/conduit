@@ -1,10 +1,10 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: 6589896b8d29928bdedc55f0153bd7aef4e24ad7. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: b849dbc9fd2c5c3be9d27955f2bad60c174d60c3. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
 ## Draft retained Source planning restoration — 2026-11-15
 
-First compiling product recovery slice saved from integration worktree, not deployed: originalSource/caller IMAGE guards move through a private token into resumed Owner; checked capture closure must equal CURRENTBodyworkset; only finite adapter intent retained, no admissions/returns/plays replay. Fresh authenticated offer commits refresh planning boundaries without changing membership outcome. cargo check productbinPASS; negative tests and review of stalebinding invalidation/caller-overlap funding still pending. DO NOT treat this draft as qualified/applied to running Root615. Faceowner retains liveRoot/deployment ownership; actual Fore/Line/nativeStart remains separate.
+Qualified product recovery slice b849dbc9fd saved from integration worktree, not deployed: originalSource/caller IMAGE guards move through a private token into resumed Owner; checked capture closure must equal CURRENTBodyworkset; only finite adapter intent retained, no admissions/returns/plays replay. Fresh authenticated offer commits refresh planning boundaries without changing membership outcome. Two genuine Source/IMAGE/caller/authenticated membership tests PASS; default and root-allocation-observation product checks plus strict bin/testsClippy PASS. Restoration requested peak3584443B within original16MiB caller, excluding cold/child/platformbaseline. Actual stale Source/snapshot/Root/IMAGE/offer tests pass; no one-shot replay, SourceCAS or autoWake. This patch is QUALIFIED but NOT applied to running Root615. Faceowner retains liveRoot/deployment ownership; actual Fore/Line/nativeStart remains separate.
 
 ## Fresh physical Blue recovery — 2026-11-15
 

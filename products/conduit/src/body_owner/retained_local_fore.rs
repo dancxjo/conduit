@@ -18,9 +18,16 @@ impl Owner {
     }
     pub(super) fn refresh_retained_local_fore(&mut self) {
         let Some(retained) = &self.selected_file_workset else {
+            self.local_fore_adapters = None;
             return;
         };
         if !retained.requires_local_fore_selection() {
+            self.local_fore_adapters = None;
+            return;
+        }
+        if let Err(error) = retained.verify_planning(&self.host, self.session.evidence()) {
+            self.local_fore_adapters = None;
+            eprintln!("retained-local-fore-unavailable: {error:.256}");
             return;
         }
         if self.host.is_playing() || self.session.realization().is_some_and(|r| r.play.is_some()) {
@@ -34,11 +41,22 @@ impl Owner {
             }
             return;
         }
-        self.local_fore_adapters = retained
-            .select_current_local_fore(&self.host, self.session.evidence(), &self.planning_hosts())
-            .ok();
+        self.local_fore_adapters = match retained.select_current_local_fore(
+            &self.host,
+            self.session.evidence(),
+            &self.planning_hosts(),
+        ) {
+            Ok(selected) => Some(selected),
+            Err(error) => {
+                eprintln!("retained-local-fore-unavailable: {error:.256}");
+                None
+            }
+        };
     }
     pub(super) fn require_retained_local_fore(&self) -> Result<(), String> {
+        if let Some(retained) = &self.selected_file_workset {
+            retained.verify_planning(&self.host, self.session.evidence())?;
+        }
         if self
             .selected_file_workset
             .as_ref()
@@ -52,3 +70,7 @@ impl Owner {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "retained_local_fore_tests.rs"]
+mod tests;

@@ -9,6 +9,11 @@ pub(crate) struct RetainedSourcePreparation {
     snapshot: SourceSnapshotRevision,
     entries: Vec<String>,
     resident_preparation: Option<ResidentPreparationSelection>,
+    #[cfg_attr(
+        not(all(feature = "root-allocation-observation", not(test))),
+        allow(dead_code)
+    )]
+    caller_workspace_bytes: usize,
     adapters: Vec<super::super::local_fore_policy::LocalForeAdapterIntent>,
 }
 impl PreparedFileSource {
@@ -22,7 +27,10 @@ impl PreparedFileSource {
             .verify_selected_image_prepared_value(&self.source)?;
         self.host
             .verify_selected_image_prepared_value(&self.caller)?;
-        if self.source.value().request().snapshot != selection.snapshot {
+        if self.host.advertisement().host_id.as_str() != selection.host_id
+            || self.caller_workspace_bytes != selection.caller_workspace_bytes
+            || self.source.value().request().snapshot != selection.snapshot
+        {
             return Err("retained planning selection differs from original File capture".into());
         }
         Ok((
@@ -34,6 +42,7 @@ impl PreparedFileSource {
                 snapshot: selection.snapshot.clone(),
                 entries: selection.entries.clone(),
                 resident_preparation: selection.resident_preparation.clone(),
+                caller_workspace_bytes: selection.caller_workspace_bytes,
                 adapters: selection.local_fore_adapters.clone(),
             },
         ))
@@ -48,11 +57,11 @@ impl RetainedSourcePreparation {
         }
         Ok(())
     }
-    pub(crate) fn restore(
-        self,
+    fn check_current(
+        &self,
         host: &conduit_std_host::StdHost,
         biography: &BodyBiographyEvidence,
-    ) -> Result<RetainedFileWorkset, String> {
+    ) -> Result<CheckedFileRevision, String> {
         self.verify_capture(host)?;
         if self.body != biography.body_id {
             return Err("retained planning belongs to another Body".into());
@@ -84,12 +93,27 @@ impl RetainedSourcePreparation {
             .transpose()?
             .unwrap_or_default();
         drop(document);
+        #[cfg(all(feature = "root-allocation-observation", not(test)))]
+        if conduit_std_host::allocation_observation::snapshot().peak_requested_bytes
+            > self.caller_workspace_bytes
+        {
+            return Err("restored Source checking exceeds original caller envelope".into());
+        }
+        Ok(CheckedFileRevision {
+            source,
+            plots,
+            resident_images,
+        })
+    }
+    pub(crate) fn restore(
+        self,
+        host: &conduit_std_host::StdHost,
+        biography: &BodyBiographyEvidence,
+    ) -> Result<RetainedFileWorkset, String> {
+        let checked = self.check_current(host, biography)?;
         let retained = RetainedFileWorkset {
-            checked: CheckedFileRevision {
-                source,
-                plots,
-                resident_images,
-            },
+            body_id: self.body,
+            checked,
             source: self.source,
             caller: self.caller,
             local_fore_adapters: self.adapters,
@@ -102,13 +126,23 @@ impl RetainedFileWorkset {
     pub(crate) fn requires_local_fore_selection(&self) -> bool {
         !self.local_fore_adapters.is_empty()
     }
+    pub(crate) fn verify_planning(
+        &self,
+        host: &conduit_std_host::StdHost,
+        biography: &BodyBiographyEvidence,
+    ) -> Result<(), String> {
+        if self.body_id != biography.body_id {
+            return Err("retained Fore planning belongs to another Body".into());
+        }
+        self.verify(host, &biography.body.workset)
+    }
     pub(crate) fn select_current_local_fore(
         &self,
         host: &conduit_std_host::StdHost,
         biography: &BodyBiographyEvidence,
         current: &[conduit_core::HostAdvertisement],
     ) -> Result<super::super::local_fore_policy::SelectedLocalForeSet, String> {
-        self.verify(host, &biography.body.workset)?;
+        self.verify_planning(host, biography)?;
         super::super::local_fore_policy::SelectedLocalForeSet::prepare(
             host.advertisement(),
             &self.checked.plots,
@@ -117,3 +151,7 @@ impl RetainedFileWorkset {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "source_revision_retained_tests.rs"]
+pub(super) mod tests;
