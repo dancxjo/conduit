@@ -62,6 +62,8 @@ pub enum CheckSuite {
     QuantityMapping,
     /// Check exact acoustic control conversions and installed Source projections.
     AcousticControl,
+    /// Check finite ambient observation Source and supplied weather responses.
+    AmbientObservations,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
     /// Prove selected Todo checkpoint persistence and same-Body Host continuity.
