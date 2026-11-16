@@ -1,0 +1,5 @@
+{
+  "captured_unix": 1794805021.5870268,
+  "query": "read-only STATUS/SENSOR_STATUS; no provisioning/admission/Start",
+  "refusal": "USB reply deadline"
+}

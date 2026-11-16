@@ -1,0 +1,51 @@
+{
+  "assurance": "Original complete factory, Root preflight and no_std modules, CPU64 requested allocation proof only; no target runtime fit or Start",
+  "command": [
+    "cargo",
+    "+1.98.1",
+    "test",
+    "--locked",
+    "-p",
+    "conduit-host-rp2040",
+    "--test",
+    "neutral_source",
+    "--",
+    "--ignored",
+    "--nocapture"
+  ],
+  "exit": 0,
+  "source_checkpoint": "8e5fc2cb55e25aa1eb3d3e697e458f17feb035c8",
+  "files": {
+    "targets/rp2040/firmware/host/src/neutral_factory.rs": "156b9f6ffe4f65e2b8b224a0a56e0b09b4ac0b83cc84842de220f4cc6d3601c2",
+    "targets/rp2040/firmware/host/src/neutral_workset.rs": "7a38bac6ae9e3d563d7417e085ed6faad4687e3a94051494bad9f271b536f80c",
+    "targets/rp2040/make/tests/neutral_source.rs": "97b143e89850a508ed6d40cba847b70d74e2b02f5adb1f7b8c43aa9f60da224e",
+    "targets/rp2040/make/tests/neutral_source/exercise.rs": "ccb7e9965041636f10d88934a4884c843007e94f03fc9504b44ed054d11a2c18",
+    "targets/rp2040/make/tests/neutral_source/positive.rs": "d79ffc1b3c7ce88c5ce74c8e6cbb353b5065057c03064a0e2bcc1811515b632d"
+  },
+  "selected_generated_out": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-1c5d21540636c3c8/out",
+  "measurements": {
+    "cpu_inline_kernel_bytes": 34176,
+    "cpu_inline_root_bytes": 33768,
+    "cpu_inline_equipment_bytes": 648,
+    "cpu_inline_residents_bytes": 13256,
+    "cpu_positive_whole_factory_retained_requested_bytes": 151109,
+    "cpu_positive_whole_factory_peak_requested_bytes": 153148,
+    "cpu_positive_preflight_peak_requested_bytes": 153148,
+    "original_heap_bytes": 131072
+  },
+  "log_sha256": "25a04af6590d07cc89fef195c0a654c3aeed8f268d0a58fc16dda4aa1c8d03d4",
+  "diagnostic_factory_copy": false,
+  "admission": false,
+  "Start": false,
+  "physical_deployment": false,
+  "target_heap_fit_proved": false,
+  "heap_grant_bytes": 131072,
+  "scope": "76Gears95Cords97queue slots27software47resident2nativeowners; original30314-byteassignment",
+  "exclusions": [
+    "preexisting Root/equipment/residents/issuer grants",
+    "allocator overhead/rounding",
+    "stack"
+  ],
+  "incremental_CPU64_retained_saving_bytes": 8056,
+  "combined_CPU64_retained_saving_from_original_bytes": 59245
+}

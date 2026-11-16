@@ -5,7 +5,8 @@ cache=root/'work/cache-backing/rp2040-source-fit-20261113'
 outputs=list(cache.glob('thumbv6m-none-eabi/release/build/conduit-rp2040-host-*/out/workset_0_layout.rs'))
 selected=[p.parent for p in outputs if 'pub const ABNORMAL_CORD_COUNT:usize=0;' in p.read_text()];assert len(selected)==1
 out=selected[0];logpath=root/'outputs/positive-unresolved-factory-20261115.log'
-env=dict(os.environ,CARGO_TARGET_DIR='/tmp/conduit-source-member-control-20261111',CARGO_INCREMENTAL='0',CARGO_PROFILE_DEV_DEBUG='0',CARGO_PROFILE_TEST_DEBUG='0',CARGO_BUILD_JOBS='4',CONDUIT_NEUTRAL_CPU_OUT_DIR=str(out))
+temporary=root/'work/source-proof-tmp-20261115';temporary.mkdir(exist_ok=True)
+env=dict(os.environ,TMPDIR=str(temporary),CARGO_TARGET_DIR='/tmp/conduit-source-member-control-20261111',CARGO_INCREMENTAL='0',CARGO_PROFILE_DEV_DEBUG='0',CARGO_PROFILE_TEST_DEBUG='0',CARGO_BUILD_JOBS='4',CONDUIT_NEUTRAL_CPU_OUT_DIR=str(out))
 env.pop('CONDUIT_NEUTRAL_DIAGNOSE_KERNEL',None)
 cmd=['cargo','+1.98.1','test','--locked','-p','conduit-host-rp2040','--test','neutral_source','--','--ignored','--nocapture']
 with logpath.open('w') as log:result=subprocess.run(cmd,cwd=repo,env=env,stdout=log,stderr=subprocess.STDOUT)
