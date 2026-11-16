@@ -166,6 +166,11 @@ strip = "symbols"
 opt-level = "s"
 strip = "symbols"
 
+# Keep hosted provider and decoding code within the native artifact ceiling.
+# Admission, unwind support and execution capabilities are unchanged.
+[profile.release.package.conduit-std-host]
+opt-level = "s"
+
 # Cross-crate deduplication keeps the complete native Host under its artifact bound.
 # Provider dependencies retain their existing release optimization levels.
 [profile.release]

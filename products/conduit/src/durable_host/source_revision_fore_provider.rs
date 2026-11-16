@@ -218,21 +218,7 @@ fn describe(
                 c::admitted_line_commitment(&line),
             ),
             abnormal_kind: port.abnormal_kind.clone(),
-            record_read_abi: port.track == c::ConnectionTrack::Payload
-                && port.temporal == c::PortTemporal::Value
-                && port.abnormal_kind.is_none()
-                && port.item_capacity == 1
-                && match port.direction {
-                    c::PortDirection::Input => {
-                        port.value_kind.as_str() == "value/u64" && port.byte_capacity == 8
-                    }
-                    c::PortDirection::Output => {
-                        port.value_kind.as_str()
-                            == conduit_resource_snapshot::read_result::READ_RESULT_PROFILE
-                            && port.byte_capacity as usize
-                                == conduit_resource_snapshot::read_result::READ_RESULT_BYTES
-                    }
-                },
+            record_read_abi: record_read_abi(port),
         });
         let binding = line.binding;
         rows.choices.push(conduit_planner::ExternalForeLineChoice {
@@ -285,3 +271,21 @@ mod tests;
 mod binding;
 pub(super) use binding::DirectForeMaterial;
 pub(crate) use binding::ForeProbeBinding;
+
+fn record_read_abi(port: &conduit_plan_lowering::lowering::LoweredForePort) -> bool {
+    port.track == c::ConnectionTrack::Payload
+        && port.temporal == c::PortTemporal::Value
+        && port.abnormal_kind.is_none()
+        && port.item_capacity == 1
+        && match port.direction {
+            c::PortDirection::Input => {
+                port.value_kind.as_str() == c::COUNT_INFO_ID && port.byte_capacity == 8
+            }
+            c::PortDirection::Output => {
+                port.value_kind.as_str()
+                    == conduit_resource_snapshot::read_result::READ_RESULT_PROFILE
+                    && port.byte_capacity as usize
+                        == conduit_resource_snapshot::read_result::READ_RESULT_BYTES
+            }
+        }
+}

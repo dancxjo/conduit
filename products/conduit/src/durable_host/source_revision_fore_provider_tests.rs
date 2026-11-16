@@ -4,6 +4,9 @@ use conduit_plot as p;
 use std::path::PathBuf;
 fn fixture_plan(bytes: u32, profile: &str) -> (c::Plan, c::HostAdvertisement) {
     let source = "plot increment (\n >> reading: U8\n result: U8 >>\n) = (reading + 1)\n";
+    fixture_plan_source(bytes, profile, source)
+}
+fn fixture_plan_source(bytes: u32, profile: &str, source: &str) -> (c::Plan, c::HostAdvertisement) {
     let checked =
         p::check_syntax_document(&p::parse_syntax_document(source), &p::StartupCatalog::new())
             .unwrap();
@@ -390,4 +393,45 @@ fn client_binding_uses_original_child_bytes_custody_and_installed_image() {
     assert!(material
         .bindings(&payload[..payload.len() - 1], [8; 32])
         .is_err());
+}
+
+#[test]
+fn authored_count_fore_is_accepted_and_internal_leaf_selector_is_refused() {
+    let (plan, _) = fixture_plan_source(
+        8,
+        "fixture/count",
+        "plot increment (\n >> reading: Count\n result: Count >>\n) = (reading + 1)\n",
+    );
+    let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+        &plan,
+        &plan.fragments[0].fragment_id,
+    )
+    .unwrap();
+    let input = lowered
+        .fore_ports
+        .iter()
+        .find(|port| port.direction == c::PortDirection::Input)
+        .unwrap();
+    assert!(
+        record_read_abi(input),
+        "actual checked/lowered Count input must be readable"
+    );
+    let mut wrong = input.clone();
+    wrong.value_kind = "value/u64".into();
+    assert!(!record_read_abi(&wrong));
+    wrong = input.clone();
+    wrong.byte_capacity = 7;
+    assert!(!record_read_abi(&wrong));
+    wrong = input.clone();
+    wrong.item_capacity = 2;
+    assert!(!record_read_abi(&wrong));
+    let output = lowered
+        .fore_ports
+        .iter()
+        .find(|port| port.direction == c::PortDirection::Output)
+        .unwrap();
+    assert!(
+        !record_read_abi(output),
+        "Count output is not RecordReadResult"
+    );
 }
