@@ -30,10 +30,14 @@ impl<I: RegisterIo> Controller<I> {
                 let status = self.io.read(RX_POP);
                 let count = (status >> 4) & 0x7ff;
                 let kind = (status >> 17) & 15;
-                for _ in 0..count.div_ceil(4) {
-                    let _ = self.io.read(FIFO);
+                // Count is payload length only on IN-data entries. Completion
+                // metadata can retain a stale count without additional bytes.
+                if kind == 2 {
+                    for _ in 0..count.div_ceil(4) {
+                        let _ = self.io.read(FIFO);
+                    }
                 }
-                unexpected |= status & 15 != 0 || count != 0 || !matches!(kind, 3 | 5 | 7);
+                unexpected |= status & 15 != 0 || !matches!(kind, 3 | 5 | 7);
             } else if self.io.read(STATUS) & HALTED != 0 && self.io.read(CHARACTER) & ENABLE == 0 {
                 return Ok(unexpected);
             }
