@@ -34,3 +34,11 @@ sha2 = "0.10"
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", features = ["body-plan-binding", "delegated-preparation"] }
 serde-json-core = "0.6"
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
+
+[[example]]
+name = "source-i2c-profile"
+path = "../../mcu/source-build/tests/i2c_clock_factory/profile_gate.rs"
+
+[[example]]
+name = "source-i2c-calibration"
+path = "../../mcu/source-build/tests/i2c_clock_factory/calibration_gate.rs"
