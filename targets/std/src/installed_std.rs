@@ -99,6 +99,8 @@ mod math_host;
 mod measurement_chart_constructor_back;
 pub(crate) mod measurement_chart_face_back;
 mod measurement_plot_back;
+mod measurement_window_back;
+mod flow_singleton_back;
 mod microphone_clip_back;
 mod microphone_host;
 mod midi_input_back;

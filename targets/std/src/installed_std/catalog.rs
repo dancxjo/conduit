@@ -212,6 +212,8 @@ use conduit_core::{ImplementationId, PlanFragment};
 const FACTORIES: &[&BackFactory] = &[
     &super::measurement_chart_constructor_back::FACTORY,
     &super::measurement_plot_back::FACTORY,
+    &super::measurement_window_back::FACTORY,
+    &super::flow_singleton_back::FACTORY,
     &super::measurement_chart_face_back::FACTORY,
     &super::measurement_chart_face_back::flow::FACTORY,
     &super::temporal_evidence_back::FACTORY,

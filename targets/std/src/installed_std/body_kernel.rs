@@ -709,6 +709,9 @@ impl<'a> BodyKernel<'a> {
                     )? {
                         continue;
                     }
+                    if super::measurement_window_back::complete(operation, request, &mut self.scheduler)? {
+                        continue;
+                    }
                     if super::measurement_plot_back::complete(
                         operation,
                         request,

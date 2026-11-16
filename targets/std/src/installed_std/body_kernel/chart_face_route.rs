@@ -17,6 +17,8 @@ pub(super) struct ChartFaceRoute {
     maximum_updates: u32,
     route: PendingFaceContributionRoute,
     waiting: Option<HostCallRequest>,
+    custody_call: Option<conduit_kernel::HostCallId>,
+    built: Option<HostCallRequest>,
     terminal_profile: bool,
 }
 impl ChartFaceRoute {
@@ -110,6 +112,21 @@ impl BodyKernel<'_> {
             {
                 return Err("chart Face Host Call shape differs".into());
             }
+            let custody_call = if terminal_profile {
+                let custody = self.operations.iter().find(|op| op.node == node
+                    && op.contract_id.as_str() == crate::measurement_chart_flow_offer::MEASUREMENT_CHART_OBSERVER_CUSTODY_CALL)
+                    .ok_or("chart Face lacks exact observer custody operation")?;
+                if custody.call != conduit_kernel::HostCallId(1)
+                    || custody.binding.maximum_input_bytes != operation.binding.maximum_input_bytes
+                    || custody.binding.maximum_output_bytes != 0
+                    || custody.target_kind != operation.target_kind
+                {
+                    return Err("chart Face observer custody operation differs".into());
+                }
+                Some(custody.call)
+            } else {
+                None
+            };
             let route = PendingFaceContributionRoute::prepare(
                 FaceContributionContext {
                     wake,
@@ -131,6 +148,8 @@ impl BodyKernel<'_> {
                 maximum_updates,
                 route,
                 waiting: None,
+                custody_call,
+                built: None,
                 terminal_profile,
             });
         }
@@ -138,18 +157,33 @@ impl BodyKernel<'_> {
         Ok(())
     }
     pub(super) fn chart_face_call(&mut self, request: HostCallRequest) -> Result<bool, String> {
-        let Some(route) = self
-            .chart_face
-            .as_mut()
-            .filter(|route| route.node == request.node && route.call == request.call)
-        else {
+        let Some(route) = self.chart_face.as_mut().filter(|route| {
+            route.node == request.node
+                && (route.call == request.call || route.custody_call == Some(request.call))
+        }) else {
             return Ok(false);
         };
         if route.waiting.is_some() {
             return Err("chart Face already retains a dispatched request".into());
         }
-        route.waiting = Some(request);
-        self.prepare_chart_face_call()?;
+        if route.custody_call == Some(request.call) {
+            let built = route
+                .built
+                .ok_or("observer custody has no original built contribution")?;
+            if built.request.0.checked_add(1) != Some(request.request.0)
+                || built.input != request.input
+                || !route.route.is_pending()
+            {
+                return Err("observer custody differs from exact built request".into());
+            }
+            route.waiting = Some(request);
+        } else {
+            if route.built.is_some() {
+                return Err("chart Face still owns earlier publication".into());
+            }
+            route.waiting = Some(request);
+            self.prepare_chart_face_call()?;
+        }
         Ok(true)
     }
     fn prepare_chart_face_call(&mut self) -> Result<(), String> {
@@ -206,6 +240,9 @@ impl BodyKernel<'_> {
                 },
             )
             .map_err(|e| format!("chart Face Host completion: {e:?}"))?;
+        if route.terminal_profile {
+            route.built = Some(request);
+        }
         route.waiting = None;
         Ok(())
     }
@@ -222,10 +259,40 @@ impl BodyKernel<'_> {
             self.chart_face = None;
             return Ok(());
         }
+        // The first completion must actually commit and arm the second call.
+        // Acceptance means observer custody only, not display/durable/human ACK.
+        if route.terminal_profile && route.waiting.is_none() {
+            return Ok(());
+        }
+        if let Some(request) = route.waiting {
+            if route.custody_call != Some(request.call)
+                || !self.scheduler.host_call_is_pending(request)
+            {
+                return Err("observer custody lost exact pending kernel request".into());
+            }
+        }
         let observer = observer
             .as_deref_mut()
             .ok_or("chart Face observer detached")?;
         match route.route.publish(observer) {
+            Ok(true) if route.terminal_profile => {
+                let request = route
+                    .waiting
+                    .take()
+                    .ok_or("accepted observer custody lost request")?;
+                self.scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
+                            output: None,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|e| format!("observer custody completion: {e:?}"))?;
+                route.built = None;
+            }
             Ok(_) | Err(FaceContributionRefusal::Pressure) => {}
             Err(error) => return Err(format!("chart Face contribution refused: {error:?}")),
         }

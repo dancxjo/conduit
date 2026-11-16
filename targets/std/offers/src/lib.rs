@@ -352,6 +352,10 @@ pub use pcm_packing::*;
 mod source_check;
 pub use source_check::*;
 
+mod flow_singleton;
+pub use flow_singleton::*;
+mod measurement_window;
+pub use measurement_window::*;
 mod measurement_plot;
 pub use measurement_plot::*;
 mod measurement_chart;

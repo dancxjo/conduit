@@ -1,6 +1,13 @@
 //! Newly owned ingress metadata; supplied value bytes remain caller-owned.
 use super::*;
 impl PreparedForeInputs<'_> {
+    pub(in crate::installed_std) fn finite_sequential_backing_bytes(&self) -> Option<usize> {
+        let Self::Sequential(feeder) = self else {
+            return None;
+        };
+        feeder.prepared_backing_bytes()
+    }
+
     /// Actual one-shot Vec capacities, including fan-out targets and spare
     /// slots. Borrowed input payloads are excluded. This is not admission or a
     /// validation-workspace receipt; streaming/live profiles refuse explicitly.

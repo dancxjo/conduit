@@ -34,9 +34,13 @@ fn exact_undispatched_creche_kernel_has_finite_receipt_without_starting_owner() 
         .prepare_memory(&mut crate::ThreadTimer, &host.host_id, &host.boot_id, 0)
         .is_err());
     kernel.attach_creche(&owner, &plan, &play, &host).unwrap();
-    kernel
+    let receipt = kernel
         .prepare_memory(&mut crate::ThreadTimer, &host.host_id, &host.boot_id, 0)
         .unwrap();
+    assert!(
+        receipt.total_bytes()
+            >= core::mem::size_of::<BodyKernel<'_>>() + core::mem::size_of::<InstalledScheduler>()
+    );
     owner.retire().unwrap();
     drop(owner);
     assert_eq!((adapter.begins, adapter.polls), (0, 0));

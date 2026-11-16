@@ -4,6 +4,10 @@ pub const MEASUREMENT_CHART_FLOW_FACE_IMPLEMENTATION: &str = "std/measurement-ch
 pub const MEASUREMENT_CHART_FLOW_FACE_PROFILE: &str = "std/measurement-chart-face-flow-hosted@1";
 pub const MEASUREMENT_CHART_FLOW_FACE_HOST_CALL: &str =
     "conduit.host/measurement-chart-face-flow@1";
+/// Acceptance of immutable contribution custody by the selected observer;
+/// never a physical display acknowledgment, durable ACK, or human authority.
+pub const MEASUREMENT_CHART_OBSERVER_CUSTODY_CALL: &str =
+    "conduit.host/measurement-chart-observer-custody@1";
 pub fn measurement_chart_flow_face_std_offer(
     workspace: u32,
 ) -> Result<CapabilityOffer, &'static str> {
@@ -36,13 +40,19 @@ pub fn measurement_chart_flow_face_std_offer(
             execution_profile_id: MEASUREMENT_CHART_FLOW_FACE_PROFILE.into(),
             implementation_id: MEASUREMENT_CHART_FLOW_FACE_IMPLEMENTATION.into(),
             artifact_id: artifact.into(),
-            host_calls: vec![HostCallRequirement {
-                contract_id: MEASUREMENT_CHART_FLOW_FACE_HOST_CALL.into(),
-                target_kind: Some(kind.kind_id),
+            host_calls: [
+                MEASUREMENT_CHART_FLOW_FACE_HOST_CALL,
+                MEASUREMENT_CHART_OBSERVER_CUSTODY_CALL,
+            ]
+            .into_iter()
+            .map(|contract| HostCallRequirement {
+                contract_id: contract.into(),
+                target_kind: Some(kind.kind_id.clone()),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_data::measurement_chart_canonical_bytes() as u32,
                 maximum_output_bytes: 0,
-            }],
+            })
+            .collect(),
             resource_requirements: vec![resource_requirement(
                 RUNTIME_MEMORY_RESOURCE_CLASS,
                 workspace,

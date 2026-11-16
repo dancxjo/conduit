@@ -96,6 +96,8 @@ pub fn measurement_chart_constructor_std_offer(
 pub fn measurement_chart_cpu_offers() -> Result<Vec<CapabilityOffer>, &'static str> {
     let mut offers = vec![
         super::measurement_plot_std_offer(),
+        super::measurement_window_std_offer(),
+        super::measurement_series_singleton_std_offer(),
         super::measurement_chart_face_std_offer(super::measurement_chart_face_workspace_bytes())?,
         super::measurement_chart_flow_face_std_offer(
             super::measurement_chart_face_workspace_bytes(),

@@ -94,6 +94,7 @@ impl<'a> BodyKernel<'a> {
                 .is_some_and(|source| source.matches_call(operation.node, operation.call))
                 && !scalar_math::supports(operation)
                 && !super::super::measurement_plot_back::supports(operation)
+                && !super::super::measurement_window_back::supports(operation)
                 && !super::super::measurement_chart_constructor_back::supports(operation)
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
@@ -108,6 +109,8 @@ impl<'a> BodyKernel<'a> {
                     != crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_HOST_CALL
                 && operation.contract_id.as_str()
                     != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_HOST_CALL
+                && operation.contract_id.as_str()
+                    != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_OBSERVER_CUSTODY_CALL
                 && operation.contract_id.as_str()
                     != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {

@@ -105,3 +105,69 @@ fn owned_quantity_metadata_does_not_qualify_its_validation_workspace() {
     assert!(route.local_one_shot_backing_bytes().is_some());
     assert!(route.finite_one_shot_backing_bytes().is_none());
 }
+#[test]
+fn finite_sequence_uses_distinct_initial_receipt_and_keeps_constraint_refusals() {
+    let supplied = [ExternalForeInput {
+        front_port_id: "request".into(),
+        track: ConnectionTrack::Payload,
+        bytes: vec![1],
+    }];
+    let mut route = route(port(), &supplied, true);
+    assert!(
+        route.finite_sequential_backing_bytes().unwrap() > core::mem::size_of::<LoweredForePort>()
+    );
+    assert!(route.finite_one_shot_backing_bytes().is_none());
+    route.started = true;
+    assert!(route.finite_sequential_backing_bytes().is_none());
+    route.started = false;
+    route.ports[0]
+        .value_contract
+        .as_mut()
+        .unwrap()
+        .constraints
+        .push(ValueConstraint::ByteLength {
+            minimum: 1,
+            maximum: 1,
+        });
+    assert!(route.finite_sequential_backing_bytes().is_none());
+}
+#[test]
+fn fixed_terminal_receipt_preserves_actual_version_category_and_length_validation() {
+    use conduit_core::{
+        TerminalCategory, TerminalInfo, TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID,
+    };
+    let mut terminal = port();
+    terminal.value_kind = TERMINAL_INFO_ID.into();
+    terminal.byte_capacity = TERMINAL_INFO_ENCODED_LEN as u32;
+    terminal.value_contract = Some(
+        CheckedValueContract::new(
+            TERMINAL_INFO_ID.into(),
+            TERMINAL_INFO_ENCODED_LEN as u32,
+            vec![],
+        )
+        .unwrap(),
+    );
+    let bytes = TerminalInfo::new(TerminalCategory::ExecutionFault, [7; 32]).encode();
+    assert!(terminal.validate_value(&bytes).is_ok());
+    for index in [0, 1] {
+        let mut bad = bytes;
+        bad[index] = 255;
+        assert!(terminal.validate_value(&bad).is_err());
+    }
+    assert!(terminal.validate_value(&bytes[..33]).is_err());
+    let supplied = [ExternalForeInput {
+        front_port_id: "request".into(),
+        track: ConnectionTrack::Payload,
+        bytes: bytes.to_vec(),
+    }];
+    let mut route = route(terminal, &supplied, true);
+    assert!(route.finite_sequential_backing_bytes().is_some());
+    for excluded in [
+        conduit_core::QUANTITY_INFO_ID,
+        conduit_core::RESOURCE_REFERENCE_INFO_ID,
+    ] {
+        route.ports[0].value_kind = excluded.into();
+        route.ports[0].value_contract = None;
+        assert!(route.finite_sequential_backing_bytes().is_none());
+    }
+}

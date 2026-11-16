@@ -236,6 +236,8 @@ installed_step_dispatch!(
     Creche,
     SelectedNativeSource,
     MeasurementPlot,
+    MeasurementWindow,
+    FlowSingleton,
     MeasurementChartConstructor,
     MeasurementChartFace,
     MeasurementChartFlowFace,

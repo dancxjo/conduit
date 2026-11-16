@@ -1,0 +1,22 @@
+plot inspection/history (
+    >> profile: MeasurementWindowProfile
+    >> measurement: MeasurementSample...|
+    done: Empty...| >>
+    chart-failed: conduit/terminal-info@1 <= 34B >>
+    failed: conduit/terminal-info@1 <= 34B >>
+) {
+    retain: data/measurement-count-window
+    project: data/measurement-plot(points=3, when-full="reject")
+    single: flow/singleton
+    chart: data/measurement-chart/1(labels=["History"], maximum-updates=1)
+    view: face/measurement-chart-flow("Measurements", 1)
+    profile >> retain.profile
+    measurement >> retain.measurement
+    retain.window >> project.window
+    project.series >> single.value
+    single.flow >> chart.latest
+    chart.chart >> view.chart
+    view.done >> done
+    chart.chart! >> chart-failed
+    view.done! >> failed
+}

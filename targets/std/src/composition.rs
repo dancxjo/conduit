@@ -362,6 +362,8 @@ pub(super) fn build_advertisement(
             .expect("finite terminal chart Face workspace"),
         );
         capabilities.push(crate::hosted_measurement::measurement_plot_std_offer());
+        capabilities.push(conduit_std_offers::measurement_window_std_offer());
+        capabilities.push(conduit_std_offers::measurement_series_singleton_std_offer());
         capabilities.push(
             crate::measurement_chart_offer::measurement_chart_face_std_offer(
                 crate::installed_std::measurement_chart_face_back::workspace_bytes(),

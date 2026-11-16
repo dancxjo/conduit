@@ -7,6 +7,8 @@ impl InstalledBack {
         match self {
             Self::MeasurementChartConstructor(back) => back.retained_backing_bytes(),
             Self::MeasurementPlot(back) => back.retained_backing_bytes(),
+            Self::MeasurementWindow(back) => back.retained_backing_bytes(),
+            Self::FlowSingleton(_) => 0,
             Self::MeasurementChartFace(back) => back.retained_backing_bytes(),
             Self::MeasurementChartFlowFace(back) => back.retained_backing_bytes(),
             Self::TemporalEvidence(back) => back.allocation_capacity(),

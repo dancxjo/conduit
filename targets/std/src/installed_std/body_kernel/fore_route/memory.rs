@@ -30,6 +30,17 @@ impl BodyForeRoute<'_> {
         self.finite_validation_supported()?;
         self.local_one_shot_backing_bytes()
     }
+    /// Initial finite sequence only: actual owned nested metadata is charged;
+    /// borrowed payloads keep their caller owner. Stream/live profiles refuse.
+    pub(in crate::installed_std::body_kernel) fn finite_sequential_backing_bytes(
+        &self,
+    ) -> Option<usize> {
+        if self.started {
+            return None;
+        }
+        self.finite_validation_supported()?;
+        self.local_prepared_backing_bytes(self.inputs.finite_sequential_backing_bytes()?)
+    }
     /// Only the private original IMAGE-funded live queue qualifies. The shared
     /// slots/binding retain their original lease; this receipt owns feeder and
     /// route/output metadata, not producer codec/control/thread allocations.
@@ -59,6 +70,7 @@ impl BodyForeRoute<'_> {
                     conduit_core::primitive_info_kind(port.value_kind.as_str()),
                     None | Some(
                         P::Empty
+                            | P::Terminal
                             | P::CancellationRequest
                             | P::Bool
                             | P::Count

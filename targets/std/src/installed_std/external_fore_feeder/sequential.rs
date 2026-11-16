@@ -51,9 +51,37 @@ impl<'a> SequentialForeFeeder<'a> {
         }
         if planned.iter().any(|port| {
             port.direction != PortDirection::Input
-                || !matches!(port.temporal, PortTemporal::Flow { closes: true })
+                || !matches!(
+                    port.temporal,
+                    PortTemporal::Value | PortTemporal::Flow { closes: true }
+                )
         }) {
-            return Err("external Fore sequence requires exact closing input Flows".into());
+            return Err(
+                "external Fore sequence requires exact Values or closing input Flows".into(),
+            );
+        }
+        // Values occur exactly once; a finite sequence must not turn them into
+        // Flows or silently omit their required payload. Final drain closes both
+        // temporal forms only after the existing bounded ingress has accepted all.
+        for port in planned {
+            if planned.iter().any(|other| {
+                other.front_port_id == port.front_port_id
+                    && other.track == port.track
+                    && other.temporal != port.temporal
+            }) {
+                return Err("external Fore fan-out has inconsistent temporal contracts".into());
+            }
+            if port.temporal == PortTemporal::Value
+                && inputs
+                    .iter()
+                    .filter(|input| {
+                        input.front_port_id == port.front_port_id && input.track == port.track
+                    })
+                    .count()
+                    != 1
+            {
+                return Err("external Fore Value requires exactly one supplied payload".into());
+            }
         }
         let mut flows: Vec<SequenceFlow> = Vec::new();
         for port in planned {
@@ -174,3 +202,36 @@ mod stream_tests;
 #[cfg(test)]
 #[path = "../external_fore_feeder_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod mixed_tests;
+
+// Counts only the newly owned finite-sequence metadata before execution. The
+// caller still owns the borrowed slice and canonical payload bytes.
+impl SequentialForeFeeder<'_> {
+    pub(in crate::installed_std) fn prepared_backing_bytes(&self) -> Option<usize> {
+        if self.next != 0 || self.closed || self.stream.is_some() {
+            return None;
+        }
+        let mut bytes = self
+            .flows
+            .capacity()
+            .checked_mul(core::mem::size_of::<SequenceFlow>())?
+            .checked_add(
+                self.input_flows
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<usize>())?,
+            )?;
+        for flow in &self.flows {
+            bytes = bytes.checked_add(flow.front.0.capacity())?.checked_add(
+                flow.targets
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<(RemoteEndpointId, CordId)>())?,
+            )?;
+            if flow.sequence != 0 {
+                return None;
+            }
+        }
+        Some(bytes)
+    }
+}

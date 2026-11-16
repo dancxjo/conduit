@@ -112,6 +112,10 @@ mod measurement_window_step;
 #[cfg(feature = "kernel-step")]
 pub use measurement_window_step::*;
 #[cfg(feature = "kernel-step")]
+mod flow_singleton_step;
+#[cfg(feature = "kernel-step")]
+pub use flow_singleton_step::*;
+#[cfg(feature = "kernel-step")]
 mod measurement_window_provider;
 pub use measurement_window_catalog::*;
 #[cfg(feature = "kernel-step")]

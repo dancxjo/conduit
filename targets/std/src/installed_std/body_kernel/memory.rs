@@ -87,6 +87,11 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
+        InstalledBack::FlowSingleton(_) => Ok(0),
+        InstalledBack::MeasurementWindow(back) => back
+            .retained_backing_bytes()
+            .checked_add(conduit_std_offers::measurement_window_workspace_bytes() as usize)
+            .ok_or_else(|| "measurement final-window prepared workspace overflow".into()),
         InstalledBack::MeasurementPlot(back) => back
             .retained_backing_bytes()
             .checked_add(crate::hosted_measurement::measurement_plot_workspace_bytes() as usize)
@@ -142,13 +147,17 @@ impl BodyKernel<'_> {
                     .into(),
             );
         }
-        let mut bytes = core::mem::size_of::<InstalledScheduler>();
+        // The kernel owns its fixed inline state AND a separately boxed
+        // scheduler. Nested vectors/Arcs/workspaces remain separate charges.
+        let mut bytes = core::mem::size_of::<Self>();
+        add(&mut bytes, core::mem::size_of::<InstalledScheduler>())?;
         add(
             &mut bytes,
             crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
         )?;
         let mut ticks = 0;
         let mut measurements = 0;
+        let mut windows = 0;
         let mut sources = 0;
         let mut creches = 0;
         let mut chart_faces = 0;
@@ -186,6 +195,9 @@ impl BodyKernel<'_> {
                 InstalledBack::MeasurementChartFace(_) | InstalledBack::MeasurementChartFlowFace(_)
             ) {
                 chart_faces += 1;
+            }
+            if matches!(driver, InstalledBack::MeasurementWindow(_)) {
+                windows += 1;
             }
             if matches!(driver, InstalledBack::MeasurementPlot(_)) {
                 measurements += 1;
@@ -225,11 +237,14 @@ impl BodyKernel<'_> {
                     || measurements != 0
                     || chart_faces != 0))
             || (creches == 1 && (ticks != 0 || sources != 0))
+            || windows > 1
+            || (windows == 1 && (ticks != 0 || sources != 0 || creches != 0 || files != 0))
             || measurements > 1
             || (measurements == 1 && (ticks != 0 || sources != 0 || creches != 0))
             || (ticks == 0
                 && sources == 0
                 && creches == 0
+                && windows == 0
                 && measurements == 0
                 && chart_faces == 0
                 && files == 0)
@@ -237,14 +252,21 @@ impl BodyKernel<'_> {
             || (self.native_source.is_some() != (sources == 1))
         {
             return Err(
-                "IMAGE memory receipt requires exact tick, one-shot Source, single projection, chart, Crèche or funded file ownership".into(),
+                "IMAGE memory receipt requires exact tick, one-shot Source, single final-window/projection, chart, Crèche or funded file ownership".into(),
             );
         }
         add(
             &mut bytes,
-            if sources == 1 || creches == 1 || measurements == 1 || chart_faces == 1 || files == 1 {
+            if sources == 1
+                || creches == 1
+                || windows == 1
+                || measurements == 1
+                || chart_faces == 1
+                || files == 1
+            {
                 self.fore
                     .finite_one_shot_backing_bytes()
+                    .or_else(|| self.fore.finite_sequential_backing_bytes())
                     .or_else(|| self.fore.image_live_backing_bytes())
             } else {
                 self.fore.tick_backing_bytes()

@@ -44,7 +44,9 @@ pub(super) fn offers(
         // One explicitly sized Host-shared pool. Each selected operation still
         // reserves its own finite requirement; multiple same-class anonymous
         // pools would make Base provenance ambiguous rather than add capacity.
-        let workspace = crate::hosted_measurement::measurement_plot_workspace_bytes()
+        let workspace = conduit_std_offers::measurement_window_workspace_bytes()
+            .checked_add(crate::hosted_measurement::measurement_plot_workspace_bytes())
+            .expect("finite final-window plus projection workspace")
             .checked_add(crate::installed_std::measurement_chart_face_back::workspace_bytes())
             .and_then(|bytes| bytes.checked_add(
                 crate::hosted_measurement_chart_constructor::measurement_chart_constructor_workspace(4)
