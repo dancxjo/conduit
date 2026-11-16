@@ -123,6 +123,30 @@ pub fn probe(
     crate::accounting::begin_phase();
     let payload = crate::payload::workset(context, &issuers, &hot);
     crate::authority::prepare(root, authority, &payload);
+    let owner_payload_len = payload.len();
+    let owner_payload_capacity = payload.capacity();
+    let retained_digest = {
+        let original = root.execution_parts().unwrap();
+        assert_eq!(original.workspace.payload().unwrap(), payload.as_slice());
+        *original.workspace.payload_digest().unwrap()
+    };
+    let before_release = crate::accounting::used();
+    drop(payload);
+    let after_release = crate::accounting::used();
+    assert_eq!(before_release - after_release, owner_payload_capacity);
+    {
+        let original = root.execution_parts().unwrap();
+        assert_eq!(
+            original.workspace.payload().unwrap().len(),
+            owner_payload_len
+        );
+        assert_eq!(
+            *original.workspace.payload_digest().unwrap(),
+            retained_digest
+        );
+    }
+    println!("CPU_OWNER_HANDOFF encoded_len={} released_capacity={} original_assignment_capacity={} retained_digest_unchanged=true actual_heap_before={} actual_heap_after={}",owner_payload_len,owner_payload_capacity,crate::config::MAX_ASSIGNMENT_BYTES,before_release,after_release);
+
     println!(
         "CPU_PHASE owner_payload_and_ingress_peak={}",
         crate::accounting::phase_peak()

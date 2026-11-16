@@ -78,6 +78,7 @@ receipt={
  'generated_inputs':{p.name:{'path':str(p.resolve()),'sha256':digest(p)} for p in generated.glob('*.rs') if not p.name.startswith('source_')},
  'library_paths':{name:str(lib) for name,lib in selected.items()},
  'library_features':selected_features,
+ 'fixture_sources_sha256':{p.name:digest(p) for p in sorted(Path(__file__).parent.glob('*.rs'))},
  'constructor_exit':result.returncode,'compile_log_sha256':digest(a.output/'compile.log'),'run_log_sha256':digest(a.output/'run.log'),
  'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,'original_Source_execution_completed':effects,
  'not_proved':([] if started else ['Successful complete Source preparation','Renderer preparation and whole admission/Start'])+([] if effects else ['Provider effects or continuing Play'])+['Target stack/heap/ABI fit','Physical device execution'],

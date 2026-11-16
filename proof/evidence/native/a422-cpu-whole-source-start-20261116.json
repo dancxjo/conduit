@@ -47,5 +47,13 @@
       "retained_path": "target/qualification/full-factory-final/run.log",
       "sha256": "a35945d4b1d61df38b65eeac42beaaf00b98e3e855701bb8ee1587e48ccad90f"
     }
-  }
+  },
+  "cpu_library_features": {
+    "conduit_mcu_host_runtime": [
+      "execution",
+      "execution-workspace"
+    ],
+    "conduit_kernel": "workspace-enabled CPU profile; original Source execution was not qualified by this preparation/Start witness"
+  },
+  "qualification_refinement": "Later original Source execution qualification uses production-parity execution-only runtime and alloc/default/step-test-support kernel; this earlier witness ends at Start."
 }
