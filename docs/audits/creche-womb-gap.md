@@ -201,3 +201,46 @@ restarts. Successor authority remains a separate concern under
 [#6409](https://github.com/dancxjo/conduit/issues/6409) and
 [#6340](https://github.com/dancxjo/conduit/issues/6340); changing a contact or
 owner pin is not an authority handoff.
+
+## Verified release binding handoff
+
+The isolated `joining_host_release` module reuses the owner-authorized
+`bd4d056f31` implementation and `b958243519` module tests, adapting the shared
+joining-Host refusal to its existing display boundary. No packaging, product
+or browser differential-suite changes from those checkpoints are imported.
+The binder accepts the existing opaque `VerifiedHostReleaseBytes` observation,
+checks its exact source, target, Make package and adapters against the selected
+IMAGE, and binds the verified inventory aggregate to the existing Body's
+original Birth, checked configuration and exact invitation. A raw payload SHA
+is not substituted for the aggregate. Invitation expiry is rechecked.
+
+The three deterministic tests use a deliberately non-executable payload. They
+prove the binding and refusal of source/target/package/adapter substitutions,
+expired invitations and changed checked configuration, while preserving the
+Body evidence. They do not prove a runnable browser bundle, immutable byte
+custody after observation, packaging, deployment, Boot or admission. The
+packaging owner must retain/reverify the actual bytes and target-specific
+IMAGE validation remains mandatory. `cargo xtask check crib-preparation`
+includes these tests and the typed joining-Host refusal tests.
+
+## Private package production handoff
+
+The producer-only extraction of `joining_host_package` comes from the handed-off
+`4d3fbc71504ef6eb93a2afb96d3090ddc5bcc8f1` checkpoint, including its safety
+follow-ups rather than the unsafe original ZIP introduction. It uses the
+existing stored-ZIP carrier and current browser reader. The exact Spore,
+canonical Host source, IMAGE, release provenance and portable invitation are
+retained separately. Every payload is checked before and during writing;
+finite headers, provision and complete archive size are admitted first.
+Cancellation or changed/short/extra payload bytes yield no completion receipt.
+The caller must keep output private and discard partial output on refusal.
+
+Only the producer, its common fixture and ten producer tests are extracted.
+The downstream Rust package reader and its test require Host IMAGE validation
+and a ZIP-parser seam absent from this baseline; they remain with their source
+owner rather than pulling those independently owned contracts into this lane.
+The UF2 packaging fixture uses current `pico-w.host.conduit`, replacing the
+checkpoint's absent house-specific profile. Synthetic payloads prove byte and
+format correspondence, including the existing JS reader, not executable target
+validation, deployment, Boot, admission or Womb Body execution. Target-specific
+validation and issuer custody remain required before a member Seed is offered.
