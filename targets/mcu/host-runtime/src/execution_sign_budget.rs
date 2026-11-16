@@ -31,12 +31,16 @@ impl DuplexSignBudget {
         if bytes > byte_ceiling {
             return None;
         }
-        Some(Self {
+        let budget = Self {
             ingress_items: ingress,
             local_items: local,
             remote_items: remote,
             total_items: total,
-        })
+        };
+        match budget.logical_byte_charge() {
+            Some(logical) if logical <= byte_ceiling => Some(budget),
+            _ => None,
+        }
     }
     pub const fn ingress_items(self) -> u16 {
         self.ingress_items
@@ -52,6 +56,22 @@ impl DuplexSignBudget {
     }
     pub const fn backing_bytes(self) -> Option<usize> {
         HostedSignLog::canonical_storage_bytes(self.total_items, self.remote_items)
+    }
+    /// Both declared log capacities remain funded even when packed physical
+    /// event storage is smaller. Do not infer target widths from a host build.
+    pub const fn logical_byte_charge(self) -> Option<usize> {
+        let Some(events) =
+            (self.total_items as usize).checked_mul(core::mem::size_of::<KernelEvent>())
+        else {
+            return None;
+        };
+        let Some(remote) = conduit_kernel::remote_sign_storage_bytes(self.remote_items) else {
+            return None;
+        };
+        if remote as u64 > usize::MAX as u64 {
+            return None;
+        }
+        events.checked_add(remote as usize)
     }
     pub fn prepare(self) -> Result<HostedSignLog, SignError> {
         HostedSignLog::new_with_remote_storage(
@@ -79,5 +99,22 @@ mod tests {
                 .ingress_items,
             2
         );
+    }
+    #[test]
+    fn packed_backing_cannot_enlarge_the_declared_logical_byte_grant() {
+        let b = DuplexSignBudget::select(55, 64, 24576).unwrap();
+        let physical = b.backing_bytes().unwrap();
+        let logical = b.logical_byte_charge().unwrap();
+        let required = physical.max(logical);
+        assert!(DuplexSignBudget::select(55, 64, required - 1).is_none());
+        assert_eq!(DuplexSignBudget::select(55, 64, required), Some(b));
+        if physical < logical {
+            let between = logical - 1;
+            assert!(physical <= between);
+            assert!(
+                DuplexSignBudget::select(55, 64, between).is_none(),
+                "physical fit never authorizes larger logical capacities"
+            );
+        }
     }
 }
