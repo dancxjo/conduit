@@ -1,4 +1,4 @@
-"""Internal bounded CPU constructor probe; no transport, hardware, or Play.
+"""Internal bounded CPU admission/constructor probe; no hardware or Play.
 
 Uses original Make generated workset data and unchanged production Source
 composition modules. --fingerprint must name a completed Cargo test graph.
@@ -53,7 +53,8 @@ with (a.output/'run.log').open('w') as log:result=subprocess.run([str(a.output/'
 print(json.dumps({'phase':'constructors','exit':result.returncode,'log':str(a.output/'run.log')}),flush=True)
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
 receipt={
- 'scope':'CPU type/constructor preflight only; unchanged factory compiled but NOT invoked',
+ 'scope':'Fresh public Root admission and CPU constructor preflight; unchanged whole factory compiled but NOT invoked',
+ 'fresh_public_root_admission':'CPU_AUTHORITY_GATE public_root_spawn=true' in (a.output/'run.log').read_text(),
  'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
  'fingerprint':str(a.fingerprint),'fingerprint_sha256':digest(a.fingerprint),
  'production_templates':{p.name:{'path':str(p.resolve()),'sha256':digest(p)} for p in generated.glob('source_*.rs')},

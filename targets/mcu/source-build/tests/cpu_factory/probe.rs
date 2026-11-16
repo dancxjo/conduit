@@ -2,6 +2,7 @@
 //! Native provider methods panic: no IO or execution is permitted by this probe.
 #![allow(dead_code, unused_imports)]
 extern crate alloc;
+mod authority;
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
     pub use EXECUTION as EXECUTION_DELEGATION;
@@ -182,6 +183,7 @@ fn main() {
         .unwrap();
 }
 fn probe() {
+    authority::verify_public_admission();
     assert_eq!(
         workset::SOURCE_SHA256,
         [
