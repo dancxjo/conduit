@@ -144,28 +144,30 @@ export function registerOwnerFaceBusyTests(view) {
       await expect(owner.getByRole('button', { name: 'Complete task', exact: true })).toBeDisabled();
     });
 
-    test(`route loss clears busy and late completion cannot revive agency (${renderer})`, async ({ page }) => {
-      const owner = await handbook(page, view, selected);
-      await page.evaluate(() => { globalThis.busyFixture.pause = 'prepare'; });
-      await page.locator('[data-owner-face-refresh]').click();
-      await expect.poll(() => page.evaluate(() => globalThis.busyFixture.waiting)).toBe('prepare');
-      await expect(owner).toHaveAttribute('aria-busy', 'true');
-      await page.evaluate(() => globalThis.busyFixture.offline());
-      await expect(owner).toHaveAttribute('aria-busy', 'false');
-      await expect(owner.getByRole('button', { name: 'Complete task', exact: true })).toBeDisabled();
-      await page.evaluate(() => globalThis.busyFixture.online());
-      await expect(owner).toHaveAttribute('aria-busy', 'false');
-      await page.evaluate(() => globalThis.busyFixture.complete());
-      await expect(page.locator('[data-owner-face-status]')).toContainText('route changed');
-      await expect(owner).toHaveAttribute('aria-busy', 'false');
-      await expect(owner.getByRole('button', { name: 'Complete task', exact: true })).toBeDisabled();
-      await expect(page.locator('main')).not.toHaveAttribute('data-owner-face-shown', 'true');
-      expect(await page.evaluate(() => globalThis.busyFixture.calls)).toEqual([]);
-      await page.locator('[data-owner-face-refresh]').click();
-      await expect(page.locator('main')).toHaveAttribute('data-owner-face-shown', 'true');
-      await expect(owner).toHaveAttribute('aria-busy', 'false');
-      await expect(owner.getByRole('button', { name: 'Complete task', exact: true })).toBeEnabled();
-    });
+    for (const stage of ['prepare', 'acknowledge']) {
+      test(`route loss during ${stage} clears busy and late completion cannot revive agency (${renderer})`, async ({ page }) => {
+        const owner = await handbook(page, view, selected);
+        await page.evaluate(stage => { globalThis.busyFixture.pause = stage; }, stage);
+        await page.locator('[data-owner-face-refresh]').click();
+        await expect.poll(() => page.evaluate(() => globalThis.busyFixture.waiting)).toBe(stage);
+        await expect(owner).toHaveAttribute('aria-busy', 'true');
+        await page.evaluate(() => globalThis.busyFixture.offline());
+        await expect(owner).toHaveAttribute('aria-busy', 'false');
+        await expect(owner.getByRole('button', { name: 'Complete task', exact: true })).toBeDisabled();
+        await page.evaluate(() => globalThis.busyFixture.online());
+        await expect(owner).toHaveAttribute('aria-busy', 'false');
+        await page.evaluate(() => globalThis.busyFixture.complete());
+        await expect(page.locator('[data-owner-face-status]')).toContainText('route changed');
+        await expect(owner).toHaveAttribute('aria-busy', 'false');
+        await expect(owner.getByRole('button', { name: 'Complete task', exact: true })).toBeDisabled();
+        await expect(page.locator('main')).not.toHaveAttribute('data-owner-face-shown', 'true');
+        expect(await page.evaluate(() => globalThis.busyFixture.calls)).toEqual([]);
+        await page.locator('[data-owner-face-refresh]').click();
+        await expect(page.locator('main')).toHaveAttribute('data-owner-face-shown', 'true');
+        await expect(owner).toHaveAttribute('aria-busy', 'false');
+        await expect(owner.getByRole('button', { name: 'Complete task', exact: true })).toBeEnabled();
+      });
+    }
 
     test(`speech ownership disables agency without marking the Face busy (${renderer})`, async ({ page }) => {
       const owner = await handbook(page, view, selected);
