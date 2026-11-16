@@ -38,15 +38,6 @@ fn main() {
     if fore_carrier.is_some() {
         println!("cargo:rustc-cfg=fore_carrier");
     }
-    let dictionary_archive = conduit_host_rp2040::source_build::dictionary_sign_archive::CheckedDictionarySignArchiveConstruction::from_configuration(&checked)
-        .expect("checked explicit dictionary archive construction");
-    println!("cargo:rustc-check-cfg=cfg(dictionary_sign_archive)");
-    if let Some(archive) = dictionary_archive {
-        assert!(fore_carrier.is_some() && recording.service,
-            "archived duplex Source requires the checked single-result record service and Fore carrier");
-        println!("cargo:rustc-cfg={}", archive.cfg_selection());
-    }
-    let dictionary_archive_constants = dictionary_archive.map_or_else(String::new, |c| c.rust_module());
     let fore_carrier_bounds = fore_carrier.map_or_else(
         || "None".to_string(),
         |c| format!("Some({})", c.rust_bounds()),
@@ -58,6 +49,16 @@ fn main() {
     };
     let recording = recording_build::Recording::checked(&checked)
         .expect("checked finite recorder construction");
+    let dictionary_archive = conduit_host_rp2040::source_build::dictionary_sign_archive::CheckedDictionarySignArchiveConstruction::from_configuration(&checked)
+        .expect("checked explicit dictionary archive construction");
+    println!("cargo:rustc-check-cfg=cfg(dictionary_sign_archive)");
+    if let Some(archive) = dictionary_archive {
+        assert!(fore_carrier.is_some() && recording.service,
+            "archived duplex Source requires the checked single-result record service and Fore carrier");
+        println!("cargo:rustc-cfg={}", archive.cfg_selection());
+    }
+    let dictionary_archive_constants = dictionary_archive.map_or_else(String::new, |c| c.rust_module());
+
     recording.emit_cfg();
     println!("cargo:rustc-check-cfg=cfg(retained_wifi)");
     if conduit_host_rp2040::retained_wifi_selected(&checked)
