@@ -24,6 +24,7 @@ use core::mem::size_of;
 pub mod assigned;
 pub mod causal_evidence;
 pub mod debug_observation;
+pub mod dictionary_live_sign_archive;
 mod execution_disposition;
 mod failure;
 pub mod fault_disposition;
