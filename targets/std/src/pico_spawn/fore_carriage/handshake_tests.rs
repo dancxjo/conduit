@@ -49,12 +49,12 @@ fn interruption_retires_partial_handshake_without_retry_or_application_ack() {
         Err(ForeCarriageError::OutcomeUnknown)
     );
     assert!(client.state.retired);
-    assert_eq!(client.frames.writes, 2);
+    assert_eq!(client.frames.writes, 0);
     assert_eq!(
         client.handshake(&mut output, TIMEOUT),
         Err(ForeCarriageError::Retired)
     );
-    assert_eq!(client.frames.writes, 2);
+    assert_eq!(client.frames.writes, 0);
 }
 #[test]
 fn peer_scope_is_checked_against_original_binding() {
@@ -69,7 +69,7 @@ fn peer_scope_is_checked_against_original_binding() {
     client.frames.queue.push_back(wire[..length].to_vec());
     assert!(client.handshake(&mut output, TIMEOUT).is_err());
     assert!(client.state.retired);
-    assert_eq!(client.frames.writes, 2);
+    assert_eq!(client.frames.writes, 0);
 }
 
 #[test]
@@ -82,3 +82,6 @@ fn first_route_can_be_ready_before_second_peer_hello() {
     assert_eq!(client.state.used_frames, 8);
     assert_eq!(client.frames.writes, 4);
 }
+
+#[path = "bootstrap_interleaving_tests.rs"]
+mod bootstrap_interleaving_tests;

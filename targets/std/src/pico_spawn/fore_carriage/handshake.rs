@@ -39,24 +39,36 @@ impl<F: Frames> Carriage<F> {
                 .filter(|remaining| !remaining.is_zero())
                 .ok_or(ForeCarriageError::OutcomeUnknown)
         };
-        // Both directions may reply in either interleaving on the same stream.
-        for route in 0..2 {
-            self.send(route, Message::Hello, left()?)?;
-        }
+        // Listen first. Admit both independently scoped peer Hellos, but emit
+        // Hello+Ready for only one route until it is actually active. Receiving
+        // all routes avoids deadlocking when the peer emits both Hellos first.
+        // This serializes activation without another frame/buffer or delay.
         let mut hello = [false; 2];
         let mut ready = [false; 2];
+        let mut started = [false; 2];
+        let mut current = None;
         for _ in 0..4 {
             let frame = self.receive(output, left()?)?;
             let route = frame.route;
             match frame.frame.message {
                 Message::Hello if !hello[route] => {
                     hello[route] = true;
-                    self.send(route, Message::Message(SessionMessage::Ready), left()?)?;
                 }
                 Message::Message(SessionMessage::Ready) if hello[route] && !ready[route] => {
                     ready[route] = true
                 }
                 _ => return Err(ForeCarriageError::Scope),
+            }
+            if current.is_some_and(|route| self.state.machines[route].is_active()) {
+                current = None;
+            }
+            if current.is_none() {
+                if let Some(route) = (0..2).find(|&route| hello[route] && !started[route]) {
+                    self.send(route, Message::Hello, left()?)?;
+                    self.send(route, Message::Message(SessionMessage::Ready), left()?)?;
+                    started[route] = true;
+                    current = Some(route);
+                }
             }
         }
         if !hello.into_iter().all(|v| v)

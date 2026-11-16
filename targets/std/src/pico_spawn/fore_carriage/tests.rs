@@ -31,6 +31,7 @@ struct Peer {
     fail_send: bool,
     fail_receive: bool,
     delay_second_hello: bool,
+    sent_hellos: [bool; 2],
     reply: Option<&'static [u8]>,
     early_reply: bool,
     fail_send_at: Option<usize>,
@@ -49,12 +50,16 @@ impl Peer {
             fail_send: false,
             fail_receive: false,
             delay_second_hello: false,
+            sent_hellos: [false; 2],
             reply: None,
             early_reply: false,
             fail_send_at: None,
         }
     }
     fn emit(&mut self, route: usize, message: Message<'_>) {
+        if message == Message::Hello {
+            self.sent_hellos[route] = true;
+        }
         let frame = self.machines[route].binding().frame(message);
         let mut out = [0; 128];
         let n = encode_external_fore_session_frame_into(frame, &mut out, 16, 128).unwrap();
@@ -77,7 +82,7 @@ impl Frames for Peer {
         self.machines[route].admit_inbound(frame).unwrap();
         match frame.message {
             Message::Hello if route == 1 && self.delay_second_hello => {}
-            Message::Hello => self.emit(route, Message::Hello),
+            Message::Hello if !self.sent_hellos[route] => self.emit(route, Message::Hello),
             Message::Message(SessionMessage::Ready) => {
                 self.emit(route, Message::Message(SessionMessage::Ready));
                 if route == 0 && self.delay_second_hello {
@@ -123,6 +128,12 @@ impl Frames for Peer {
     fn receive<'a>(&mut self, output: &'a mut [u8], _: Duration) -> Result<&'a [u8], ()> {
         if self.fail_receive {
             return Err(());
+        }
+        if self.writes == 0 && self.queue.is_empty() {
+            self.emit(0, Message::Hello);
+            if !self.delay_second_hello {
+                self.emit(1, Message::Hello);
+            }
         }
         let bytes = self.queue.pop_front().ok_or(())?;
         if bytes.len() > output.len() {
