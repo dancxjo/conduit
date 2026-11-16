@@ -7,6 +7,11 @@ use patchbay_application::*;
 #[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod mask_fixture;
 
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
 fn setup() -> (PatchbayApplicationPort, BodyId, FaceContributionBasis) {
     let plans = conduit_patchbay_workbench_conformance::patchbay_mask_plans().unwrap();
     let port = PatchbayApplicationPort::open(
@@ -429,4 +434,28 @@ fn chunked_projection_checks_exact_late_subject_facts_and_owned_actions() {
     action.target = expected.identity.clone();
     extra_action.actions.push(action);
     assert!(!port.matches_face_contribution(&extra_action, basis, &body, true));
+}
+
+#[test]
+fn actual_matcher_subject_workspace_allocation_budget() {
+    let (mut port, body, basis) = setup();
+    let initial = face(&port, &body, &basis);
+    let show = mask_fixture::available_mask_show(&initial);
+    let request = interaction(&initial, &show, "patchbay.plot.0", None);
+    let prepared = port
+        .admit_face_command(&body, basis.clone(), &initial, &show, &request)
+        .unwrap();
+    port.execute_face_command(prepared, &body, &basis, &initial, &show)
+        .unwrap();
+    let full = face(&port, &body, &basis);
+    let (matches, observed) = allocation_probe::observe(|| {
+        port.matches_face_contribution(&full, basis.clone(), &body, true)
+    });
+    assert!(matches);
+    // This scopes the real selected-plot matcher, excluding fixture preparation.
+    // The former cloned base subject workspace needed 220 allocations and
+    // 17_674 requested bytes on the owning 64-bit profile.
+    assert!(observed.allocations <= 217, "{observed:?}");
+    assert!(observed.requested_bytes <= 17_554, "{observed:?}");
+    check_chunked_projection(&port, &body, &basis);
 }
