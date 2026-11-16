@@ -26,7 +26,7 @@ pub fn planned_placement_identity_bytes(
     let digest = hash.finalize();
     let mut encoded = [0; 64];
     const HEX: &[u8; 16] = b"0123456789abcdef";
-    for (pair, byte) in encoded.chunks_exact_mut(2).zip(digest) {
+    for (pair, byte) in encoded.as_chunks_mut::<2>().0.iter_mut().zip(digest) {
         pair[0] = HEX[usize::from(byte >> 4)];
         pair[1] = HEX[usize::from(byte & 15)];
     }
