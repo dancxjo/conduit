@@ -88,15 +88,15 @@ fn reserve<T>(count: usize) -> Result<Vec<T>, Failure> {
         .map_err(|_| Failure::Allocation)?;
     Ok(values)
 }
-fn canonical(capacities: &[u32]) -> Result<HostedValueStore, Failure> {
+fn canonical(capacities: &[u32], backing_cap: usize) -> Result<HostedValueStore, Failure> {
     let bytes = capacities
         .iter()
         .try_fold(0u32, |sum, n| sum.checked_add(*n))
         .ok_or(Failure::Geometry)?;
-    HostedValueStore::try_new_with_slot_capacities(capacities, bytes, BACKING_CAP)
+    HostedValueStore::try_new_with_slot_capacities(capacities, bytes, backing_cap)
         .map_err(Failure::Canonical)
 }
-fn dense_schema() -> Result<Store, Failure> {
+fn dense_schema(backing_cap: usize) -> Result<Store, Failure> {
     // These construction descriptors are allocated inside the measured phase
     // and genuinely dropped before the returned store is inspected.
     let count = profiles().count();
@@ -120,8 +120,8 @@ fn dense_schema() -> Result<Store, Failure> {
         }
     }
     capacities.extend_from_slice(profiles::NATIVE_RESULT_CAPACITIES);
-    let canonical = canonical(&capacities)?;
-    let remaining = BACKING_CAP
+    let canonical = canonical(&capacities, backing_cap)?;
+    let remaining = backing_cap
         .checked_sub(canonical.reserved_storage_bytes())
         .ok_or(Failure::Geometry)?;
     // Dense physical stock equals every original logical declaration, including
@@ -138,17 +138,19 @@ struct CanonicalObservation {
     result: CanonicalResult,
     observed: allocation::Observation,
     live_after: usize,
+    backing_cap: usize,
 }
-fn canonical_case() -> CanonicalObservation {
+fn canonical_case(backing_cap: usize) -> CanonicalObservation {
     let (result, observed) = allocation::observe(|| {
         let mut capacities =
             reserve(profiles().count() + profiles::NATIVE_RESULT_CAPACITIES.len())?;
         capacities.extend(profiles().map(maximum));
         capacities.extend_from_slice(profiles::NATIVE_RESULT_CAPACITIES);
-        let store = canonical(&capacities)?;
+        let store = canonical(&capacities, backing_cap)?;
         drop(capacities);
         let backing = store.reserved_storage_bytes();
         let live = allocation::live();
+        assert_eq!(backing, live, "independent canonical allocation counter");
         drop(store);
         Ok::<_, Failure>((backing, live))
     });
@@ -158,6 +160,7 @@ fn canonical_case() -> CanonicalObservation {
         result,
         observed,
         live_after,
+        backing_cap,
     }
 }
 impl CanonicalObservation {
@@ -165,7 +168,7 @@ impl CanonicalObservation {
         let result = &self.result;
         let observed = self.observed;
         let detail = result.as_ref().err().map(Failure::detail);
-        serde_json::json!({"prepared":result.is_ok(), "refusal":detail, "required_by_ctor":result.as_ref().err().and_then(Failure::capacity).map(|v| v.0),
+        serde_json::json!({"backing_cap":self.backing_cap, "prepared":result.is_ok(), "refusal":detail, "required_by_ctor":result.as_ref().err().and_then(Failure::capacity).map(|v| v.0),
         "retained_backing":result.as_ref().ok().map(|r| r.0),
         "independent_live_at_store":result.as_ref().ok().map(|r| r.1),
         "peak_including_preparation_temporaries":observed.peak_bytes,
@@ -178,10 +181,11 @@ struct SchemaObservation {
     result: SchemaResult,
     observed: allocation::Observation,
     live_after: usize,
+    backing_cap: usize,
 }
-fn schema_case() -> SchemaObservation {
+fn schema_case(backing_cap: usize) -> SchemaObservation {
     let (result, observed) = allocation::observe(|| {
-        let store = dense_schema()?;
+        let store = dense_schema(backing_cap)?;
         let canonical = store.canonical_storage().reserved_storage_bytes();
         let metadata = store.reserved_metadata_bytes();
         let payload = store.reserved_payload_bytes();
@@ -215,6 +219,7 @@ fn schema_case() -> SchemaObservation {
         result,
         observed,
         live_after,
+        backing_cap,
     }
 }
 impl SchemaObservation {
@@ -222,7 +227,7 @@ impl SchemaObservation {
         let result = &self.result;
         let observed = self.observed;
         let detail = result.as_ref().err().map(Failure::detail);
-        serde_json::json!({"prepared":result.is_ok(), "refusal":detail,
+        serde_json::json!({"backing_cap":self.backing_cap, "prepared":result.is_ok(), "refusal":detail,
         "required_schema_by_ctor":result.as_ref().err().and_then(Failure::capacity).map(|v| v.0),
         "available_after_canonical":result.as_ref().err().and_then(Failure::capacity).map(|v| v.1),
         "canonical_backing_before_refusal":result.as_ref().err().and_then(Failure::canonical_backing),
@@ -236,7 +241,7 @@ impl SchemaObservation {
         "logical_store_bytes":result.as_ref().ok().map(|r| r.5),
         "logical_store_items":result.as_ref().ok().map(|r| r.6),
         "peak_including_preparation_temporaries":observed.peak_bytes,
-        "observed_attempt_peak_within_cap":observed.peak_bytes <= BACKING_CAP,
+        "observed_attempt_peak_within_cap":observed.peak_bytes <= self.backing_cap,
         "live_after_drop":self.live_after, "inline_owner_bytes":std::mem::size_of::<Store>()})
     }
 }
@@ -290,8 +295,13 @@ fn main() {
     }
     // No heap-owned report or previous store survives into the next observed
     // phase. Only scalars and allocation-free refusal enums remain on stack.
-    let canonical = canonical_case();
-    let dense_schema = schema_case();
+    let canonical = canonical_case(BACKING_CAP);
+    let dense_schema = schema_case(BACKING_CAP);
+    // Separately authorized CPU-only preflight caps, never Host grants or
+    // peak guarantees. No heap-owned report is created between any phases.
+    let diagnostics = option_env!("CONDUIT_SCHEMA_EXACT_DIAGNOSTIC") == Some("1");
+    let canonical_diagnostic = diagnostics.then(|| canonical_case(297604));
+    let schema_diagnostic = diagnostics.then(|| schema_case(113946));
     let report = serde_json::json!({
         "scope":"CPU dense store representation only; no application/Root/Play/target fit claim",
         "word_bits":usize::BITS, "backing_cap":BACKING_CAP,
@@ -313,6 +323,11 @@ fn main() {
         "all_profile_canonical_extent":canonical_extent,
         "native_result_capacities":profiles::NATIVE_RESULT_CAPACITIES,
         "canonical":canonical.json(), "dense_schema":dense_schema.json(),
+        "cpu_only_exact_cap_diagnostics":diagnostics.then(|| serde_json::json!({
+            "canonical":canonical_diagnostic.as_ref().unwrap().json(),
+            "dense_schema":schema_diagnostic.as_ref().unwrap().json(),
+            "caps_are_not_Host_grants_or_peak_guarantees":true,
+        })),
         "static_schema_source":"compile-linked read-only arrays, no heap leak or counter subtraction",
         "allocator_counter":"requested Layout bytes; allocator overhead and stack highwater not measured",
         "missing_whole_host_costs":["Root retained input/transport", "Ready providers/native tickets", "software/resident Back owners", "kernel/queues/Signs", "execution workspace", "allocator overhead and stack"],
