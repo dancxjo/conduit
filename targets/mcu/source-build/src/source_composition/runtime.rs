@@ -28,7 +28,7 @@ pub async fn run<'s>(
     mut equipment: crate::equipment::Equipment,
     arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'_>,
     link: &mut crate::transport::Link,
-    installed: Option<continuation::Installed<'_>>,
+    installed: conduit_mcu_host_runtime::continuation_startup::Startup<'_>,
 ) -> ! {
     crate::runtime::stack_checkpoint(1);
     let mut residents =
@@ -111,7 +111,7 @@ pub async fn run<'s>(
         .expect("funded native contract preparation"),
     );
     crate::runtime::stack_checkpoint(2);
-    if let Some(installed) = installed.as_ref() {
+    if let Some(installed) = installed.accepted() {
         let policy = Policy {
             preparation: crate::config::PREPARATION_DELEGATION.as_ref(),
             execution: crate::config::EXECUTION_DELEGATION.as_ref(),
@@ -204,16 +204,20 @@ pub async fn run<'s>(
     }
     let mut last_refusal = None;
     loop {
+        // Rejected media remains borrowed and immutable throughout recovery.
+        core::hint::black_box(installed.prefix());
         let result = match root.receive_request(link).await {
             Ok(Request::InstallContinuation) => {
                 transactions::install_continuation(
                     root,
                     link,
-                    installed.as_ref().map(|installed| &installed.acceptance),
+                    installed.accepted().map(|installed| &installed.acceptance),
                 )
                 .await
             }
-            Ok(Request::Inspect) => transactions::inspect(root, link, last_refusal).await,
+            Ok(Request::Inspect) => {
+                transactions::inspect(root, link, last_refusal, installed.refusal()).await
+            }
             Ok(Request::Spawn) => root.spawn(link, &mut response).await,
             Ok(Request::Return) => {
                 transactions::return_member(

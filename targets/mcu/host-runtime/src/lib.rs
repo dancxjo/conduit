@@ -82,4 +82,7 @@ pub mod recording_service_equipment;
 pub mod continuation_artifact;
 
 #[cfg(feature = "execution")]
+pub mod continuation_startup;
+
+#[cfg(feature = "execution")]
 pub mod fore_bridge;

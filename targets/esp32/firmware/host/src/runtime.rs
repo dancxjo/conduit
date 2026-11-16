@@ -89,13 +89,10 @@ pub async fn run(
         .expect("original checked Root");
     // The owned prefix remains in this future throughout Play. Decode scratch
     // is allocated only inside accept and retires before Source preparation.
-    let installed = prefix
-        .as_ref()
-        .map(|owned| shared::continuation::Installed {
-            acceptance: crate::installed_continuation::accept(root, owned.bytes())
-                .expect("invalid or uncertain installed continuation"),
-            prefix: owned.bytes(),
-        });
+    let installed = conduit_mcu_host_runtime::continuation_startup::Startup::classify(
+        prefix.as_ref().map(|owned| owned.bytes()),
+        |prefix| crate::installed_continuation::accept(root, prefix),
+    );
     let mut link = Link::new(carrier);
     let future = core::pin::pin!(shared::run(root, equipment, arena, &mut link, installed));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
