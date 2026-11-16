@@ -60,18 +60,7 @@ impl DuplexSignBudget {
     /// Both declared log capacities remain funded even when packed physical
     /// event storage is smaller. Do not infer target widths from a host build.
     pub const fn logical_byte_charge(self) -> Option<usize> {
-        let Some(events) =
-            (self.total_items as usize).checked_mul(core::mem::size_of::<KernelEvent>())
-        else {
-            return None;
-        };
-        let Some(remote) = conduit_kernel::remote_sign_storage_bytes(self.remote_items) else {
-            return None;
-        };
-        if remote as u64 > usize::MAX as u64 {
-            return None;
-        }
-        events.checked_add(remote as usize)
+        HostedSignLog::canonical_logical_storage_bytes(self.total_items, self.remote_items)
     }
     pub fn prepare(self) -> Result<HostedSignLog, SignError> {
         HostedSignLog::new_with_remote_storage(
