@@ -8,6 +8,7 @@ impl Owner {
         &self,
         selected: &crate::durable_host::source_continuation::PreparedOutput,
     ) -> Result<[u8; conduit_body::continuation_artifact::PREFIX_BYTES], String> {
+        self.require_source_effects_unheld()?;
         use conduit_body::{
             continuation_artifact as artifact, ContinuationFullScope, ContinuationPlotPin,
         };

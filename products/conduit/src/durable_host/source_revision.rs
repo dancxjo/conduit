@@ -726,6 +726,7 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     let generation = prepared.host.advertisement().offer_generation;
     let (mut owner, _resumed_expected) =
         owner::resume_selected_source_service(prepared.host, state_dir, &selection.expected)?;
+    owner.require_source_effects_unheld()?;
     if let Some(factory) = creche {
         owner.install_creche_factory(factory)?;
     }

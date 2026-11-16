@@ -41,6 +41,7 @@ impl Owner {
         member: &MemberPresentationBasis,
         transcript: &[u8; 32],
     ) -> Result<&PreparedRemoteBodyCommand, String> {
+        self.require_source_effects_unheld()?;
         self.require_workset_recovered()?;
         self.selected_file_workset
             .as_ref()
@@ -91,6 +92,7 @@ impl Owner {
     }
 
     pub(crate) fn require_remote_workset_retired(&self) -> Result<(), String> {
+        self.require_source_effects_unheld()?;
         if self
             .member_carrier
             .as_ref()
@@ -132,6 +134,7 @@ impl Owner {
             Vec<conduit_embedded_build::SelectedForeSession>,
         >,
     ) -> Result<&PreparedRemoteBodyCommand, String> {
+        self.require_source_effects_unheld()?;
         if let Some(custody) = &self.member_carrier {
             if custody.commands.iter().any(|command| {
                 command.part == member.credential.part_id
