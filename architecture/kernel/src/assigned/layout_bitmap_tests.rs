@@ -125,3 +125,19 @@ fn per_tag_255_boundary_and_unmatchable_requirements_remain_checked() {
         Err(AssignedKernelRefusal::Layout)
     );
 }
+
+#[test]
+fn sparse_view_preserves_exact_multiset_without_copying_static_rows() {
+    let data=rows([2,0,0,0,0,0,0,0,0,0,0,0,0]);
+    let required=requirements(&data);
+    let mut installed=required.clone();installed[1].payload_digest[0]^=1;
+    let layout=ResidentLayout {records:&installed,counts:[0;13]};
+    let overrides=[c::AssignedLayoutOverride {ordinal:1,requirement:required[1]}];
+    let view=ResidentLayoutView::checked(&layout,&overrides).unwrap();
+    let records:Vec<_>=data.iter().map(|(tag,payload)|c::AssignedRecord {tag:*tag,payload}).collect();
+    let mut header=[0;c::ASSIGNED_PLAN_HEADER_BYTES];header[8..10].copy_from_slice(&c::ASSIGNED_KERNEL_PLAN_SCHEMA.to_le_bytes());
+    assert_eq!(validate(RecordInput::Records {header:&header,records:&records},view,None),Ok(()));
+    assert_eq!(validate(RecordInput::Records {header:&header,records:&records},&layout,None),Err(AssignedKernelRefusal::Layout));
+    assert!(ResidentLayoutView::checked(&layout,&[overrides[0],overrides[0]]).is_err());
+    assert!(ResidentLayoutView::checked(&layout,&[c::AssignedLayoutOverride {ordinal:2,..overrides[0]}]).is_err());
+}

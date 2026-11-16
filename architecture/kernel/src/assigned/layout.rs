@@ -17,7 +17,7 @@ fn ignored(tag: u8) -> bool {
 }
 pub(super) fn validate(
     input: RecordInput<'_>,
-    layout: &ResidentLayout<'_>,
+    layout: impl ResidentLayoutSource,
     fore: Option<ForeProfile<'_>>,
 ) -> Result<(), AssignedKernelRefusal> {
     use AssignedKernelRefusal as E;
@@ -25,13 +25,12 @@ pub(super) fn validate(
     // per-tag count domain. Ignored or foreign requirements cannot disappear
     // merely because actual configuration/Sign/terminal records are skipped.
     for tag in 1..=c::ASSIGNED_PLAN_COUNT_KINDS as u8 {
-        if layout.records.iter().filter(|r| r.tag == tag).count() > u8::MAX as usize {
+        if layout.records().filter(|r| r.tag == tag).count() > u8::MAX as usize {
             return Err(E::Capacity);
         }
     }
     if layout
-        .records
-        .iter()
+        .records()
         .any(|r| r.tag == 0 || usize::from(r.tag) > c::ASSIGNED_PLAN_COUNT_KINDS || ignored(r.tag))
     {
         return Err(E::Layout);
@@ -64,11 +63,10 @@ pub(super) fn validate(
             };
             let start = (tag % TAGS_PER_PASS) * TAG_BYTES;
             let ordinal = layout
-                .records
-                .iter()
+                .records()
                 .filter(|r| r.tag == record.tag)
                 .enumerate()
-                .position(|(i, r)| seen[start + i / 8] & (1 << (i % 8)) == 0 && *r == expected)
+                .position(|(i, r)| seen[start + i / 8] & (1 << (i % 8)) == 0 && r == expected)
                 .ok_or(E::Layout)?;
             seen[start + ordinal / 8] |= 1 << (ordinal % 8);
         }
@@ -76,8 +74,7 @@ pub(super) fn validate(
             ..=((group + 1) * TAGS_PER_PASS).min(c::ASSIGNED_PLAN_COUNT_KINDS)
         {
             let count = layout
-                .records
-                .iter()
+                .records()
                 .filter(|r| usize::from(r.tag) == tag)
                 .count();
             let start = ((tag - 1) % TAGS_PER_PASS) * TAG_BYTES;

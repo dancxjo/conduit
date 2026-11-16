@@ -306,4 +306,4 @@ mod tests;
 
 #[path = "projection_line_layout.rs"]
 mod line_layout;
-pub use line_layout::AssignedLineLayoutRecipe;
+pub use line_layout::{AssignedLineLayoutRecipe, AssignedLayoutOverride};

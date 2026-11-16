@@ -109,5 +109,20 @@
     "CPU harness collects lazy expected fingerprints only for compatibility with existing slice-only kernel API. Production lazy integration is not implemented.",
     "Canonical current placement acquisition and authority remain separate obligations.",
     "An initial CPU harness incorrectly used route-record count for indexed route-slot capacity; corrected to N*P=36 before reporting success."
-  ]
+  ],
+  "sparse_preflight": {
+    "changed_rows": 5,
+    "scratch_slots": 6,
+    "scratch_bytes_native": 216,
+    "iterations": 200,
+    "unoptimized_native_total_microseconds": 85003,
+    "target_cost_measured": false,
+    "expected_fingerprint_hashes_during_kernel_multiset_scan": 0
+  },
+  "source_canonical_placement_proof": {
+    "exact_actual_sampling_matches": 3,
+    "ambiguous_initialized_offer_refuses": true,
+    "wrong_artifact_refuses": true,
+    "wrong_kind_refuses": true
+  }
 }

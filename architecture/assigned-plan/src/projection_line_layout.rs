@@ -196,3 +196,78 @@ impl<'a> AssignedLineLayoutRecipe<'a> {
         ))
     }
 }
+
+/// Sparse expected-row replacement derived from checked construction facts.
+#[derive(Clone, Copy)]
+pub struct AssignedLayoutOverride {
+    pub ordinal: u16,
+    pub requirement: AssignedRecordRequirement,
+}
+impl AssignedLayoutOverride {
+    pub const EMPTY: Self = Self {
+        ordinal: u16::MAX,
+        requirement: AssignedRecordRequirement {
+            tag: 0,
+            payload_digest: [0; 32],
+        },
+    };
+}
+impl AssignedLineLayoutRecipe<'_> {
+    /// Preflight the original immutable inventory once, then retain only changed
+    /// boundary rows. Repeated kernel comparisons perform no expected-row SHA.
+    /// Scratch is caller-owned, at most two rows per independently pinned Fore.
+    pub fn write_overrides<'s>(
+        &self,
+        installed: &[AssignedRecordRequirement],
+        scratch: &'s mut [AssignedLayoutOverride],
+    ) -> Result<&'s [AssignedLayoutOverride], ProjectionTemplateRefusal> {
+        use ProjectionTemplateRefusal as E;
+        if scratch.len() < self.fresh.len() * 2 {
+            return Err(E::Bounds);
+        }
+        let mut ordinal = 0;
+        for record in AssignedPlanRecords::new(self.bytes)? {
+            let record = record?;
+            if matches!(
+                record.tag,
+                ASSIGNED_CONFIGURATION | ASSIGNED_SIGN | ASSIGNED_TERMINAL
+            ) {
+                continue;
+            }
+            let original = AssignedRecordRequirement::from_kernel_record(
+                record,
+                ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
+            );
+            if installed.get(ordinal) != Some(&original) {
+                return Err(E::Bindings);
+            }
+            ordinal += 1;
+        }
+        if ordinal != installed.len() || ordinal > usize::from(u16::MAX) {
+            return Err(E::Bindings);
+        }
+        let mut ordinal = 0;
+        let mut used = 0;
+        for record in AssignedPlanRecords::new(self.bytes)? {
+            let record = record?;
+            if matches!(
+                record.tag,
+                ASSIGNED_CONFIGURATION | ASSIGNED_SIGN | ASSIGNED_TERMINAL
+            ) {
+                continue;
+            }
+            if record.tag == ASSIGNED_LOCAL_FORE || external(record) {
+                let expected = self.fingerprint(record)?;
+                if installed[ordinal] != expected {
+                    scratch[used] = AssignedLayoutOverride {
+                        ordinal: ordinal as u16,
+                        requirement: expected,
+                    };
+                    used += 1;
+                }
+            }
+            ordinal += 1;
+        }
+        Ok(&scratch[..used])
+    }
+}

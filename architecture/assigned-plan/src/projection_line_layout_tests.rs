@@ -254,3 +254,56 @@ fn mixed_recipe_keeps_append_status_local_and_line_pins_exact() {
     let changed_records: Vec<_> = changed_recipe.records().collect::<Result<_, _>>().unwrap();
     assert_ne!(expected, changed_records);
 }
+
+#[test]
+fn sparse_overrides_reuse_installed_rows_and_refuse_drift_before_writing() {
+    let bytes = fixture(true);
+    let digest = assigned_local_projection_template_digest(&bytes, maxima()).unwrap();
+    let template = AssignedLocalProjectionTemplate::check(&bytes, &digest, maxima()).unwrap();
+    let installed: Vec<_> = AssignedPlanRecords::new(&bytes)
+        .unwrap()
+        .map(Result::unwrap)
+        .filter(|r| {
+            !matches!(
+                r.tag,
+                ASSIGNED_CONFIGURATION | ASSIGNED_SIGN | ASSIGNED_TERMINAL
+            )
+        })
+        .map(|r| AssignedRecordRequirement::from_kernel_record(r, ASSIGNED_FORE_NATIVE_PLAN_SCHEMA))
+        .collect();
+    let fresh = [fore("actual")];
+    let lines = [line_pin(static_fore())];
+    let recipe = template
+        .line_layout(
+            &fresh,
+            AssignedLineForeProfile {
+                local: &[],
+                lines: &lines,
+            },
+        )
+        .unwrap();
+    let mut scratch = [AssignedLayoutOverride::EMPTY; 2];
+    let overrides = recipe.write_overrides(&installed, &mut scratch).unwrap();
+    assert_eq!(overrides.len(), 2);
+    let lazy: Vec<_> = recipe.records().collect::<Result<_, _>>().unwrap();
+    let patched: Vec<_> = installed
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(i, r)| {
+            overrides
+                .iter()
+                .find(|o| usize::from(o.ordinal) == i)
+                .map_or(r, |o| o.requirement)
+        })
+        .collect();
+    assert_eq!(lazy, patched);
+    let mut changed = installed.clone();
+    changed[0].payload_digest[0] ^= 1;
+    scratch.fill(AssignedLayoutOverride::EMPTY);
+    assert!(recipe.write_overrides(&changed, &mut scratch).is_err());
+    assert!(scratch.iter().all(|s| s.ordinal == u16::MAX));
+    assert!(recipe
+        .write_overrides(&installed, &mut scratch[..1])
+        .is_err());
+}

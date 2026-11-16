@@ -18,21 +18,22 @@ impl ForeProfile<'_> {
         self,
         bytes: &[u8],
         profile: &b::AssignedBodyPreparationProfile<'_>,
-        layout: &ResidentLayout<'_>,
+        layout: conduit_kernel::assigned::ResidentLayoutView<'_>,
     ) -> Result<(), conduit_kernel::assigned::AssignedKernelRefusal> {
         match self {
             Self::Local(fore) => {
+                if layout.has_overrides() {return Err(conduit_kernel::assigned::AssignedKernelRefusal::Layout);}
                 BoundedAssignedKernelTables::<N, C, P, R, T, H>::prepare_with_fore(
                     bytes,
                     profile.maxima,
                     profile.requirements,
                     profile.computations,
-                    layout,
+                    layout.installed(),
                     fore,
                 )
             }
             Self::Line(fore) => {
-                BoundedAssignedKernelTables::<N, C, P, R, T, H>::prepare_with_line_fore(
+                BoundedAssignedKernelTables::<N, C, P, R, T, H>::prepare_with_line_fore_recipe(
                     bytes,
                     profile.maxima,
                     profile.requirements,
@@ -56,19 +57,20 @@ impl ForeProfile<'_> {
         self,
         bytes: &[u8],
         profile: &b::AssignedBodyPreparationProfile<'_>,
-        layout: &ResidentLayout<'_>,
+        layout: conduit_kernel::assigned::ResidentLayoutView<'_>,
         nodes: &mut [NodeSpec<P>; N],
         cords: &mut [CordSpec; C],
         routes: &mut FixedRoutes<R, T>,
         calls: &mut FixedHostCallBindings<H>,
     ) -> Result<c::AssignedPlanView, conduit_kernel::assigned::AssignedKernelRefusal> {
+        if matches!(self,Self::Local(_)) && layout.has_overrides() {return Err(conduit_kernel::assigned::AssignedKernelRefusal::Layout);}
         match self {
             Self::Local(fore) => BoundedAssignedKernelTables::<N, C, P, R, T, H>::write_with_fore(
                 bytes,
                 profile.maxima,
                 profile.requirements,
                 profile.computations,
-                layout,
+                layout.installed(),
                 fore,
                 nodes,
                 cords,
@@ -76,7 +78,7 @@ impl ForeProfile<'_> {
                 calls,
             ),
             Self::Line(fore) => {
-                BoundedAssignedKernelTables::<N, C, P, R, T, H>::write_with_line_fore(
+                BoundedAssignedKernelTables::<N, C, P, R, T, H>::write_with_line_fore_recipe(
                     bytes,
                     profile.maxima,
                     profile.requirements,
@@ -136,7 +138,7 @@ impl<
             approved,
             profile.preparation,
             ForeProfile::Line(profile.line_fore),
-            layout,
+            layout.into(),
             values,
             signs,
             maximum_retained_bytes,
@@ -153,6 +155,33 @@ impl<
         approved: &b::DelegatedBodyFragment<'_>,
         profile: b::AssignedBodyLineForePreparationProfile<'_>,
         layout: &ResidentLayout<'_>,
+        values: V,
+        signs: L,
+        maximum_retained_bytes: usize,
+        factory: impl FnOnce() -> Result<B, E>,
+        expected: &'static [[Option<AssignedTerminalTransduction>; P]; N],
+    ) -> Result<Self, Refusal<E>> {
+        if profile.preparation.fore.is_some() {
+            return Err(Refusal::Scope);
+        }
+        Self::prepare_inner(
+            approved,
+            profile.preparation,
+            ForeProfile::Line(profile.line_fore),
+            layout.into(),
+            values,
+            signs,
+            maximum_retained_bytes,
+            factory,
+            Some(ExpectedTerminalTable::Linked(expected)),
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    #[inline(never)]
+    pub fn prepare_with_line_fore_recipe_linked_terminal_transductions<E>(
+        approved: &b::DelegatedBodyFragment<'_>,
+        profile: b::AssignedBodyLineForePreparationProfile<'_>,
+        layout: conduit_kernel::assigned::ResidentLayoutView<'_>,
         values: V,
         signs: L,
         maximum_retained_bytes: usize,

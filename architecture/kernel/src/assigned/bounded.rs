@@ -175,4 +175,60 @@ impl<
         }
         Ok(backs)
     }
+    pub fn prepare_with_line_fore_recipe(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: ResidentLayoutView<'_>,
+        profile: c::AssignedLineForeProfile<'_>,
+    ) -> Result<Self, AssignedKernelRefusal> {
+        let tables = AssignedKernelTables::prepare_capacity_profile(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(ForeProfile::Line(profile)),
+            false,
+        )?;
+        Ok(Self {
+            identity: tables.identity,
+            nodes: tables.nodes,
+            cords: tables.cords,
+            routes: tables.routes,
+            calls: tables.calls,
+            startup_order: tables.startup_order,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn write_with_line_fore_recipe(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: ResidentLayoutView<'_>,
+        profile: c::AssignedLineForeProfile<'_>,
+        nodes: &mut [NodeSpec<P>; N],
+        cords: &mut [CordSpec; C],
+        routes: &mut k::FixedRoutes<R, T>,
+        calls: &mut k::FixedHostCallBindings<H>,
+    ) -> Result<c::AssignedPlanView, AssignedKernelRefusal> {
+        let mut startup_order = [k::NodeId(u16::MAX); N];
+        AssignedKernelTables::write_capacity_profile(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(ForeProfile::Line(profile)),
+            false,
+            nodes,
+            cords,
+            routes,
+            calls,
+            &mut startup_order,
+        )
+    }
 }
