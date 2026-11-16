@@ -1,0 +1,15 @@
+# Preserve civil time, locality, attribution and explicit weather availability
+# as one finite semantic observation, independent of its presentation.
+plot ambient-clock-weather/current (
+    >> observation: AmbientClockWeather <= 4096B
+    current: AmbientClockWeather >>
+) = .
+
+plot ambient-clock-weather (
+    >> observation: AmbientClockWeather <= 4096B
+) {
+    current: ambient-clock-weather/current
+    inspect: face/structured-info("Date, time and weather")
+    observation >> current.observation
+    current.current >> inspect.input
+}

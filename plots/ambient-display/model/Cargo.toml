@@ -1,0 +1,9 @@
+[package]
+name = "conduit-ambient-display"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-face = { path = "../../../semantics/face" }
