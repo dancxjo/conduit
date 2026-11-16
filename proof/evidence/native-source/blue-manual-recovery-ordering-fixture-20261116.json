@@ -1,0 +1,65 @@
+{
+  "schema": "conduit.evidence/manual-recovery-ordering-fixture@1",
+  "scope": "Disposable filesystem model only; no installed Owner API, physical retirement, real authority validation or power-loss simulation qualified",
+  "cases": [
+    {
+      "case": "archive-directory",
+      "passed": true,
+      "claim_held": true,
+      "archive_before_release": true
+    },
+    {
+      "case": "original-unknown-durable",
+      "passed": true,
+      "claim_held": true,
+      "archive_before_release": true
+    },
+    {
+      "case": "evidence-durable",
+      "passed": true,
+      "claim_held": true,
+      "archive_before_release": true
+    },
+    {
+      "case": "decision-durable",
+      "passed": true,
+      "claim_held": true,
+      "archive_before_release": true
+    },
+    {
+      "case": "claim-release-durable",
+      "passed": true,
+      "claim_held": false,
+      "archive_before_release": true
+    },
+    {
+      "case": "complete",
+      "passed": true,
+      "claim_held": false,
+      "archive_before_release": true
+    },
+    {
+      "case": "copied-json",
+      "passed": true,
+      "claim_held": true
+    },
+    {
+      "case": "wrong-claim",
+      "passed": true,
+      "claim_held": true
+    },
+    {
+      "case": "live-owner",
+      "passed": true,
+      "claim_held": true
+    },
+    {
+      "case": "pending-transaction",
+      "passed": true,
+      "claim_held": true
+    }
+  ],
+  "passed": 10,
+  "live_effects": false,
+  "real_claim_release_authorized": false
+}

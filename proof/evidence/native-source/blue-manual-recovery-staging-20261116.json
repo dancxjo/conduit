@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.evidence/claim-specific-manual-recovery-staging@1",
+  "at_utc": "2026-11-16T21:53:25.330836+00:00",
+  "case_plan_sha256": "317a66450847cd81051dbd6bdfeae0545c7190b6d137ab789c71d5d69cb1633d",
+  "original_claim_sha256": "7b41ec462dce31ea8b3314dd560a0c07c49b78e28b4278a234658c47dda19c2e",
+  "original_identity_mapping_verified": true,
+  "fresh_return_verified": true,
+  "reset_basis": "Conditional reviewed hardware-reset route plus actual authenticated fresh Boot; EN waveform unmeasured",
+  "fixture_cases_passed": 10,
+  "fixture_only": true,
+  "production_recovery_consumer_available": false,
+  "checked_queue_capacity_cas_available_in_reviewed_source": false,
+  "live_effects_performed": false,
+  "claim_released": false,
+  "execution_authorized": false,
+  "original_resource_bounds_preserved": true
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.operations/blue-original-identity-recovery-review@1",
+  "at_utc": "2026-11-16T21:21:11.356125+00:00",
+  "body_id": "28fb79351715c5837393add72c705a7dda8e7a4abd81468ece08380adaf21d3a",
+  "part_id": "ef6c0feb5da33f515edb8e39732783256bf8d9dd348ef901748fb8abcd32ec23",
+  "host_id": "esp32/efuse/b0a732286178",
+  "old_boot": "esp32/boot/2de9f586299953092f64122cf61862bc",
+  "authenticated_fresh_boot": "esp32/boot/16501442293b70481ee35280086d8caf",
+  "ordinary_return_terminal_exit": 0,
+  "same_original_member_key": true,
+  "original_claim_sha256": "7b41ec462dce31ea8b3314dd560a0c07c49b78e28b4278a234658c47dda19c2e",
+  "claim_preserved": true,
+  "old_signed_return_matches_claim_presentation": true,
+  "same_body_part_host": true,
+  "physical_mac": "b0:a7:32:28:61:78",
+  "actual_flash_receipt_sha256": "4a16ebf274f47b2587c06af5d135f353431d8425317ad3592460091e486770d2",
+  "authenticated_return_receipt_sha256": "47beb6735e6600b931ba51db4b6cd5e7d814e1accbd4cfc0b3707024e18ec11c",
+  "root_lulled": true,
+  "realization": null,
+  "serial_owners_after_return": [],
+  "device_ack_acceptance_proved": false,
+  "source_prepare_start_performed": false,
+  "generic_retirement_proved": false,
+  "contradiction_found": false,
+  "remaining_gates": [
+    "Review target reset/ROM custody as old all-core and DMA execution quiescence evidence; verified write and fresh Boot alone do not establish this contract.",
+    "Implement or explicitly qualify exact claim-bound archive-before-release recovery with durable anti-replay; leave unrelated grants held.",
+    "Before future execution, deploy qualified client bootstrap and explicitly select reviewed queue capacities through ordinary preparation policy, then require fresh actual offers/Plan/admission."
+  ]
+}
