@@ -48,6 +48,9 @@ pub mod native_dispatch;
 pub mod native_supervisor;
 
 #[cfg(feature = "execution")]
+pub mod preparation_refusal;
+
+#[cfg(feature = "execution")]
 pub mod execution_group;
 
 #[cfg(feature = "execution")]

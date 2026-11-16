@@ -500,3 +500,6 @@ fn public_root_hash_wrappers_match_shared_wire_and_original_transcript() {
         external_fore_scope_commitment(&full, &custody, &docs::line(8))
     );
 }
+
+#[path = "refusal_diagnostic_tests.rs"]
+mod refusal_diagnostic_tests;

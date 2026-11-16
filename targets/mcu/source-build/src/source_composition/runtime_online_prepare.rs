@@ -11,7 +11,7 @@
             // A logical complete-owner receipt is bounded separately
             // from ASG representation. Physical backing is exclusively
             // held by the original whole-arena lease.
-            maximum_retained_bytes: arena.bytes(),
+            maximum_retained_bytes: arena_bytes,
         };
         let identity = conduit_core::AssignedIdentity::from_text;
         let mut held_pools = heapless::Vec::<_, 6>::from_slice(&[
