@@ -41,3 +41,33 @@ test('held motion must reach the refreshed control even when custody is otherwis
   receipt.held_motion_after_fresh_show.display_y = 156;
   assert.throws(() => validateNativePointerReceipt(receipt, changed), /pointer receipt differs/);
 });
+
+
+test('release activation retains original Show until the completed tap and owner change', () => {
+  const { receipt, serial } = pointerFixture(true);
+  assert.doesNotThrow(() => validateNativePointerReceipt(receipt, serial));
+});
+
+test('release activation refuses owner mutation before release', () => {
+  const { receipt, serial } = pointerFixture(true);
+  const lines = serial.trimEnd().split('\n');
+  const change = lines.findIndex(line => line.startsWith('CONDUIT_CRECHE_CHANGE ')
+    && JSON.parse(line.slice('CONDUIT_CRECHE_CHANGE '.length)).before_revision === 2);
+  const [premature] = lines.splice(change, 1);
+  const release = lines.findIndex(line => line.startsWith('CONDUIT_NATIVE_POINTER ')
+    && JSON.parse(line.slice('CONDUIT_NATIVE_POINTER '.length)).sequence === 3);
+  lines.splice(release, 0, premature);
+  assert.throws(() => validateNativePointerReceipt(receipt, lines.join('\n') + '\n'), /pointer receipt differs/);
+});
+
+test('release activation refuses cancelled movement even inside the target', () => {
+  const { receipt, serial } = pointerFixture(true);
+  receipt.held_motion_before_release.display_x += 9;
+  const changed = serial.split('\n').map(line => {
+    if (!line.startsWith('CONDUIT_NATIVE_POINTER ')) return line;
+    const sample = JSON.parse(line.slice('CONDUIT_NATIVE_POINTER '.length));
+    if (sample.sequence === 2) sample.display_x += 9;
+    return 'CONDUIT_NATIVE_POINTER ' + JSON.stringify(sample);
+  }).join('\n');
+  assert.throws(() => validateNativePointerReceipt(receipt, changed), /pointer receipt differs/);
+});

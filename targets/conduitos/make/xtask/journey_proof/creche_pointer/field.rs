@@ -49,31 +49,10 @@ pub(in super::super) fn focus_argument(
             if !within_hit(&press, &current)? {
                 return Err(refusal("physical field press outside current hit"));
             }
-            journey_input::wait_for_record_retaining_guest(
-                serial,
-                child,
-                "creche-field-focus-timeout",
-                "argument-focus",
-                |text| {
-                    let focuses = face_correspondence::records(text, FOCUS)?;
-                    Ok(focuses.len() > focus_before
-                        && focuses.last().is_some_and(|f| {
-                            f["action_id"] == action
-                                && f["argument_name"] == argument
-                                && f["show_id"] == current["show_id"]
-                        }))
-                },
-            )?;
-            let fresh = focus(serial, target)?;
-            if fresh["face_id"] != current["face_id"]
-                || fresh["show_id"] != current["show_id"]
-                || records(serial, CHANGE)?.len() != changes
-            {
-                return Err(refusal(
-                    "pointer field focus unexpectedly committed Source state",
-                ));
+            if records(serial, CHANGE)?.len() != changes {
+                return Err(refusal("field press committed Source state before release"));
             }
-            Ok((press, fresh))
+            Ok(press)
         });
     // Release even after refusal; this is not a retry or a semantic action.
     let prior = last_sequence(serial);
@@ -86,9 +65,25 @@ pub(in super::super) fn focus_argument(
             }
             Ok(release)
         });
-    let (press, fresh) = observed?;
+    let press = observed?;
     let release = released?;
-    // dispatch() emits a pointer observation before checking its semantic press
+    journey_input::wait_for_record_retaining_guest(
+        serial,
+        child,
+        "creche-field-focus-timeout",
+        "argument-focus",
+        |text| {
+            let focuses = face_correspondence::records(text, FOCUS)?;
+            Ok(focuses.len() > focus_before
+                && focuses.last().is_some_and(|f| {
+                    f["action_id"] == action
+                        && f["argument_name"] == argument
+                        && f["show_id"] == current["show_id"]
+                }))
+        },
+    )?;
+    let fresh = focus(serial, target)?;
+    // dispatch() emits a pointer observation before checking its completed gesture
     // route. A later harmless released motion is a sequential guest barrier:
     // the event loop cannot observe it before returning from release dispatch.
     let barrier = move_by(serial, child, stream, reader, scale, (1, 0), false, target)?;

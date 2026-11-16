@@ -42,6 +42,10 @@ fn absent_local_input_preserves_face_and_page_and_removes_navigation_hints() {
             scene.pointer(0, 0, &show, 3),
             Err(FaceSceneError::UnsupportedInput)
         ));
+        assert!(matches!(
+            scene.pointer_sample(0, 0, true, true, &show, 4),
+            Err(FaceSceneError::UnsupportedInput)
+        ));
         assert_eq!(scene.page(), original_page);
         assert!(!scene.showing_details());
         assert_eq!(scene.face(), &face);

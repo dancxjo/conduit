@@ -234,6 +234,7 @@ impl NativeFaceScene {
     }
 
     pub fn show_details(&mut self, details: bool) {
+        self.cancel_pointer_gesture();
         if self.local_notice.as_deref() == Some(graph_reading::DIAGRAM_FALLBACK_NOTICE) {
             self.local_notice = None;
         }
@@ -256,6 +257,7 @@ impl NativeFaceScene {
 
     /// Mask-local reading navigation does not invoke a semantic action.
     pub fn turn_page(&mut self, forward: bool) {
+        self.cancel_pointer_gesture();
         self.page = if forward {
             (self.page + 1).min(self.pages() - 1)
         } else {
@@ -265,6 +267,7 @@ impl NativeFaceScene {
     }
 
     pub fn focus_next(&mut self, forward: bool) -> Option<FaceControl> {
+        self.cancel_pointer_gesture();
         if self.showing_diagram {
             return None;
         }
@@ -468,3 +471,6 @@ mod heading_tests;
 #[cfg(test)]
 #[path = "native_face_scene/corner_tests.rs"]
 mod corner_tests;
+
+#[path = "native_face_scene/pointer_gesture.rs"]
+mod pointer_gesture;

@@ -28,6 +28,7 @@ pub(super) fn dispatch(
         Ok(activate) => activate,
         Err(reason) => {
             state.retire();
+            face_arrival.cancel_pointer_gesture(display)?;
             crate::arch::early_write(alloc::format!("CONDUIT_POINTER_LOST {reason}\n").as_bytes());
             return Ok(());
         }
@@ -50,11 +51,19 @@ pub(super) fn dispatch(
             b"CONDUIT_POINTER_UNSUPPORTED current-entrance-has-no-pointer-action-route\n",
         );
     }
-    if activate && !provisioned_guest && front_door.creche_open() {
+    if !provisioned_guest && front_door.creche_open() {
         let (x, y) = state.position(display)?;
-        if let super::FaceArrivalInput::Born =
-            face_arrival.accept_pointer(x, y, front_door, journey, presenter, display, make)?
-        {
+        if let super::FaceArrivalInput::Born = face_arrival.accept_pointer(
+            x,
+            y,
+            sample.primary_pressed,
+            activate,
+            front_door,
+            journey,
+            presenter,
+            display,
+            make,
+        )? {
             super::startup::after_birth(
                 face_arrival,
                 front_door,

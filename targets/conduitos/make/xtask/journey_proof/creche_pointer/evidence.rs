@@ -52,12 +52,12 @@ pub(in super::super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
                 sample["sequence"].as_u64() > press["sequence"].as_u64()
                     && sample["primary_pressed"] == false
                     && sample["press_edge"] == false
-                    && sample["face_id"] == change["after_face_id"]
-                    && sample["face_revision"] == change["after_revision"]
-                    && sample["show_id"] == change["after_show_id"]
+                    && sample["face_id"] == change["before_face_id"]
+                    && sample["face_revision"] == change["before_revision"]
+                    && sample["show_id"] == change["before_show_id"]
             })
             .ok_or_else(|| {
-                refusal("pointer edit lacks an observed release under its fresh Show")
+                refusal("pointer edit lacks an observed release under its original Show")
             })?;
         presses.push(press.clone());
         releases.push(release.clone());
@@ -67,11 +67,11 @@ pub(in super::super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
         .find(|focus| {
             focus["action_id"] == ACTION
                 && focus["argument_name"].is_null()
-                && focus["face_id"] == changes[2]["after_face_id"]
-                && focus["face_revision"] == changes[2]["after_revision"]
-                && focus["show_id"] == changes[2]["after_show_id"]
+                && focus["face_id"] == changes[2]["before_face_id"]
+                && focus["face_revision"] == changes[2]["before_revision"]
+                && focus["show_id"] == changes[2]["before_show_id"]
         })
-        .ok_or_else(|| refusal("held probe lacks its current checkbox geometry"))?;
+        .ok_or_else(|| refusal("held probe lacks its original checkbox geometry"))?;
     let (x, y, width, height, _, _) = rectangle(&fresh_focus)?;
     let held = samples
         .iter()
@@ -80,9 +80,9 @@ pub(in super::super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
                 && sample["sequence"].as_u64() < releases[0]["sequence"].as_u64()
                 && sample["primary_pressed"] == true
                 && sample["press_edge"] == false
-                && sample["face_id"] == changes[2]["after_face_id"]
-                && sample["face_revision"] == changes[2]["after_revision"]
-                && sample["show_id"] == changes[2]["after_show_id"]
+                && sample["face_id"] == changes[2]["before_face_id"]
+                && sample["face_revision"] == changes[2]["before_revision"]
+                && sample["show_id"] == changes[2]["before_show_id"]
                 && sample["display_x"]
                     .as_i64()
                     .is_some_and(|px| px >= x && px < x + width)
@@ -92,20 +92,20 @@ pub(in super::super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
                 && (sample["delta_x"].as_i64().is_some_and(|n| n != 0)
                     || sample["delta_y"].as_i64().is_some_and(|n| n != 0))
         })
-        .ok_or_else(|| refusal("missing held motion through the newly acknowledged Show"))?;
+        .ok_or_else(|| refusal("missing held motion through the original acknowledged Show"))?;
     if sequence(&presses[1])? <= sequence(&releases[0])? {
         return Err(refusal(
             "the second activation preceded release of the first gesture",
         ));
     }
     Ok(json!({
-        "schema": "conduit.creche/native-pointer-proof@1", "status": "passed",
+        "schema": "conduit.creche/native-pointer-proof@2", "status": "passed",
         "entrance": "normal-product-creche", "proof_class": "freestanding-emulator",
         "target_action": ACTION, "target_geometry": "observed-current-frame-hit-bounds",
         "keyboard_action_count": 2, "pointer_action_count": 2,
         "source_changes": changes, "presses": presses, "releases": releases,
-        "held_motion_after_fresh_show": held, "held_motion_duplicate_effects": 0,
-        "held_motion_on_refreshed_control": true,
+        "held_motion_before_release": held, "held_motion_duplicate_effects": 0,
+        "held_motion_on_pending_control": true,
         "physical_evidence": false, "human_enactment": false,
     }))
 }
