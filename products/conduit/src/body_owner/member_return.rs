@@ -2,7 +2,10 @@
 //! Local control authenticates the caller; the continuity signature authenticates
 //! the member. A route or public credential alone cannot attach a Part.
 use super::{state, Owner};
-use conduit_body::{MembershipCredential, PartReturnChallenge, PartReturnProof};
+use conduit_body::{
+    AdmissionRefusal, BodyLifecycleSessionError, MembershipCredential, PartReturnChallenge,
+    PartReturnProof,
+};
 use conduit_core::HostAdvertisement;
 use std::{
     path::Path,
@@ -18,19 +21,47 @@ pub(super) struct PendingMemberReturn {
     attempts: u8,
 }
 
+impl PendingMemberReturn {
+    fn current_at(&self, now: Instant, at: u64) -> bool {
+        now < self.deadline
+            && at >= self.challenge.issued_at_millis
+            && at < self.challenge.expires_at_millis
+    }
+}
+
 impl Owner {
     pub(crate) fn begin_member_return(
         &mut self,
         credential: &MembershipCredential,
         advertisement: &HostAdvertisement,
     ) -> Result<PartReturnChallenge, String> {
+        let at = crate::durable_host::current_time_millis()?;
+        self.begin_member_return_at(credential, advertisement, Instant::now(), at)
+    }
+
+    // Both clock observations belong to this request, including pending replay.
+    pub(super) fn begin_member_return_at(
+        &mut self,
+        credential: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        now: Instant,
+        at: u64,
+    ) -> Result<PartReturnChallenge, String> {
         if self.host.is_playing() {
             return Err("body-play-active".into());
+        }
+        if self
+            .pending_member_return
+            .as_ref()
+            .is_some_and(|pending| at < pending.challenge.issued_at_millis)
+        {
+            // Rollback cannot replace the pending challenge with a fresh lease.
+            return Err("member return challenge expired".into());
         }
         if let Some(pending) = self
             .pending_member_return
             .as_ref()
-            .filter(|p| Instant::now() < p.deadline)
+            .filter(|pending| pending.current_at(now, at))
         {
             if pending.prior == *credential && pending.advertisement == *advertisement {
                 if let Some((_, current)) = &pending.completed {
@@ -64,7 +95,6 @@ impl Owner {
         {
             return Err("member return credential is stale or unknown".into());
         }
-        let at = crate::durable_host::current_time_millis()?;
         let mut nonce = [0; 32];
         getrandom::fill(&mut nonce).map_err(|e| e.to_string())?;
         // Keep pending challenge custody ephemeral and bounded. Completion
@@ -86,7 +116,7 @@ impl Owner {
             prior: credential.clone(),
             completed: None,
             attempts: 0,
-            deadline: Instant::now() + Duration::from_secs(10),
+            deadline: now + Duration::from_secs(10),
         });
         Ok(challenge)
     }
@@ -96,6 +126,17 @@ impl Owner {
         root: &Path,
         proof: &PartReturnProof,
     ) -> Result<MembershipCredential, String> {
+        let at = crate::durable_host::current_time_millis()?;
+        self.complete_member_return_at(root, proof, Instant::now(), at)
+    }
+
+    pub(super) fn complete_member_return_at(
+        &mut self,
+        root: &Path,
+        proof: &PartReturnProof,
+        now: Instant,
+        at: u64,
+    ) -> Result<MembershipCredential, String> {
         if self.host.is_playing() {
             return Err("body-play-active".into());
         }
@@ -103,11 +144,7 @@ impl Owner {
             .pending_member_return
             .as_ref()
             .ok_or("member return challenge absent")?;
-        let at = crate::durable_host::current_time_millis()?;
-        if Instant::now() >= pending.deadline
-            || at < pending.challenge.issued_at_millis
-            || at >= pending.challenge.expires_at_millis
-        {
+        if !pending.current_at(now, at) {
             return Err("member return challenge expired".into());
         }
         if proof.admission_id != pending.challenge.admission_id {
@@ -167,8 +204,24 @@ impl Owner {
         let credential = match result {
             Ok(credential) => credential,
             Err(error) => {
-                if let Some(pending) = self.pending_member_return.as_mut() {
-                    pending.attempts = pending.attempts.saturating_add(1);
+                // Policy, capacity and lifecycle refusals do not attribute a
+                // bad proof. Keep its original finite challenge and deadline.
+                if matches!(
+                    error,
+                    BodyLifecycleSessionError::Admission(
+                        AdmissionRefusal::WrongBody
+                            | AdmissionRefusal::WrongHost
+                            | AdmissionRefusal::StaleBoot
+                            | AdmissionRefusal::StaleOfferGeneration
+                            | AdmissionRefusal::StaleNonce
+                            | AdmissionRefusal::Replay
+                            | AdmissionRefusal::InvalidProof
+                            | AdmissionRefusal::AttemptsExhausted
+                    )
+                ) {
+                    if let Some(pending) = self.pending_member_return.as_mut() {
+                        pending.attempts = pending.attempts.saturating_add(1);
+                    }
                 }
                 return Err(format!("member return: {error:?}"));
             }
