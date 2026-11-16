@@ -16,6 +16,8 @@ mod current_member;
 pub use current_member::CurrentMemberContinuity;
 mod documents;
 mod invitation;
+mod pending_revocation;
+pub use pending_revocation::PendingInvitationRevocationRefusal;
 mod receipt_retirement;
 mod storage;
 pub use receipt_retirement::{AdmissionReceiptRetirement, ReceiptRetirementRefusal};
