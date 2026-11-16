@@ -618,6 +618,7 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     }
     let _host_lock = owner_lock::acquire(state_dir)?;
     let _body_lock = owner_lock::body(state_dir)?;
+    owner::require_no_recovered_source_claim(state_dir)?;
     let installation = read_installation(&state_dir.join("installation.json"))?;
     let selection: Selection =
         serde_json::from_slice(&bounded_read(policy, MAXIMUM_BODY_ADMISSION_BYTES)?)

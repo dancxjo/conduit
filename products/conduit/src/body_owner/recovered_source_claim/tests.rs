@@ -143,6 +143,43 @@ fn real_resume_keeps_claim_and_readonly_face_but_denies_planning_and_start() {
         .contains("recovered-source-claim-unresolved"));
     assert!(resumed.ensure_execution_retained(&root).is_err());
     assert!(resumed.require_remote_workset_retired().is_err());
+    let member = crate::durable_host::owner::MemberPresentationBasis::new(returned, fresh).unwrap();
+    let challenge = conduit_body::HostCommandChallenge {
+        body_id: "invalid",
+        part_id: "invalid",
+        credential_id: "invalid",
+        receiver_host: "invalid",
+        receiver_boot: "invalid",
+        receiver_generation: 0,
+        receiver_profile: "invalid",
+        issuer_host: "invalid",
+        issuer_boot: "invalid",
+        issuer_generation: 0,
+        issuer_key: [0; 32],
+        payload_contract: "invalid",
+        maximum_payload_bytes: 0,
+        nonce: [0; 32],
+        issued_at_millis: 0,
+        expires_at_millis: 0,
+    };
+    let limits = conduit_embedded_build::BodyFragmentProjectionLimits {
+        image: conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING,
+        computations: conduit_embedded_build::EmbeddedComputationBounds {
+            maximum_program_bytes: 1,
+            maximum_total_program_bytes: 1,
+        },
+        assigned: conduit_core::AssignedPlanMaxima::SINGLE_SOURCE,
+        maximum_fore_ports: 1,
+        maximum_document_bytes: 1,
+    };
+    // Denial precedes normal approval validation/signing, even for an invalid
+    // challenge: no issuer, projection or remote grant can be manufactured.
+    assert!(resumed
+        .approve_remote_workset(&member, &challenge, &[], &[], limits)
+        .err()
+        .unwrap()
+        .contains("recovered-source-claim-unresolved"));
+
     assert!(
         crate::durable_host::source_continuation::export(&resumed, &[])
             .unwrap_err()
@@ -158,5 +195,76 @@ fn real_resume_keeps_claim_and_readonly_face_but_denies_planning_and_start() {
     resumed.hold_recovered_source_claim(false);
     assert!(resumed.require_source_effects_unheld().is_err());
     resumed.persist(&root).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+#[ignore = "requires explicit digest-pinned product Source worker artifact"]
+fn real_image_file_custody_restores_through_standard_runtime_under_hold() {
+    let (host, custody, biography, source_path) =
+        crate::durable_host::source_revision::real_owner_custody();
+    let root = root();
+    let path = root.join("original-biography.json");
+    let bytes = serde_json::to_vec(&biography).unwrap();
+    std::fs::write(&path, &bytes).unwrap();
+    let installation = crate::durable_host::Installation {
+        schema: crate::durable_host::INSTALL_SCHEMA.into(),
+        host_id: host.advertisement().host_id.as_str().into(),
+        release_source_identity: "source/test".into(),
+        release_bundle_sha256: crate::durable_host::digest(b"fixture"),
+        product_executable: "fixture-unused".into(),
+        body_state: Some(crate::durable_host::BodyBinding {
+            body_id: biography.body_id.as_str().into(),
+            biography_sha256: crate::durable_host::digest(&bytes),
+            biography_path: path.to_str().unwrap().into(),
+        }),
+        joined_body_state: None,
+        selected_speech: None,
+        selected_model: None,
+        selected_host_configuration: None,
+        selected_todo_checkpoint: None,
+    };
+    crate::durable_host::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    marker(&root);
+    let mut runtime = crate::durable_host_control::DurableHostRuntime::new(
+        "fixture".into(),
+        "fixture".into(),
+        host,
+    );
+    runtime.retain_source_preparation(Some(custody));
+    // Actual normal service owner restoration, including original IMAGE/File
+    // custody: no adoption, replacement, peer IO or original command replay.
+    let runtime = runtime.with_owned_body(&root).unwrap();
+    assert!(inspect(&root).unwrap());
+    drop(runtime);
+    assert_eq!(
+        std::fs::read(root.join("source-execution/claimed.json")).unwrap(),
+        b"not a command"
+    );
+    std::fs::remove_dir_all(root).unwrap();
+    std::fs::remove_file(source_path).unwrap();
+}
+
+#[test]
+fn held_legacy_adoption_and_foreground_refuse_before_source_or_worker_access() {
+    let root = root();
+    marker(&root);
+    let missing = root.join("must-not-open-source-or-policy");
+    let refusal = crate::durable_host::source_revision::adopt(&root, &missing, false).unwrap_err();
+    assert!(
+        refusal.contains("recovered-source-claim-unresolved"),
+        "{refusal}"
+    );
+    let refusal = crate::durable_host::owner::run(&missing, &root, "Unchanged").unwrap_err();
+    assert!(
+        refusal.contains("recovered-source-claim-unresolved"),
+        "{refusal}"
+    );
+    assert!(!root.join("source-policy-owner-peer.json").exists());
+    assert!(!root.join("installation.json").exists());
+    assert_eq!(
+        std::fs::read(root.join("source-execution/claimed.json")).unwrap(),
+        b"not a command"
+    );
     std::fs::remove_dir_all(root).unwrap();
 }
