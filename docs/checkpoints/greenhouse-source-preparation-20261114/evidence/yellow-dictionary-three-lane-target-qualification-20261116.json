@@ -1,0 +1,63 @@
+{
+  "status": "COMPILE_ONLY: canonical Make succeeded; no activation or flash",
+  "source_commit": "fdd20447d6f822c2b0db6b5929645936b4b621fe",
+  "configuration_id": "sha256:3e96571d0fc07799b378b397b00fdb5b19dc2c63c8bc7b62ac3977de1a1b61cc",
+  "image_id": "image:sha256:e1c3d9f8608b055745336c06a53a38944f37b59afd5099fd97d9ac5bce95738d",
+  "source_identity": "sha256:45b9ee61e580c57200b3b35466f76f4591dc10b946029c2f48d6eaf41d360ec9",
+  "source_sha256": "ec1b0410a8ca235e0b394625eede70c0d467cb1933c023c4f811b96db9e5f6c8",
+  "artifact_directory": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/yellow-dictionary-three-lane-20261116",
+  "elf_evidence": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dictionary-three-lane-evidence-20261116/host.elf",
+  "physical": {
+    "static_bytes": 208660,
+    "static_limit": 229376,
+    "stack_reserve": 61676,
+    "minimum_stack": 16384,
+    "heap_arena": 110592,
+    "main_pool": 90368,
+    "sampling_mask_output_kernel_metrics": [
+      14886,
+      6192,
+      2142
+    ],
+    "uf2_payload_bytes": 1457920,
+    "uf2_extent": 1457920,
+    "firmware_only_uf2": true
+  },
+  "archive_shape": {
+    "events": 128,
+    "templates": 4,
+    "tape_runs": 44,
+    "request_lanes": 3,
+    "remote_streams": 2,
+    "archive_backing_limit": 8192,
+    "overlap_limit": 12288
+  },
+  "limits": [
+    "Whole factory and preparation peak unproved",
+    "Full authored Source history trace unproved",
+    "No current target sensing/Mask or recovery proof",
+    "No device writes or grant enlargement"
+  ],
+  "files": {
+    "host.uf2": {
+      "bytes": 2915840,
+      "sha256": "68ac09a27c57f9aa130b5fda6e096edfb4091b293ed40f8fc6b19fb4d6961dbd"
+    },
+    "build-manifest.json": {
+      "bytes": 657,
+      "sha256": "4c6f1da1fd671c9f7fec117168ab394577d48d2996769777a15a6da0e8325b12"
+    },
+    "checked-artifact.json": {
+      "bytes": 1773,
+      "sha256": "0daa196e92d786489db440ad399a304de2f7e20e8d75308513c117c0008277de"
+    },
+    "resolved-image.json": {
+      "bytes": 8235,
+      "sha256": "4f568722c83592c6d39c21c9e44bcd323f34482267a91bcd72d7eaf33d5a671d"
+    },
+    "workset-source.conduit": {
+      "bytes": 10915,
+      "sha256": "ec1b0410a8ca235e0b394625eede70c0d467cb1933c023c4f811b96db9e5f6c8"
+    }
+  }
+}
