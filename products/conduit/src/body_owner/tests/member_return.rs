@@ -1,6 +1,10 @@
 use super::member_leave::{admit_with_key, owner_fixture};
 use super::*;
 use conduit_body::{PartReturnChallenge, PartReturnProof, SpawnInvitationSecret};
+use std::{
+    path::PathBuf,
+    time::{Duration, Instant},
+};
 fn prove(challenge: &PartReturnChallenge, key: &SpawnInvitationSecret) -> PartReturnProof {
     PartReturnProof {
         admission_id: challenge.admission_id.clone(),
@@ -92,4 +96,202 @@ fn member_return_bad_proofs_exhaust_the_same_finite_challenge() {
         challenge
     );
     std::fs::remove_dir_all(root).unwrap();
+}
+
+struct PendingReturnFixture {
+    owner: Owner,
+    root: PathBuf,
+    prior: conduit_body::MembershipCredential,
+    offer: conduit_core::HostAdvertisement,
+    challenge: PartReturnChallenge,
+    proof: PartReturnProof,
+    now: Instant,
+    at: u64,
+}
+
+fn pending_return_fixture(name: &str) -> PendingReturnFixture {
+    let (mut owner, root) = owner_fixture();
+    let (prior, key, offer) = admit_with_key(&mut owner, &root, name);
+    owner.member_leave(&root, &prior).unwrap();
+    let now = Instant::now();
+    let at = crate::durable_host::current_time_millis().unwrap();
+    let challenge = owner
+        .begin_member_return_at(&prior, &offer, now, at)
+        .unwrap();
+    let proof = prove(&challenge, &key);
+    PendingReturnFixture {
+        owner,
+        root,
+        prior,
+        offer,
+        challenge,
+        proof,
+        now,
+        at,
+    }
+}
+
+#[test]
+fn pending_return_replay_neither_extends_nor_ignores_either_clock_bound() {
+    for wall_expires_first in [false, true] {
+        let mut f = pending_return_fixture("host/return-clock-expiry");
+        let before = f.owner.session.evidence().clone();
+        let manager = f.owner.admissions.clone();
+        let (expired_now, expired_at) = if wall_expires_first {
+            (f.now, f.challenge.expires_at_millis)
+        } else {
+            (f.now + Duration::from_secs(10), f.at)
+        };
+        let fresh = f
+            .owner
+            .begin_member_return_at(&f.prior, &f.offer, expired_now, expired_at)
+            .unwrap();
+        assert_ne!(fresh.nonce, f.challenge.nonce);
+        assert_eq!(fresh.issued_at_millis, expired_at);
+        assert_eq!(fresh.expires_at_millis, expired_at + 10_000);
+        let replay = f
+            .owner
+            .begin_member_return_at(
+                &f.prior,
+                &f.offer,
+                expired_now + Duration::from_secs(1),
+                expired_at + 1_000,
+            )
+            .unwrap();
+        assert_eq!(replay, fresh);
+        assert_eq!(f.owner.session.evidence(), &before);
+        assert_eq!(f.owner.admissions, manager);
+        // Even the newly issued challenge expires at its original deadline;
+        // replay at one second did not move it to eleven seconds.
+        let expired = f
+            .owner
+            .complete_member_return_at(
+                &f.root,
+                &f.proof,
+                expired_now + Duration::from_secs(10),
+                expired_at,
+            )
+            .unwrap_err();
+        assert_eq!(expired, "member return challenge expired");
+        assert_eq!(f.owner.session.evidence(), &before);
+        std::fs::remove_dir_all(f.root).unwrap();
+    }
+}
+
+#[test]
+fn pending_return_clock_rollback_refuses_without_rotating_or_attaching() {
+    let mut f = pending_return_fixture("host/return-clock-rollback");
+    let before = f.owner.session.evidence().clone();
+    let manager = f.owner.admissions.clone();
+    assert_eq!(
+        f.owner
+            .begin_member_return_at(&f.prior, &f.offer, f.now, f.at - 1)
+            .unwrap_err(),
+        "member return challenge expired",
+    );
+    assert_eq!(
+        f.owner
+            .complete_member_return_at(&f.root, &f.proof, f.now, f.at - 1)
+            .unwrap_err(),
+        "member return challenge expired",
+    );
+    assert_eq!(f.owner.session.evidence(), &before);
+    assert_eq!(f.owner.admissions, manager);
+    assert_eq!(
+        f.owner
+            .begin_member_return_at(&f.prior, &f.offer, f.now, f.at)
+            .unwrap(),
+        f.challenge,
+    );
+    std::fs::remove_dir_all(f.root).unwrap();
+}
+
+#[test]
+fn signed_return_and_committed_replay_refuse_at_each_exact_clock_boundary() {
+    let mut f = pending_return_fixture("host/return-completion-clocks");
+    for (now, at) in [
+        (f.now + Duration::from_secs(10), f.at),
+        (f.now, f.challenge.expires_at_millis),
+    ] {
+        assert_eq!(
+            f.owner
+                .complete_member_return_at(&f.root, &f.proof, now, at)
+                .unwrap_err(),
+            "member return challenge expired",
+        );
+    }
+    let accepted = f
+        .owner
+        .complete_member_return_at(&f.root, &f.proof, f.now, f.at)
+        .unwrap();
+    let committed = f.owner.session.evidence().clone();
+    for (now, at) in [
+        (f.now + Duration::from_secs(10), f.at),
+        (f.now, f.challenge.expires_at_millis),
+        (f.now, f.at - 1),
+    ] {
+        assert!(f
+            .owner
+            .complete_member_return_at(&f.root, &f.proof, now, at)
+            .is_err());
+        assert_eq!(f.owner.session.evidence(), &committed);
+    }
+    assert_eq!(
+        f.owner
+            .complete_member_return_at(&f.root, &f.proof, f.now, f.at)
+            .unwrap(),
+        accepted,
+    );
+    std::fs::remove_dir_all(f.root).unwrap();
+}
+
+#[test]
+fn lifecycle_policy_refusal_does_not_spend_a_signed_returns_proof_attempts() {
+    let mut f = pending_return_fixture("host/return-policy");
+    f.owner.plan(&source()).unwrap();
+    let before = f.owner.session.evidence().clone();
+    let realization = f.owner.session.realization().cloned();
+    let manager = f.owner.admissions.clone();
+    for _ in 0..=conduit_body::MAX_ADMISSION_ATTEMPTS {
+        assert_eq!(
+            f.owner
+                .complete_member_return_at(&f.root, &f.proof, f.now, f.at)
+                .unwrap_err(),
+            "member return: NotLulled",
+        );
+        assert_eq!(f.owner.session.evidence(), &before);
+        assert_eq!(f.owner.session.realization(), realization.as_ref());
+        assert_eq!(f.owner.admissions, manager);
+    }
+    // Only this fixture's explicit lifecycle transition removes the policy
+    // refusal. No admission, new identity or automatic Lull came from retries.
+    f.owner.lull().unwrap();
+    let credential = f
+        .owner
+        .complete_member_return_at(&f.root, &f.proof, f.now, f.at)
+        .unwrap();
+    assert_eq!(credential.part_id, f.prior.part_id);
+    std::fs::remove_dir_all(f.root).unwrap();
+}
+
+#[test]
+fn wrong_nonce_still_spends_the_original_finite_proof_budget() {
+    let mut f = pending_return_fixture("host/return-wrong-nonce");
+    let mut wrong = f.proof.clone();
+    wrong.nonce[0] ^= 1;
+    let before = f.owner.session.evidence().clone();
+    for _ in 0..conduit_body::MAX_ADMISSION_ATTEMPTS {
+        assert!(f
+            .owner
+            .complete_member_return_at(&f.root, &wrong, f.now, f.at)
+            .is_err());
+    }
+    assert_eq!(
+        f.owner
+            .complete_member_return_at(&f.root, &f.proof, f.now, f.at)
+            .unwrap_err(),
+        "member return proof attempts exhausted",
+    );
+    assert_eq!(f.owner.session.evidence(), &before);
+    std::fs::remove_dir_all(f.root).unwrap();
 }
