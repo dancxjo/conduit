@@ -39,10 +39,10 @@ fn repeated_accepted_updates_are_silent_and_explicit_reading_uses_current_truth(
         .unwrap();
         show = common::available_mask_show(&face);
         reader.refresh(face.clone(), show.clone()).unwrap();
-        assert_eq!(
-            reader.focused_clause().provenance,
-            FaceUtteranceProvenance::Subject("arrival".into())
-        );
+        assert!(matches!(
+            &reader.focused_clause().provenance,
+            FaceUtteranceProvenance::Subject(subject) if subject.identity() == "arrival"
+        ));
         assert!(reader.next_segment().unwrap().is_none());
     }
     reader
