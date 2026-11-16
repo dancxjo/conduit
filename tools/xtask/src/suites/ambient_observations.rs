@@ -3,6 +3,12 @@ use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
     Step::new(
+        "ambient-observations.model",
+        "Check one semantic Home with typed civil time and explicit wallpaper/weather status",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-ambient-display"],
+    ),
+    Step::new(
         "ambient-observations.source",
         "Check finite authored observations, rotation and native owner contracts",
         "cargo",

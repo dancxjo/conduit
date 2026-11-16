@@ -1,0 +1,8 @@
+# The caller supplies admitted observations. Presentation neither acquires data
+# nor starts another Body, timer, runtime or display route.
+plot ambient-home (
+    >> observations: AmbientHomeObservation...| <= 8192B
+) {
+    encounter: face/ambient-home
+    observations >> encounter.observation
+}
