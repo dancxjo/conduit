@@ -1,0 +1,72 @@
+{
+  "original_helper_source": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/prepare_blue_seed_reviewed.rs",
+  "original_helper_source_sha256": "0df96d341d3f87c699b6ae11b72e6087471383f584bad1e336c0ca6608e17e14",
+  "preserved_original_binary": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/prepare_blue_seed_reviewed",
+  "preserved_original_binary_sha256": "65672020cb2cf6047420d77c2fa0ca697cbbc9d15a5b4e2ecc679cbafb42e443",
+  "rebuilt_helper_source": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/prepare_blue_seed_reviewed-20261115.rs",
+  "rebuilt_helper_source_sha256": "83b413967b37d10c6bc623787c41eb05ce5cc93656bc3406d45010e74eae3d53",
+  "canonical_seed_source": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/tools/xtask/src/commands/host_esp32_native_seed.rs",
+  "canonical_seed_source_sha256": "35cd107eceb654448f55731993e423ad8087d36cb1e54cc4ff56610a34ab4e92",
+  "only_source_change": "canonical Seed module path redirected to current integration checkout",
+  "rustc_exit_code": 0,
+  "libraries": {
+    "conduit_host_esp32_make": {
+      "path": "/tmp/conduit-source-member-control-20261111/debug/libconduit_host_esp32_make.rlib",
+      "sha256": "cee27050c1cc4e1fb27dae32d2c02850ca5b4edd6dec6e5586dd3419f35895b9"
+    },
+    "conduit_std_host": {
+      "path": "/tmp/conduit-source-member-control-20261111/debug/libconduit_std_host.rlib",
+      "sha256": "2063e7d6dfbdd19fa54424827263c97e14ae46a6cd035f771e91bf2aa430f68e"
+    },
+    "conduit_host_make": {
+      "path": "/tmp/conduit-source-member-control-20261111/debug/deps/libconduit_host_make-799100d25a68946c.rlib",
+      "sha256": "2433d6e69e228d599ca642998253820b76614e203b875ae03973278445c8c122"
+    },
+    "conduit_body": {
+      "path": "/tmp/conduit-source-member-control-20261111/debug/deps/libconduit_body-9918fb48a80ef4fa.rlib",
+      "sha256": "471ead84ce0ac080c2a046438fb84b260d142dfbff6101f2e152461b6d1d6bab"
+    },
+    "serde": {
+      "path": "/tmp/conduit-source-member-control-20261111/debug/deps/libserde-16b0692fca7a1d2f.rlib",
+      "sha256": "8746d0eebfadbdafa3408dcfadaae9913c05d727dc4090d2377674210b840725"
+    },
+    "serde_json": {
+      "path": "/tmp/conduit-source-member-control-20261111/debug/deps/libserde_json-1983381b96894fd0.rlib",
+      "sha256": "92ce342b56c49848b7e976b142d30a26583f2a503a0e5794cbee08ad3f7323cc"
+    },
+    "sha2": {
+      "path": "/tmp/conduit-source-member-control-20261111/debug/deps/libsha2-b12d38352fd607b8.rlib",
+      "sha256": "cee56bdc135da7cebe455531dfd0933cb6838afdd1b20e7b4139366d72c57956"
+    }
+  },
+  "command": [
+    "rustc",
+    "+1.98.1",
+    "--edition=2021",
+    "-C",
+    "opt-level=1",
+    "-C",
+    "debuginfo=0",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/prepare_blue_seed_reviewed-20261115.rs",
+    "-o",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/prepare_blue_seed_reviewed-20261115",
+    "-L",
+    "dependency=/tmp/conduit-source-member-control-20261111/debug/deps",
+    "--extern",
+    "conduit_host_esp32_make=/tmp/conduit-source-member-control-20261111/debug/libconduit_host_esp32_make.rlib",
+    "--extern",
+    "conduit_std_host=/tmp/conduit-source-member-control-20261111/debug/libconduit_std_host.rlib",
+    "--extern",
+    "conduit_host_make=/tmp/conduit-source-member-control-20261111/debug/deps/libconduit_host_make-799100d25a68946c.rlib",
+    "--extern",
+    "conduit_body=/tmp/conduit-source-member-control-20261111/debug/deps/libconduit_body-9918fb48a80ef4fa.rlib",
+    "--extern",
+    "serde=/tmp/conduit-source-member-control-20261111/debug/deps/libserde-16b0692fca7a1d2f.rlib",
+    "--extern",
+    "serde_json=/tmp/conduit-source-member-control-20261111/debug/deps/libserde_json-1983381b96894fd0.rlib",
+    "--extern",
+    "sha2=/tmp/conduit-source-member-control-20261111/debug/deps/libsha2-b12d38352fd607b8.rlib"
+  ],
+  "rebuilt_binary": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/prepare_blue_seed_reviewed-20261115",
+  "rebuilt_binary_sha256": "a00e45b85e8ed82c778dcefb7c995755309e4144b347c217c40ca509d93c0d5b"
+}
