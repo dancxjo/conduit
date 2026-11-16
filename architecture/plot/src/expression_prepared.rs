@@ -211,8 +211,8 @@ impl PortableExpressionProgram {
             .map_or(structural, |maximum| maximum.min(structural)))
     }
 
-    /// Conservative transport ceiling from the operation and admitted input.
-    /// Programs without an input envelope retain their structural Type ceiling.
+    /// Conservative transport ceiling from the operation and finite checked Types.
+    /// Literals and constructors retain their own bounds without an input envelope.
     pub fn maximum_prepared_output_bytes(&self) -> Result<u32, Refusal> {
         if self.input_type == self.output_type
             && matches!(self.root.operation, PortableExpressionOperation::Input)
