@@ -1,0 +1,31 @@
+{
+  "scope": "Read-only frozena422/49 source and ownership audit; no live effects",
+  "observed_gate": "Root actualapproval/input-report succeeded;3frames then10s negotiationUnknown does not establish Start/refusal/actorfailure",
+  "stages": [
+    "Preselection Root/control ownslink",
+    "NativeForeCarrierSelection/PreparedForeCarrier receivesexclusive link+frame before native/kernel funding",
+    "Subsequent native/kernel/Mask errors maydropinnercarrier whileouterborrowsealed",
+    "Renderer/wholeadmission/Start retains opaquepreparedowners",
+    "ActoractivationrequiresgenuineStartedEvidence; errorhereisPOSTStart",
+    "Onlynormalactor ownsCNDFIOafteractivation"
+  ],
+  "finding": "No existing safe preStartrefusalreporthandle survivesfailure; do not reborrowlink, startactor early, or misuse CNDF Failed/Cancelled",
+  "existing_buffers": {
+    "fore_frame": 1024,
+    "ingress": 8,
+    "egress": 837,
+    "refusal_detail": 192,
+    "naive_nonfore_extra_rx_tx": 640,
+    "Blue_primary_margin": 532,
+    "Blue_stack_margin_above_minimum": 520
+  },
+  "preferred_next": "Bounded CPU originalwholefactory proof with exactSource/codebook/geometry and freshCPUscope, no hardware effects. Parentdelegated separatetestinvestigation; actualRootapprovals/FD remainNowned.",
+  "if_transport_api_needed": "A terminalrefusedcarrier owner returned fromoriginalfactory/admissionfailure, consumingSAMEoriginalowner, boundedoneshotdiagnosticusingits1024Bbacking, no rawIO/activation/Start, allfencedinput/reservations retained. Requires explicitRootreceivinghandoff; not implemented.",
+  "must_distinguish": [
+    "PreStartrefusal",
+    "PostStartactivation/pumpfault",
+    "Slowpreparation",
+    "Unknowntransportoutcome"
+  ],
+  "changes": false
+}

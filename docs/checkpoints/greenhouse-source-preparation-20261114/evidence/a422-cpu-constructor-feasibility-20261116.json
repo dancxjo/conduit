@@ -1,0 +1,257 @@
+{
+  "scope": "CPU type/constructor preflight only; unchanged factory compiled but NOT invoked",
+  "source_commit": "88fad9d3cce12014df6990634915e19126692d8c",
+  "fingerprint": "/tmp/conduit-stale-continuation-startup-20261116/debug/.fingerprint/conduit-mcu-source-build-4d5e36b8aee23a00/test-lib-conduit_mcu_source_build.json",
+  "fingerprint_sha256": "8c1ec87eb084d72c9bf53f9665d95a91365e75b07d97e5f745e9f08259ae8fed",
+  "production_templates": {
+    "source_play_recording.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_recording.rs",
+      "sha256": "562defc30d22dcae5d33e19bcd01aef71df41c5a6e16840725d2b2ea80df60e7"
+    },
+    "source_play_initialization.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_initialization.rs",
+      "sha256": "38fa223f943e662d7a36bfd13df76712769d12a6af4d4a139f33bfb64004b89e"
+    },
+    "source_play_owners.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_owners.rs",
+      "sha256": "93d39088033070d18dd340eb1dd203b4339b0547010504f5aac0e7433e50d870"
+    },
+    "source_play.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play.rs",
+      "sha256": "a3921bd8206df787bac05863442f2ec4b9acbae6cc7e9679e0d2ae0211503e17"
+    },
+    "source_play_shapes.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_shapes.rs",
+      "sha256": "729ee1a637d73d7bc305f7034d77f934335e6d105aac180d25d88ee5ff7d3c66"
+    },
+    "source_play_continuation_native.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_continuation_native.rs",
+      "sha256": "dd7d3338d2d92236ae0ff0b3216b44df3687160ade1ffb941433878f3871a3ef"
+    },
+    "source_play_service.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_service.rs",
+      "sha256": "b84b1ebc5cb4c58d445ec2971ed387fcac5fdb588da50406589bb2547b4a1a77"
+    },
+    "source_play_continuation_start.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_continuation_start.rs",
+      "sha256": "bc9e6c08eb2bfdf7ed2579e43998eee6dc00e7fe12d93ab10ef9b51b8acceaff"
+    },
+    "source_play_continuation_bindings.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_continuation_bindings.rs",
+      "sha256": "f739471d25ea2f63a81a02bfdb9baeb571d5abb047e774343c3f49f28c143db3"
+    },
+    "source_runtime.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/runtime.rs",
+      "sha256": "7e79184f8a2e2b0380c0cf19113f90e42172c42dfc6b7ecd3e45c52144dc91ea"
+    },
+    "source_play_run.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_run.rs",
+      "sha256": "ec0d10ac2ce80882476f2baba8e9788c2fb16243d4db3d75d34db625537f602a"
+    },
+    "source_runtime_continuation.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/runtime_continuation.rs",
+      "sha256": "c490292516cf8808ba57813fd3052aa7cb3a3ce6f61ff5e9b4336a23e5d60931"
+    },
+    "source_play_carriage.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_carriage.rs",
+      "sha256": "2b150edbebcbef72c1dcfc2dfd4c6755671096d22d1611d588c59f1c85041142"
+    },
+    "source_play_inspection.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_inspection.rs",
+      "sha256": "c2e5309919d8f636b678d198ac53e4238ed73c698076ef72e4d83d8900d879eb"
+    },
+    "source_play_continuation.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_continuation.rs",
+      "sha256": "c4812cdabc5aeb7c2ff5060aad2b53f236342b188d10c679e8fd44de8a18e757"
+    },
+    "source_play_control.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_control.rs",
+      "sha256": "3cff673f58cd42e5b0c05705a1382eefeed9b5f0188344e222d9990a03d15b41"
+    },
+    "source_play_fore_installation.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_fore_installation.rs",
+      "sha256": "acb9fe78acae1a39fd44e73e05d045ebfd7a19d2da6ef7450d2133811e1e2a45"
+    },
+    "source_runtime_transactions.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/runtime_transactions.rs",
+      "sha256": "0e9cfd4b22f50f6d2fd00d1f7df4f20c435fdcb00924c40337cd049d2019363f"
+    },
+    "source_play_fore.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_fore.rs",
+      "sha256": "1803cb77b8ca0cfcede32bd21e7792a10bf1f920a64d380554ee1076458392de"
+    },
+    "source_play_observers.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_observers.rs",
+      "sha256": "900b619c88d0f5df5577afef946c71085ddf0c294e3dad593e1d0da46a0a763e"
+    },
+    "source_play_presentation.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_presentation.rs",
+      "sha256": "be585ec7477eaaaaf87f0a189718a67223525f9100ea95abd7dff2389d441bbd"
+    },
+    "source_runtime_online_prepare.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/runtime_online_prepare.rs",
+      "sha256": "42f428d9c034c155be8ebdb32cbc333700ea367b8ae20efc498bd759e1b5ee8c"
+    },
+    "source_play_authority.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/play_authority.rs",
+      "sha256": "dd0be433c724cdf5534d2a6880961da637ccb8e60d5e38e848493c31b2d8beb0"
+    },
+    "source_runtime_continuation_factory.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/targets/mcu/source-build/src/source_composition/runtime_continuation_factory.rs",
+      "sha256": "6b83b2820f874d224c4109448cba4b898927eb39dcfd814940e9cfd0a57fe41d"
+    }
+  },
+  "generated_inputs": {
+    "host.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/host.rs",
+      "sha256": "e7dc6b54187717dcefd613ede0d32638a1a049c24d52e423066e7ea669128249"
+    },
+    "native_images.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/native_images.rs",
+      "sha256": "47c59ed8221511bc704dce7624c616162cea53634ff6a185dbc79566d036e808"
+    },
+    "continuation_identity.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/continuation_identity.rs",
+      "sha256": "cac9765d9f4efeac59adf7bb82ddfc3b79a38a23db9076ec0d39898ecb23a364"
+    },
+    "workset_0.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/workset_0.rs",
+      "sha256": "1ce8ea63953f448f303d9038d535fbdbdc18d81eaf064b35f4b84806b567538e"
+    },
+    "resident.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/resident.rs",
+      "sha256": "6666b61465a9d46fd2b1a9d5dbf6bca12400c3a1849b910b88dc3d480ba476f4"
+    },
+    "workset_2_layout.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/workset_2_layout.rs",
+      "sha256": "fa9462c99cabd7b300b16674d3217d50336e3eb8179000bd414e2c27caa7d107"
+    },
+    "workset_0_layout.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/workset_0_layout.rs",
+      "sha256": "99d67ebe9d62011482d275564234e8eb576368524a6cabe816da43f1a1c3e9f9"
+    },
+    "workset_1.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/workset_1.rs",
+      "sha256": "03edb3fb0554f30dfa2aa756b1064b5218a6edaa0f378c670aa05b4e1b2afc9d"
+    },
+    "workset_2.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/workset_2.rs",
+      "sha256": "70345dd35bc40daba3d18ffe92b9871b5135166c71f66e0cc73caa30bca227a6"
+    },
+    "workset_1_layout.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/workset_1_layout.rs",
+      "sha256": "9dcb1f9626c7ad6e06c76e6255bd5ee58940d92438f1b6f88020ac084cec0ff5"
+    },
+    "workset.rs": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/blue-a422-policy-reconstruction-20261116/generated/workset.rs",
+      "sha256": "d395e1bce40ad9535ce0f9ee030fe78803eee35ed53d1d33e9cda331b2dfda37"
+    }
+  },
+  "library_paths": {
+    "conduit_kernel": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_kernel-f124dddf6343a7e5.rlib",
+    "conduit_assigned_plan": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_assigned_plan-17b75a2e03b2c082.rlib",
+    "serde": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libserde-16b0692fca7a1d2f.rlib",
+    "serde_core": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libserde_core-e4c44ae6b7edeeab.rlib",
+    "serde_json": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libserde_json-74dc1888887337fd.rlib",
+    "itoa": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libitoa-8ade534ac5c7f564.rlib",
+    "memchr": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libmemchr-a891fea3e9e77c4a.rlib",
+    "zmij": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libzmij-f1fe14714d6ec1c2.rlib",
+    "conduit_time": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_time-7ddaa0dfb6501e51.rlib",
+    "conduit_plot": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_plot-02887d0f977fcd26.rlib",
+    "sha2": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libsha2-7eb3a7567115f5db.rlib",
+    "cfg_if": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libcfg_if-189139af139bd65e.rlib",
+    "digest": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libdigest-0b97d8a3b70c5a06.rlib",
+    "crypto_common": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libcrypto_common-553c52da73fc78ab.rlib",
+    "typenum": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libtypenum-aa2ca32923679fb6.rlib",
+    "generic_array": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libgeneric_array-de71c0ab4ed3005c.rlib",
+    "block_buffer": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libblock_buffer-bef30798cd1d2505.rlib",
+    "cpufeatures": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+    "conduit_core": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_core-1ac88dbf9480003b.rlib",
+    "libm": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/liblibm-69e370715ec8bf24.rlib",
+    "conduit_semantic_catalog": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_semantic_catalog-5a70183808c25c58.rlib",
+    "conduit_resource_snapshot": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_resource_snapshot-37ee05d3dc71179a.rlib",
+    "conduit_web": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_web-10a7436f3a33d0e5.rlib",
+    "conduit_plan_lowering": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_plan_lowering-41f35a64c77943c8.rlib",
+    "conduit_body": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_body-845750e5646463f4.rlib",
+    "serde_json_core": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libserde_json_core-7a68b83fc32a43b4.rlib",
+    "ryu": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libryu-a0ee25a3d3dd6b4b.rlib",
+    "heapless": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libheapless-4016735e9d5aa811.rlib",
+    "hash32": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libhash32-a3aba63ce33b080c.rlib",
+    "byteorder": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libbyteorder-b422a483ed883a8a.rlib",
+    "stable_deref_trait": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libstable_deref_trait-daa670813ef413df.rlib",
+    "minicbor": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libminicbor-e2fd2b28e482b8d5.rlib",
+    "ed25519_dalek": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libed25519_dalek-a7413d709452fbb8.rlib",
+    "zeroize": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libzeroize-66acebd9bbdbb4ea.rlib",
+    "curve25519_dalek": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libcurve25519_dalek-aa2345b250731e6a.rlib",
+    "subtle": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libsubtle-02b7c3278408aad5.rlib",
+    "ed25519": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libed25519-fa36d331138ed495.rlib",
+    "signature": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libsignature-e40a6679c2612a12.rlib",
+    "miniz_oxide": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libminiz_oxide-a888c2b2e75f6359.rlib",
+    "adler2": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libadler2-4110fa3f695a3547.rlib",
+    "postcard": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libpostcard-6129d811c034717e.rlib",
+    "cobs": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libcobs-577518784da9dd0e.rlib",
+    "thiserror": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libthiserror-55739fa7b9cee473.rlib",
+    "portable_atomic_util": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libportable_atomic_util-4ed2e7d9903ee499.rlib",
+    "portable_atomic": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libportable_atomic-50187e3183275eeb.rlib",
+    "conduit_audio": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_audio-14df4456b701ef6c.rlib",
+    "conduit_data": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_data-341c2324a2c4950d.rlib",
+    "conduit_face": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_face-c97caf95cdef50cd.rlib",
+    "conduit_planner": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_planner-c7db00aba3bedcfb.rlib",
+    "conduit_language": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_language-851f7a6b1ef1c6a8.rlib",
+    "conduit_human": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_human-82921fe1e19e9be9.rlib",
+    "unicode_normalization": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libunicode_normalization-e4b9f814c6e29711.rlib",
+    "tinyvec": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libtinyvec-26e5e42feded5dce.rlib",
+    "conduit_alife": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_alife-e1fe7caee2ebae8a.rlib",
+    "conduit_education": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_education-aad3e1ce900d64d7.rlib",
+    "conduit_process": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_process-72461876142d5dc4.rlib",
+    "conduit_text": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_text-cc91ffa4df597189.rlib",
+    "conduit_midi": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_midi-764b04a5d27e4abc.rlib",
+    "conduit_net": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_net-94266911d787b365.rlib",
+    "conduit_robotics": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_robotics-7ee866f3fab73f01.rlib",
+    "conduit_purpose": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_purpose-0b5d4fb1a12d085d.rlib",
+    "conduit_environment_runtime": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_environment_runtime-b85eba0f1d1ae649.rlib",
+    "conduit_environment_face": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_environment_face-23b65a5d276858bf.rlib",
+    "conduit_typed_retention": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_typed_retention-6c2a61bda3faac52.rlib",
+    "conduit_dht11_observation": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_dht11_observation-b5b5a39ce1c1e0a0.rlib",
+    "conduit_seven_segment_mask": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_seven_segment_mask-89b2356242991c64.rlib",
+    "conduit_pulse_capture": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_pulse_capture-cc784774c0c177cb.rlib",
+    "conduit_tm1637_protocol": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_tm1637_protocol-6fb568c523f400f5.rlib",
+    "conduit_mcu_host_runtime": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_mcu_host_runtime-10529185e433d429.rlib",
+    "conduit_wire": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_wire-b9012673223d0604.rlib",
+    "conduit_i2c_transaction": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_i2c_transaction-81ff570dbf9937c5.rlib",
+    "conduit_monotonic_wait": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_monotonic_wait-cedc194769584dc6.rlib",
+    "conduit_composite": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_composite-46eaa1d580eb5c55.rlib",
+    "conduit_tm1637_wire": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_tm1637_wire-83e5d58ae25ebb0f.rlib",
+    "conduit_host_make": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_host_make-a7627c80ae60fa27.rlib",
+    "conduit_rp2040_flash_layout": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_rp2040_flash_layout-6b8ea0e8071d51ec.rlib",
+    "toml": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libtoml-83cdc6f051f247f0.rlib",
+    "serde_spanned": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libserde_spanned-c97178d4d0d4fa80.rlib",
+    "toml_edit": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libtoml_edit-a437e9273052e642.rlib",
+    "winnow": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libwinnow-0922e6189d862aa9.rlib",
+    "toml_datetime": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libtoml_datetime-ff34f7d1231dc582.rlib",
+    "toml_write": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libtoml_write-5d3edde7c4a142aa.rlib",
+    "indexmap": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libindexmap-123b2e87a028c97e.rlib",
+    "hashbrown": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libhashbrown-3db36d2abee787cc.rlib",
+    "equivalent": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libequivalent-55b55eec5402ea7f.rlib",
+    "conduit_embedded_build": "/tmp/conduit-stale-continuation-startup-20261116/debug/deps/libconduit_embedded_build-049ed95a8a903f28.rlib"
+  },
+  "constructor_exit": 0,
+  "compile_log_sha256": "8de03e0c449e7186dcc5d113180412546ad685e04c14d6fba0276446867fa341",
+  "run_log_sha256": "ed910c6a4934bb6474087c2b03e1637ffe884e9962619f1eb74a9fc0a062f2e5",
+  "whole_factory_called": false,
+  "admission": false,
+  "Start": false,
+  "hardware_effects": false,
+  "not_proved": [
+    "Three-fragment signed online command and Fore scope",
+    "Native/renderer preparation and whole admission/Start",
+    "Target stack/heap/ABI fit",
+    "Actual live refusal stage"
+  ],
+  "origin_branch": "investigate/a422-cpu-whole-factory-20261116",
+  "frozen_source_base": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "compiled_dependency_source": "49c02bbfd6 / completed Source crate test graph; startup-only correction does not change preparation/kernel modules",
+  "constructor_result": "CPU_CONSTRUCTOR_GATE residents=4 source_entries=3 kernels=[7414, 6296, 2414] original_heap=118784 original_assignment=18432 original_runtime=38912 whole_factory_called=false admission=false start=false target_fit_proved=false",
+  "retained_logs": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/qualification/a422-cpu-constructor",
+  "missing_gate": "Fresh synthetic signed three-fragment Root command/ForeLines and initialized Readyproviders/renderer are not yet assembled. Original play::prepare was compiled but not called; no live refusal found."
+}

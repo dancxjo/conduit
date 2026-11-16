@@ -1,0 +1,23 @@
+{
+  "scope": "Read-only exact frozen Linux Fore carriage implementation + reportedusedframes3/OutcomeUnknown",
+  "finding": "frames_used counts ATTEMPTED operations, not validated received frames",
+  "trace": [
+    "handshake_inner sends Hello route0 thenroute1 before receiving",
+    "send incrementsused_frames before physicalsend",
+    "receive_inner incrementsused_frames before physicalreceive, then maps timeout toOutcomeUnknown",
+    "Exactly3 withOutcomeUnknown therefore fits two completed hostsendcalls plus firstreceiveattempt timeout, with no decoded/admitted peerForeframe. It is NOT three successful exchangedframes or peerHello proof.",
+    "If firstreceive had returnedvalidHello, subsequentReady send wouldraiseusedframes4; decodeerrors wouldreturnWire/Scope ratherthanOutcomeUnknown."
+  ],
+  "current_limits": "No extra IO, continuation, retry, reset or Rootstatechange inferred/authorized",
+  "existing_test": "fore_carriage/handshake_tests.rs::interruption_retires_partial_handshake_without_retry_or_application_ack models failedfirstreceive and exactly2writes; currentcounterincrementation yields3 attemptedops",
+  "not_proved": [
+    "WhetherMCUpreparationrefused",
+    "WhetherMCUStartoccurred",
+    "Whetheractoractivated",
+    "ActualwirebytesconsumedbyMCU"
+  ],
+  "paths": [
+    "targets/std/src/pico_spawn/fore_carriage/handshake.rs",
+    "targets/std/src/pico_spawn/fore_carriage.rs"
+  ]
+}
