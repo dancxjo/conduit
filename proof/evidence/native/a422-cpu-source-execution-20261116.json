@@ -17,31 +17,36 @@
     "matches_completed_ESP_feature_witness": true
   },
   "effects": {
-    "simulated_elapsed_ms": 361340,
-    "polls": 36134,
-    "sensor_captures": 6,
-    "monotonic_waits_started": 7,
+    "simulated_elapsed_ms": 57610910,
+    "polls": 5761091,
+    "sensor_captures": 960,
+    "monotonic_waits_started": 960,
     "temperature_celsius": [
       23,
       24
     ],
     "relative_humidity_percent": 44,
-    "display_transactions": 154,
-    "display_ACKs": 1386,
+    "display_transactions": 29251,
+    "display_ACKs": 263259,
     "physical_register_pages": [
       "73F",
       "75F",
       "44H"
     ],
-    "Face_source_sequence": 6,
-    "NOR_program_units": 20,
-    "recovered_committed_records": 10,
-    "recovered_observations": 6,
+    "Face_source_sequence": 960,
+    "last_physical_frame_age_ms": 880,
+    "display_fresh_at_end": true,
+    "NOR_program_units": 1928,
+    "recovered_committed_records": 964,
+    "recovered_context_records": 4,
+    "recovered_observations": 960,
     "first_sample_boot_ms": 60467,
-    "last_sample_boot_ms": 360337,
+    "last_sample_boot_ms": 57609907,
     "canonical_quantities_sequences_and_provenance_verified": true,
+    "exact_sequences": "1..=960",
     "media_corruption": 0,
-    "media_gaps": 0
+    "media_gaps": 0,
+    "record_eviction": false
   },
   "outage": {
     "read_timeout_ms": 30000,
@@ -77,7 +82,10 @@
     ],
     "recovery_after_quiescence_peak": 37644,
     "whole_fixture_peak_after_correct_owner_handoff": 105647,
-    "only_excluded_external_NOR_emulator_bytes": 655360
+    "only_excluded_external_NOR_emulator_bytes": 655360,
+    "steady_at_observations_2_4_8_16_32_64_128_256_512_960": 105240,
+    "full_horizon_run_peak": 105647,
+    "full_horizon_quiesced_recovery_peak": 37647
   },
   "memory_assurance": "The sender buffer is actually freed only after public Root ingress authenticates/copies its identical bytes. Original fixed18432 command arena and digest are unchanged. No grant increase or silent exclusion. Fixed static counters/wire ring and inline Timer futures are CPU instrumentation; no target footprint inference.",
   "feature_profile_correction": "Earlier execution-workspace-enabled CPU graph stops at InvalidPlan when run without workspace funding; it is not the production firmware feature graph. Preparation/Start-only witness remains limited to its stated profile.",
@@ -85,17 +93,16 @@
     "Physical sensor/display electrical behavior",
     "MCU runtime RAM peak",
     "Physical restart/history continuity",
-    "Reconnection or exact remote durable history handoff",
-    "Full authored960-period horizon still pending"
+    "Reconnection or exact remote durable history handoff"
   ],
   "logs": {
     "compile.log": {
-      "retained_path": "target/qualification/Source-execution-read-failure/compile.log",
-      "sha256": "28b03dffcd13a2885bda735ece1f2fe6e97a379b182907168e6db9219e3a3913"
+      "retained_path": "target/qualification/Source-execution-960/compile.log",
+      "sha256": "1054d830303cdd068fbc4ad2e1821ab2dd62bab5d4ac7c2601a2a09503dd462b"
     },
     "run.log": {
-      "retained_path": "target/qualification/Source-execution-read-failure/run.log",
-      "sha256": "f32f715ae353c40ec1f9d0bacd6d9f7452dfd79e97f190224f6f96346ce1ca41"
+      "retained_path": "target/qualification/Source-execution-960/run.log",
+      "sha256": "d3882e1a7b518f79b0c122881c515fd05cb15f6f2942cb224c86b4bb6193de3b"
     }
   },
   "extended_65_observation_horizon": {
@@ -133,5 +140,48 @@
         "sha256": "d0dd4938f5c5afe149f6cbbc6a3df53244ececd29950a77382fc1ca0ca6b62ab"
       }
     }
+  },
+  "tested_fixture_commit": "0272e9ff3d",
+  "six_period_baseline": {
+    "simulated_elapsed_ms": 361340,
+    "polls": 36134,
+    "sensor_captures": 6,
+    "monotonic_waits_started": 7,
+    "temperature_celsius": [
+      23,
+      24
+    ],
+    "relative_humidity_percent": 44,
+    "display_transactions": 154,
+    "display_ACKs": 1386,
+    "physical_register_pages": [
+      "73F",
+      "75F",
+      "44H"
+    ],
+    "Face_source_sequence": 6,
+    "NOR_program_units": 20,
+    "recovered_committed_records": 10,
+    "recovered_observations": 6,
+    "first_sample_boot_ms": 60467,
+    "last_sample_boot_ms": 360337,
+    "canonical_quantities_sequences_and_provenance_verified": true,
+    "media_corruption": 0,
+    "media_gaps": 0
+  },
+  "finite_horizon": "All original960 authored60-second periods completed (16h simulated). Exactly960captures and960waits; no Source count/grant increase and no claim of indefinite execution.",
+  "test_instrumentation": {
+    "pulse": "standard checked PulseReadCapture fixture octets/checksum; Source computes observations",
+    "clock": "finite controlled monotonic Timer futures; original schedulers run",
+    "wire": "fixed128-frame CPU witness ring and aggregate counters, no execution evidence evicted",
+    "NOR": "actual aligned256-byte one-to-zero programs; exact external655360-byte media array excluded while owned",
+    "effect_gate": "nonzero opaque evidence from original authenticated Start required for every platform effect",
+    "no_alternate_sampler_executor_or_recording_path": true
+  },
+  "full_Source_runtime_borrow_compile": {
+    "result": "PASS",
+    "features": "execution-only production-parity graph",
+    "retained_path": "/tmp/conduit-full-factory-borrow-20261116/execution-only-final/compile.log",
+    "sha256": "d9db500acc78b4f6f6288720cbd9d82c0c7627a6c79bfb6edbc4f7dcaa04bc7e"
   }
 }
