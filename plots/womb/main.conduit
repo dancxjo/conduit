@@ -1,0 +1,10 @@
+# Prepare a member Seed for this Body. Host selection, authority, resources and
+# artifact machinery belong to the exact admitted realization, not this Plot.
+plot womb/main (
+    >> request: conduit.womb/request@1 <= 32B
+    outcome: conduit.womb/outcome@1 <= 65B >>
+) {
+    prepare: womb/prepare
+    request >> prepare.request
+    prepare.outcome >> outcome
+}.
