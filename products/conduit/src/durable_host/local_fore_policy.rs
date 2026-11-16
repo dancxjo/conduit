@@ -45,15 +45,8 @@ impl SelectedLocalForeSet {
         current: &[c::HostAdvertisement],
         intents: &[LocalForeAdapterIntent],
     ) -> Result<Self, String> {
-        if intents.len() > conduit_body::MAX_BODY_PLOTS {
-            return Err("local adapter selection exceeds complete workset capacity".into());
-        }
         let mut entries = BTreeMap::new();
-        for intent in intents {
-            let plot = plots
-                .iter()
-                .find(|p| p.expanded.name == intent.entry)
-                .ok_or("selected local adapter entry is absent from checked Source")?;
+        for_each_checked_source(plots, intents, |intent, resident, boundaries| {
             let mut hosts = current.iter().filter(|h| h.host_id == intent.host_id);
             let host = hosts
                 .next()
@@ -61,96 +54,23 @@ impl SelectedLocalForeSet {
             if hosts.next().is_some()
                 || host.profile.as_str() != intent.configuration_id
                 || host.offer_generation.0 == 0
-                || intent.ports.len() > 32
             {
                 return Err(
                     "selected local adapter differs from current Host configuration".into(),
                 );
             }
-            let mut boundaries = BTreeMap::new();
-            for port in &intent.ports {
-                let bindings = match port.direction {
-                    c::PortDirection::Input => &plot.input_bindings,
-                    c::PortDirection::Output => &plot.output_bindings,
-                };
-                let binding = bindings
-                    .iter()
-                    .find(|b| b.front_port_id == port.front_port_id && b.track == port.track)
-                    .ok_or("selected local adapter Fore is absent from checked Source")?;
-                let gear = plot
-                    .expanded
-                    .gears
-                    .iter()
-                    .find(|g| g.gear_id == binding.gear_id)
-                    .ok_or("selected local adapter Gear is absent")?;
-                let gear_ports = match port.direction {
-                    c::PortDirection::Input => &gear.inputs,
-                    c::PortDirection::Output => &gear.outputs,
-                };
-                let descriptor = gear_ports
-                    .iter()
-                    .find(|p| p.port_id == binding.gear_port_id)
-                    .ok_or("selected local adapter Gear Port is absent")?;
-                let empty = c::KindId::from(c::EMPTY_INFO_ID);
-                let kind = match port.track {
-                    c::ConnectionTrack::Payload => &descriptor.value_kind,
-                    c::ConnectionTrack::AbnormalTerminal => descriptor
-                        .abnormal_kind
-                        .as_ref()
-                        .ok_or("selected local adapter has no abnormal contract")?,
-                    c::ConnectionTrack::NormalClose | c::ConnectionTrack::Quiescence => &empty,
-                };
-                if kind != &port.value_kind
-                    || port.item_capacity == 0
-                    || port.item_capacity > 32
-                    || port.byte_capacity == 0
-                    || port.byte_capacity > 16384
-                    || boundaries
-                        .insert(
-                            ForeBoundaryKey {
-                                direction: port.direction,
-                                front_port_id: port.front_port_id.clone(),
-                                track: port.track,
-                            },
-                            ConnectionQueueLimits {
-                                item_capacity: port.item_capacity,
-                                byte_capacity: port.byte_capacity,
-                            },
-                        )
-                        .is_some()
-                {
-                    return Err("selected local adapter contract or finite capacity differs".into());
-                }
-            }
-            if plot.input_bindings.iter().any(|input| {
-                !boundaries.contains_key(&ForeBoundaryKey {
-                    direction: c::PortDirection::Input,
-                    front_port_id: input.front_port_id.clone(),
-                    track: input.track,
-                })
-            }) {
-                return Err("selected local adapter leaves a checked input unbound".into());
-            }
-            let resident = ResidentPlot::new(
-                plot.expanded.source_document_id.clone(),
-                plot.expanded.checked_plot_id.clone(),
+            entries.insert(
+                resident,
+                Entry {
+                    host: host.host_id.clone(),
+                    boot: host.boot_id.clone(),
+                    generation: host.offer_generation,
+                    configuration: host.profile.clone(),
+                    boundaries,
+                },
             );
-            if entries
-                .insert(
-                    resident,
-                    Entry {
-                        host: host.host_id.clone(),
-                        boot: host.boot_id.clone(),
-                        generation: host.offer_generation,
-                        configuration: host.profile.clone(),
-                        boundaries,
-                    },
-                )
-                .is_some()
-            {
-                return Err("selected local adapter entry is duplicated".into());
-            }
-        }
+            Ok(())
+        })?;
         Ok(Self {
             root: (
                 root.host_id.clone(),
@@ -223,4 +143,114 @@ impl SelectedLocalForeSet {
         });
         matching.next().is_some() && matching.next().is_none()
     }
+}
+
+/// Check only captured Source and finite caller preferences. This grants no
+/// current offer, Boot, configuration, resource possession or execution.
+pub(super) fn validate_checked_source(
+    plots: &[conduit_plot::ExpandedAuthoringPlot],
+    intents: &[LocalForeAdapterIntent],
+) -> Result<(), String> {
+    for_each_checked_source(plots, intents, |_, _, _| Ok(()))
+}
+
+fn for_each_checked_source(
+    plots: &[conduit_plot::ExpandedAuthoringPlot],
+    intents: &[LocalForeAdapterIntent],
+    mut accept: impl FnMut(
+        &LocalForeAdapterIntent,
+        ResidentPlot,
+        BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
+    ) -> Result<(), String>,
+) -> Result<(), String> {
+    if intents.len() > conduit_body::MAX_BODY_PLOTS {
+        return Err("local adapter selection exceeds complete workset capacity".into());
+    }
+    let mut residents = std::collections::BTreeSet::new();
+    for intent in intents {
+        if intent.ports.len() > 32 {
+            return Err("selected local adapter exceeds finite port capacity".into());
+        }
+        let mut matching = plots.iter().filter(|p| p.expanded.name == intent.entry);
+        let plot = matching
+            .next()
+            .ok_or("selected local adapter entry is absent from checked Source")?;
+        if matching.next().is_some() {
+            return Err("selected local adapter entry is ambiguous".into());
+        }
+        let mut boundaries = BTreeMap::new();
+        for port in &intent.ports {
+            let bindings = match port.direction {
+                c::PortDirection::Input => &plot.input_bindings,
+                c::PortDirection::Output => &plot.output_bindings,
+            };
+            let binding = bindings
+                .iter()
+                .find(|b| b.front_port_id == port.front_port_id && b.track == port.track)
+                .ok_or("selected local adapter Fore is absent from checked Source")?;
+            let gear = plot
+                .expanded
+                .gears
+                .iter()
+                .find(|g| g.gear_id == binding.gear_id)
+                .ok_or("selected local adapter Gear is absent")?;
+            let gear_ports = match port.direction {
+                c::PortDirection::Input => &gear.inputs,
+                c::PortDirection::Output => &gear.outputs,
+            };
+            let descriptor = gear_ports
+                .iter()
+                .find(|p| p.port_id == binding.gear_port_id)
+                .ok_or("selected local adapter Gear Port is absent")?;
+            let empty = c::KindId::from(c::EMPTY_INFO_ID);
+            let kind = match port.track {
+                c::ConnectionTrack::Payload => &descriptor.value_kind,
+                c::ConnectionTrack::AbnormalTerminal => descriptor
+                    .abnormal_kind
+                    .as_ref()
+                    .ok_or("selected local adapter has no abnormal contract")?,
+                c::ConnectionTrack::NormalClose | c::ConnectionTrack::Quiescence => &empty,
+            };
+            if kind != &port.value_kind
+                || port.item_capacity == 0
+                || port.item_capacity > 32
+                || port.byte_capacity == 0
+                || port.byte_capacity > 16384
+                || boundaries
+                    .insert(
+                        ForeBoundaryKey {
+                            direction: port.direction,
+                            front_port_id: port.front_port_id.clone(),
+                            track: port.track,
+                        },
+                        ConnectionQueueLimits {
+                            item_capacity: port.item_capacity,
+                            byte_capacity: port.byte_capacity,
+                        },
+                    )
+                    .is_some()
+            {
+                return Err("selected local adapter contract or finite capacity differs".into());
+            }
+        }
+        if plot.input_bindings.iter().any(|input| {
+            !boundaries.contains_key(&ForeBoundaryKey {
+                direction: c::PortDirection::Input,
+                front_port_id: input.front_port_id.clone(),
+                track: input.track,
+            })
+        }) {
+            return Err("selected local adapter leaves a checked input unbound".into());
+        }
+
+        let resident = ResidentPlot::new(
+            plot.expanded.source_document_id.clone(),
+            plot.expanded.checked_plot_id.clone(),
+        );
+        if !residents.insert(resident.clone()) {
+            return Err("selected local adapter entry is duplicated".into());
+        }
+        accept(intent, resident, boundaries)?;
+    }
+    Ok(())
 }

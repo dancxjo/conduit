@@ -1,6 +1,9 @@
 //! Explicit local preparation-policy renewal, never Source adoption or deployment.
 use super::*;
 use std::io::Write;
+#[path = "source_revision_queue_replacements.rs"]
+mod queue_replacements;
+use queue_replacements::{replace_queues, LocalForeQueueReplacement};
 
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -15,6 +18,8 @@ struct Request {
     /// must still match before any placement or execution authority exists.
     #[serde(default)]
     configuration_pin_replacements: Vec<ConfigurationPinReplacement>,
+    #[serde(default)]
+    local_fore_queue_replacements: Vec<LocalForeQueueReplacement>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -106,7 +111,8 @@ fn candidate(
     if selection.release_bundle_sha256 != request.previous_release_bundle_sha256
         || installation.release_bundle_sha256 != request.installed_release_bundle_sha256
         || (selection.release_bundle_sha256 == installation.release_bundle_sha256
-            && request.configuration_pin_replacements.is_empty())
+            && request.configuration_pin_replacements.is_empty()
+            && request.local_fore_queue_replacements.is_empty())
         || selection.expected.body_id != current.body_id
         || &request.expected != current
     {
@@ -123,6 +129,8 @@ fn candidate(
     let mut original_installation = installation.clone();
     original_installation.release_bundle_sha256 = request.previous_release_bundle_sha256.clone();
     validate_selection(&selection, &original_installation)?;
+    // Queue CAS compares only original preferences; pin changes cannot alter its selectors.
+    replace_queues(&mut selection, &request.local_fore_queue_replacements)?;
     replace_configuration_pins(&mut selection, &request.configuration_pin_replacements)?;
     if !request.retire_actions
         && retired.admissions + retired.returns + retired.plays + retired.continuation_outputs != 0
@@ -143,7 +151,16 @@ fn candidate(
     Ok((selection, retired))
 }
 
+#[cfg(test)]
 fn verify_capture_and_workset(selection: &Selection, source: &str) -> Result<(), String> {
+    verify_capture_and_fore(selection, source, &selection.local_fore_adapters)
+}
+
+fn verify_capture_and_fore(
+    selection: &Selection,
+    source: &str,
+    original_fore: &[super::super::local_fore_policy::LocalForeAdapterIntent],
+) -> Result<(), String> {
     if format!("{:x}", Sha256::digest(source.as_bytes())) != selection.snapshot.sha256
         || conduit_plot::canonical_source_document_id(source).0
             != selection.snapshot.source_document_id
@@ -157,6 +174,11 @@ fn verify_capture_and_workset(selection: &Selection, source: &str) -> Result<(),
         .iter()
         .map(|entry| canonical.expand_checked_for_authoring(&document, entry))
         .collect::<Result<Vec<_>, _>>()?;
+    super::super::local_fore_policy::validate_checked_source(&plots, original_fore)?;
+    super::super::local_fore_policy::validate_checked_source(
+        &plots,
+        &selection.local_fore_adapters,
+    )?;
     let workset = conduit_body::BodyWorkset::from_plots(plots.iter().map(|plot| {
         conduit_body::ResidentPlot::new(
             plot.expanded.source_document_id.clone(),
@@ -280,7 +302,10 @@ pub(crate) fn reselect(state_dir: &Path, request_path: &Path) -> Result<(), Stri
     if prepared.source.value().request().snapshot != selection.snapshot {
         return Err("reselected File lost its original capture".into());
     }
-    verify_capture_and_workset(&selection, prepared.source.value().source())?;
+    let original_fore = serde_json::from_slice::<Selection>(&original)
+        .map_err(|e| e.to_string())?
+        .local_fore_adapters;
+    verify_capture_and_fore(&selection, prepared.source.value().source(), &original_fore)?;
     prepared
         .host
         .verify_selected_image_prepared_value(&prepared.source)?;
@@ -299,6 +324,7 @@ pub(crate) fn reselect(state_dir: &Path, request_path: &Path) -> Result<(), Stri
             "original_policy_audit": audit,
             "retired_actions": retired,
             "configuration_pin_replacements": request.configuration_pin_replacements.len(),
+            "local_fore_queue_replacements": request.local_fore_queue_replacements,
             "source_adopted": false,
             "body_changed": false,
             "execution_authorized": false,
