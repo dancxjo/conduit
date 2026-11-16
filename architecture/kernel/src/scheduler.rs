@@ -2959,7 +2959,10 @@ where
                     .filter(|candidate| **candidate == value)
                     .count()
                     + usize::from(consumed_host_value == Some(value));
+                // Reusing the completed call's input transfers its pinned
+                // reference. Only a fresh borrow needs another reference.
                 if consumed_references == 0
+                    && consumed_host_input != Some(value)
                     && retained_values
                         .iter()
                         .flatten()
@@ -3834,3 +3837,6 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod borrowed_call_transfer_tests;
