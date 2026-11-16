@@ -1,0 +1,13 @@
+{
+  "integration": "6589896b8d",
+  "accepted_dev": "450f00cd65",
+  "change": "assigned resource-requirement bitmap domain repair #6915",
+  "qualification": "actual Source76 production admission/Start success and display-NACK scenarios; original no_std module compilation included",
+  "tests_passed": 2,
+  "resource_requirements": 49,
+  "native_call_requirements": 2,
+  "full_typed_outputs_closed": 9,
+  "execution_allocations": 0,
+  "log_sha256": "6f06ac803cc5d8dfa8c8196c31589c17d7eb081640281359eae8d14663c1dfb4",
+  "hardware_deployment": false
+}
