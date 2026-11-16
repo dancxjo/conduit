@@ -43,7 +43,7 @@ fn prepare(
     body: &BodyBiographyEvidence,
     claim: &SpawnInvitationClaim,
     now: u64,
-) -> Result<CheckedBodyDescription, String> {
+) -> Result<CheckedBodyDescription, JoiningHostRefusal> {
     check_joining_host(
         body,
         claim,
@@ -99,16 +99,30 @@ fn joining_host_preserves_birth_and_exact_checked_configuration() {
 fn joining_host_refuses_wrong_body_expiry_and_corrupt_biography() {
     let body = body("sign/original-birth");
     let invitation = claim(&body);
-    assert!(prepare(&body, &invitation, 1000)
-        .unwrap_err()
-        .contains("Expired"));
+    assert_eq!(
+        prepare(&body, &invitation, 1000).unwrap_err(),
+        JoiningHostRefusal::Invitation(conduit_body::AdmissionRefusal::Expired)
+    );
     let other = self::body("sign/other-birth");
-    assert!(prepare(&body, &claim(&other), 20)
-        .unwrap_err()
-        .contains("different Body"));
+    assert_eq!(
+        prepare(&body, &claim(&other), 20).unwrap_err(),
+        JoiningHostRefusal::WrongBody
+    );
     let mut corrupt = body.clone();
     corrupt.body_id = other.body_id;
-    assert!(prepare(&corrupt, &invitation, 20)
-        .unwrap_err()
-        .contains("Body evidence"));
+    assert!(matches!(
+        prepare(&corrupt, &invitation, 20),
+        Err(JoiningHostRefusal::BodyEvidence(_))
+    ));
+}
+
+#[test]
+fn joining_host_preserves_the_typed_invitation_refusal() {
+    let body = body("sign/original-birth");
+    let mut invitation = claim(&body);
+    invitation.nonce = [0; 32];
+    assert_eq!(
+        prepare(&body, &invitation, 20).unwrap_err(),
+        JoiningHostRefusal::Invitation(conduit_body::AdmissionRefusal::StaleNonce)
+    );
 }

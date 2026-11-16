@@ -40,7 +40,8 @@ pub(crate) fn prepare_workspace_browser(
         now_millis,
         &catalog,
         &packages,
-    )?;
+    )
+    .map_err(|error| error.to_string())?;
     let (image, image_bytes) = build_host_image(
         checked.profile().clone(),
         &catalog,
