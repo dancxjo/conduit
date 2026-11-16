@@ -3,6 +3,7 @@
 Current terminology, directed by the user: **Crib makes Bodies; Womb makes
 member Seeds.** Existing `creche` identifiers below locate the inspected
 implementation and retained evidence; they do not name a second lifecycle.
+The full lifecycle acceptance belongs to [#6911](https://github.com/dancxjo/conduit/issues/6911).
 
 Source inspection: `dev` at `4400d3dffc`, 15 November 2026. This is a design
 and source audit with the narrow deterministic qualification below, not a

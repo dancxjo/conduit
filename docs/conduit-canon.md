@@ -715,6 +715,8 @@ invitation. A member seed is a provisioning artifact, not an admitted part.
 Preparation, deployment, boot and authenticated membership admission remain
 distinct facts. Womb does not implicitly Birth another body or introduce a
 privileged deployment lifecycle.
+The [Crib/Womb lifecycle issue](https://github.com/dancxjo/conduit/issues/6911)
+owns current product integration and proof.
 
 The plot workset may contain zero, one, or many exact checked plots. Adding or
 removing a plot advances bounded workload truth without replacing the body.
