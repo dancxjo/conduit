@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.evidence/exact-blue-manual-recovery-qualification@1",
+  "staged_only": true,
+  "live_effects": false,
+  "original_case_sha256": "317a66450847cd81051dbd6bdfeae0545c7190b6d137ab789c71d5d69cb1633d",
+  "script_sha256": "4063b045543b567c1922999eb8c16b2518fd60f5b24ca38113984f2b606b7ea3",
+  "qualification_sha256": "e2bf2d9b5e5780d7d6838ab1c9f56365e6259a1488b8804d33803ae207157c2a",
+  "passed": 24,
+  "copied_protected_files": 32,
+  "additional_pinned_runtime_and_unknown": 2,
+  "full_state_readonly_preview": {
+    "regular_files": 1362,
+    "logical_bytes": 429331414,
+    "symlinks_or_hardlinks": 0,
+    "excluded_stale_socket_count": 1
+  },
+  "ordering": "Exclusive durable full-state archive, original UNKNOWN, pinned old/new evidence and terminal manual decision before atomic claim rename; both owner locks held; no retry of prepared/spent archive.",
+  "limits": [
+    "Crash tests use exact actual protected-state subset and production transaction; OS stopped-service observer simulated for disposable copies.",
+    "Full stopped1362-file snapshot occurs only on separately approved production transaction.",
+    "No real service stop, claim release, physical reset, retirement protocol, admission, Start or Source Play proved."
+  ],
+  "remaining_release": "Separate primary approval of exact script/case, maintenance fencing, stopped Owner and released serial window."
+}
