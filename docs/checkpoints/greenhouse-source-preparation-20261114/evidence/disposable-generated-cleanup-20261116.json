@@ -1,0 +1,70 @@
+{
+  "inventory_unix": 1794841168.44654,
+  "candidates": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/neutral-board-generated-headroom-pass2-20261112",
+      "files": [
+        {
+          "path": "conduit-language-da9d98f950738cc3/semantic_types.rs",
+          "bytes": 86867946,
+          "sha256": "842c355571aae7b8af5a85c7bcf830e2ce76968ebafd894295532edc49806679"
+        },
+        {
+          "path": "conduit-language-da9d98f950738cc3/fallback_round_programs.rs",
+          "bytes": 5031548,
+          "sha256": "67239e1e8818dbf1604fa9312e8b0a175c3e64dc9e9a94a1a85614f671136c41"
+        },
+        {
+          "path": "conduit-language-35294cc055ec0f5f/semantic_types.rs",
+          "bytes": 244181966,
+          "sha256": "1ced5a5c1a39131030dc7eca5fa9a0614e0278d2a95552771a39db7add097862"
+        },
+        {
+          "path": "conduit-language-35294cc055ec0f5f/fallback_round_programs.rs",
+          "bytes": 79207926,
+          "sha256": "91a97fc4f11a56982900ed8d2f4d0730ff7d48b7a0de22f388b0dfd754929250"
+        },
+        {
+          "path": "conduit-speech-9140f77627ac1ddf/semantic_types.rs",
+          "bytes": 80510466,
+          "sha256": "c920e99ae8c6dbcf34a5199a03a890f8fd5fa712602192adfc47e2ea5702d56e"
+        },
+        {
+          "path": "conduit-language-f2ea07c7540ed0ab/semantic_types.rs",
+          "bytes": 244181966,
+          "sha256": "1ced5a5c1a39131030dc7eca5fa9a0614e0278d2a95552771a39db7add097862"
+        },
+        {
+          "path": "conduit-language-f2ea07c7540ed0ab/fallback_round_programs.rs",
+          "bytes": 79207926,
+          "sha256": "91a97fc4f11a56982900ed8d2f4d0730ff7d48b7a0de22f388b0dfd754929250"
+        }
+      ],
+      "class": "inactive regenerable language build-script Rust output",
+      "allocated_bytes": 819220480
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/private-generated-zip-runtime-20261112",
+      "files": [
+        {
+          "path": "conduit-language-d8428ea5202b57d1-semantic_types.rs",
+          "bytes": 244181966,
+          "sha256": "1ced5a5c1a39131030dc7eca5fa9a0614e0278d2a95552771a39db7add097862"
+        },
+        {
+          "path": "conduit-language-d8428ea5202b57d1-fallback_round_programs.rs",
+          "bytes": 79207926,
+          "sha256": "91a97fc4f11a56982900ed8d2f4d0730ff7d48b7a0de22f388b0dfd754929250"
+        },
+        {
+          "path": "conduit-language-d8428ea5202b57d1-commitment_programs.rs",
+          "bytes": 36778385,
+          "sha256": "ee297fa02b376b59c1017c93f1567cd0bf5800ceefd9f6b0f91d663e702bc8ec"
+        }
+      ],
+      "class": "inactive regenerable language build-script Rust output",
+      "allocated_bytes": 360185856
+    }
+  ],
+  "source_credentials_state_evidence_preserved": true
+}

@@ -34,6 +34,8 @@ mod workload;
 use workload::Workload;
 #[path = "live_sign_archive/dictionary.rs"]
 mod dictionary;
+#[path = "live_sign_archive/dictionary_three_lane.rs"]
+mod dictionary_three_lane;
 
 fn payload(index: u32) -> [u8; 200] {
     let mut record = [0; 200];

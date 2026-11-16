@@ -1,0 +1,133 @@
+{
+  "scope": "Kernel codec identity/refusal and explicit construction/layout qualification only; not full Source execution or hardware qualification",
+  "new_tests": [
+    "three_request_lanes_preserve_distinct_source_node_identities_across_prefixes",
+    "two_lanes_refuse_third_source_node_without_losing_active_or_archived_evidence",
+    "three_lane_candidates_report_backing_under_unchanged_resource_ceilings"
+  ],
+  "actual_source_request_nodes": [
+    0,
+    4,
+    9
+  ],
+  "host_profiles": [
+    {
+      "event_stock": 128,
+      "template_stock": 4,
+      "tape_stock": 48,
+      "request_lanes": 3,
+      "remote_lanes": 2,
+      "archive_backing_bytes": 8352,
+      "overlap_bytes": 9630,
+      "fits_original_bounds": false
+    },
+    {
+      "event_stock": 128,
+      "template_stock": 4,
+      "tape_stock": 46,
+      "request_lanes": 3,
+      "remote_lanes": 2,
+      "archive_backing_bytes": 8224,
+      "overlap_bytes": 9502,
+      "fits_original_bounds": false
+    },
+    {
+      "event_stock": 128,
+      "template_stock": 4,
+      "tape_stock": 45,
+      "request_lanes": 3,
+      "remote_lanes": 2,
+      "archive_backing_bytes": 8160,
+      "overlap_bytes": 9438,
+      "fits_original_bounds": true
+    },
+    {
+      "event_stock": 128,
+      "template_stock": 4,
+      "tape_stock": 44,
+      "request_lanes": 3,
+      "remote_lanes": 2,
+      "archive_backing_bytes": 8096,
+      "overlap_bytes": 9374,
+      "fits_original_bounds": true
+    },
+    {
+      "event_stock": 128,
+      "template_stock": 4,
+      "tape_stock": 42,
+      "request_lanes": 3,
+      "remote_lanes": 2,
+      "archive_backing_bytes": 7968,
+      "overlap_bytes": 9246,
+      "fits_original_bounds": true
+    },
+    {
+      "event_stock": 128,
+      "template_stock": 4,
+      "tape_stock": 40,
+      "request_lanes": 3,
+      "remote_lanes": 2,
+      "archive_backing_bytes": 7840,
+      "overlap_bytes": 9118,
+      "fits_original_bounds": true
+    }
+  ],
+  "thumbv6m_layout_symbols": {
+    "active_sign_backing": 998,
+    "archive_charge_g40": 7828,
+    "archive_charge_g42": 7956,
+    "archive_charge_g44": 8084,
+    "archive_charge_g45": 8148,
+    "archive_charge_g46": 8212,
+    "archive_charge_g47": 8276,
+    "archive_charge_g48": 8340,
+    "inline_archive_g48": 8336,
+    "transfer_token_g44": 48,
+    "wrapper": 184
+  },
+  "native_layout_symbols": {
+    "archive_charge_g40": 7840,
+    "archive_charge_g42": 7968,
+    "archive_charge_g44": 8096,
+    "archive_charge_g45": 8160,
+    "archive_charge_g46": 8224,
+    "archive_charge_g47": 8288,
+    "archive_charge_g48": 8352,
+    "inline_archive_g48": 8344,
+    "wrapper": 232
+  },
+  "candidate": {
+    "template_events": 128,
+    "template_count": 4,
+    "segment_runs": 44,
+    "request_lanes": 3,
+    "remote_streams": 2,
+    "archive_backing_ceiling": 8192,
+    "transfer_overlap_ceiling": 12288,
+    "thumb_archive_charge": 8084,
+    "thumb_owned_backing": 9262,
+    "thumb_transfer_overlap": 9310,
+    "native_archive_charge": 8096,
+    "native_overlap": 9374
+  },
+  "largest_G_fitting_both_measured_ABIs": 45,
+  "G48_N3_fits_8192": false,
+  "existing_profile_or_resource_grant_changed": false,
+  "hardware_effects": false,
+  "not_proved": [
+    "Complete sampling Source trace template/tape/retained-event fit",
+    "Same Started Play recovery and fresh native sensor/display progress",
+    "Target allocator overhead, stack and factory peak",
+    "Durable recording ACK or full physical history recovery"
+  ],
+  "source_commit": "31156049e157ce35e1ba989cdf089eb6c6245c70",
+  "source_parent": "9370f87747903d2d1d2bf639cdd5d78617d1ed30",
+  "origin_branch": "qualify/dictionary-three-request-lanes-20261116",
+  "tests": {
+    "passed": 7,
+    "failed": 0
+  },
+  "strict_lib_tests_clippy": "PASS",
+  "qualification_cache": "/tmp/conduit-three-lane-qualification-20261116",
+  "layout_cache": "/tmp/conduit-three-lane-layout-target"
+}

@@ -1,0 +1,39 @@
+{
+  "source_commit": "a2b296be63cf897cc35de1cf068e97d4cecca2d3",
+  "kernel_test_commit": "31156049e157ce35e1ba989cdf089eb6c6245c70",
+  "shape": {
+    "events": 128,
+    "templates": 4,
+    "tape_runs": 44,
+    "request_lanes": 3,
+    "remote_streams": 2
+  },
+  "unchanged_limits": {
+    "archive_backing_bytes": 8192,
+    "transfer_overlap_bytes": 12288
+  },
+  "native_actual_service": {
+    "reads": 1264,
+    "appends": 20,
+    "signs": 15472,
+    "remote_sidecars": 5056,
+    "canonical_bytes": 430784,
+    "archive_backing_bytes": 8096,
+    "transfer_overlap_bytes": 9374,
+    "exact_evidence_preserved": true,
+    "regressions_passed": 4,
+    "strict_clippy_passed": true
+  },
+  "not_proved": [
+    "Full authored Source trace",
+    "Whole-workset admission and preparation peak",
+    "Hardware sensing/display progress",
+    "Transport interruption and durable remote commitment"
+  ],
+  "device_writes": false,
+  "logs": {
+    "three-lane-native-history-all-features-20261116.log": "51c54e30c97c997476d4d1b7518bf2f4685b2725116c870e0fa84c7bee5d0114",
+    "three-lane-native-history-regressions-20261116.log": "fe4b7102b9d3455058d5ef5419cc601827bc4ccaf04c9a229b13ed6f4fa20a6c",
+    "three-lane-native-history-clippy-20261116.log": "f332647163cbf7d6a66e010ae3026d63e2261fd49ce7cb3eb462f723db1aefb9"
+  }
+}

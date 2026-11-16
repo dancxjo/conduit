@@ -1,0 +1,13 @@
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/resource-snapshot)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/catalog)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/embedded-build)
+    Finished `test` profile [unoptimized] target(s) in 3.40s
+     Running unittests src/lib.rs (/tmp/conduit-native-three-lane-20261116/debug/deps/conduit_resource_snapshot-96d42f2df17c3d27)
+
+running 1 test
+ACTUAL_SERVICE_DICTIONARY_STORAGE_ROW {"archive_backing_bytes":8096,"transfer_overlap_bytes":9374,"scope":"test target owned backing; excludes allocator headers, caller, stack and Root"}
+ACTUAL_SERVICE_DICTIONARY_ROW {"completed_reads":1264,"sampling_completions":20,"remote_events":5056,"archived_events":15472,"canonical_bytes":430784,"dictionary_stats":(70, 3, 40, 1264),"archive_backing_bytes":8096,"owned_backing_bytes":9318,"template_event_stock":128,"template_stock":4,"tape_stock":44,"request_lanes":3,"remote_lanes":2,"active_items":61,"remote_items":6,"archive_backing_limit":8192,"overlap_limit":12288,"scope":"real native record-service and NOR; synthetic sampling; not Source, Root admission, transport or HIL"}
+test native_service::tests::live_sign_archive::dictionary_three_lane::three_lane_dictionary_preserves_actual_reads_and_appends_with_original_ceilings ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 64 filtered out; finished in 2.68s
+

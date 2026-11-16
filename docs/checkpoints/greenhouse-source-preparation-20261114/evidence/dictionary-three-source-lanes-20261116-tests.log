@@ -1,0 +1,22 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/kernel)
+    Finished `test` profile [unoptimized] target(s) in 7.11s
+     Running unittests src/lib.rs (/tmp/conduit-three-lane-qualification-20261116/debug/deps/conduit_kernel-7c4576ade76654c6)
+
+running 7 tests
+DICTIONARY_PROFILE_ROW {"event_stock":128,"template_stock":4,"tape_stock":48,"request_lanes":2,"remote_lanes":2,"archive_backing_bytes":7968,"overlap_bytes":9246}
+DICTIONARY_THREE_LANE_PROFILE {"event_stock":128,"template_stock":4,"tape_stock":48,"request_lanes":3,"remote_lanes":2,"archive_backing_bytes":8352,"overlap_bytes":9630,"fits_original_bounds":false}
+DICTIONARY_THREE_LANE_PROFILE {"event_stock":128,"template_stock":4,"tape_stock":46,"request_lanes":3,"remote_lanes":2,"archive_backing_bytes":8224,"overlap_bytes":9502,"fits_original_bounds":false}
+DICTIONARY_THREE_LANE_PROFILE {"event_stock":128,"template_stock":4,"tape_stock":45,"request_lanes":3,"remote_lanes":2,"archive_backing_bytes":8160,"overlap_bytes":9438,"fits_original_bounds":true}
+DICTIONARY_THREE_LANE_PROFILE {"event_stock":128,"template_stock":4,"tape_stock":44,"request_lanes":3,"remote_lanes":2,"archive_backing_bytes":8096,"overlap_bytes":9374,"fits_original_bounds":true}
+DICTIONARY_THREE_LANE_PROFILE {"event_stock":128,"template_stock":4,"tape_stock":42,"request_lanes":3,"remote_lanes":2,"archive_backing_bytes":7968,"overlap_bytes":9246,"fits_original_bounds":true}
+DICTIONARY_THREE_LANE_PROFILE {"event_stock":128,"template_stock":4,"tape_stock":40,"request_lanes":3,"remote_lanes":2,"archive_backing_bytes":7840,"overlap_bytes":9118,"fits_original_bounds":true}
+test dictionary_live_sign_archive::tests::maximum_original_request_and_remote_values_do_not_wrap ... ok
+test dictionary_live_sign_archive::tests::each_explicit_stock_and_overflow_refuses_without_mutating_archive ... ok
+test dictionary_live_sign_archive::tests::three_lane_candidates_report_backing_under_unchanged_resource_ceilings ... ok
+test dictionary_live_sign_archive::tests::explicit_candidate_fits_original_backing_limits_and_transfers_same_owner ... ok
+test dictionary_live_sign_archive::tests::two_lanes_refuse_third_source_node_without_losing_active_or_archived_evidence ... ok
+test dictionary_live_sign_archive::tests::three_request_lanes_preserve_distinct_source_node_identities_across_prefixes ... ok
+test dictionary_live_sign_archive::tests::dictionary_reuses_nonadjacent_shapes_and_preserves_independent_node_offsets ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 280 filtered out; finished in 0.00s
+
