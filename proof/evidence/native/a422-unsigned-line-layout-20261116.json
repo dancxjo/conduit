@@ -106,7 +106,7 @@
     "independently derived exact selected physical Line/session profile"
   ],
   "recipe_limitations": [
-    "CPU harness collects lazy expected fingerprints only for compatibility with existing slice-only kernel API. Production lazy integration is not implemented.",
+    "The offline exact payload proof collects fingerprints solely for the frozen slice kernel API. Production code now forwards a sparse borrowed view; complete Source factory qualification and target-fit measurement remain pending.",
     "Canonical current placement acquisition and authority remain separate obligations.",
     "An initial CPU harness incorrectly used route-record count for indexed route-slot capacity; corrected to N*P=36 before reporting success."
   ],
@@ -124,5 +124,17 @@
     "ambiguous_initialized_offer_refuses": true,
     "wrong_artifact_refuses": true,
     "wrong_kind_refuses": true
+  },
+  "native_qualification": {
+    "assigned_plan_tests_passed": 43,
+    "kernel_tests_passed": 173,
+    "kernel_tests_ignored": 3,
+    "host_runtime_check_features": [
+      "execution-workspace",
+      "schema-value-storage"
+    ],
+    "host_runtime_check": "passed",
+    "whole_source_factory": "pending",
+    "target_firmware": "not_built"
   }
 }
