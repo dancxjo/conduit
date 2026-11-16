@@ -48,6 +48,13 @@ package/production/release modules and a browser call site. These are existing
 unmerged foundations to review for a narrow handoff, not missing functionality
 to independently recreate. No proof on that branch has been rerun by this audit.
 
+The user authorized coordination with the owning **Greenhouse Body** chat.
+Its owner handed off the narrow shared construction and browser proof from
+`9a61d38899` and `dcf128253d`, assigning fresh qualification here. The local
+adaptation preserves the extracted browser preparation module; it does not
+import the omnibus branch, package/ZIP production, live services or MCU work.
+The broader module overlap and the Integration gate still apply.
+
 The user's requested Womb semantics are the scope for this work. They do not
 authorize changing existing Kind identity semantics under the same revision.
 No second scheduler, deployment graph, configuration syntax or admission system
@@ -112,7 +119,7 @@ feature admission; it is not part of Womb's browser implementation scope.
 
 ## Local prerequisite qualification
 
-The browser preparation function was extracted unchanged to
+The browser preparation function was first extracted unchanged to
 `creche/spore/workspace_browser.rs`, preserving its existing public path.
 A body comparison permits only module-path and formatting changes.
 Two new deterministic tests verify unchanged origin biography/membership and
@@ -125,6 +132,19 @@ library: **500 passed, 5 ignored**, with no failures. Formatting, patch hygiene
 and audit relative links pass. Raw local logs stay under ignored
 `target/proof/creche-womb/`. These are CPU contract tests, not Chromium,
 live transport, authenticated new-Host admission or Womb Plan/Play proof.
+
+The handed-off checker is now adapted locally. Browser preparation uses the
+same existing-Body construction, original Birth sign and exact Host pins, with
+explicit preparation-time freshness checking. New regression coverage also
+rejects stale/expired claims without changing origin biography. Browser target
+construction and its transactional ABI handler were extracted so their parent
+files shrink. Public claim inspection does not establish unused invitation
+state, owner authority or admitted membership; the admission owner still owns
+those decisions. A future Womb result must preserve typed refusal categories;
+the current browser preparation API still groups make failures as `Make.Prepare`.
+Fresh qualification of this adaptation: **59 make/body library tests passed**,
+and **501 browser runtime library tests passed, 5 ignored**. No failures.
+Formatting, patch hygiene and relative links also pass.
 
 The first cold build was stopped before tests to address disk pressure. Only
 this worktree's regenerable `target/debug` was removed after compilers stopped;

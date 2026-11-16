@@ -49,11 +49,21 @@ fn preparing_browser_spore_preserves_origin_and_does_not_admit_a_part() {
         &[11; 32],
         &format!("sha256:{}", "1".repeat(64)),
         selection(),
+        1_001,
     )
     .unwrap();
     assert_eq!(body, before);
     assert_eq!(prepared.body_id, body.body_id.as_str());
     assert_eq!(prepared.spore_manifest.body_id, body.body_id.as_str());
+    assert_eq!(prepared.source_identity, "sign/propagation-born");
+    assert_eq!(
+        prepared.spore_manifest.host_configuration_id,
+        prepared.browser_configuration_id.as_deref().unwrap()
+    );
+    assert_eq!(
+        prepared.image_content_digest,
+        format!("sha256:{}", "1".repeat(64))
+    );
     assert_eq!(
         prepared.spore_manifest.binding,
         SporeBinding::SelfJoining {
@@ -94,8 +104,28 @@ fn another_body_invitation_refuses_before_configuration_or_make() {
         &[11; 32],
         "invalid-digest",
         invalid_selection,
+        1_001,
     )
     .err()
     .unwrap();
     assert_eq!(refused, "Workspace invitation names a different Body");
+}
+
+#[test]
+fn expired_or_stale_invitation_cannot_prepare_a_browser_spore() {
+    let body = origin();
+    let before = body.clone();
+    let claim = invitation(&body);
+    let digest = format!("sha256:{}", "1".repeat(64));
+    let expired = prepare_workspace_browser(&body, &claim, &[11; 32], &digest, selection(), 2_000)
+        .err()
+        .unwrap();
+    assert!(expired.contains("Expired"), "{expired}");
+    let mut stale = claim;
+    stale.nonce = [0; 32];
+    let refused = prepare_workspace_browser(&body, &stale, &[11; 32], &digest, selection(), 1_001)
+        .err()
+        .unwrap();
+    assert!(refused.contains("StaleNonce"), "{refused}");
+    assert_eq!(body, before);
 }
