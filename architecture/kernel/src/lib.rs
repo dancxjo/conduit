@@ -28,6 +28,8 @@ mod execution_disposition;
 mod failure;
 pub mod fault_disposition;
 pub mod invocation_archive;
+#[cfg(feature = "alloc")]
+pub mod live_sign_archive;
 pub use execution_disposition::{DrainedPlayDisposition, ExecutionDisposition};
 pub use failure::{Failure, FailureCode};
 pub mod scheduler;

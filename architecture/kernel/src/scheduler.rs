@@ -2,6 +2,8 @@
 #[cfg(feature = "execution-workspace")]
 mod execution_workspace;
 mod local_fore;
+#[cfg(feature = "alloc")]
+mod live_sign_archive;
 #[cfg(feature = "execution-workspace")]
 pub use execution_workspace::{
     PreparedStepWorkspace, StepWorkspace, StepWorkspaceRequirements, WorkspacePreparationError,
