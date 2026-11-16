@@ -251,3 +251,76 @@ fn actual_terminal_report_and_original_funding_still_gate_schema8_storage() {
     assert!(matches!(result, Err(Refusal::Bounds)));
     assert_eq!(bound.get(), 0);
 }
+
+#[test]
+fn linked_line_fore_keeps_actual_back_gate_with_zero_inline_terminal_stock() {
+    type Linked<'a> = PreparedFragment<
+        Backs<'a>,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        16,
+        FixedSignLog<16>,
+        1,
+        HostedValueStore,
+        2,
+        0,
+        0,
+        0,
+        1,
+    >;
+    static TERMINALS: [[Option<AssignedTerminalTransduction>; 1]; 1] = [[None]];
+    let native = documents::Fixture::new();
+    let numeric = TablesFixture::new([true, true]);
+    let document = numeric.document();
+    let (approved, _) = b::receive_delegated_body_fragment_with_line_fore::<2>(
+        Some(&documents::policy()),
+        native.context(),
+        documents::command(&native, &document),
+        numeric.preparation(),
+    )
+    .unwrap();
+    let bound = Cell::new(0);
+    let prepared = Linked::prepare_with_line_fore_linked_terminal_transductions(
+        &approved,
+        numeric.preparation(),
+        &numeric.layout(),
+        values(),
+        signs(),
+        65536,
+        || {
+            Ok::<_, ()>(Backs {
+                bound: &bound,
+                report: true,
+            })
+        },
+        &TERMINALS,
+    )
+    .unwrap();
+    assert!(prepared.retained_backing_bytes().unwrap() > 0);
+    assert_eq!(bound.get(), 0, "preparation is not authenticated Start");
+    drop(prepared);
+    let refused = Linked::prepare_with_line_fore_linked_terminal_transductions(
+        &approved,
+        numeric.preparation(),
+        &numeric.layout(),
+        values(),
+        signs(),
+        65536,
+        || {
+            Ok::<_, ()>(Backs {
+                bound: &bound,
+                report: false,
+            })
+        },
+        &TERMINALS,
+    );
+    assert!(
+        refused.is_err(),
+        "linked tables cannot replace actual Back law reporting"
+    );
+    assert_eq!(bound.get(), 0);
+}

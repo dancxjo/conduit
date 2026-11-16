@@ -144,4 +144,34 @@ impl<
             Some(ExpectedTerminalTable::Inline(expected)),
         )
     }
+    /// Immutable linked equivalent of the ordinary Line/Fore terminal entrance.
+    /// The original Source image owns this exact table. Actual Back laws,
+    /// whole-workset admission and authenticated Start remain independently checked.
+    #[allow(clippy::too_many_arguments)]
+    #[inline(never)]
+    pub fn prepare_with_line_fore_linked_terminal_transductions<E>(
+        approved: &b::DelegatedBodyFragment<'_>,
+        profile: b::AssignedBodyLineForePreparationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        values: V,
+        signs: L,
+        maximum_retained_bytes: usize,
+        factory: impl FnOnce() -> Result<B, E>,
+        expected: &'static [[Option<AssignedTerminalTransduction>; P]; N],
+    ) -> Result<Self, Refusal<E>> {
+        if profile.preparation.fore.is_some() {
+            return Err(Refusal::Scope);
+        }
+        Self::prepare_inner(
+            approved,
+            profile.preparation,
+            ForeProfile::Line(profile.line_fore),
+            layout,
+            values,
+            signs,
+            maximum_retained_bytes,
+            factory,
+            Some(ExpectedTerminalTable::Linked(expected)),
+        )
+    }
 }

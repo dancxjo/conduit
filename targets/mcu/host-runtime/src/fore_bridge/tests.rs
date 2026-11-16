@@ -114,11 +114,35 @@ impl StepBack<1> for Echo {
         }
     }
 }
-type Kernel = StoredExecutionKernel<Echo, FixedSignLog<32>, 1, 2, 1, 1, 1, 0, 0>;
+type ProfileKernel<const M: usize, const F: usize, const U: usize, const Z: usize> =
+    StoredExecutionKernel<
+        Echo,
+        FixedSignLog<32>,
+        1,
+        2,
+        1,
+        1,
+        1,
+        0,
+        1,
+        HostedValueStore,
+        2,
+        M,
+        F,
+        U,
+        Z,
+    >;
+type Kernel = ProfileKernel<1, 100, 1, 2>;
 fn kernel(remote: u16) -> Kernel {
     kernel_with_capacity(remote, 8)
 }
 fn kernel_with_capacity(remote: u16, byte_capacity: u32) -> Kernel {
+    profile_kernel(remote, byte_capacity)
+}
+fn profile_kernel<const M: usize, const F: usize, const U: usize, const Z: usize>(
+    remote: u16,
+    byte_capacity: u32,
+) -> ProfileKernel<M, F, U, Z> {
     let capacity = |slot_start| CordCapacity {
         slot_start,
         item_capacity: 1,
@@ -152,14 +176,8 @@ fn kernel_with_capacity(remote: u16, byte_capacity: u32) -> Kernel {
         )
         .unwrap();
     routes.seal().unwrap();
-    Kernel::new(
-        [NodeSpec {
-            input_cords: [Some(CordId(0))],
-            maximum_step_fuel: 8,
-        }],
-        cords,
-        routes,
-        [Echo],
+    static TERMINALS: [[Option<AssignedTerminalTransduction>; 1]; 1] = [[None]];
+    let prepared = ProfileKernel::prepare_boxed_with_linked_table_writer(
         HostedValueStore::new_with_slot_capacities(&[byte_capacity; 2], 2 * byte_capacity).unwrap(),
         FixedSignLog::new_with_remote_storage(
             (32 * size_of::<KernelEvent>()) as u32,
@@ -167,16 +185,37 @@ fn kernel_with_capacity(remote: u16, byte_capacity: u32) -> Kernel {
             remote_sign_storage_bytes(remote).unwrap(),
         )
         .unwrap(),
+        usize::MAX,
+        &TERMINALS,
+        &TERMINALS,
+        |e| e,
+        |nodes, written_cords, written_routes, calls| {
+            nodes[0] = NodeSpec {
+                input_cords: [Some(CordId(0))],
+                maximum_step_fuel: 8,
+            };
+            *written_cords = cords;
+            *written_routes = routes;
+            calls.seal()?;
+            Ok((1, 2))
+        },
     )
-    .unwrap()
+    .unwrap();
+    *prepared.bind([Echo])
 }
 struct Existing;
-impl Observer<Kernel> for Existing {
+impl<const M: usize, const F: usize, const U: usize, const Z: usize>
+    Observer<ProfileKernel<M, F, U, Z>> for Existing
+{
     type Error = Infallible;
-    fn before_step(&mut self, _: &mut Kernel) -> Result<(), Self::Error> {
+    fn before_step(&mut self, _: &mut ProfileKernel<M, F, U, Z>) -> Result<(), Self::Error> {
         Ok(())
     }
-    fn completed(&mut self, _: &mut Kernel, _: Dispatch) -> Result<(), Self::Error> {
+    fn completed(
+        &mut self,
+        _: &mut ProfileKernel<M, F, U, Z>,
+        _: Dispatch,
+    ) -> Result<(), Self::Error> {
         Ok(())
     }
 }
@@ -326,43 +365,54 @@ fn constrained_abi_refuses_and_preparation_and_pumping_allocate_nothing() {
 
 #[test]
 fn genuine_peer_acknowledgments_drive_kernel_custody_and_pressure_keeps_same_value() {
+    exercise_acknowledgments(kernel(16));
+}
+#[test]
+fn compact_profile_fore_observer_preserves_typed_delivery_pressure_and_retirement() {
+    exercise_acknowledgments(profile_kernel::<0, 0, 0, 1>(16, 8));
+}
+fn exercise_acknowledgments<const M: usize, const F: usize, const U: usize, const Z: usize>(
+    mut kernel: ProfileKernel<M, F, U, Z>,
+) {
     let pins = Pins::new(c::COUNT_INFO_ID);
     let mut input = [0; 8];
     let mut output = [0; 8];
     let bound = make_bound(&pins, &mut input, &mut output);
     let (observer, port) = bound.activate(pins.activation()).unwrap();
     let mut observer = ForeObserver::new(Existing, observer);
-    let mut kernel = kernel(16);
-    port.stage_ingress(0, &1u64.to_le_bytes()).unwrap();
-    observer.before_step(&mut kernel).unwrap();
-    delivered_input(&port, 0);
-    kernel.step().unwrap();
-    observer.before_step(&mut kernel).unwrap();
-    let event = Event::EgressOffered {
-        sequence: 0,
-        length: 8,
-    };
-    assert_eq!(port.next_event().unwrap(), Some(event));
-    port.with_egress(0, |bytes| assert_eq!(bytes, &1u64.to_le_bytes()))
-        .unwrap();
-    port.sent(event).unwrap();
-    assert_eq!(port.peer_delivered(0), Err(Refusal::Sequence));
-    assert_eq!(port.peer_accepted(1), Err(Refusal::Sequence));
-    port.peer_pressure(0).unwrap();
-    assert_eq!(port.next_event().unwrap(), Some(event));
-    assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
-    port.sent(event).unwrap();
-    port.peer_accepted(0).unwrap();
-    assert_eq!(port.peer_accepted(0), Err(Refusal::Sequence));
-    assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
-    observer.before_step(&mut kernel).unwrap();
-    assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
-    port.peer_delivered(0).unwrap();
-    assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
-    observer.before_step(&mut kernel).unwrap();
-    assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (0, 0));
-    assert_eq!(kernel.values().used_items(), 0);
-    assert_eq!(port.peer_delivered(0), Err(Refusal::Sequence));
+    let (_, cost) = crate::member_return_tests::return_allocation_probe::observe(|| {
+        port.stage_ingress(0, &1u64.to_le_bytes()).unwrap();
+        observer.before_step(&mut kernel).unwrap();
+        delivered_input(&port, 0);
+        kernel.step().unwrap();
+        observer.before_step(&mut kernel).unwrap();
+        let event = Event::EgressOffered {
+            sequence: 0,
+            length: 8,
+        };
+        assert_eq!(port.next_event().unwrap(), Some(event));
+        port.with_egress(0, |bytes| assert_eq!(bytes, &1u64.to_le_bytes()))
+            .unwrap();
+        port.sent(event).unwrap();
+        assert_eq!(port.peer_delivered(0), Err(Refusal::Sequence));
+        assert_eq!(port.peer_accepted(1), Err(Refusal::Sequence));
+        port.peer_pressure(0).unwrap();
+        assert_eq!(port.next_event().unwrap(), Some(event));
+        assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
+        port.sent(event).unwrap();
+        port.peer_accepted(0).unwrap();
+        assert_eq!(port.peer_accepted(0), Err(Refusal::Sequence));
+        assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
+        observer.before_step(&mut kernel).unwrap();
+        assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
+        port.peer_delivered(0).unwrap();
+        assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (1, 8));
+        observer.before_step(&mut kernel).unwrap();
+        assert_eq!(kernel.cord_usage(CordId(1)).unwrap(), (0, 0));
+        assert_eq!(kernel.values().used_items(), 0);
+        assert_eq!(port.peer_delivered(0), Err(Refusal::Sequence));
+    });
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
 }
 #[test]
 fn queue_pressure_retains_ingress_sequence_and_never_claims_delivery() {
