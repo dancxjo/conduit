@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.proof/cpu-complete-source-start@1",
+  "tested_source_commit": "fb5e3e76a8bbdbceb32628a85f87daf4ca8fdfb0",
+  "production_integration_commit": "8cebe9cddd",
+  "scope": "CPU public Root membership and attributed three-fragment Source command; original complete factory, renderer, resource admission and authenticated Start. No provider execution or hardware claim.",
+  "fresh_authority": true,
+  "retained_decoded_host_capabilities": 0,
+  "gates": {
+    "public_root_spawn": "PASS",
+    "public_root_receive_preparation": "PASS",
+    "original_three_fragment_factory": "PASS",
+    "original_renderer_preparation": "PASS",
+    "original_resource_admission": "PASS",
+    "original_authenticated_Start": "PASS",
+    "nonzero_opaque_StartedEvidence": "PASS",
+    "retained_input_digest_unchanged": "PASS",
+    "actual_Source_runtime_borrow_compile": "PASS"
+  },
+  "physical_grants_unchanged": {
+    "heap_bytes": 118784,
+    "assignment_bytes": 18432,
+    "runtime_state_bytes": 38912,
+    "recording_output_buffer_bytes": 837,
+    "resident_work_units": 5000
+  },
+  "cpu_heap_bytes": {
+    "preparation_peak": 116198,
+    "live_Started_retained": 111835,
+    "after_Started_drop": 42320,
+    "excluded_external_nor_emulator_bytes": 655360
+  },
+  "accounting": "All fixture and sender metadata included. Only exact simulated external NOR storage bytes excluded while owned, restored on Drop. Peak begins after external NOR allocation. CPU ABI is distinct from MCU target fit.",
+  "provider_effects": 0,
+  "effect_guard": "CPU pulse, wait, display-wire and NOR-program methods panic on invocation; none invoked. Read-only NOR recovery and constant clock inspection allowed.",
+  "not_proved": [
+    "Continuing scheduler/provider execution",
+    "Actual measurements or rendered frames",
+    "Target IMAGE memory fit",
+    "Physical device readiness, history continuity, or restart recovery"
+  ],
+  "witness_logs": {
+    "compile.log": {
+      "retained_path": "target/qualification/full-factory-final/compile.log",
+      "sha256": "9e7fcd9a47113ca48036047756c921243edf3a032110c31f844889448c9c35de"
+    },
+    "run.log": {
+      "retained_path": "target/qualification/full-factory-final/run.log",
+      "sha256": "a35945d4b1d61df38b65eeac42beaaf00b98e3e855701bb8ee1587e48ccad90f"
+    }
+  }
+}
