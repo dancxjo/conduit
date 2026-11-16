@@ -1,0 +1,12 @@
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/std)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/plots/thermostat/runtime)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/std/patchbay-workbench)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/products/conduit)
+    Finished `test` profile [unoptimized] target(s) in 24.23s
+     Running unittests src/main.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit-3329dd4bd6998cb6)
+
+running 1 test
+test durable_host::source_revision::carriage::fore_provider::tests::client_binding_uses_original_child_bytes_custody_and_installed_image ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 546 filtered out; finished in 0.11s
+

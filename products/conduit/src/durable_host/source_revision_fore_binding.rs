@@ -7,6 +7,27 @@ pub(super) struct FrozenFore {
     pub pin: c::AssignedLineForeRequirement,
     pub abnormal_kind: Option<c::KindId>,
 }
+/// Borrowed descriptive pins for a single authorized probe, never Ready/Start
+/// evidence or permission to retire recorded observations.
+#[allow(dead_code)] // Borrowed consumer metadata; Root decoder integration is separate.
+pub(crate) struct ForeProbeBinding<'a> {
+    pub(crate) body: &'a str,
+    pub(crate) host: &'a str,
+    pub(crate) boot: &'a str,
+    pub(crate) generation: u64,
+    pub(crate) plot: &'a ResidentPlot,
+    pub(crate) image: &'a str,
+    pub(crate) configuration: &'a str,
+    pub(crate) usb_serial: &'a str,
+    pub(crate) request: &'a c::AssignedLineForeRequirement,
+    pub(crate) result: &'a c::AssignedLineForeRequirement,
+    pub(crate) sessions: &'a [conduit_wire::ExternalForeSessionBinding; 2],
+    pub(crate) original_approval_transcript: &'a [u8; 32],
+}
+struct OriginalProbeApproval {
+    transcript: [u8; 32],
+    bindings: [conduit_wire::ExternalForeSessionBinding; 2],
+}
 pub(in crate::durable_host::source_revision) struct DirectForeMaterial {
     body: String,
     host: String,
@@ -15,6 +36,8 @@ pub(in crate::durable_host::source_revision) struct DirectForeMaterial {
     plot: ResidentPlot,
     image: String,
     configuration: String,
+    usb_serial: String,
+    approval: Option<OriginalProbeApproval>,
     bounds: conduit_host_make::fore_carrier::DeclaredForeCarrierBounds,
     rows: [FrozenFore; 2],
 }
@@ -50,6 +73,8 @@ impl DirectForeMaterial {
             plot: policy.plot.clone(),
             image: policy.installed_image_id.clone(),
             configuration,
+            usb_serial: policy.usb_serial.clone(),
+            approval: None,
             bounds,
             rows,
         })
@@ -137,13 +162,17 @@ impl DirectForeMaterial {
         }))
     }
     pub(in crate::durable_host::source_revision) fn prepare_carriage(
-        &self,
+        &mut self,
         payload: &[u8],
         custody: [u8; 32],
     ) -> Result<PreparedForeCarriage, String> {
+        if self.approval.is_some() {
+            return Err("original Fore approval already retained; replacement refused".into());
+        }
+        let bindings = self.bindings(payload, custody)?;
         let b = self.bounds;
-        PreparedForeCarriage::prepare(
-            self.bindings(payload, custody)?,
+        let prepared = PreparedForeCarriage::prepare(
+            bindings.clone(),
             ForeCarriageBounds {
                 maximum_frames: b.maximum_frames,
                 maximum_payload_bytes: b.maximum_payload_bytes,
@@ -151,6 +180,49 @@ impl DirectForeMaterial {
                 maximum_buffer_bytes: b.maximum_buffered_bytes,
             },
         )
-        .map_err(|e| format!("prepare original native client: {e:?}"))
+        .map_err(|e| format!("prepare original native client: {e:?}"))?;
+        self.approval = Some(OriginalProbeApproval {
+            transcript: custody,
+            bindings,
+        });
+        Ok(prepared)
+    }
+    pub(in crate::durable_host::source_revision) fn approval_transcript(
+        &self,
+    ) -> Result<&[u8; 32], String> {
+        self.approval
+            .as_ref()
+            .map(|approval| &approval.transcript)
+            .ok_or_else(|| "original Fore approval custody absent".into())
+    }
+    /// Recompute from the actual Owner's still-retained command, not a report.
+    pub(in crate::durable_host::source_revision) fn verify_probe_binding(
+        &self,
+        payload: &[u8],
+        transcript: &[u8; 32],
+    ) -> Result<ForeProbeBinding<'_>, String> {
+        let approval = self
+            .approval
+            .as_ref()
+            .ok_or("original Fore approval custody absent")?;
+        if transcript != &approval.transcript
+            || self.bindings(payload, *transcript)? != approval.bindings
+        {
+            return Err("probe differs from original approved BoundFore custody".into());
+        }
+        Ok(ForeProbeBinding {
+            body: &self.body,
+            host: &self.host,
+            boot: &self.boot,
+            generation: self.generation,
+            plot: &self.plot,
+            image: &self.image,
+            configuration: &self.configuration,
+            usb_serial: &self.usb_serial,
+            request: &self.rows[0].pin,
+            result: &self.rows[1].pin,
+            sessions: &approval.bindings,
+            original_approval_transcript: &approval.transcript,
+        })
     }
 }

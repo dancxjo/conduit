@@ -1,0 +1,43 @@
+{
+  "status": "ordinary Make compiled/linked/converted; no deployment",
+  "source_commit": "cfbff97c4d9a004a47f7e44db02ccc4b69f3a3a3",
+  "source_clean": true,
+  "image_id": "image:sha256:daea53c7c062e6ed5ec4101c1fcf532c3760077ca0b00d4ea9baad399da13439",
+  "configuration_id": "sha256:370055809c7e53536effe0257fdeb7f2c73a524ca34e734022c4acb8d6086cb1",
+  "source_identity": "sha256:4a5a24c2543d57eaaa4db54d4efeb1c0d8b04c602cb3e4f2406e85e073f7790f",
+  "workset_source_sha256": "ec1b0410a8ca235e0b394625eede70c0d467cb1933c023c4f811b96db9e5f6c8",
+  "artifact_directory": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/yellow-fore-profile-qualified-20261116",
+  "files": {
+    "host.uf2": {
+      "bytes": 2903552,
+      "sha256": "750810feaea22b46e85e3ed4ee830d2cd958593219b5460e6844c121f08e4eaa"
+    },
+    "continuation-recipe.json": {
+      "bytes": 3984,
+      "sha256": "82e60fea14ed8485fcfa599d84551cea1b88c70f53b6bf0c379fa52351c77dd2"
+    }
+  },
+  "preserved_elf_sha256": "21a1b0fabd672c1903b10de0d87d4401268bbabecbd8b0d4c3a91d2e3b73e145",
+  "physical": {
+    "static_bytes": 208628,
+    "static_limit": 229376,
+    "static_margin": 20748,
+    "remaining_stack_reserve": 61708,
+    "minimum_stack": 16384,
+    "heap_arena_grant": 110592,
+    "embassy_main_task_pool": 90336,
+    "flash_firmware_region_bytes": 1495040,
+    "uf2_application_payload_bytes": 1451776,
+    "highest_application_end_offset": 1451776,
+    "flash_extent_margin": 43264
+  },
+  "uf2_pages_unique_and_within_firmware_only": true,
+  "bootstrap_credentials_and_history_regions_not_in_application_uf2": true,
+  "independent_hash_image_config_source_closure_checked": true,
+  "no_memory_grant_changes": true,
+  "device_writes": false,
+  "remaining": "actual whole-factory preparation/Start heap and stack peaks; native Fore traffic; exact buffered-history recovery; live admitted Play on this candidate",
+  "generic_verify": "ConduitOS-only manifest dispatch mismatch remains explicitly deferred",
+  "captured_and_original_authored_source_hashes_match": true,
+  "origin_branch": "qualify/source-composition-fore-20261116"
+}

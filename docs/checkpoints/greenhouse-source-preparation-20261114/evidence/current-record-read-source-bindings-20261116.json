@@ -1,0 +1,50 @@
+{
+  "assurance": "read-only current OS-selection and generated-source correspondence; not a fresh Plan/admission/Start",
+  "source_file": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-record-service-linked-codecs-qualified/workset-source.conduit",
+  "source_sha256": "ec1b0410a8ca235e0b394625eede70c0d467cb1933c023c4f811b96db9e5f6c8",
+  "selected_entry": "yellow-sampling",
+  "ids": {
+    "SOURCE_DOCUMENT_ID": "4b2775181c79016f482635c0041ad34f649d4c36a4d03994f752bc9de821aeb0",
+    "CHECKED_PLOT_ID": "8f6a382069bfbcf3ab6e2a823aeb70238a72554169e6dab484dcc95bf519ccdd",
+    "EXPANDED_PLOT_ID": "18d2b95c17d34aff23d24d03d7b6d515d7ada7de1e360c5f6aa8ccdc32c66380"
+  },
+  "kind": "resource/record-service",
+  "expanded_gear": "yellow-sampling/sample/append",
+  "native_gear_node": 0,
+  "fore_bindings": [
+    "conduit_core::FreshAssignedFore{cord:17,endpoint:0,direction:conduit_core::AssignedForeDirection::Input,local_node:0,local_port:1,front_port:\"read_index\",placement:\"cfd9ae6ca771cce251f1159dfbf7432827519fa3b02dd7f833caca3e27e48e92\",gear_port:\"read-index\"}",
+    "conduit_core::FreshAssignedFore{cord:19,endpoint:2,direction:conduit_core::AssignedForeDirection::Output,local_node:0,local_port:1,front_port:\"read_result\",placement:\"cfd9ae6ca771cce251f1159dfbf7432827519fa3b02dd7f833caca3e27e48e92\",gear_port:\"read-result\"}"
+  ],
+  "selected_sampling_adapter": {
+    "entry": "yellow-sampling",
+    "host_id": "esp32/efuse/b0a732286178",
+    "configuration_id": "sha256:97fc8423fb98a953d2882d35d8ee5802386ca73c354aa7a4927e39867f702976",
+    "ports": [
+      {
+        "front_port_id": "read_index",
+        "direction": "Input",
+        "track": "payload",
+        "value_kind": "value/count",
+        "item_capacity": 1,
+        "byte_capacity": 8
+      },
+      {
+        "front_port_id": "append_status",
+        "direction": "Output",
+        "track": "payload",
+        "value_kind": "structured-info/profile-528754851a8c56574d2e7a9d73db12b2295124367d6c9be97b21b669f6024359@1",
+        "item_capacity": 1,
+        "byte_capacity": 191
+      },
+      {
+        "front_port_id": "read_result",
+        "direction": "Output",
+        "track": "payload",
+        "value_kind": "structured-info/profile-5c8403c4a9a388020fd889d7e6369c887c5077ba9869cb5a0e708244168b2469@1",
+        "item_capacity": 1,
+        "byte_capacity": 837
+      }
+    ]
+  },
+  "scope": "Current Source already exposes read-index/read-result; configpin needs explicit renewal, not SourceCAS. Native current Ready ownership/realforeactivation still required."
+}

@@ -1,0 +1,17 @@
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/products/conduit)
+    Finished `test` profile [unoptimized] target(s) in 15.83s
+     Running unittests src/main.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit-3329dd4bd6998cb6)
+
+running 9 tests
+test durable_host::source_revision::source_execution::tests::no_pending_request_has_no_effect ... ok
+test durable_host::source_revision::source_execution::tests::rejects_public_or_symlink_inbox ... ok
+test durable_host::source_revision::source_execution::tests::refuses_symlink_and_public_pending_without_claiming ... ok
+test durable_host::source_revision::source_execution::tests::claim_is_once_even_for_invalid_request_and_restart ... ok
+test durable_host::source_revision::source_execution::tests::finite_expiry_refuses_expired_far_future_and_empty_execution ... ok
+test durable_host::source_revision::source_execution::tests::original_policy_fingerprint_covers_funding_and_excludes_one_shots ... ok
+test durable_host::source_revision::source_execution::tests::exact_scope_preserves_original_preparation_without_source_commit ... ok
+test durable_host::source_revision::source_execution::tests::enqueue_is_private_no_clobber_and_never_adopts_source ... ok
+test durable_host::source_revision::source_execution::tests::refuses_copied_or_stale_root_policy_body_snapshot_and_entries ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 538 filtered out; finished in 3.02s
+

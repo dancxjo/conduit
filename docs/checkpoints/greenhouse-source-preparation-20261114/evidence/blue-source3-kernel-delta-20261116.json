@@ -1,0 +1,66 @@
+{
+  "old": {
+    "elf": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-record-service-linked-codecs-qualified/host.elf",
+    "elf_sha256": "5c1d3726efb691be5d1e4c954bd9241ae464c19051fb4ac4e48461c7e85109d9",
+    "configuration_id": "sha256:97fc8423fb98a953d2882d35d8ee5802386ca73c354aa7a4927e39867f702976",
+    "kernel_metric": {
+      "sampling": 16186,
+      "native_mask": 6200,
+      "output": 3822
+    },
+    "metric_total": 26208
+  },
+  "new": {
+    "elf": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-fore-profile-qualified-20261116/host.elf",
+    "elf_sha256": "cff567b065986f3c2aa1266aed40e54e3cba55475d3d0866ce5c50e21181cf5d",
+    "configuration_id": "sha256:777e4c70b4f1081f7e4f03e23e0e799e3a99ee2f96877d7f98f069280b80439d",
+    "kernel_metric": {
+      "sampling": 6466,
+      "native_mask": 6192,
+      "output": 2142
+    },
+    "metric_total": 14800
+  },
+  "saved_bytes": {
+    "sampling": 9720,
+    "native_mask": 8,
+    "output": 1680
+  },
+  "saved_total": 11408,
+  "metric_semantics": "Exported CONDUIT_EXECUTION_KERNEL_BYTES: selected kernel owner sizes plus the same separately defined Sign backing; excludes value stores, complete factory, native providers and preparation overlap.",
+  "targeted_sampling_output_saved": 11400,
+  "mask_note": "8-byte cross-version underlying layout difference measured; native Mask template was not specialized by this change.",
+  "separate_static_task_saved": 11136,
+  "fore": {
+    "exact_capacity_heap_payloads": {
+      "frame": 1024,
+      "typed_ingress": 8,
+      "typed_egress": 837,
+      "total": 1869
+    },
+    "actual_inline_owner_bytes": {
+      "prepared_carrier_wrapper": 152,
+      "prepared_bridge": 224,
+      "prepared_sessions": 360,
+      "hot": 1428,
+      "buffers_vec_headers": 36,
+      "total": 2200
+    },
+    "prepared_kernel_group_retained_charge": 2605,
+    "caller_additional_hot_and_buffer_headers_charge": 1464,
+    "total_known_fore_retained_charge": 4069,
+    "cold": "Full Line/session metadata allocated for preparation and dropped before kernel funding; cold overlap peak unmeasured.",
+    "allocator_overhead_excluded": true
+  },
+  "known_category_heap_difference_excluding_all_other_changes": 9539,
+  "known_category_heap_difference_note": "11408 selected kernel metric reduction minus1869 new payload buffers; not an observed complete heap delta or peak.",
+  "live_gate": {
+    "sampling_remote_sign_items": 0,
+    "constructor": "HostedSignLog::new => new_with_remote_storage(...,0,0)",
+    "actual_line_ingress": "ensure_boundary_remote_capacity before queue allocation; ForeObserver converts remote Sign exhaustion to pressure",
+    "conclusion": "Current linked candidate alone does not prove functional Fore history. Finite explicit remote Sign funding/retirement remains required."
+  },
+  "whole_factory_peak_measured": false,
+  "device_writes": false,
+  "builds_performed_for_this_comparison": false
+}

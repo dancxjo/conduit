@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.qualification/authorized-fore-probe@1",
+  "status": "PASS",
+  "source_frozen": true,
+  "head": "69c37f0fb2b1648d0d96d8160db5be4d614f6366",
+  "files": {
+    "products/conduit/src/durable_host/source_execution.rs": "34b14afbed36d87e6ab8e608bea27b2ba8747ffe751aa9e160c923aedd653f8f",
+    "products/conduit/src/durable_host/source_revision_carriage.rs": "730f909d2c8503883854e88a7f735c1b53096448f30346cd6d5c6684270aaf11",
+    "products/conduit/src/durable_host/source_revision_fore_provider.rs": "39ff1e6195952d9e9d4bee97190c77a0b2c2f3f0a813c348ecd20f644c35fdaf",
+    "products/conduit/src/durable_host/source_revision_fore_binding.rs": "9a566ce2326b58cc5b7a8d5dbc271ad1a8ea7c5ccbe3627731e3dd0afb0cecc1",
+    "products/conduit/src/durable_host/source_revision_fore_client.rs": "b34a02c3b6052f8480676bf8fb034467b86cbb1760b66861552fd0e7e2bc7797",
+    "products/conduit/src/durable_host/source_revision_fore_provider_tests.rs": "bfd536543a2bb09a4e2c91960d84192c6263a866615a81e62aae3ede797823be",
+    "products/conduit/src/durable_host/source_revision_preparation_carriage.rs": "36f8854d52390048f7cb707ed9e84d3fd71042f764a274c340e6a42eb13ad13b",
+    "products/conduit/src/body_owner/member_carrier/preparation.rs": "81de79747ef46403366ea64574093eadcc3092dffb976f50241e169f006627e6",
+    "targets/std/src/pico_spawn.rs": "677853b4964f345826b7b31330adad05a0d45711b231fbf27df59c3d726fa004"
+  },
+  "patch_sha256": "360a25d1ec459663c7e4dd78f92e2702a4cec9771c99c4f2be3504271378028c",
+  "checks": [
+    {
+      "name": "actual generated-child original binding regression",
+      "passed": 1,
+      "failed": 0,
+      "log": "fore-probe-binding-tests-20261116.log"
+    },
+    {
+      "name": "source_execution tests",
+      "passed": 9,
+      "failed": 0,
+      "log": "fore-probe-source-tests-20261116.log"
+    },
+    {
+      "name": "strict product bin/tests Clippy",
+      "result": "PASS",
+      "log": "fore-probe-clippy-20261116.log"
+    }
+  ],
+  "claims": {
+    "actual_device_read": false,
+    "remote_start_receipt_proved": false,
+    "ready_authority": false,
+    "durable_recording_committed": false,
+    "new_transport": false
+  },
+  "remaining": [
+    "N consumer wiring and actual local-USB authorized bounded read/HIL",
+    "current original Owner verifier HIL refusal proof for stale member/Body/Plan/Source",
+    "application decoder must verify actual request/result value contracts, exact requested index and original time provenance",
+    "transport result ACK is distinct from durable recorder commitment and evidence retirement"
+  ]
+}

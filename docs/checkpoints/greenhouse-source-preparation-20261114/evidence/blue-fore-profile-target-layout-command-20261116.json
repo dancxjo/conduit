@@ -1,0 +1,27 @@
+{
+  "purpose": "measurement only; same canonical fingerprint pins and unchanged physical linker assertions; no deployable artifact claim",
+  "command": [
+    "cargo",
+    "+esp-conduit-1.91.1",
+    "rustc",
+    "--locked",
+    "--release",
+    "--features",
+    "native-host",
+    "--",
+    "-Zprint-type-sizes"
+  ],
+  "pins": {
+    "CONDUIT_HOST_CONFIGURATION": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/profiles/blue-wroom32.host.conduit",
+    "CONDUIT_SOURCE_IDENTITY": "sha256:ff4d25a8933c1d8bed2f593bd4778c7b28b9656b4c0e3f06c7341c399f100335",
+    "CONDUIT_HOST_IMAGE_ID": "image:sha256:d71e2b0979ecd7667a3b1b42577e7a604dc2666e8e6179f5b36bf491f1439ad1",
+    "CONDUIT_WORKSET_SOURCE": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-fore-profile-qualified-20261116/workset-source.conduit",
+    "CONDUIT_WORKSET_SOURCE_SHA256": "ec1b0410a8ca235e0b394625eede70c0d467cb1933c023c4f811b96db9e5f6c8",
+    "CONDUIT_WORKSET_ENTRIES": "[\"yellow-sampling\",\"yellow-mask\",\"yellow-output\"]",
+    "CONDUIT_WORKSET_SPECIALIZATIONS": null,
+    "CONDUIT_WORKSET_SPECIALIZATIONS_SHA256": null,
+    "CONDUIT_HOST_IMAGE_DESCRIPTION": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-fore-profile-qualified-20261116/resolved-image.json",
+    "CONDUIT_HOST_IMAGE_DESCRIPTION_SHA256": "3c05e497045ae29d70eb0c92d81e30353e2d0b386c32fc5ab41b24825567de9f"
+  },
+  "commit": "7c6c86b55765a63f17ad92b286066374ec56a89f"
+}

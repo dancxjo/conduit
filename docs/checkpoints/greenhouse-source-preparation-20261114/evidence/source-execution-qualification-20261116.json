@@ -1,0 +1,44 @@
+{
+  "schema": "conduit.qualification/source-execution@1",
+  "status": "PASS",
+  "head": "dc1acb84c85a70b8f37480a9aef940766c204d88",
+  "source_frozen": true,
+  "files": {
+    "products/conduit/src/cli/host_service.rs": "9dd787dc3a07aa9470dec96010d2e5984a689ce43fed1c3d30947e59506da2e3",
+    "products/conduit/src/durable_host.rs": "463c0062db44788a987a70c24c8735024d58925bf405551978ac0a12fe45712c",
+    "products/conduit/src/durable_host/source_revision.rs": "622ae8193e1e1966cbc464df3caae23a88d4ebbebfe9747927b89966a826155c",
+    "products/conduit/src/durable_host/source_revision_retained.rs": "75cb69150c4c159c335881b48bb19dde8b95f0a9ed83045b1319db90a315e7af",
+    "products/conduit/src/durable_host/source_revision_carriage.rs": "b7abab827423931f7a3451e995cd562f4a95a2e5ff212bb57eb55001ab952e54",
+    "products/conduit/src/durable_host/source_execution.rs": "de078aa0f0cd02a62fb684738e006ecf44fbcc3a60fe980f28f9c815b339c5b0",
+    "products/conduit/src/durable_host/source_execution_tests.rs": "cf2ea6482c43f98aa3fd2be9fe72a151785c566b40dffbec8b91148f07ecc596",
+    "products/conduit/src/body_owner/retained_local_fore.rs": "ca8b611b83b792e7c955f6baa1a0ef4bd031d36656d587f20e327bd2be79be12"
+  },
+  "checks": [
+    {
+      "name": "source_execution focused binary tests",
+      "passed": 9,
+      "failed": 0,
+      "log": "source-execution-tests-20261116.log"
+    },
+    {
+      "name": "genuine retained_fore_ ignored worker tests",
+      "passed": 2,
+      "failed": 0,
+      "log": "source-execution-retained-tests-20261116.log"
+    },
+    {
+      "name": "strict product bin/tests Clippy",
+      "result": "PASS",
+      "log": "source-execution-clippy-20261116.log"
+    }
+  ],
+  "scope": "No Root or device I/O; genuine worker invocation is digest-pinned isolated Source checking",
+  "remaining_gates": [
+    "N synchronous serving-Root hook and opaque handle retention",
+    "active carriage borrow requires original Fore binding and actual Start evidence; no handshake authority",
+    "new-entry actual retained-guard + replaced-policy-file integration proof",
+    "qualified claimed-slot retirement; no automatic retry/replay",
+    "legacy adopt Return wrapper still maps/drop retained failure outside new execution path"
+  ],
+  "patch_sha256": "05c40c554fcf6df38676688d81e6a915d34d2ea293e6ccdb3bd16b24b9d70a9a"
+}
