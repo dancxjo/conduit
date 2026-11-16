@@ -43,4 +43,5 @@ impl Owner {
 }
 
 #[cfg(test)]
+#[path = "recovered_source_claim/tests.rs"]
 mod tests;

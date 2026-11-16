@@ -5,7 +5,7 @@ fn root() -> std::path::PathBuf {
         "recovered-claim",
         "tests",
     ));
-    std::fs::create_dir(&root).unwrap();
+    std::fs::create_dir_all(&root).unwrap();
     root
 }
 fn marker(root: &Path) {
@@ -111,7 +111,7 @@ fn real_resume_keeps_claim_and_readonly_face_but_denies_planning_and_start() {
         play_created: false,
     };
     let prior = original
-        .admit_invited(&root, request, "Viewer")
+        .admit_invited(&root, request, "host/returning-viewer")
         .unwrap()
         .credential;
     drop(original);
