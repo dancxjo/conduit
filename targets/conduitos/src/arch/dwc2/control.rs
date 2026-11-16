@@ -64,6 +64,10 @@ impl<I: RegisterIo> Controller<I> {
                     &mut bytes[..usize::from(maximum_packet)],
                 )?;
                 if received > count {
+                    self.observe_failure(
+                        "control-data-overrun",
+                        Some(PacketError::ReceiveEnvelope),
+                    );
                     return Err(PacketError::ReceiveEnvelope);
                 }
                 input[actual..actual + received].copy_from_slice(&bytes[..received]);
@@ -97,6 +101,7 @@ impl<I: RegisterIo> Controller<I> {
             &mut status[..status_length],
         )? != 0
         {
+            self.observe_failure("control-status-payload", Some(PacketError::ReceiveEnvelope));
             return Err(PacketError::ReceiveEnvelope);
         }
         Ok(actual)

@@ -27,6 +27,7 @@ pub(super) struct InputState {
     action: Option<usize>,
     values: Vec<Option<Vec<u8>>>,
     pub(super) submitted: bool,
+    pub(super) pointer: Option<super::pointer_gesture::PendingTap>,
 }
 
 #[path = "input/preview.rs"]
@@ -60,6 +61,7 @@ impl NativeFaceScene {
     /// Resolve a named navigation request against this fresh Face, not an old
     /// action index. A missing/removed/unavailable target refuses explicitly.
     pub fn focus_named(&mut self, request: &FaceFocusRequest) -> Result<(), FaceSceneError> {
+        self.cancel_pointer_gesture();
         if !self.interaction_admitted {
             return Err(FaceSceneError::InputUnavailable);
         }
@@ -180,6 +182,19 @@ impl NativeFaceScene {
     }
 
     pub fn key(
+        &mut self,
+        event: KeyEvent,
+        show: &MaskShow,
+        sequence: u64,
+    ) -> Result<FaceSceneInput, FaceSceneError> {
+        let cancelled = self.cancel_pointer_gesture();
+        match self.key_event(event, show, sequence)? {
+            FaceSceneInput::Unchanged if cancelled => Ok(FaceSceneInput::Changed),
+            result => Ok(result),
+        }
+    }
+
+    fn key_event(
         &mut self,
         event: KeyEvent,
         show: &MaskShow,
@@ -442,7 +457,7 @@ impl NativeFaceScene {
         })
     }
 
-    fn check_show(&self, show: &MaskShow) -> Result<(), FaceSceneError> {
+    pub(super) fn check_show(&self, show: &MaskShow) -> Result<(), FaceSceneError> {
         if self.input.submitted || show.show.lifecycle != ManifestationLifecycle::Available {
             return Err(FaceSceneError::StaleFace);
         }

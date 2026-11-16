@@ -49,6 +49,7 @@ mod flow_pressure_backs;
 #[cfg(test)]
 mod flow_pressure_plot_tests;
 mod flow_state_backs;
+mod fragment_profile;
 mod generated_speech_commit_back;
 mod generated_validation_backs;
 pub(crate) mod hosted_frame_back;
@@ -335,28 +336,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     } = host;
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
-    let active_cords = lowered.cords.len();
-    if !supports_with_adapters(
+    fragment_profile::validate(
         fragment,
+        &lowered,
         native_source.as_ref().map(|(_, source)| &**source),
         hosted_frame,
-    ) || active_nodes == 0
-        || active_nodes > MAX_NODES
-        || active_cords == 0
-        || active_cords > MAX_CORDS
-        || lowered.cord_value_slots as usize > MAX_QUEUE_SLOTS
-        || lowered.routes.len() > ROUTE_SLOTS
-        || lowered
-            .routes
-            .iter()
-            .map(|route| route.targets.len())
-            .sum::<usize>()
-            > ROUTE_TARGETS
-        || !lowered.remote_endpoints.is_empty()
-        || lowered.host_calls.len() > HOST_BINDING_SLOTS
-    {
-        return Err("fragment exceeds the installed std kernel profile".to_string());
-    }
+    )?;
     let whisper_languages =
         whisper_language::WhisperLanguages::prepare(fragment, &lowered.identity)?;
     let planned_inputs = lowered

@@ -489,3 +489,7 @@ mod inputless_tests;
 #[cfg(test)]
 #[path = "native_face_mask/collection_creche_tests.rs"]
 mod collection_creche_tests;
+
+#[cfg(test)]
+#[path = "native_face_mask/gesture_tests.rs"]
+mod gesture_tests;

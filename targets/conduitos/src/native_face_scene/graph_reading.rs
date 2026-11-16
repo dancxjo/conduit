@@ -93,6 +93,7 @@ impl NativeFaceScene {
     /// Unfit topology furniture falls back to the complete measured Face reader.
     /// Its exact subjects remain navigable; no Source action or value changes.
     pub fn show_diagram(&mut self, requested: bool) {
+        self.cancel_pointer_gesture();
         let requested = requested && self.has_diagram();
         if requested && !self.diagram_geometry_fits() {
             self.show_details(true);

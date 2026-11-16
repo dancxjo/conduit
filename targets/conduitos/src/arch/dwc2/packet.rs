@@ -166,7 +166,10 @@ impl<I: RegisterIo> Controller<I> {
         let active = self.io.read(CHARACTER) & ENABLE != 0;
         if !halted || active {
             match self.halt_packet(characteristic, periodic) {
-                Ok(true) if result.is_ok() => result = Err(PacketError::ReceiveEnvelope),
+                Ok(true) if result.is_ok() => {
+                    self.observe_failure("halt-rx-residue", Some(PacketError::ReceiveEnvelope));
+                    result = Err(PacketError::ReceiveEnvelope);
+                }
                 Ok(_) => {}
                 Err(()) => {
                     self.observe_failure("halt", result.err());
@@ -215,20 +218,31 @@ impl<I: RegisterIo> Controller<I> {
             if self.io.read(INTERRUPT_STATUS) & (1 << 4) != 0 {
                 let status = self.io.read(RX_POP);
                 let count = ((status >> 4) & 0x7ff) as usize;
-                let data = (status >> 17) & 15 == 2;
+                let kind = (status >> 17) & 15;
+                let data = kind == 2;
                 let valid =
                     input && data && status & 15 == 0 && received.is_none() && count <= bytes.len();
-                for offset in (0..count).step_by(4) {
-                    let word = self.io.read(FIFO).to_le_bytes();
-                    if valid {
-                        let take = (count - offset).min(4);
-                        bytes[offset..offset + take].copy_from_slice(&word[..take]);
+                // BYTECNT describes payload only for IN-data status. Hardware
+                // completion/halt entries may retain the preceding count; they
+                // must not consume that many words from the FIFO a second time.
+                if data {
+                    for offset in (0..count).step_by(4) {
+                        let word = self.io.read(FIFO).to_le_bytes();
+                        if valid {
+                            let take = (count - offset).min(4);
+                            bytes[offset..offset + take].copy_from_slice(&word[..take]);
+                        }
                     }
                 }
-                if data || count != 0 {
-                    if !valid {
-                        return Err(PacketError::ReceiveEnvelope);
-                    }
+                if (data && !valid) || (!data && (status & 15 != 0 || !matches!(kind, 3 | 5 | 7))) {
+                    self.observe_receive_failure(
+                        "rx-envelope",
+                        Some(PacketError::ReceiveEnvelope),
+                        Some(status),
+                    );
+                    return Err(PacketError::ReceiveEnvelope);
+                }
+                if data {
                     received = Some(count);
                 }
                 // Drain RX observations before interpreting channel completion.
@@ -254,7 +268,12 @@ impl<I: RegisterIo> Controller<I> {
                 // PIO OUT completion accounts for the submitted packet.
                 // HCTSIZ.XFERSIZE can retain the programmed byte count.
                 return if input {
-                    received.ok_or(PacketError::ReceiveEnvelope)
+                    if let Some(count) = received {
+                        Ok(count)
+                    } else {
+                        self.observe_failure("rx-missing", Some(PacketError::ReceiveEnvelope));
+                        Err(PacketError::ReceiveEnvelope)
+                    }
                 } else {
                     Ok(bytes.len())
                 };
