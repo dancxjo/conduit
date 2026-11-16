@@ -349,3 +349,6 @@ fn assert_visible_change(left: &conduit_face::Face, right: &conduit_face::Face) 
         "accepted context metadata alone is not a visible page transition"
     );
 }
+
+#[path = "member_actions/two_members.rs"]
+mod two_members;
