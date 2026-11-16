@@ -1,0 +1,14 @@
+{
+  "schema": "conduit.operator/blue-policy-reconstruction@1",
+  "frozen_firmware_source": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "canonical_build_script_reexecuted": true,
+  "export_only_instrumentation": "Bounds::for_workset(...).policy_json(1048576), no changed calibration or topology",
+  "native_dependency_source": "Q2compiled shared libraries; calibration result checked against original sealed recipe",
+  "original_continuation_recipe_byte_identical": true,
+  "image_id": "image:sha256:a4225275f0b38ce0a1664e938ae90ed65a042bb3159f7bfbff9e473d44680991",
+  "configuration_id": "sha256:777e4c70b4f1081f7e4f03e23e0e799e3a99ee2f96877d7f98f069280b80439d",
+  "policy_sha256": "24bbfedbdadeb75b696aa33cd19944d889aacb7371c7fbef047d08b90e64120b",
+  "host_definition_sha256": "28326a46a1e1e431da35ee538e4004e8b715b4caa699ec847b8bca7f85cff2a5",
+  "policy_scope": "Canonical LOCAL parser/storage baseline, not execution grants or complete UsbPlaySelection",
+  "fore_selection_note": "Canonical baseline maximum_remote_endpoints=0 and maximum_sign_items=64. Current checked Fore installation separately declares2 lines; frozen runtime selects1 ingress/6 remote sidecars/61 total retained signs preserving55local. Root owner must explicitly review its finite external Fore projection and distinguish maximum_sign_expectations55 (static table) from retained sign items61. No invented or silently enlarged grants."
+}

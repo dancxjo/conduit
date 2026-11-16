@@ -1,0 +1,39 @@
+{
+  "scope": "Read-only frozen Source + selected library audit; no port opened or modem lines changed",
+  "firmware_commit": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "startup": {
+    "entry": "targets/esp32/firmware/host/src/main.rs:80 Uart0Carrier::new(UART0,GPIO1,GPIO3,esp_hal::uart::Config::default())",
+    "selected_hal": "esp-hal=1.1.2",
+    "actual_default_verified": "esp-hal-1.1.2/src/uart/mod.rs:334-345 default baudrate115200,8N1",
+    "connected_semantics": "Uart0Carrier::connected is immediately ready; no USB event or DTR wait",
+    "startup_order": "Heap/seed/prefix/equipment/resident/continuation setup precedes shared root.receive_request; retained installed-continuation branch may enter resumed Play before Root control loop",
+    "advertisement_period": "NONE: no unsolicited periodic greeting or challenge. Root receives framed request; PICO_MEMBER_RETURN_IMAGES_REQUEST triggers Return presentation/challenge exchange. Pending work must allow actual startup readiness rather than expecting advertisements."
+  },
+  "framing": {
+    "carrier": "Length-prefixed Conduit StreamFrameDecoder; sameLink owner throughout",
+    "read_timeout_ms": 30000,
+    "write_timeout_ms": 2000,
+    "post_control_iteration_pause_ms": 10,
+    "ROM_text": "Boot ROM may emit UART bytes before application; this is not Conduit protocol or valid readiness evidence"
+  },
+  "host_tty": {
+    "source": "targets/std/src/usb_cdc.rs::NativePathCdcLine::open_tty/configure_raw_termios/assert_dtr_fd",
+    "baud": "115200 8N1, raw, CLOCAL|CREAD, VMIN0/VTIME0",
+    "open": "O_RDWR|O_NOCTTY|O_NONBLOCK|O_CLOEXEC; optional exclusiveclaim before tty config",
+    "modem": "PhysicalCDC path explicitly asserts/reads DTR only; no RTS configuration. Drop clears DTR when controls_dtr=true. Native UART bridge CP2102 reset consequences are not modeled by a pure CDCACM premise.",
+    "flush": "configure_raw_termios does NOT tcflush despite stale leadingdoc; preserves unread bytes",
+    "would_block": "NativeUsbCdcError::WouldBlock is timeout/no frame, not proof of malformed offers or bad body keys"
+  },
+  "evidence_and_next_safe_scope": [
+    "Historical operator inspection established both modemcontrols asserted before pySerial open avoided this board reset, while bothdeasserted did reset; this is priorphysical evidence, not currentFD proof",
+    "Current claimedfailure/FD remains solely N-owned; inspect modem bits on that SAME originaldescriptor if supported, never open another descriptor to inspect",
+    "Do not change DTR/RTS, reset, or replay automatically from this audit. Explicit nativeUART control selection should preserve device lifetime and require retired oldfailure before new attempt",
+    "Baud mismatch is not indicated: canonical host and firmware both115200. Actual silence/startup or modemreset remains to diagnose; no device liveness or hardware fault inferred"
+  ],
+  "not_proved": [
+    "Current device has reached shared control loop",
+    "Current modem bit states",
+    "Exact failure causality",
+    "Live sampling/Mask operation"
+  ]
+}

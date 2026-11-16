@@ -1,0 +1,28 @@
+{
+  "finding": "DETERMINISTIC stale installed-continuation startup refusal before Root control loop",
+  "scope": "Offline exact preflash backup + verified bitwise-preserved prefix + frozen runtime source; no serial/reset",
+  "prefix_start": 3440640,
+  "prefix_end_exclusive": 3448832,
+  "prefix_bytes": 8192,
+  "prefix_sha256": "68cf046a92e25d5f1f3141911221fc37fe5f2b3928328b5f9bcb1a0971a792e4",
+  "prefix_erased": false,
+  "old_intent_image": "image:sha256:f35757b90995b19ab40a9fe2d1420231262ef2001a09cef11c469af7a125fb4a",
+  "old_intent_configuration": "sha256:97fc8423fb98a953d2882d35d8ee5802386ca73c354aa7a4927e39867f702976",
+  "old_intent_issuer_matches_new_peer": false,
+  "new_image_matches": false,
+  "new_configuration_matches": false,
+  "code_chain": [
+    "ESP runtime.rs read_owned reads this reserved prefix before equipment/Root control",
+    "runtime.rs installed_continuation::accept(...).expect(\"invalid or uncertain installed continuation\") before shared::run",
+    "installed_continuation::accept -> Root::read_continuation_acceptance -> check_anchor/check_artifact_credential; candidate.intent.issuer_key must equal NEWseed.owner.verifying_key",
+    "Oldprefix issuer differs actualBoot e3 peer pinned in newseed, so acceptance returnsRefusal, thenexpectpanics; controlreceive not reached. Image/config differences additionally forbid future auto-resume."
+  ],
+  "likely_explains_live_silence": "This is stronger than unmeasured modem hypothesis: current prefix and seed deterministically conflict before control. It does not prove actual panic capture was read.",
+  "preservation": "The flash update correctly preserved all prefix/history bytes; this exposes missing installed-intent update/recovery semantics, not corrupted records. Never weaken signature checks.",
+  "next_options": [
+    "N first explicitly retires claimed opaque failure and its original descriptor/resources before any new physical operation",
+    "Fast operator recovery could separately authorize retirement of ONLY obsolete8192B continuation prefix0x348000..0x34a000 while preserving record slots0x34a000..0x3e8000, network/bootstrap and membership; all oldprefix bytes remain backed up. Requires fresh coordinated serial window and exact-difference receipt, not automatic erase.",
+    "General source correction: invalid installed intent should remain inspectable/refused without authorizing resumedPlay and without killing Root control/recovery; preserve original signature/scope checks, custody and evidence. New firmware is a separately reviewed image/seed."
+  ],
+  "no_effects_performed": true
+}

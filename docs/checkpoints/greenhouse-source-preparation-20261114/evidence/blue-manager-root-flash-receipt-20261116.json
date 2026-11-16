@@ -1,0 +1,22 @@
+{
+  "schema": "conduit.operator/blue-reviewed-flash@1",
+  "body_id": "28fb79351715c5837393add72c705a7dda8e7a4abd81468ece08380adaf21d3a",
+  "root_boot": "boot/installed/e3e66b5c1ab6c77b4e0fc5ab5908085d64e357585120b55e5f3d1e34565f6e8f",
+  "image_id": "image:sha256:a4225275f0b38ce0a1664e938ae90ed65a042bb3159f7bfbff9e473d44680991",
+  "configuration_id": "sha256:777e4c70b4f1081f7e4f03e23e0e799e3a99ee2f96877d7f98f069280b80439d",
+  "application_sha256": "cb5aa9601a6627f95ea60e523b473384ebe56fe99d8f4c7ea6e7785ffbfb4c5b",
+  "seed_sha256": "a8a73045243151fdb702c00330f2f173c53d01f7ce426da1c3e6fa55a3f42c0b",
+  "physical_mac": "b0:a7:32:28:61:78",
+  "before_flash_sha256": "7156bb81dfe406916bc7e43bf55cba36ae13bb4caa5df57466804bf83a573692",
+  "after_flash_sha256": "259a57ae90937b64dfee9e1b30185b5bcb7cf06d94aba6634ad5971643874166",
+  "only_reviewed_regions_changed": true,
+  "retained_history_and_network_bitwise_unchanged": true,
+  "bootloader_and_partition_table_bitwise_unchanged": true,
+  "no_full_erase": true,
+  "serial_closed": true,
+  "native_measurement_or_display_progress_proved": false,
+  "durable_recording_claimed": false,
+  "status": "Reviewed app/seed flashed, whole readback verified, physical reset completed, serial handed back; no execution claim",
+  "source_commit": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "request_id": "d3d97e78cf0c442971759ccc8e5e9477"
+}
