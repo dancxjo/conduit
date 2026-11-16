@@ -1,0 +1,29 @@
+{
+  "source_commit": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "source_tree": "23d712b0b1bb427c558db264acf9e6de0367815b",
+  "source_clean": true,
+  "tool": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/xtask-blue-fore-phase-48869bde8c-20261116",
+  "tool_sha256": "0dcab0d7d27efa54077b7bf7aaae8868c12692bbd303c1c66512de68b97228b3",
+  "source_sha256": "ec1b0410a8ca235e0b394625eede70c0d467cb1933c023c4f811b96db9e5f6c8",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/xtask-blue-fore-phase-48869bde8c-20261116",
+    "make",
+    "host",
+    "build",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/rp2040/profiles/pico-w-house-yellow.host.conduit",
+    "--workset-source",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/record-service-source-candidate-20261111/yellow-record-service.conduit",
+    "--workset-entry",
+    "yellow-sampling",
+    "--workset-entry",
+    "yellow-mask",
+    "--workset-entry",
+    "yellow-output",
+    "--output",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/yellow-finite-fore-probe-byte-checked-20261116",
+    "--locked"
+  ],
+  "actual_target_cache": "/tmp/conduit-rp2040-host-build-cache-20261113",
+  "output": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/yellow-finite-fore-probe-byte-checked-20261116",
+  "scope": "finite one-probe Sign window with packed+logical byte ceilings; no full-history/deployment claim"
+}

@@ -139,11 +139,13 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
         records: source::sampling_layout::RECORDS,
         counts: source::sampling_layout::COUNTS,
     };
-    let signs = HostedSignLog::new(
-        SS as u16,
-        (SS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
-    )
-    .map_err(|_| Refusal::Bounds)?;
+    let signs = match line {
+        Some(_) => {
+            #[cfg(fore_carrier)] { crate::play::SAMPLING_LINE_SIGNS.prepare() }
+            #[cfg(not(fore_carrier))] { return Err(Refusal::Scope); }
+        }
+        None => HostedSignLog::new(SS as u16, (SS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
+    }.map_err(|_| Refusal::Bounds)?;
     match line {
         Some(line_fore) => PreparedFragment::prepare_with_line_fore_linked_terminal_transductions(
             approved,

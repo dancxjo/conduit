@@ -1,0 +1,52 @@
+{
+  "status": "canonical Make compiled/linked/converted; no device writes",
+  "source_commit": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "source_tree": "23d712b0b1bb427c558db264acf9e6de0367815b",
+  "image_id": "image:sha256:eb49c7675f7f3259651e9caeaaad1aed3ae2205085c24048a665ccf4f86f4840",
+  "configuration_id": "sha256:370055809c7e53536effe0257fdeb7f2c73a524ca34e734022c4acb8d6086cb1",
+  "source_identity": "sha256:48ca8c82eba6a01dc4b82f6ffaa029788f236ef346d51236a84374b7af30e7ba",
+  "files": {
+    "host.uf2": {
+      "bytes": 2904064,
+      "sha256": "7e874783e0cee022dec300c0e466248d941265ea968b9fd5aad5a028ff2d60f4"
+    },
+    "continuation-recipe.json": {
+      "bytes": 3978,
+      "sha256": "4eda4f331a640eff07cf352b452ec40a21c303f303c24966907725f009ec3b55"
+    }
+  },
+  "elf_sha256": "ef04d7382569f8177e67611b1ecacc1cf33c842595499fe88cf3ab10046df12b",
+  "artifact_directory": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/yellow-finite-fore-probe-byte-checked-20261116",
+  "physical": {
+    "static_bytes": 208628,
+    "static_limit": 229376,
+    "stack_reserve": 61708,
+    "minimum_stack": 16384,
+    "heap_arena": 110592,
+    "embassy_main_task_pool": 90336,
+    "kernel_metrics_sampling_mask_output": [
+      6694,
+      6192,
+      2142
+    ],
+    "uf2_payload_bytes": 1452032,
+    "firmware_extent": 1452032,
+    "firmware_region_bytes": 1495040,
+    "flash_margin": 43008
+  },
+  "uf2_unique_firmware_only_pages": true,
+  "retained_history_credentials_bootstrap_not_in_application": true,
+  "evidence_window": {
+    "authorized_ingress": 1,
+    "preserved_local_sign_slots": 55,
+    "remote_sidecars": 6,
+    "total_sign_slots": 61,
+    "host_item_ceiling": 64,
+    "host_byte_ceiling": 24576,
+    "both_packed_and_logical_capacities_checked": true
+  },
+  "whole_factory_heap_peak_proved": false,
+  "full_history_proved": false,
+  "native_fore_traffic_proved": false,
+  "device_writes": false
+}

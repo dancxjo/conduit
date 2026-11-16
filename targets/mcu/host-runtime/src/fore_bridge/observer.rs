@@ -27,10 +27,29 @@ pub enum ObserverRefusal<E> {
 pub struct ForeObserver<'a, 'b, 'p, O> {
     existing: O,
     port: ObserverPort<'a, 'b, 'p>,
+    ingress_remaining: Option<u16>,
 }
 impl<'a, 'b, 'p, O> ForeObserver<'a, 'b, 'p, O> {
     pub fn new(existing: O, port: ObserverPort<'a, 'b, 'p>) -> Self {
-        Self { existing, port }
+        Self {
+            existing,
+            port,
+            ingress_remaining: None,
+        }
+    }
+
+    /// Native installation selects an explicitly funded finite ingress window.
+    /// Exhaustion pressures the same item without touching the kernel or ACKing it.
+    pub fn with_duplex_evidence_window(
+        existing: O,
+        port: ObserverPort<'a, 'b, 'p>,
+        budget: crate::execution_sign_budget::DuplexSignBudget,
+    ) -> Self {
+        Self {
+            existing,
+            port,
+            ingress_remaining: Some(budget.ingress_items()),
+        }
     }
 
     /// Force synchronous mailbox contention in cross-module actor tests.
@@ -78,18 +97,27 @@ impl<
         let input = Route::from_pin(state.ingress.pin());
         let output = Route::from_pin(state.egress.pin());
         if let Input::Offered { sequence, length } = state.input {
-            match kernel.admit_remote_input(
-                input.endpoint,
-                input.cord,
-                sequence,
-                &state.ingress_bytes[..length],
-            ) {
-                Ok(RemoteIngressOutcome::Accepted { .. }) => {
-                    state.input = Input::Accepted(sequence)
+            if self.ingress_remaining == Some(0) {
+                state.input = Input::Pressure(sequence);
+            } else {
+                match kernel.admit_remote_input(
+                    input.endpoint,
+                    input.cord,
+                    sequence,
+                    &state.ingress_bytes[..length],
+                ) {
+                    Ok(RemoteIngressOutcome::Accepted { .. }) => {
+                        state.input = Input::Accepted(sequence);
+                        if let Some(remaining) = &mut self.ingress_remaining {
+                            *remaining -= 1;
+                        }
+                    }
+                    Ok(RemoteIngressOutcome::Full { .. }) => {
+                        state.input = Input::Pressure(sequence)
+                    }
+                    Err(error) if pressured(&error) => state.input = Input::Pressure(sequence),
+                    Err(error) => return Err(ObserverRefusal::Kernel(error)),
                 }
-                Ok(RemoteIngressOutcome::Full { .. }) => state.input = Input::Pressure(sequence),
-                Err(error) if pressured(&error) => state.input = Input::Pressure(sequence),
-                Err(error) => return Err(ObserverRefusal::Kernel(error)),
             }
         }
         if let Output::Offered {

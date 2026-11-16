@@ -1,0 +1,306 @@
+   Compiling conduit-mcu-source-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/source-build)
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/host-runtime)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/make)
+   Compiling conduit-esp32-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/firmware/host)
+   Compiling conduit-esp32-electrical v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/electrical)
+warning: unused import: `execution_authority::Operation`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_initialization.rs:7:5
+  |
+7 |     execution_authority::Operation,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `execution_authority::Operation`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime_transactions.rs:4:5
+  |
+4 |     execution_authority::Operation, root::InstalledContinuationAcceptance,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `execution_authority::Operation`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime_continuation_factory.rs:8:5
+  |
+8 |     execution_authority::Operation, execution_factory::SoftwareInventory,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `conduit_mcu_host_runtime::execution_factory::SoftwareDefinition as D`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_1.rs:16:5
+   |
+16 | use conduit_mcu_host_runtime::execution_factory::SoftwareDefinition as D;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `conduit_resource_snapshot::native_append::ReadyRecordAppender`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play.rs:30:5
+   |
+30 | use conduit_resource_snapshot::native_append::ReadyRecordAppender;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SignQuery`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_run.rs:14:5
+   |
+14 |     SignQuery,
+   |     ^^^^^^^^^
+
+warning: unused import: `generated::*`
+ --> src/resident.rs:6:9
+  |
+6 | pub use generated::*;
+  |         ^^^^^^^^^^^^
+
+warning: unreachable expression
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime.rs:160:17
+    |
+160 | /                 return crate::play_run::run(
+161 | |                     &mut *sample,
+162 | |                     &mut sample_calls,
+163 | |                     mask,
+...   |
+186 | |                 .await;
+    | |                  ----^
+    | |__________________|___|
+    |                    |   unreachable expression
+    |                    any code following this expression is unreachable
+    |
+    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `conduit_mcu_host_runtime::transport::MessageTransport`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime_transactions.rs:129:9
+    |
+129 |     use conduit_mcu_host_runtime::transport::MessageTransport;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `conduit_mcu_host_runtime::transport::MessageTransport`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime.rs:192:21
+    |
+192 |                 use conduit_mcu_host_runtime::transport::MessageTransport;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `transport::MessageTransport`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_control.rs:4:53
+  |
+4 | use conduit_mcu_host_runtime::{root::MemberControl, transport::MessageTransport};
+  |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `waits`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_1.rs:15:34
+   |
+15 | pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory::Sof...
+   |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_waits`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `clocks`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_1.rs:22:32
+   |
+22 | pub fn identity_at(index:usize,clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<Option<conduit_plan_loweri...
+   |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_clocks`
+
+warning: unused variable: `waits`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_2.rs:19:34
+   |
+19 | pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory::Sof...
+   |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_waits`
+
+warning: unused variable: `clocks`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_2.rs:30:32
+   |
+30 | pub fn identity_at(index:usize,clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<Option<conduit_plan_loweri...
+   |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_clocks`
+
+warning: type alias `NativeIssuers` is never used
+ --> src/authority.rs:8:10
+  |
+8 | pub type NativeIssuers = Issuers<{ crate::equipment::SOURCE_WAIT_SLOTS }>;
+  |          ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: type alias `NativeOperations` is never used
+ --> src/authority.rs:9:10
+  |
+9 | pub type NativeOperations = Operations<'static, { crate::equipment::SOURCE_WAIT_SLOTS }>;
+  |          ^^^^^^^^^^^^^^^^
+
+warning: function `operations` is never used
+  --> src/authority.rs:11:8
+   |
+11 | pub fn operations() -> NativeOperations {
+   |        ^^^^^^^^^^
+
+warning: function `authorize` is never used
+  --> src/authority.rs:24:8
+   |
+24 | pub fn authorize<const N: usize>(
+   |        ^^^^^^^^^
+
+warning: field `0` is never read
+ --> src/renderer.rs:8:18
+  |
+8 | pub struct Clock(pub(crate) crate::runtime::MonotonicTimer);
+  |            ----- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |            |
+  |            field in this struct
+  |
+  = help: consider removing this field
+
+warning: function `allocator_peak` is never used
+   --> src/runtime.rs:152:8
+    |
+152 | pub fn allocator_peak() -> Option<usize> {
+    |        ^^^^^^^^^^^^^^
+
+warning: type alias `RecordingIssuers` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_recording.rs:15:10
+   |
+15 | pub type RecordingIssuers<'a> = [&'a mut Issuer; 2];
+   |          ^^^^^^^^^^^^^^^^
+
+warning: constant `OUTPUT_BYTES` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_recording.rs:20:11
+   |
+20 | pub const OUTPUT_BYTES: usize = conduit_resource_snapshot::read_result::READ_RESULT_BYTES;
+   |           ^^^^^^^^^^^^
+
+warning: function `operation` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_recording.rs:22:15
+   |
+22 | pub(super) fn operation<'a>(
+   |               ^^^^^^^^^
+
+warning: type alias `Started` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_continuation.rs:60:10
+   |
+60 | pub type Started<'a, 'f> = conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
+   |          ^^^^^^^
+
+warning: field `0` is never read
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_observers.rs:4:16
+  |
+4 |     Inspection(conduit_mcu_host_runtime::execution_inspection::Refusal),
+  |     ---------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |
+  |     field in this variant
+  |
+  = note: `BridgeRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+  |
+4 -     Inspection(conduit_mcu_host_runtime::execution_inspection::Refusal),
+4 +     Inspection(()),
+  |
+
+warning: field `0` is never read
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_observers.rs:5:16
+  |
+5 |     AdmitFrame(k::scheduler::SchedulerError),
+  |     ---------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |
+  |     field in this variant
+  |
+  = note: `BridgeRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+  |
+5 -     AdmitFrame(k::scheduler::SchedulerError),
+5 +     AdmitFrame(()),
+  |
+
+warning: fields `0` and `1` are never read
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_observers.rs:7:23
+  |
+7 |     CompletionBinding(k::NodeId, k::HostCallId),
+  |     ----------------- ^^^^^^^^^  ^^^^^^^^^^^^^
+  |     |
+  |     fields in this variant
+  |
+  = note: `BridgeRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the fields to be of unit type to suppress this warning while preserving the field numbering, or remove the fields
+  |
+7 -     CompletionBinding(k::NodeId, k::HostCallId),
+7 +     CompletionBinding((), ()),
+  |
+
+warning: fields `0` and `1` are never read
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_observers.rs:9:14
+  |
+9 |     HostCall(k::HostCallDisposition, Option<k::Failure>),
+  |     -------- ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+  |     |
+  |     fields in this variant
+  |
+  = note: `BridgeRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the fields to be of unit type to suppress this warning while preserving the field numbering, or remove the fields
+  |
+9 -     HostCall(k::HostCallDisposition, Option<k::Failure>),
+9 +     HostCall((), ()),
+  |
+
+warning: field `0` is never read
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_observers.rs:10:20
+   |
+10 |     CompletionSign(kernel_sign::Refusal),
+   |     -------------- ^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `BridgeRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+10 -     CompletionSign(kernel_sign::Refusal),
+10 +     CompletionSign(()),
+   |
+
+warning: fields `required` and `available` are never read
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_control.rs:9:16
+  |
+9 |     Headroom { required: usize, available: usize },
+  |     --------   ^^^^^^^^         ^^^^^^^^^
+  |     |
+  |     fields in this variant
+  |
+  = note: `ReturnRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: field `0` is never read
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_control.rs:10:14
+   |
+10 |     Protocol(conduit_mcu_host_runtime::root::Refusal),
+   |     -------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     field in this variant
+   |
+   = note: `ReturnRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+   |
+10 -     Protocol(conduit_mcu_host_runtime::root::Refusal),
+10 +     Protocol(()),
+   |
+
+warning: function `start` is never used
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_service.rs:121:8
+    |
+121 | pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    |        ^^^^^
+
+warning: function `start_prepared` is never used
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_service.rs:179:8
+    |
+179 | pub fn start_prepared<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    |        ^^^^^^^^^^^^^^
+
+warning: function `start_continuation` is never used
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_service.rs:255:8
+    |
+255 | pub fn start_continuation<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `start_selected` is never used
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_service.rs:293:4
+    |
+293 | fn start_selected<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    |    ^^^^^^^^^^^^^^
+
+warning: `conduit-esp32-host` (bin "conduit-esp32-host") generated 36 warnings (run `cargo fix --bin "conduit-esp32-host"` to apply 7 suggestions)
+    Finished `release` profile [optimized + debuginfo] target(s) in 48.67s
+Chip type:         esp32
+Merge:             true
+Skip padding:      true
+App/part. size:    1,893,728/4,128,768 bytes, 45.87%
+[2026-11-16T11:35:28Z INFO ] Image successfully saved!

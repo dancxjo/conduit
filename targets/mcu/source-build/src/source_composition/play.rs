@@ -43,6 +43,8 @@ mod shapes {
     include!(concat!(env!("OUT_DIR"), "/source_play_shapes.rs"));
 }
 pub(crate) use shapes::FORE_PORTS;
+#[cfg(fore_carrier)]
+pub(crate) use shapes::SAMPLING_LINE_SIGNS;
 use shapes::{
     OutputBound, SamplingBound, OC, OH, OK, ON, OP, OR, OS, OT, SC, SH, SK, SN, SP, SR, SS, ST,
     OQ, OF, OU, OZ, SQ, SF, SU, SZ,

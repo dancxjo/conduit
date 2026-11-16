@@ -1,0 +1,48 @@
+{
+  "status": "canonical Make compiled/linked/converted; no device writes",
+  "source_commit": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "source_tree": "23d712b0b1bb427c558db264acf9e6de0367815b",
+  "image_id": "image:sha256:a4225275f0b38ce0a1664e938ae90ed65a042bb3159f7bfbff9e473d44680991",
+  "configuration_id": "sha256:777e4c70b4f1081f7e4f03e23e0e799e3a99ee2f96877d7f98f069280b80439d",
+  "source_identity": "sha256:48ca8c82eba6a01dc4b82f6ffaa029788f236ef346d51236a84374b7af30e7ba",
+  "files": {
+    "host.bin": {
+      "bytes": 1893728,
+      "sha256": "cb5aa9601a6627f95ea60e523b473384ebe56fe99d8f4c7ea6e7785ffbfb4c5b"
+    },
+    "continuation-recipe.json": {
+      "bytes": 3985,
+      "sha256": "2935bdf410df05d657eaa3fc9d4f76b617c234cb76babed4cd536c051dd2811c"
+    }
+  },
+  "elf_sha256": "849e424a2357df5068b97316f70efc3780ccb4eaea17e52220db3a89327385c4",
+  "artifact_directory": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-finite-fore-probe-byte-checked-20261116",
+  "physical": {
+    "primary_static": 130540,
+    "primary_limit": 131072,
+    "total_static": 228844,
+    "static_limit": 229376,
+    "stack_reserve": 66056,
+    "minimum_stack": 65536,
+    "heap_arena": 118784,
+    "embassy_main_task_pool": 94752,
+    "kernel_metrics_sampling_mask_output": [
+      6694,
+      6192,
+      2142
+    ]
+  },
+  "evidence_window": {
+    "authorized_ingress": 1,
+    "preserved_local_sign_slots": 55,
+    "remote_sidecars": 6,
+    "total_sign_slots": 61,
+    "host_item_ceiling": 64,
+    "host_byte_ceiling": 24576,
+    "both_packed_and_logical_capacities_checked": true
+  },
+  "whole_factory_heap_peak_proved": false,
+  "full_history_proved": false,
+  "native_fore_traffic_proved": false,
+  "device_writes": false
+}

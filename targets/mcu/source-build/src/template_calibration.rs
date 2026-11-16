@@ -255,6 +255,7 @@ impl Calibration {
                     entry.layout.fragment_seal_to_kernel
                 ),
             );
+            text.insert_str(0, &format!("pub const PHYSICAL_SIGN_ITEM_CEILING:u16={};\npub const PHYSICAL_SIGN_BYTE_CEILING:u32={};\n", entry.layout.physical_sign_item_ceiling, entry.layout.physical_sign_byte_ceiling));
             let geometry = format!(
                 "pub const CORD_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const STEP_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const HOST_CALL_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\n",
                 entry.layout.cord_value_slot_capacities,

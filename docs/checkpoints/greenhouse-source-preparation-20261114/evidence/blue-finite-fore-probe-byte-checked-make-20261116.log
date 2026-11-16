@@ -1,0 +1,14 @@
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/host-runtime)
+error[E0015]: cannot call non-const function `remote_sign_storage_bytes` in constant functions
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/host-runtime/src/execution_sign_budget.rs:68:28
+   |
+68 |         let Some(remote) = conduit_kernel::remote_sign_storage_bytes(self.remote_items) else {
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: calls in constant functions are limited to constant functions, tuple structs and tuple variants
+
+For more information about this error, try `rustc --explain E0015`.
+error: could not compile `conduit-mcu-host-runtime` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `conduit-mcu-host-runtime` (lib) due to 1 previous error
+xtask error: native Cargo observation refused (exit status: 101): Cargo did not report the selected Host build-script output

@@ -1,0 +1,40 @@
+{
+  "schema": "conduit.diagnostic/live-sign-prefix-qualification@1",
+  "base_head": "713ecf16a1ebc91727f94a4e7fc54eb7253f2dfe",
+  "source_sha256": {
+    "architecture/kernel/src/lib.rs": "669f3657fdaa8c0ba8cfef974e781ed2f6a6cd74e5def250b2bfc635e5a19509",
+    "architecture/kernel/src/scheduler.rs": "117dab29bec170aef41b3834153a8b453f234e5e6b3e281c0adc54072d9dc41c",
+    "architecture/kernel/src/live_sign_archive.rs": "1facfcf64fd778538184056fa4357bb8f6093afdd359a8c2f803d4e64564e28c",
+    "architecture/kernel/src/live_sign_archive/tests.rs": "10a376a1652c3f42b6ef80683b588c98b1c37cb4b325bd7a90ebc95db3b3af20",
+    "architecture/kernel/src/scheduler/live_sign_archive.rs": "7aaaa0b5bcba55c0d34399b1b27a4ebf34c44df9e4c42ed6988753e23cdb8bc3"
+  },
+  "environment_kernel_sign_byte_helper_sha256": "7f727e79485d487da84303ce637266a944fe8e42dadcd98de33a5ece2be1a46f",
+  "tests": {
+    "archive_and_actual_scheduler": 9,
+    "helper_storage": 2,
+    "strict_all_features_lib_tests_clippy": true,
+    "no_default_check": true,
+    "alloc_only_no_std_check": true,
+    "diff_check": true,
+    "new_source_rustfmt_check": true
+  },
+  "actual_scheduler": {
+    "reads": 1264,
+    "retained_events": 8848,
+    "canonical_retained_bytes": 298304,
+    "archive_backing_bytes": 1688,
+    "wrapper_and_active_backing_bytes": 2952,
+    "transfer_overlap_backing_bytes": 3008,
+    "scope": "CPU64 actual fixed scheduler; no Source, Root admission or hardware proof; excludes caller/stack/allocator overhead"
+  },
+  "not_proved": [
+    "Core Host/Body resource admission",
+    "actual source-generated sampling/Mask/output workset",
+    "MCU physical heap or stack fit",
+    "live device",
+    "persistence",
+    "authenticated transport receipt",
+    "allocation-count instrumentation"
+  ],
+  "private_state_included": false
+}
