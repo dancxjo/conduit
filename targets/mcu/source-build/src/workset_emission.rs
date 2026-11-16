@@ -3,6 +3,20 @@
 use super::{Path, Workset};
 use std::fmt::Write;
 
+fn i2c_clock(entry: &super::Entry) -> bool {
+    let kinds = entry
+        .plot
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| gear.kind_id.as_str())
+        .filter(|kind| crate::software::is_native_kind(kind))
+        .collect::<Vec<_>>();
+    kinds.len() == 2
+        && kinds.contains(&"machine/i2c/transact")
+        && kinds.contains(&"machine/clock/at")
+}
+
 pub(super) fn emit(workset: &Workset, out: &Path, legacy_roles: bool) -> Result<(), String> {
     if !workset.calibrated {
         return Err(
@@ -14,14 +28,7 @@ pub(super) fn emit(workset: &Workset, out: &Path, legacy_roles: bool) -> Result<
         std::fs::write(out.join(format!("workset_{i}.rs")), &entry.rust)
             .map_err(|e| e.to_string())?;
     }
-    if workset.entries.iter().any(|entry| {
-        entry
-            .plot
-            .expanded
-            .gears
-            .iter()
-            .any(|gear| gear.kind_id.as_str() == "machine/i2c/transact")
-    }) {
+    if workset.entries.iter().any(i2c_clock) {
         std::fs::write(
             out.join("source_native_i2c_clock.rs"),
             include_str!("source_composition/native_i2c_clock.rs"),
@@ -75,13 +82,7 @@ fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
         // The executable constructor uses NATIVE_KINDS from the generated
         // software module: calibration may permute Source nodes into kernel
         // slots, so original expanded-gear indices are not executable nodes.
-        if entry
-            .plot
-            .expanded
-            .gears
-            .iter()
-            .any(|gear| gear.kind_id.as_str() == "machine/i2c/transact")
-        {
+        if i2c_clock(entry) {
             writeln!(index, "pub mod entry_{i}_native{{\nuse super::entry_{i}_layout as layout;\nuse super::entry_{i} as source;\ninclude!(concat!(env!(\"OUT_DIR\"),\"/source_native_i2c_clock.rs\"));\n}}").unwrap();
         }
     }
@@ -91,6 +92,7 @@ fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
 #[cfg(test)]
 use crate as source_build;
 #[cfg(test)]
+#[allow(dead_code)]
 #[path = "../tests/fixtures/environmental_exchange_source.rs"]
 mod environmental_source;
 

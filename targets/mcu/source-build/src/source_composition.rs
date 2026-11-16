@@ -130,5 +130,6 @@ mod tests {
 }
 
 #[cfg(test)]
+#[allow(dead_code)]
 #[path = "source_composition/native_i2c_clock_tests.rs"]
 mod native_i2c_clock_tests;

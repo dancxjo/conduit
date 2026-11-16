@@ -340,6 +340,20 @@ pub fn emit_rust_with_types(
         maximum_generated_bytes,
     )
 }
+/// The complete linked native inventory emitted for a checked Source entry.
+pub(crate) fn is_native_kind(kind: &str) -> bool {
+    [
+        "machine/pulse/read",
+        conduit_i2c_transaction::contract::I2C_KIND,
+        conduit_monotonic_wait::clock_at::contract::CLOCK_KIND,
+        "machine/tm1637/write",
+        conduit_semantic_catalog::RESOURCE_APPEND_KIND,
+        conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND,
+        "face/renderer",
+        conduit_time::TICK_KIND,
+    ]
+    .contains(&kind)
+}
 pub fn emit_rust_for_layout_with_types(
     source: &p::ExpandedCanonicalPlot,
     types: Option<&p::CheckedSyntaxDocument>,
@@ -385,18 +399,7 @@ pub fn emit_rust_for_layout_with_installed(
     let mut code=format!("pub const NODE_COUNT:usize={};\npub const CORD_COUNT:usize={};\npub const SOURCE:&str={:?};\npub const CHECKED:&str={:?};\npub const EXPANDED:&str={:?};\n",material.node_count,material.cord_count,source.source_document_id.as_str(),source.checked_plot_id.as_str(),source.expanded_plot_id.as_str());
     code.push_str("pub static NATIVE_KINDS:&[(u16,&str)]=&[\n");
     for (node, gear) in source.gears.iter().enumerate() {
-        if [
-            "machine/pulse/read",
-            conduit_i2c_transaction::contract::I2C_KIND,
-            conduit_monotonic_wait::clock_at::contract::CLOCK_KIND,
-            "machine/tm1637/write",
-            conduit_semantic_catalog::RESOURCE_APPEND_KIND,
-            conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND,
-            "face/renderer",
-            conduit_time::TICK_KIND,
-        ]
-        .contains(&gear.kind_id.as_str())
-        {
+        if is_native_kind(gear.kind_id.as_str()) {
             writeln!(
                 code,
                 "({}, {:?}),",
