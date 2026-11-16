@@ -290,8 +290,9 @@ fn prepare_runtime_with_composition(
                         .as_ref()
                         .map(|factory| factory.resource_offer()),
                 )?;
-                source_custody = Some((prepared.source, prepared.caller));
-                return Ok(prepared.host);
+                let (host, custody) = prepared.retain_for_restart(source_selection)?;
+                source_custody = Some(custody);
+                return Ok(host);
             }
             #[cfg(all(target_os = "linux", feature = "native-display"))]
             if let Some(output) = scanout {

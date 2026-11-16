@@ -178,6 +178,8 @@ impl Owner {
         self.session = session;
         self.admissions = Some(manager);
         self.current_host_offers = offers;
+        #[cfg(target_os = "linux")]
+        self.refresh_retained_local_fore();
         Ok(receipt)
     }
 }

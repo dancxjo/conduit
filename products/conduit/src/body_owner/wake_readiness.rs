@@ -113,6 +113,10 @@ impl Owner {
         }
         let body = &self.session.evidence().body;
         let root = self.host.advertisement();
+        #[cfg(target_os = "linux")]
+        if self.require_retained_local_fore().is_err() {
+            return project(face, Some("retained-local-fore-unavailable"));
+        }
         let refusal = self.wake_ingress_requirements.refusal(body, |plot| {
             self.local_fore_adapters.as_ref().is_some_and(|set| {
                 set.contains_current_boundaries(
@@ -139,6 +143,8 @@ fn project(mut face: Face, refusal: Option<&'static str>) -> Result<Face, String
             action.availability=FaceActionAvailability::Unavailable{reason_code:code.into(), explanation:
                 if code=="service-input-adapter-required" {
                     "This workset needs its explicitly selected input adapters before the owner can start it."
+                } else if code=="retained-local-fore-unavailable" {
+                    "The retained workset needs current, authenticated input adapter planning evidence before the owner can start it."
                 } else { "The owner has not checked the complete workset's input requirements for this Source." }.into()};
             changed = true;
         }

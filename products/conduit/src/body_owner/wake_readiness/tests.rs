@@ -158,9 +158,8 @@ fn source_change_requires_recheck_and_awake_lifecycle_is_unchanged() {
     let face = face(&awake, Some(&wake));
     assert_eq!(requirements.refusal(&awake, |_| false), None);
     assert_eq!(project(face.clone(), None).unwrap(), face);
-    assert!(
-        face.actions
-            .iter()
-            .any(|a| a.intent == "conduit.intent/lull@1" && a.availability.is_available())
-    );
+    assert!(face
+        .actions
+        .iter()
+        .any(|a| a.intent == "conduit.intent/lull@1" && a.availability.is_available()));
 }

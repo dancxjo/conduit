@@ -353,7 +353,7 @@ impl DurableHostRuntime {
     pub(crate) fn with_owned_body(self, root: &Path) -> Result<Self, String> {
         let Self {
             #[cfg(target_os = "linux")]
-            _source_preparation,
+            mut _source_preparation,
             target_id,
             image_content_digest,
             host,
@@ -379,6 +379,10 @@ impl DurableHostRuntime {
         };
         let previous_generation = host.advertisement().offer_generation;
         let mut owner = crate::durable_host::owner::resume_service(*host, root)?;
+        #[cfg(target_os = "linux")]
+        if let Some(custody) = _source_preparation.take() {
+            owner.restore_selected_file_planning(custody)?;
+        }
         if let Some(factory) = creche_factory.take() {
             owner.install_creche_factory(factory)?;
         }

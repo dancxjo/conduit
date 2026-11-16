@@ -76,6 +76,8 @@ impl Owner {
             return Err("run duration must be 1..60000 milliseconds".into());
         }
         self.ensure_execution_retained(root)?;
+        #[cfg(target_os = "linux")]
+        self.require_retained_local_fore()?;
         let proposed = self
             .session
             .realization()
@@ -163,6 +165,8 @@ impl Owner {
             return Err("Body already has a current proposal or Play".into());
         }
         self.ensure_execution_retained(root)?;
+        #[cfg(target_os = "linux")]
+        self.require_retained_local_fore()?;
         let sources = super::super::retained_source::workset(root)?
             .ok_or("retained Source workset is unavailable for Body Play")?;
         if sources

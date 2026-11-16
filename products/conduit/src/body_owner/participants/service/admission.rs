@@ -320,6 +320,8 @@ impl Owner {
                 return Err(error);
             }
             self.current_host_offers = offers;
+            #[cfg(target_os = "linux")]
+            self.refresh_retained_local_fore();
             let line_authorization =
                 BrowserLineAuthorization::issue(&window.id, &pending.binding, &credential);
             let snapshot = BrowserAdmittedSnapshot {

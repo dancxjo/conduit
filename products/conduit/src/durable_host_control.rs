@@ -179,12 +179,7 @@ use remote_fragment_driver::drive_remote_fragment;
 
 pub(crate) struct DurableHostRuntime {
     #[cfg(target_os = "linux")]
-    _source_preparation: Option<(
-        conduit_std_host::body_execution::ImagePreparedValue<
-            conduit_std_host::source_check::process::OwnedSourceCheckInput,
-        >,
-        conduit_std_host::body_execution::ImagePreparedValue<()>,
-    )>,
+    _source_preparation: Option<crate::durable_host::source_revision::RetainedSourcePreparation>,
     target_id: String,
     image_content_digest: String,
     host: HostSource,
@@ -211,12 +206,7 @@ impl DurableHostRuntime {
     #[cfg(target_os = "linux")]
     pub(crate) fn retain_source_preparation(
         &mut self,
-        preparation: Option<(
-            conduit_std_host::body_execution::ImagePreparedValue<
-                conduit_std_host::source_check::process::OwnedSourceCheckInput,
-            >,
-            conduit_std_host::body_execution::ImagePreparedValue<()>,
-        )>,
+        preparation: Option<crate::durable_host::source_revision::RetainedSourcePreparation>,
     ) {
         self._source_preparation = preparation;
     }

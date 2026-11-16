@@ -79,6 +79,9 @@ mod planning;
 #[path = "wake_readiness.rs"]
 mod wake_readiness;
 #[cfg(target_os = "linux")]
+#[path = "retained_local_fore.rs"]
+mod retained_local_fore;
+#[cfg(target_os = "linux")]
 pub(crate) use fore_line_planning::OwnedForeLineSelection;
 #[path = "remote_preparation.rs"]
 mod remote_preparation;
