@@ -1,0 +1,73 @@
+{
+  "scope": "Source-only checked two-native-owner constructor emission; no BME runtime wiring or device effects",
+  "implementation_commit": "9ac14fa154976e77d7e799fbd1e802fc759ea488",
+  "base": "8cebe9cddd",
+  "selection": "Only complete checked native inventory containing exactly one I2C transaction node and one absolute clock node emits entry_N_native. Runtime rechecks complete remapped NATIVE_KINDS and independent Source/checked/expanded layout pins.",
+  "authority": "Original NativePreparationContext, opaque approved fragment, Issuer, independently supplied installed Operations and original selected-assigned-Fore native binders. No forged receipt, binding, admission or Start.",
+  "custody": "PreparedI2cClockCalls borrows Ready slots; no take/bind/IO. Early absent inventory refuses before issue. Subsequent error drops existing prepared tickets by their original RAII contracts; issuer attempt counters may advance.",
+  "bounds": "Single explicit maximum_backing_bytes; actual first ticket backing subtracted before second issuance; both checked with overflow-safe accounting. No resource grant/profile changes. Not whole factory transient peak or target fit.",
+  "qualification": {
+    "compiler": "rustc +1.98.1 --test actual source-build lib; final implementation commit PASS",
+    "lint": "clippy-driver 1.98.1 --test -D warnings final implementation commit PASS",
+    "dependency_graph": "/tmp/conduit-preparation-refusal-20261116/debug/.fingerprint/conduit-mcu-source-build-4d5e36b8aee23a00/test-lib-conduit_mcu_source_build.json",
+    "dependency_fingerprint_sha256": "8c1ec87eb084d72c9bf53f9665d95a91365e75b07d97e5f745e9f08259ae8fed",
+    "method": "86 exact coherent existing rlibs selected by completed Cargo fingerprint. No Cargo/dependency rebuild or cache writes. Nested generated-code checks use private readonly rlib/proc-macro links.",
+    "focused_checks_passed": 10,
+    "checks": [
+      "exact remapped I2C/clock nodes",
+      "missing/duplicate/mixed/aliased inventory refusal",
+      "real checked shared BME280+HT16K33 Source emits constructor selection",
+      "neutral index identity/no DHT roles",
+      "uncalibrated emission refusal",
+      "actual DHT resident inventory executable and no_std generated-code compile",
+      "finite DHT software factories",
+      "existing ordinal remapping/clock refusal",
+      "real repeated BME sampling Source selection",
+      "emitted original template bytes"
+    ],
+    "final_followup": "After centralizing shared BME test fixture and adding constructor-byte assertion, final lib-test compile/strict lint passed; new byte assertion rerun PASS. Production constructor bytes unchanged from focused checks.",
+    "harness_corrections": "Initial standalone invocation lacked Cargo environment/dependency lookup, then all original transitive proc-macro shared libraries. Corrected only private qualification layout. Duplicate test fixture module centralized to pass strict lint.",
+    "logs": {
+      "compile.log": {
+        "path": "/tmp/conduit-source-i2c-clock-20261116/compile.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "clippy.log": {
+        "path": "/tmp/conduit-source-i2c-clock-20261116/clippy.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "tests.log": {
+        "path": "/tmp/conduit-source-i2c-clock-20261116/tests.log",
+        "sha256": "1c67780306c295274f950a3538207203f0885ddd69885fead03fe086f2bef677"
+      },
+      "dht.log": {
+        "path": "/tmp/conduit-source-i2c-clock-20261116/dht.log",
+        "sha256": "574ddd1a2bf979b4d8e2768a5513c3d443d0521bb2e3f4ff169912e634d2fda4"
+      },
+      "regressions.log": {
+        "path": "/tmp/conduit-source-i2c-clock-20261116/regressions.log",
+        "sha256": "44ebe52548214372d96ccba41163d751345e5b11ea9acdbd28e03ffd1c0cc37b"
+      },
+      "emitted-bytes-final.log": {
+        "path": "/tmp/conduit-source-i2c-clock-20261116/emitted-bytes-final.log",
+        "sha256": "308200418e43eea5f27b06c4fcb0ee853ffa552fe8dfe9aab2f395dfc13cdcd5"
+      }
+    }
+  },
+  "not_proved": [
+    "Genuine combined constructor success and second-stage refusal regression (existing retained binder contracts used; no new combined Root fixture)",
+    "Full BME sampling/Mask factory and admitted Play",
+    "Continuation for this new constructor",
+    "RP board wiring/Green shared bus and HT16K33 renderer integration",
+    "Record-service wrapper/publication pressure path integration",
+    "Target ABI/static/peak RAM fit or physical sensing/display"
+  ],
+  "source_sha256": {
+    "targets/mcu/source-build/src/software.rs": "fd48613cd68f2ef2e42ce444ab6e9e8aedb27adcaac3ff44484cee0f53cba2f0",
+    "targets/mcu/source-build/src/workset_emission.rs": "d7e3ea81fff4c0a0ee456c3e0df8971408937d262e7e36b8a290146510a3a9a7",
+    "targets/mcu/source-build/src/source_composition.rs": "4b380c15c1781c9254a88ca81cdc569cbb45aeabb852074969d8d3da144f1228",
+    "targets/mcu/source-build/src/source_composition/native_i2c_clock.rs": "bc8844d911264d30ebc6c1b297f2c8b23b860705dadbc466e19cf68093e5d34a"
+  },
+  "hardware_effects": false,
+  "resource_grants_changed": false
+}
