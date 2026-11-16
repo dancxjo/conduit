@@ -11,6 +11,7 @@ use std::cell::RefCell;
 #[path = "workspace_refusal.rs"]
 mod refusal;
 use refusal::Refusal;
+mod browser_spore;
 #[path = "workspace_patchbay_planning.rs"]
 pub(crate) mod patchbay_planning;
 #[path = "workspace_workset.rs"]
@@ -383,57 +384,8 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 })?;
                 return encode(&claim);
             }
-            Request::PrepareBrowserSpore {
-                host_id,
-                boot_id,
-                secret,
-                nonce,
-                now_millis,
-                expires_at_millis,
-                image_content_digest,
-                selection,
-            } => {
-                let secret_bytes = <[u8; 32]>::try_from(secret.as_slice()).map_err(|_| {
-                    Refusal::new(
-                        "Admission.WeakSecret",
-                        "Invitation secret must have exactly 32 bytes",
-                    )
-                })?;
-                let invitation_secret = SpawnInvitationSecret::from_csprng_bytes(secret_bytes)
-                    .map_err(|error| {
-                        Refusal::new(
-                            &format!("Admission.{error:?}"),
-                            "Invitation entropy was refused",
-                        )
-                    })?;
-                let mut next_admissions = ADMISSIONS.with(|admissions| {
-                    admissions
-                        .borrow()
-                        .clone()
-                        .ok_or("Workspace admission state is missing")
-                })?;
-                let claim = candidate
-                    .issue_invitation(
-                        &mut next_admissions,
-                        invitation_secret,
-                        nonce,
-                        now_millis,
-                        expires_at_millis,
-                        &host_id,
-                        &boot_id,
-                    )
-                    .map_err(debug)?;
-                let prepared = crate::creche::prepare_workspace_browser(
-                    candidate.evidence(),
-                    &claim,
-                    &secret_bytes,
-                    &image_content_digest,
-                    selection,
-                )
-                .map_err(|message| Refusal::new("Make.Prepare", &message))?;
-                let response = encode(&prepared)?;
-                ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
-                return Ok(response);
+            request @ Request::PrepareBrowserSpore { .. } => {
+                return browser_spore::prepare(&candidate, request);
             }
             Request::PreparePhysicalSpore {
                 host_id,
