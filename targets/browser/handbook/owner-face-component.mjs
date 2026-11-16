@@ -30,6 +30,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   }
   disconnectedCallback() { this.#presentation.retire(); }
   set disabled(value) { this.#presentation.disabled = value; }
+  set busy(value) { this.#presentation.busy = value; }
   show(view, options) { return this.#presentation.show(view, options); }
 }
 if (globalThis.customElements && !customElements.get('conduit-owner-face')) {

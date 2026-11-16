@@ -42,6 +42,7 @@ export class OwnerFacePresentation {
   constructor(element, surface) {
     this.#element = element;
     this.#surface = surface;
+    this.busy = false;
     this.#surface.addEventListener('focusin', event => {
       const control = event.target;
       if (!control.dataset.ownerFocus) return;
@@ -61,13 +62,17 @@ export class OwnerFacePresentation {
     this.#render = undefined;
     this.#dispatched = true;
     this.disabled = true;
+    this.busy = false;
     this.#pendingFocus = undefined;
+  }
+  // The owner supplies actual pending Face work independently of input agency.
+  set busy(value) {
+    this.#element.setAttribute('aria-busy', String(Boolean(value)));
   }
   set disabled(value) {
     const focused = value ? this.#focusedState() : undefined;
     if (focused) this.#pendingFocus = focused;
     this.#disabled = Boolean(value);
-    this.#element.setAttribute('aria-busy', String(this.#disabled));
     for (const control of this.#surface.querySelectorAll('button, input, select, textarea')) {
       control.disabled = this.#disabled || control.dataset.unavailable === 'true';
     }

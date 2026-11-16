@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from '@playwright/test';
 import { registerOwnerFacePresentationTests } from './owner-face-presentation.mjs';
+import { registerOwnerFaceBusyTests } from './owner-face-busy.mjs';
 
 // Renderer fixture only: the callback is not a Body/action receipt.
 const view = {
@@ -14,6 +15,7 @@ const view = {
 };
 
 registerOwnerFacePresentationTests(view);
+registerOwnerFaceBusyTests(view);
 
 test('semantic icons remain bounded decoration without the Look stylesheet', async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
