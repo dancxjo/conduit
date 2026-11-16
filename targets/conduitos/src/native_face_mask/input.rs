@@ -61,7 +61,11 @@ impl NativeFaceMask {
         }
         self.input_refusal = None;
         let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
-        let cancelled_pointer = self.scene.as_ref().ok_or(NativeFaceMaskError::Face)?.pointer_gesture_pending();
+        let cancelled_pointer = self
+            .scene
+            .as_ref()
+            .ok_or(NativeFaceMaskError::Face)?
+            .pointer_gesture_pending();
         let result = route_acknowledged_native_key(
             &self.compositor,
             self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?,
@@ -339,9 +343,11 @@ pub fn route_acknowledged_native_key(
     let result = scene
         .key(event, show, sequence)
         .map_err(NativeFaceMaskError::Scene)?;
-    Ok(if (cleared || cancelled_pointer) && matches!(result, FaceSceneInput::Unchanged) {
-        FaceSceneInput::Changed
-    } else {
-        result
-    })
+    Ok(
+        if (cleared || cancelled_pointer) && matches!(result, FaceSceneInput::Unchanged) {
+            FaceSceneInput::Changed
+        } else {
+            result
+        },
+    )
 }

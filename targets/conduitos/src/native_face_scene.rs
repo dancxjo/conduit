@@ -11,8 +11,8 @@ use conduit_face::{
 };
 
 use crate::display::{
-    typography::{TextLayout, Typography},
     SPACE_SM, SPACE_XL,
+    typography::{TextLayout, Typography},
 };
 
 #[path = "native_face_scene/boolean_choice.rs"]
