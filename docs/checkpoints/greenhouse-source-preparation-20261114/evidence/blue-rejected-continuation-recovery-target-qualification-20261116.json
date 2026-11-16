@@ -1,0 +1,35 @@
+{
+  "status": "CANONICAL MAKE COMPILE/LINK/CONVERSION PASS; no deployment",
+  "source_commit": "49c02bbfd6ad80bb1a783d1dad046ae90008327b",
+  "image_id": "image:sha256:153c5475cdb74f9cd7984b2a5cd0da7d8a52f66ecf9c000187241d38121a431c",
+  "configuration_id": "sha256:777e4c70b4f1081f7e4f03e23e0e799e3a99ee2f96877d7f98f069280b80439d",
+  "source_identity": "sha256:996ddd60b8efb80c053398b8123c24d3a03a5b79b651b7ef539776b87b40d4fa",
+  "application_bytes": 1894480,
+  "application_sha256": "2b36943e0042986b46e18c308f6c696677201a35d82b11aa692c2ed14d2777e2",
+  "elf_sha256": "07aecf959fb4f23260dc728a4cbfbf26cb7feb4036f26fd65390b5495c1ec6b0",
+  "physical": {
+    "static_section_bytes": 228844,
+    "static_limit": 229376,
+    "stack_reserve": 66056,
+    "minimum_stack": 65536,
+    "original_heap_arena": 118784,
+    "main_task_pool": 94752,
+    "sampling_mask_output_kernel_metrics": [
+      6694,
+      6192,
+      2142
+    ],
+    "unchanged_from_frozen_a422": true
+  },
+  "artifact_directory": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-rejected-continuation-recovery-converted-20261116",
+  "generated_evidence": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/blue-rejected-continuation-recovery-evidence-20261116/generated",
+  "source_proof_receipt": "outputs/mcu-rejected-continuation-startup-20261116.json",
+  "first_attempt": "Compiler/linker passed; packaging failed missingespflash PATH. Qualifiedconverter supplied, cached Make completed. Both logs retained.",
+  "not_proved": [
+    "Whole factory/preparation heap and stack peak",
+    "Live startup recovery for this new binary",
+    "Admitted measurement/display and overnight continuity",
+    "Durable remote history commitment"
+  ],
+  "device_writes": false
+}

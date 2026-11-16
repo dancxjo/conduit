@@ -26,6 +26,7 @@ try:
  names += ['blue-manager-root-flash-receipt-20261116.json']
  names += ['blue-uart-startup-readonly-audit-20261116.json','blue-stale-continuation-startup-audit-20261116.json','blue-policy-reconstruction-20261116.json']
  names += ['blue-prefix-retirement-receipt-20261116.json']
+ names += ['mcu-rejected-continuation-startup-20261116.json','blue-rejected-continuation-recovery-target-qualification-20261116.json','blue-resident-root-seed-receipt-20261116.json']
  for name in names:
   p=root/'outputs'/name
   if p.is_file():put('evidence/'+name,p.read_bytes())

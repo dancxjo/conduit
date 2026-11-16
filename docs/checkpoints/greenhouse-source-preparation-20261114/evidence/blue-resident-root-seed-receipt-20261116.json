@@ -1,0 +1,16 @@
+{
+  "schema": "conduit.operator/blue-owner-seed-update@1",
+  "request_id": "6fbe3442ddf65e9aa197c6aea275ca71",
+  "root_boot": "boot/installed/3cad85952bce428ea2f38aabe222c6a4b6e5c949088707211d0312b4a014d43a",
+  "before_flash_sha256": "55a814425d883f8a9e6e2314db10a1604e1b44212364c59a542dbfc3e2f6b3a6",
+  "after_flash_sha256": "e15e7b39c23f554647c61c83390f4cc9a0e04f1694743e595c2894193fff5623",
+  "seed_sha256": "8dba1d0c6620ba3ced8a135a6b342f6788600e1115cef94c6df0239969ccb131",
+  "only_seed_changed": true,
+  "application_unchanged": true,
+  "all_observation_slots_unchanged": true,
+  "continuation_prefix_unchanged_erased": true,
+  "network_and_membership_unchanged": true,
+  "serial_closed": true,
+  "native_measurement_or_display_progress_proved": false,
+  "durable_recording_claimed": false
+}

@@ -1,0 +1,70 @@
+{
+  "schema": "conduit.proof/mcu-rejected-continuation-startup@1",
+  "source_commit": "49c02bbfd6ad80bb1a783d1dad046ae90008327b",
+  "frozen_base": "da2f2a0b2e86cf3fe1a56639ff4730653e5e1eb0",
+  "origin_branch": "fix/mcu-rejected-continuation-startup-20261116",
+  "files": [
+    "targets/esp32/firmware/host/src/installed_continuation.rs",
+    "targets/esp32/firmware/host/src/runtime.rs",
+    "targets/mcu/host-runtime/src/continuation_startup.rs",
+    "targets/mcu/host-runtime/src/lib.rs",
+    "targets/mcu/host-runtime/tests/continuation_install.rs",
+    "targets/mcu/host-runtime/tests/continuation_install/startup.rs",
+    "targets/mcu/source-build/src/source_composition/runtime.rs",
+    "targets/mcu/source-build/src/source_composition/runtime_continuation.rs",
+    "targets/mcu/source-build/src/source_composition/runtime_transactions.rs",
+    "targets/rp2040/firmware/host/src/installed_continuation.rs",
+    "targets/rp2040/firmware/host/src/runtime.rs"
+  ],
+  "scope": "Shared no_std installed-prefix classification and original current-Boot verification before restore; both BSP adapters; ordinary Source Root recovery and unsigned inspection refusal",
+  "proof": {
+    "genuine_root_nor_fixture": "PASS, one existing fixture expanded with six rejection scenarios and valid/absent paths",
+    "rejected_cases": [
+      "obsolete issuer key",
+      "same issuer obsolete IMAGE",
+      "same issuer obsolete configuration",
+      "same issuer obsolete Source",
+      "damaged signed artifact",
+      "uncertain commit marker"
+    ],
+    "ordinary_control": "Actual Root.receive_request dispatches Inspect/Return/Prepare while current membership and retained command remain absent; independently retained credential survives",
+    "valid_acceptance": "Original valid signed acceptance is restored as retained identity, not current-Boot membership or Play",
+    "source_tests": "52 passed, 0 failed",
+    "runtime_strict_lib_and_fixture_clippy": "PASS",
+    "source_strict_lib_tests_clippy": "PASS",
+    "thumbv6m_no_std_library_check": "PASS (shared runtime library with execution; no board image build)"
+  },
+  "logs": {
+    "root_fixture": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/mcu-rejected-continuation-startup-20261116/target/qualification/rejected-continuation-startup/root_fixture.log",
+      "sha256": "a94e4e27b30160f3ae991c04355cd2bbbab4b55a876e863459c1497198371139"
+    },
+    "runtime_clippy": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/mcu-rejected-continuation-startup-20261116/target/qualification/rejected-continuation-startup/runtime_clippy.log",
+      "sha256": "642151e877652a29e94afb83f940e44b7f6a489e1c80e084779923b0fa614a95"
+    },
+    "source_tests": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/mcu-rejected-continuation-startup-20261116/target/qualification/rejected-continuation-startup/source_tests.log",
+      "sha256": "9b19e0471b78d257f5c635c6006daab39a12921dd5f4f637bb0ef1a672b398fb"
+    },
+    "source_clippy": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/mcu-rejected-continuation-startup-20261116/target/qualification/rejected-continuation-startup/source_clippy.log",
+      "sha256": "c0219357964af1a7a69db474f653fec891119f09b83f78c7573a9ba1def9317b"
+    },
+    "thumb_no_std_check": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/mcu-rejected-continuation-startup-20261116/target/qualification/rejected-continuation-startup/thumb_check.log",
+      "sha256": "0dcff2b35700977d04854b4fa03e496d7a836a601c712cdd1082c526afb48085"
+    }
+  },
+  "not_proved": [
+    "New firmware flash/size/stack/heap qualification",
+    "Physical restart or device behavior under this source correction",
+    "Actual authenticated Return/Prepare exchange through both BSPs",
+    "Recovery after a later installed preparation has consumed providers or Root attempt"
+  ],
+  "hardware_effects": false,
+  "resource_grants_changed": false,
+  "immutable_prefix_or_history_writes": false,
+  "all_requested_focused_checks": "PASS",
+  "working_tree_clean": true
+}
