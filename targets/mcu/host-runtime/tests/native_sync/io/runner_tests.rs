@@ -79,8 +79,13 @@ fn paired_owners(bus: Bus, clock: Clock) -> (I2cHostCall<Bus>, MonotonicClockHos
     );
     (bus, clock)
 }
-type PairKernel = StoredExecutionKernel<Request, Signs, 2, 2, 1, 0, 0, 2>;
+type PairKernel<const Q: usize = 2, const M: usize = 2, const B: usize = 100, const U: usize = 2> =
+    StoredExecutionKernel<Request, Signs, 2, 2, 1, 0, 0, 2, 2, HostedValueStore, Q, M, B, U>;
 fn pair_kernel() -> PairKernel {
+    pair_kernel_profile::<2, 2, 100, 2>()
+}
+fn pair_kernel_profile<const Q: usize, const M: usize, const B: usize, const U: usize>(
+) -> PairKernel<Q, M, B, U> {
     let mut values = HostedValueStore::new(8, I2C_MAXIMUM_BYTES, 16384).unwrap();
     let bus = values.store(&bus_request(0x76)).unwrap();
     let clock = values.store(&clock_request()).unwrap();
@@ -100,49 +105,45 @@ fn pair_kernel() -> PairKernel {
             .unwrap();
     }
     bindings.seal().unwrap();
-    PairKernel::new_with_active_counts_and_host_calls(
-        2,
-        0,
-        core::array::from_fn(|_| NodeSpec {
-            input_cords: [None],
-            maximum_step_fuel: 8,
-        }),
-        core::array::from_fn(|i| {
-            CordSpec::local(
-                CordId(i as u16),
-                (NodeId(i as u16), PortId(0)),
-                (NodeId(i as u16), PortId(0)),
-                CordCapacity {
-                    slot_start: 0,
-                    item_capacity: 1,
-                    byte_capacity: I2C_MAXIMUM_BYTES,
-                    pressure_policy: Default::default(),
-                },
-            )
-        }),
-        routes,
-        bindings,
-        [
-            Request {
-                input: bus,
-                maximum: I2C_MAXIMUM_BYTES,
-                tag: "completed",
-                started: false,
-            },
-            Request {
-                input: clock,
-                maximum: CLOCK_MAXIMUM_BYTES,
-                tag: "completed",
-                started: false,
-            },
-        ],
+    static NONE: [[Option<AssignedTerminalTransduction>; 1]; 2] = [[None]; 2];
+    let drivers = [
+        Request {
+            input: bus,
+            maximum: I2C_MAXIMUM_BYTES,
+            tag: "completed",
+            started: false,
+        },
+        Request {
+            input: clock,
+            maximum: CLOCK_MAXIMUM_BYTES,
+            tag: "completed",
+            started: false,
+        },
+    ];
+    // Linked immutable laws are required for the explicit M=0 profile. Both
+    // profiles use the same validated topology and original native bindings.
+    *PairKernel::<Q, M, B, U>::prepare_boxed_with_linked_table_writer(
         values,
         Signs {
             log: FixedSignLog::new(64 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
             fail: Rc::new(Cell::new(false)),
         },
+        usize::MAX,
+        &NONE,
+        &NONE,
+        |error| error,
+        |nodes, _, prepared_routes, prepared_bindings| {
+            *nodes = [NodeSpec {
+                input_cords: [None],
+                maximum_step_fuel: 8,
+            }; 2];
+            *prepared_routes = routes;
+            *prepared_bindings = bindings;
+            Ok((2, 0))
+        },
     )
     .unwrap()
+    .bind(drivers)
 }
 #[derive(Default)]
 struct IoObserver {
@@ -249,3 +250,6 @@ fn shared_runner_services_both_owners_from_one_plan_and_retires_on_drain_or_canc
         );
     }
 }
+
+#[path = "profile_runner_tests.rs"]
+mod profile_runner_tests;
