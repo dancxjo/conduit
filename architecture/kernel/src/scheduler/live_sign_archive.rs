@@ -1,11 +1,11 @@
 //! Only the selected archive-backed sink exposes this lossless owner transfer.
 use super::*;
 use crate::live_sign_archive::{
-    ArchiveBacking, LiveSignLog, PreparedPrefixTransfer, TransferRefusal,
+    LiveArchiveBackend, LiveSignLog, PreparedPrefixTransfer, TransferRefusal,
 };
 
 impl<
-        A: ArchiveBacking<E, RUNS, STREAMS>,
+        A: LiveArchiveBackend<E, RUNS, STREAMS>,
         D: StepBack<P>,
         V: ValueStorage,
         const N: usize,

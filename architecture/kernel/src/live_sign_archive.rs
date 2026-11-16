@@ -60,7 +60,7 @@ pub struct TransferredPrefix {
     pub events: u32,
 }
 
-mod backing_sealed {
+pub(crate) mod backing_sealed {
     pub trait Sealed {}
     impl<const E: usize, const R: usize, const S: usize> Sealed for super::InvocationArchive<E, R, S> {}
     impl<const E: usize, const R: usize, const S: usize> Sealed
@@ -99,6 +99,55 @@ impl<const E: usize, const R: usize, const S: usize> ArchiveBacking<E, R, S>
         self
     }
 }
+/// Sealed internal codec adaptation. Existing ArchiveBacking remains unchanged;
+/// this adds no permission to replace the original active evidence owner.
+pub trait LiveArchiveBackend<const E: usize, const R: usize, const S: usize>:
+    backing_sealed::Sealed
+{
+    const ALLOCATION_BYTES: usize;
+    type Prefix<'a>: Iterator<Item = ArchivedSign>
+    where
+        Self: 'a;
+    fn can_append(
+        &self,
+        evidence: &impl InvocationEvidence,
+        span: u32,
+    ) -> Result<(), crate::invocation_archive::ArchiveRefusal>;
+    fn append(
+        &mut self,
+        evidence: &impl InvocationEvidence,
+        span: u32,
+    ) -> Result<(), crate::invocation_archive::ArchiveRefusal>;
+    fn prefix(&self, index: u32) -> Option<(u32, Self::Prefix<'_>)>;
+}
+impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
+    LiveArchiveBackend<E, R, S> for A
+{
+    const ALLOCATION_BYTES: usize = A::ALLOCATION_BYTES;
+    type Prefix<'a>
+        = ArchivedInvocation<'a, S>
+    where
+        Self: 'a;
+    fn can_append(
+        &self,
+        evidence: &impl InvocationEvidence,
+        span: u32,
+    ) -> Result<(), crate::invocation_archive::ArchiveRefusal> {
+        self.archive().can_append(evidence, span, 0)
+    }
+    fn append(
+        &mut self,
+        evidence: &impl InvocationEvidence,
+        span: u32,
+    ) -> Result<(), crate::invocation_archive::ArchiveRefusal> {
+        self.archive_mut().append(evidence, span, 0)
+    }
+    fn prefix(&self, index: u32) -> Option<(u32, Self::Prefix<'_>)> {
+        let prefix = self.archive().invocation(index)?;
+        Some((prefix.metadata.decisions, prefix))
+    }
+}
+
 /// Explicit allocated profile. The default LiveSignLog remains inline.
 pub type BoxedLiveSignLog<const E: usize, const R: usize, const S: usize> =
     LiveSignLog<E, R, S, Box<InvocationArchive<E, R, S>>>;
@@ -124,7 +173,7 @@ pub struct LiveSignLog<
     last_archived: Option<ArchivedSign>,
     archived_kinds: u64,
 }
-impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
+impl<const E: usize, const R: usize, const S: usize, A: LiveArchiveBackend<E, R, S>>
     LiveSignLog<E, R, S, A>
 {
     pub const fn required_archive_backing_bytes() -> usize {
@@ -150,6 +199,33 @@ impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
             return Err(TransferRefusal::ObserverBacking);
         }
         Ok(())
+    }
+    pub(crate) fn archive_backend(&self) -> &A {
+        &self.archive
+    }
+    pub(crate) fn prepare_with_archive(
+        active: HostedSignLog,
+        limits: ArchiveLimits,
+        make: impl FnOnce() -> Result<A, TransferRefusal>,
+    ) -> Result<Self, RejectedPreparation> {
+        if let Err(reason) = Self::preflight(&active, limits) {
+            return Err(RejectedPreparation { reason, active });
+        }
+        let archive = match make() {
+            Ok(archive) => archive,
+            Err(reason) => return Err(RejectedPreparation { reason, active }),
+        };
+        Ok(Self {
+            active,
+            archive,
+            limits,
+            next_archived_sequence: 0,
+            archived_events: 0,
+            archived_bytes: 0,
+            archived_gap: None,
+            last_archived: None,
+            archived_kinds: 0,
+        })
     }
     pub fn archived_event_count(&self) -> u32 {
         self.archived_events
@@ -219,8 +295,7 @@ impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
             origin: first,
         };
         self.archive
-            .archive()
-            .can_append(&prefix, span, 0)
+            .can_append(&prefix, span)
             .map_err(|_| TransferRefusal::ArchiveCapacity)?;
         Ok(PreparedPrefixTransfer {
             owner: self,
@@ -332,7 +407,7 @@ pub struct PreparedPrefixTransfer<
     retained_bytes: u64,
     gap: Option<SignRetentionGap>,
 }
-impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
+impl<const E: usize, const R: usize, const S: usize, A: LiveArchiveBackend<E, R, S>>
     PreparedPrefixTransfer<'_, E, R, S, A>
 {
     pub fn commit(self) -> TransferredPrefix {
@@ -345,8 +420,7 @@ impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
         // this identical exact append. No user callback or allocation intervenes.
         owner
             .archive
-            .archive_mut()
-            .append(&prefix, self.span, 0)
+            .append(&prefix, self.span)
             .expect("same exclusively borrowed preflighted prefix");
         owner.last_archived = owner.active.events().last().map(|event| ArchivedSign {
             remote: owner.active.remote_identity(event.sequence),
@@ -429,17 +503,17 @@ pub struct Entries<
     const E: usize,
     const R: usize,
     const S: usize,
-    A = InvocationArchive<E, R, S>,
+    A: LiveArchiveBackend<E, R, S> = InvocationArchive<E, R, S>,
 > {
     owner: &'a LiveSignLog<E, R, S, A>,
     next_segment: u32,
-    current: Option<ArchivedInvocation<'a, S>>,
+    current: Option<A::Prefix<'a>>,
     current_origin: u32,
     next_origin: u32,
     active_index: usize,
     remaining: u64,
 }
-impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> Iterator
+impl<const E: usize, const R: usize, const S: usize, A: LiveArchiveBackend<E, R, S>> Iterator
     for Entries<'_, E, R, S, A>
 {
     type Item = ArchivedSign;
@@ -455,12 +529,12 @@ impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
                 self.remaining -= 1;
                 return Some(entry);
             }
-            if let Some(segment) = self.owner.archive.archive().invocation(self.next_segment) {
+            if let Some((span, segment)) = self.owner.archive.prefix(self.next_segment) {
                 self.next_segment += 1;
                 self.current_origin = self.next_origin;
                 self.next_origin = self
                     .next_origin
-                    .checked_add(segment.metadata.decisions)
+                    .checked_add(span)
                     .expect("checked consecutive sequence spans");
                 self.current = Some(segment);
                 continue;
@@ -498,7 +572,7 @@ impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
         self.owner.last_archived
     }
 }
-impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> SignQuery
+impl<const E: usize, const R: usize, const S: usize, A: LiveArchiveBackend<E, R, S>> SignQuery
     for LiveSignLog<E, R, S, A>
 {
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
@@ -524,14 +598,14 @@ impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
             .expect("disjoint gaps within original global sequence clock")
     }
 }
-impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> InvocationEvidence
-    for LiveSignLog<E, R, S, A>
+impl<const E: usize, const R: usize, const S: usize, A: LiveArchiveBackend<E, R, S>>
+    InvocationEvidence for LiveSignLog<E, R, S, A>
 {
     fn events(&self) -> impl Iterator<Item = KernelEvent> {
         self.events()
     }
 }
-impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> SignSink
+impl<const E: usize, const R: usize, const S: usize, A: LiveArchiveBackend<E, R, S>> SignSink
     for LiveSignLog<E, R, S, A>
 {
     // The original active window keeps its EXACT quota. Archive custody has
