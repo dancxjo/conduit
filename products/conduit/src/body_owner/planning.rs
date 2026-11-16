@@ -110,6 +110,7 @@ impl Owner {
             BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
         >,
     ) -> Result<Vec<BodyPlotPlan>, String> {
+        self.require_source_effects_unheld()?;
         self.require_workset_recovered()?;
         if self.session.evidence().body.state != BodyState::Lulled
             || self.session.realization().is_some()
@@ -175,6 +176,7 @@ impl Owner {
             conduit_planner::ConnectionQueueLimits,
         >,
     ) -> Result<BodyPlotPlan, String> {
+        self.require_source_effects_unheld()?;
         if let Some(partition) = self.shipped_creche_partition(plot, resident)? {
             if !boundary.is_empty() {
                 return Err("Crèche boundary budgets belong to its installed adapter".into());

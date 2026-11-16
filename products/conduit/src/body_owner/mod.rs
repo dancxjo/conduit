@@ -64,13 +64,20 @@ pub(crate) fn resume_service(
 ) -> Result<Owner, String> {
     state::recover(root)?;
     let retained = state::load(root)?.ok_or("installed Host has no retained Body")?;
+    let recovered_claim = controller::recovered_source_claim::inspect(root)?;
     let mut owner = Owner::resume(host, retained)?;
+    owner.hold_recovered_source_claim(recovered_claim);
     if let Some(sources) = retained_source::workset(root)? {
         for source in &sources {
             owner.set_foreground_plot_name(&source.plot)?;
         }
     }
     owner.restore_execution(root)?;
+    // Preserve read-only owner/Return service without entering automatic
+    // notebook/Todo effect recovery while a remote Source claim is unresolved.
+    if recovered_claim {
+        return Ok(owner);
+    }
     #[cfg(target_os = "linux")]
     if owner.recover_notebook_on_startup(root)? {
         return Ok(owner);
@@ -210,6 +217,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
         .map_err(|e| format!("installed Host state: {e}"))?;
     let _ownership = super::owner_lock::acquire(&root)?;
     let _body_ownership = super::owner_lock::body(&root)?;
+    let recovered_claim = controller::recovered_source_claim::inspect(&root)?;
     state::recover(&root)?;
     image::verify(&root)?;
     let source_bytes = super::bounded_read(source, MAXIMUM_SOURCE)?;
@@ -240,6 +248,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
     let result = (|| {
         let mut owner =
             controller::Owner::open(runtime.into_owner_host(), resident, retained, name)?;
+        owner.hold_recovered_source_claim(recovered_claim);
         owner.set_resident_plot_name(&checked)?;
         owner.restore_execution(&root)?;
         owner.persist(&root)?;

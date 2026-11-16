@@ -111,6 +111,7 @@ impl Owner {
             runtime_face: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            recovered_source_claim: false,
             wake_ingress_requirements: super::wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]

@@ -81,6 +81,8 @@ mod wake_readiness;
 #[cfg(target_os = "linux")]
 #[path = "retained_local_fore.rs"]
 mod retained_local_fore;
+#[path = "recovered_source_claim.rs"]
+pub(super) mod recovered_source_claim;
 #[cfg(target_os = "linux")]
 pub(crate) use fore_line_planning::OwnedForeLineSelection;
 #[path = "remote_preparation.rs"]
@@ -339,6 +341,7 @@ pub(crate) struct Owner {
     last_execution: Option<serde_json::Value>,
     execution_persistence_pending: bool,
     workset_recovery_required: bool,
+    recovered_source_claim: bool,
     wake_ingress_requirements: wake_readiness::WakeIngressRequirements,
     local_fore_adapters: Option<crate::durable_host::local_fore_policy::SelectedLocalForeSet>,
     #[cfg(target_os = "linux")]
@@ -468,6 +471,7 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            recovered_source_claim: false,
             wake_ingress_requirements: wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]
@@ -514,6 +518,7 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            recovered_source_claim: false,
             wake_ingress_requirements: wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]
@@ -583,7 +588,7 @@ impl Owner {
         Ok(())
     }
     pub(crate) fn truth(&self) -> serde_json::Value {
-        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending, "current_member_offers":self.current_offer_summary()})
+        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending, "recovered_source_claim_unresolved":self.recovered_source_claim, "current_member_offers":self.current_offer_summary()})
     }
     /// Project one canonical Face from the current retained owner session.
     /// Credential matching and current incarnation are checked here, even

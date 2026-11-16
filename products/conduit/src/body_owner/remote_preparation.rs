@@ -212,6 +212,7 @@ impl Owner {
         )
             -> Result<GeneratedBodyWorksetDocument, BodyFragmentGenerationRefusal>,
     ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
+        self.require_source_effects_unheld()?;
         if self.host.is_playing() || actual.host_id == self.host.advertisement().host_id {
             return Err("remote preparation requires the idle original owner Host".into());
         }

@@ -34,6 +34,7 @@ impl Owner {
         &self,
         basis: &crate::durable_host::source_revision::source_execution::VerifiedExecutionBasis,
     ) -> Result<(), String> {
+        self.require_source_effects_unheld()?;
         self.require_workset_recovered()?;
         if self.host.is_playing() || self.session.realization().is_some() {
             return Err("fresh Source execution requires an idle owner".into());

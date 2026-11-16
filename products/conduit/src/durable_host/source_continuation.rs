@@ -155,6 +155,7 @@ fn prepare(s: &OutputSelection) -> Result<PreparedOutput, String> {
 }
 #[cfg(target_os = "linux")]
 pub(crate) fn export(owner: &owner::Owner, selections: &[OutputSelection]) -> Result<(), String> {
+    owner.require_source_effects_unheld()?;
     validate(selections)?;
     // Prepare every selected file before publishing any output. No Source CAS,
     // Body membership, device installation or Play is performed by file export.
