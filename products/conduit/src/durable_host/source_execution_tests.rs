@@ -157,6 +157,7 @@ fn scoped_fixture() -> (VerifiedExecutionBasis, Request) {
         expires_at_millis: 2000,
         plays: vec![play],
         returns: vec![],
+        record_read_probe: None,
     };
     (basis, request)
 }

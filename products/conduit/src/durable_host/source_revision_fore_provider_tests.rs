@@ -311,6 +311,10 @@ fn client_binding_uses_original_child_bytes_custody_and_installed_image() {
     material.prepare_carriage(&payload, [8; 32]).unwrap();
     let probe = material.verify_probe_binding(&payload, &[8; 32]).unwrap();
     assert_eq!(probe.sessions, &bindings);
+    assert!(
+        !probe.record_read_abi,
+        "generic increment Fore is not a record reader"
+    );
     assert_eq!(probe.original_approval_transcript, &[8; 32]);
     assert_eq!(probe.body, fixture.member.credential.body_id.as_str());
     assert_eq!(

@@ -1612,6 +1612,7 @@ dependencies = [
  "conduit-plot",
  "conduit-protected-line",
  "conduit-pulse-capture",
+ "conduit-resource-snapshot",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-speech",

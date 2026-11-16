@@ -25,6 +25,7 @@ clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-ai = { path = "../../semantics/ai" }
 conduit-core = { path = "../../architecture/core" }
+conduit-resource-snapshot = { path = "../../mechanisms/io/resource-snapshot" }
 conduit-body = { path = "../../architecture/body" }
 conduit-body-make = { path = "../../make/body" }
 conduit-embedded-build = { path = "../../make/embedded-build" }

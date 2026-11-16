@@ -1,6 +1,16 @@
 //! Reselect planning boundaries from original retained File custody only.
 use super::Owner;
 impl Owner {
+    pub(crate) fn retain_selected_source_read_memory(
+        &self,
+    ) -> Result<conduit_std_host::body_execution::ImageMemoryRetention, String> {
+        let original = self
+            .selected_file_workset
+            .as_ref()
+            .ok_or("original retained File workset absent")?;
+        original.retain_read_memory(&self.host)
+    }
+
     pub(crate) fn execute_selected_source(
         &mut self,
         state: &std::path::Path,

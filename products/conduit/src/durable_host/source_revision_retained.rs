@@ -127,6 +127,14 @@ impl RetainedSourcePreparation {
     }
 }
 impl RetainedFileWorkset {
+    pub(crate) fn retain_read_memory(
+        &self,
+        host: &conduit_std_host::StdHost,
+    ) -> Result<conduit_std_host::body_execution::ImageMemoryRetention, String> {
+        host.verify_selected_image_prepared_value(&self.caller)?;
+        Ok(self.caller.retain_memory())
+    }
+
     pub(crate) fn requires_local_fore_selection(&self) -> bool {
         !self.local_fore_adapters.is_empty()
     }

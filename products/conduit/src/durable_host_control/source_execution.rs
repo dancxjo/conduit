@@ -34,6 +34,11 @@ impl DurableHostRuntime {
                         eprintln!("selected Source execution outcome: {outcome}");
                     }
                 }
+                if let (Some(attempt), HostSource::Body { owner, .. }) =
+                    (&mut self.source_execution.retained, &self.host)
+                {
+                    attempt.progress_record_read(owner, root)?;
+                }
                 Ok(())
             }
             Err(error) => Err(error),
@@ -89,8 +94,13 @@ mod tests {
             owner,
             &root,
         );
-        let refusal = runtime.progress_selected_source_execution(&root).unwrap_err();
-        assert!(root.join("source-execution/claimed.json").exists(), "{refusal}");
+        let refusal = runtime
+            .progress_selected_source_execution(&root)
+            .unwrap_err();
+        assert!(
+            root.join("source-execution/claimed.json").exists(),
+            "{refusal}"
+        );
         assert!(root.join("source-execution/claimed.json").exists());
         assert!(!root.join("source-execution/pending.json").exists());
         runtime.progress_selected_source_execution(&root).unwrap();

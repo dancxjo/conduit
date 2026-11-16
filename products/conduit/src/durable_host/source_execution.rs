@@ -38,6 +38,8 @@ struct Request {
     expires_at_millis: u64,
     plays: Vec<UsbPlaySelection>,
     returns: Vec<UsbReturnSelection>,
+    #[serde(default)]
+    record_read_probe: Option<record_read::ReadSelection>,
 }
 
 /// Only the original retained guards, verified on the actual Owner, construct
@@ -230,6 +232,13 @@ fn selected(
     now: u64,
 ) -> Result<Selection, String> {
     validate_request(&request, now)?;
+    if request
+        .record_read_probe
+        .as_ref()
+        .is_some_and(|read| read.member_host.is_empty() || read.member_host.len() > 256)
+    {
+        return Err("record read requires one finite selected member Host".into());
+    }
     if request.policy_sha256 != basis.digest
         || request.root_host != basis.root_host
         || request.root_boot != basis.root_boot
@@ -262,12 +271,32 @@ pub(crate) struct RetainedExecution {
     returned: Vec<carriage::SelectedPlayCarrier>,
     failed_returns: Vec<carriage::RetainedReturnFailure>,
     pub(crate) outcomes: Vec<String>,
+    read: Option<record_read::PendingRead>,
 }
 
 /// The metadata describes the original exact Fore; it grants no Start/Ready.
 pub(crate) use super::carriage::AuthorizedForeProbe;
 #[allow(dead_code)]
 impl RetainedExecution {
+    pub(crate) fn progress_record_read(
+        &mut self,
+        owner: &owner::Owner,
+        state: &Path,
+    ) -> Result<(), String> {
+        let Some(mut read) = self.read.take() else {
+            return Ok(());
+        };
+        let result = if read.attempted() {
+            Ok(())
+        } else {
+            let host = conduit_core::HostId::from(read.member_host());
+            self.probe(owner, &host, |probe| read.exchange(probe))
+        };
+        let copy = read.retain_diagnostic_copy(state);
+        // Retain the full canonical outcome even if carriage or disk later failed.
+        self.read = Some(read);
+        result.and(copy)
+    }
     /// Borrow one exact current Host's authorized probe synchronously. The
     /// callback cannot detach or clone the descriptor; no IO occurs on selection.
     pub(crate) fn probe<R>(
@@ -311,7 +340,17 @@ pub(crate) fn claim_and_execute(
         return Ok(None);
     };
     let request: Request = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+    let read = request.record_read_probe.clone();
     let selection = selected(request, &basis, current_time_millis()?)?;
+    // Fixed staging is part of the retained original caller envelope. This
+    // witness keeps that original charge alive; it creates no subreservation.
+    let read = read
+        .map(|selection| {
+            owner
+                .retain_selected_source_read_memory()
+                .map(|memory| record_read::PendingRead::new(selection, memory))
+        })
+        .transpose()?;
     let installation = read_installation(&state.join("installation.json"))?;
     validate_selection(&selection, &installation)?;
     owner.require_remote_workset_retired()?;
@@ -321,6 +360,7 @@ pub(crate) fn claim_and_execute(
         returned: Vec::new(),
         failed_returns: Vec::new(),
         outcomes: Vec::new(),
+        read,
     };
     for selected in &selection.returns {
         match carriage::return_selected_member_retained(owner, state, selected) {
@@ -372,3 +412,6 @@ pub(crate) fn claim_and_execute(
 #[cfg(test)]
 #[path = "source_execution_tests.rs"]
 mod tests;
+
+#[path = "source_execution_record_read.rs"]
+mod record_read;

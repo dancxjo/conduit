@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 pub(super) struct FrozenFore {
     pub pin: c::AssignedLineForeRequirement,
     pub abnormal_kind: Option<c::KindId>,
+    pub record_read_abi: bool,
 }
 /// Borrowed descriptive pins for a single authorized probe, never Ready/Start
 /// evidence or permission to retire recorded observations.
@@ -19,6 +20,7 @@ pub(crate) struct ForeProbeBinding<'a> {
     pub(crate) image: &'a str,
     pub(crate) configuration: &'a str,
     pub(crate) usb_serial: &'a str,
+    pub(crate) record_read_abi: bool,
     pub(crate) request: &'a c::AssignedLineForeRequirement,
     pub(crate) result: &'a c::AssignedLineForeRequirement,
     pub(crate) sessions: &'a [conduit_wire::ExternalForeSessionBinding; 2],
@@ -219,6 +221,7 @@ impl DirectForeMaterial {
             image: &self.image,
             configuration: &self.configuration,
             usb_serial: &self.usb_serial,
+            record_read_abi: self.rows.iter().all(|row| row.record_read_abi),
             request: &self.rows[0].pin,
             result: &self.rows[1].pin,
             sessions: &approval.bindings,
