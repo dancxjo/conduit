@@ -10,6 +10,14 @@ mod authoring;
 mod conversation_catalog;
 #[path = "plot_source/device_catalog.rs"]
 mod device_catalog;
+#[path = "plot_source/measurement_catalog.rs"]
+mod measurement_catalog;
+#[cfg(test)]
+#[path = "plot_source/measurement_catalog_fixture.rs"]
+mod measurement_catalog_fixture;
+#[cfg(test)]
+#[path = "plot_source/measurement_catalog_tests.rs"]
+mod measurement_catalog_tests;
 #[path = "plot_source/source_check_catalog.rs"]
 mod source_check_catalog;
 
@@ -204,6 +212,27 @@ fn shared_dsp_catalogs() -> Result<&'static (StartupCatalog, ProfileCatalog), St
         .map_err(Clone::clone)
 }
 
+#[cfg(test)]
+pub(crate) fn measurement_chart_fixture_source() -> String {
+    measurement_catalog_fixture::source()
+}
+
+#[cfg(test)]
+#[allow(dead_code)] // Only the separately instrumented integration test calls this hook.
+pub(crate) fn install_measurement_catalog_for_cost_observation(
+    startup: &mut StartupCatalog,
+    profiles: &mut ProfileCatalog,
+) -> Result<(), String> {
+    measurement_catalog::install(startup, profiles)
+}
+
+#[cfg(test)]
+#[allow(dead_code)] // Included by the separately instrumented integration test.
+pub(crate) fn fresh_catalogs_for_cost_observation(
+) -> Result<(StartupCatalog, ProfileCatalog), String> {
+    prepare_catalogs(false)
+}
+
 fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_plot::checked_physical_catalog_for_document(
         &conduit_plot::parse_syntax_document(""),
@@ -232,6 +261,9 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_measurement_plot_catalog(&mut startup, &mut profiles)?;
+    // Same finite semantic definitions in ordinary and bounded Source checking.
+    // Providers, original caller workspace and execution admission stay separate.
+    measurement_catalog::install(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;
