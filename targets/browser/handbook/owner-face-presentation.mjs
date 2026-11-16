@@ -42,7 +42,6 @@ export class OwnerFacePresentation {
   constructor(element, surface) {
     this.#element = element;
     this.#surface = surface;
-    this.busy = false;
     this.#surface.addEventListener('focusin', event => {
       const control = event.target;
       if (!control.dataset.ownerFocus) return;
@@ -139,6 +138,8 @@ export class OwnerFacePresentation {
     }
     const render = this.#render = {};
     this.#dispatched = false;
+    // Host attributes cannot be set while constructing an autonomous custom element.
+    if (!this.#element.hasAttribute('aria-busy')) this.busy = false;
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
     this.#supportsAction = supportsAction;
