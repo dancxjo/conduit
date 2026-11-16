@@ -16,6 +16,8 @@ mod evidence_attachment;
 mod host_configuration_encounter;
 mod joining_host;
 mod planning;
+mod preparation_call;
+mod preparation_catalog;
 mod prepared_birth;
 mod readable_history;
 mod spore;
