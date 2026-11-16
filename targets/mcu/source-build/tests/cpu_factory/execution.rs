@@ -51,6 +51,10 @@ pub fn drive<F: Future>(future: F, face: &LocalPublicationFace) {
     assert!(completed,"bounded Source did not keep measuring/displaying: captures={} waits={} programs={} frames={}",crate::effects::CAPTURES.load(SeqCst),crate::effects::WAITS.load(SeqCst),crate::effects::PROGRAMS.load(SeqCst),crate::effects::frame_count());
     assert!(crate::effects::RECEIVES.load(SeqCst) > 0);
     println!("CPU_PEER_ABSENT transport_sends={} receives_pending={} incoming_frames=0 durable_acknowledgments=0",crate::effects::TRANSPORT_SENDS.load(SeqCst),crate::effects::RECEIVES.load(SeqCst));
+    if std::env::var_os("CPU_FAIL_FORE_READ").is_some() {
+        assert_eq!(crate::effects::RECEIVE_FAILURES.load(SeqCst), 1);
+        println!("CPU_FORE_FAILURE read_timeouts=1 original_actor_retirement=true local_effects_continue=true");
+    }
     crate::effects::check_frames();
     assert!(crate::effects::PROGRAMS.load(SeqCst) > 0);
 }

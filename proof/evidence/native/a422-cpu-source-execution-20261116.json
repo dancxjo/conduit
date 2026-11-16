@@ -1,0 +1,101 @@
+{
+  "schema": "conduit.proof/original-source-cpu-execution@1",
+  "production_source_commit": "8cebe9cddd",
+  "fixture_branch": "investigate/a422-cpu-source-execution-20261116",
+  "scope": "Original three-fragment Source factory, renderer, admission, authenticated Start, run_started and play_run; CPU platform providers only, no replacement sampler/executor.",
+  "feature_parity": {
+    "runtime": [
+      "execution"
+    ],
+    "kernel": [
+      "alloc",
+      "default",
+      "step-test-support"
+    ],
+    "execution_workspace": false,
+    "schema_value_storage": false,
+    "matches_completed_ESP_feature_witness": true
+  },
+  "effects": {
+    "simulated_elapsed_ms": 361340,
+    "polls": 36134,
+    "sensor_captures": 6,
+    "monotonic_waits_started": 7,
+    "temperature_celsius": [
+      23,
+      24
+    ],
+    "relative_humidity_percent": 44,
+    "display_transactions": 154,
+    "display_ACKs": 1386,
+    "physical_register_pages": [
+      "73F",
+      "75F",
+      "44H"
+    ],
+    "Face_source_sequence": 6,
+    "NOR_program_units": 20,
+    "recovered_committed_records": 10,
+    "recovered_observations": 6,
+    "first_sample_boot_ms": 60467,
+    "last_sample_boot_ms": 360337,
+    "canonical_quantities_sequences_and_provenance_verified": true,
+    "media_corruption": 0,
+    "media_gaps": 0
+  },
+  "outage": {
+    "read_timeout_ms": 30000,
+    "read_failures": 1,
+    "original_Fore_actor_retired": true,
+    "transport_Hello_sends": 2,
+    "incoming_peer_frames": 0,
+    "durable_recording_acknowledgments": 0,
+    "local_Source_continued": true,
+    "Root_retained_command_digest_and_admissions_unchanged": true
+  },
+  "unchanged_grants": {
+    "heap": 118784,
+    "assignment": 18432,
+    "runtime": 38912,
+    "work_units": 5000,
+    "Source_periods": 960
+  },
+  "CPU_memory": {
+    "conservative_fixture_retaining_sender_duplicate_peak": 119906,
+    "conservative_fixture_overage": 1122,
+    "actual_released_sender_payload_bytes": 14259,
+    "owner_ingress_copy_overlap_peak": 94852,
+    "factory_peak": 91853,
+    "renderer_peak": 94102,
+    "admission_Start_peak": 105306,
+    "live_Started": 100943,
+    "Source_run_peak": 105647,
+    "steady_at_observations_2_4_6": [
+      105240,
+      105240,
+      105240
+    ],
+    "recovery_after_quiescence_peak": 37644,
+    "whole_fixture_peak_after_correct_owner_handoff": 105647,
+    "only_excluded_external_NOR_emulator_bytes": 655360
+  },
+  "memory_assurance": "The sender buffer is actually freed only after public Root ingress authenticates/copies its identical bytes. Original fixed18432 command arena and digest are unchanged. No grant increase or silent exclusion. Fixed static counters/wire ring and inline Timer futures are CPU instrumentation; no target footprint inference.",
+  "feature_profile_correction": "Earlier execution-workspace-enabled CPU graph stops at InvalidPlan when run without workspace funding; it is not the production firmware feature graph. Preparation/Start-only witness remains limited to its stated profile.",
+  "not_proved": [
+    "Physical sensor/display electrical behavior",
+    "MCU runtime RAM peak",
+    "Physical restart/history continuity",
+    "Reconnection or exact remote durable history handoff",
+    "Overnight horizon beyond this six-period CPU window"
+  ],
+  "logs": {
+    "compile.log": {
+      "retained_path": "target/qualification/Source-execution-read-failure/compile.log",
+      "sha256": "28b03dffcd13a2885bda735ece1f2fe6e97a379b182907168e6db9219e3a3913"
+    },
+    "run.log": {
+      "retained_path": "target/qualification/Source-execution-read-failure/run.log",
+      "sha256": "f32f715ae353c40ec1f9d0bacd6d9f7452dfd79e97f190224f6f96346ce1ca41"
+    }
+  }
+}

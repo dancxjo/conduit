@@ -8,6 +8,7 @@ static ENABLED: AtomicBool = AtomicBool::new(false);
 pub static CAPTURES: AtomicUsize = AtomicUsize::new(0);
 pub static WAITS: AtomicUsize = AtomicUsize::new(0);
 pub static PROGRAMS: AtomicUsize = AtomicUsize::new(0);
+pub static RECEIVE_FAILURES: AtomicUsize = AtomicUsize::new(0);
 pub static RECEIVES: AtomicUsize = AtomicUsize::new(0);
 pub static TRANSPORT_SENDS: AtomicUsize = AtomicUsize::new(0);
 static MEDIA: Mutex<Option<Vec<u8>>> = Mutex::new(None);

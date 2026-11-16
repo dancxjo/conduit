@@ -162,7 +162,7 @@ pub fn probe(
         now_millis: now_ms(),
     };
     let mut cold = Some(cold);
-    let mut link = crate::transport::Link;
+    let mut link = crate::transport::Link::new();
     let mut buffers = crate::play::fore::buffers().unwrap();
     let mut carrier_inputs = Some((&mut link, &mut buffers));
     let mut diagnostic = heapless::String::new();
@@ -362,6 +362,9 @@ pub fn probe(
                 );
                 crate::accounting::begin_phase();
                 crate::execution::recover();
+                assert_eq!(*parts.workspace.payload_digest().unwrap(), retained_digest);
+                assert!(!parts.resources.admissions().is_empty());
+                println!("CPU_CUSTODY_AFTER_OUTAGE retained_digest_unchanged=true original_admissions_retained=true");
                 println!(
                     "CPU_PHASE post_quiescence_recovery_peak={}",
                     crate::accounting::phase_peak()

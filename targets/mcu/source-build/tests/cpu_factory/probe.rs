@@ -48,13 +48,38 @@ mod runtime {
 mod equipment;
 mod renderer;
 mod transport {
-    pub struct Link;
+    pub struct Link {
+        failure_after_ms: u64,
+        deadline: Option<u64>,
+    }
+    impl Link {
+        pub fn new() -> Self {
+            Self {
+                failure_after_ms: if std::env::var_os("CPU_FAIL_FORE_READ").is_some() {
+                    conduit_mcu_host_runtime::transport::READ_TIMEOUT_MILLIS as u64
+                } else {
+                    0
+                },
+                deadline: None,
+            }
+        }
+    }
+
     impl Link {
         pub async fn connected(&mut self) {}
         pub fn reset(&mut self) {}
         pub async fn receive<'a>(&mut self, _: &'a mut [u8]) -> Result<&'a [u8], ()> {
             crate::effects::require();
             crate::effects::RECEIVES.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if self.failure_after_ms != 0 {
+                let now = crate::cpu_time::now_ms();
+                let deadline = *self.deadline.get_or_insert(now + self.failure_after_ms);
+                if now >= deadline {
+                    crate::effects::RECEIVE_FAILURES
+                        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    return Err(());
+                }
+            }
             core::future::pending().await
         }
         pub async fn send(&mut self, _: &[u8]) -> Result<(), ()> {
