@@ -32,6 +32,8 @@ pub struct Profiles<'a> {
     pub step_outputs: Vec<(u16, u16)>,
     /// Source topology fact, not authority or a trusted runtime capacity claim.
     pub abnormal_cord_count: usize,
+    /// All logical external ingress, including local Fore; not network authority.
+    pub external_ingress_cord_count: usize,
 }
 
 impl Profiles<'_> {
@@ -89,6 +91,12 @@ impl Profiles<'_> {
             text,
             "pub const ABNORMAL_CORD_COUNT:usize={};",
             self.abnormal_cord_count
+        )
+        .unwrap();
+        writeln!(
+            text,
+            "pub const EXTERNAL_INGRESS_CORD_COUNT:usize={};",
+            self.external_ingress_cord_count
         )
         .unwrap();
         text
@@ -212,6 +220,14 @@ pub fn select<'a>(
         cord_sinks,
         steps,
         step_outputs,
+        external_ingress_cord_count: kernel
+            .cords
+            .iter()
+            .filter(|cord| {
+                matches!(cord.source, Endpoint::Remote { .. })
+                    && matches!(cord.sink, Endpoint::Local { .. })
+            })
+            .count(),
         abnormal_cord_count: kernel
             .cords
             .iter()

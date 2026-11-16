@@ -49,6 +49,7 @@ impl<'a, A: MonotonicDeadlineProvider> Service<'a, A> {
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
         const UNRESOLVED_NODES: usize,
+        const CORD_TERMINALS: usize,
     >(
         &mut self,
         kernel: &mut StoredExecutionKernel<
@@ -66,6 +67,7 @@ impl<'a, A: MonotonicDeadlineProvider> Service<'a, A> {
             TERMINAL_ROWS,
             PHASE_BYTES,
             UNRESOLVED_NODES,
+            CORD_TERMINALS,
         >,
     ) -> Result<Dispatch, SchedulerError> {
         if self.pending.is_none() {
@@ -158,6 +160,7 @@ fn complete<
     const TERMINAL_ROWS: usize,
     const PHASE_BYTES: usize,
     const UNRESOLVED_NODES: usize,
+    const CORD_TERMINALS: usize,
 >(
     kernel: &mut StoredExecutionKernel<
         D,
@@ -174,6 +177,7 @@ fn complete<
         TERMINAL_ROWS,
         PHASE_BYTES,
         UNRESOLVED_NODES,
+        CORD_TERMINALS,
     >,
     request: HostCallRequest,
     mut outcome: HostCallOutcome,
