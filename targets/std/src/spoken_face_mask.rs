@@ -138,7 +138,7 @@ impl SpokenFaceSession {
     /// Replace the exact Face/Show after the producer has accepted a change.
     /// The old local focus survives only if its provenance still exists.
     pub fn refresh(&mut self, face: Face, show: MaskShow) -> Result<(), SpokenFaceRefusal> {
-        if self.pending.is_some() || self.pending_batch.is_some() {
+        if self.pending.is_some() || self.pending_batch.is_some() || self.reading.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
         check_show(&face, &show)?;
@@ -149,10 +149,9 @@ impl SpokenFaceSession {
         self.show = show;
         self.voiced = voiced;
         self.drafts.clear();
-        self.cursor
-            .command(&self.face, FaceReadingCommand::Repeat)
-            .map_err(reading_refusal)?;
-        self.begin_cursor_clauses();
+        // Accepting current truth is not a request to speak. Explicit commands
+        // use this new Face/Show; an in-progress requested reading must first
+        // finish or be explicitly stopped, with its normal receipt semantics.
         Ok(())
     }
 

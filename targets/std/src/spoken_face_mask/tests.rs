@@ -1320,6 +1320,10 @@ fn one_long_face_fact_streams_in_order_and_refresh_resets_indexed_focus() {
         reader.focused_clause().provenance,
         FaceUtteranceProvenance::Subject(_)
     ));
+    assert!(reader.next_segment().unwrap().is_none());
+    reader
+        .command(&changed, &changed_show, ReaderCommand::Repeat, 3)
+        .unwrap();
     let announced = reader.next_segment().unwrap().unwrap();
     assert!(announced.segment.text.contains("Welcome"));
     reader
@@ -1352,3 +1356,6 @@ fn stop_never_turns_a_late_audio_completion_into_success() {
 
 #[path = "selection_tests.rs"]
 mod selection;
+
+#[path = "ambient_refresh_tests.rs"]
+mod ambient_refresh;
