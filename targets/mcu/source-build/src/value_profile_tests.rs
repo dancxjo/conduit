@@ -228,17 +228,12 @@ fn abnormal_topology_stock_fact_counts_tracks_without_changing_value_profiles() 
     let mut graph = graph(&schema);
     let ordinary = select(&graph, &declarations(&schema)).unwrap();
     assert_eq!(ordinary.abnormal_cord_count, 0);
-    assert!(ordinary
-        .emit_rust()
-        .contains("pub const ABNORMAL_CORD_COUNT:usize=0;"));
+
     graph.cords[1].track = AssignedConnectionTrack::AbnormalTerminal;
     let abnormal = select(&graph, &declarations(&schema)).unwrap();
     assert_eq!(abnormal.abnormal_cord_count, 1);
     assert_eq!(abnormal.cords, ordinary.cords);
     assert_eq!(abnormal.steps, ordinary.steps);
-    assert!(abnormal
-        .emit_rust()
-        .contains("pub const ABNORMAL_CORD_COUNT:usize=1;"));
 }
 
 #[test]
@@ -249,9 +244,7 @@ fn external_ingress_stock_counts_logical_boundaries_without_granting_authority()
     plan.cords[0].source = Endpoint::Remote { endpoint: 77 };
     let profiles = select(&plan, &[]).unwrap();
     assert_eq!(profiles.external_ingress_cord_count, 1);
-    assert!(profiles
-        .emit_rust()
-        .contains("pub const EXTERNAL_INGRESS_CORD_COUNT:usize=1;"));
+
     assert_eq!(profiles.cords.len(), 2);
     plan.cords[1].source = Endpoint::Remote { endpoint: 78 };
     assert_eq!(select(&plan, &[]).unwrap().external_ingress_cord_count, 2);

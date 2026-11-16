@@ -188,4 +188,44 @@ fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
         make(&host, &BTreeMap::new()).is_err(),
         "missing independently selected Fore refuses"
     );
+    assert_eq!(layout.abnormal_cord_count, 0);
+    assert_eq!(layout.external_ingress_cord_count, 1);
+    // Real lowered Fore topology must emit its stock facts even when this
+    // target keeps canonical storage and has no optional schema slot module.
+    let mut canonical = layout;
+    canonical.value_profiles_rust = None;
+    let calibration = crate::template_calibration::Calibration {
+        installed_values_identity: [0; 32],
+        entries: vec![crate::template_calibration::Entry {
+            name: "canonical-fore".into(),
+            mask_roles: None,
+            append_status: None,
+            source_document_id: plot.expanded.source_document_id.clone(),
+            checked_plot_id: plot.expanded.checked_plot_id.clone(),
+            expanded_plot_id: plot.expanded.expanded_plot_id.clone(),
+            layout: canonical,
+            other: vec![],
+            source_to_kernel: vec![0],
+            offer_images: vec![],
+        }],
+    };
+    let directory =
+        std::env::temp_dir().join(format!("canonical-fore-topology-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    calibration.emit_to(&directory, 1024 * 1024).unwrap();
+    let emitted = std::fs::read_to_string(directory.join("workset_0_layout.rs")).unwrap();
+    assert_eq!(
+        emitted
+            .matches("pub const ABNORMAL_CORD_COUNT:usize=0;")
+            .count(),
+        1
+    );
+    assert_eq!(
+        emitted
+            .matches("pub const EXTERNAL_INGRESS_CORD_COUNT:usize=1;")
+            .count(),
+        1
+    );
+    assert!(!emitted.contains("pub const CORD_VALUE_PROFILES"));
+    std::fs::remove_dir_all(directory).unwrap();
 }

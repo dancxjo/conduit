@@ -262,6 +262,9 @@ impl Calibration {
                 entry.layout.host_call_value_slot_capacities,
             );
             text.insert_str(0, &geometry);
+            // These topology facts apply to canonical-only targets too; they
+            // are checked again against actual topology before kernel binding.
+            text.insert_str(0, &format!("pub const ABNORMAL_CORD_COUNT:usize={};\npub const EXTERNAL_INGRESS_CORD_COUNT:usize={};\n", entry.layout.abnormal_cord_count, entry.layout.external_ingress_cord_count));
             if let Some(profiles) = &entry.layout.value_profiles_rust {
                 text.insert_str(0, profiles);
             }
