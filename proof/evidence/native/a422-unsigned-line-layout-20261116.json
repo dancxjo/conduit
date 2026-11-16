@@ -1,0 +1,128 @@
+{
+  "scope": "UNSIGNED offline reconstruction; no authority, Root calls, transport, device writes or Start",
+  "expected_payload_sha256": "f870841d25f18f2ef4949e8c2e247dfaa1fde07a3d286f54581a3baec9dfb410",
+  "reconstructed_payload_sha256": "f870841d25f18f2ef4949e8c2e247dfaa1fde07a3d286f54581a3baec9dfb410",
+  "payload_bytes": 15530,
+  "resident_counts": [
+    3,
+    1,
+    0
+  ],
+  "projection_bytes": [
+    7542,
+    1885,
+    2279
+  ],
+  "declared_state_bytes": [
+    15898,
+    2945,
+    19165
+  ],
+  "structural_records": [
+    {
+      "entry": "yellow-sampling",
+      "expected_records": 153,
+      "actual_records": 153,
+      "unexpected_by_tag": {
+        "4": 2,
+        "10": 3
+      },
+      "missing_by_tag": {
+        "4": 2,
+        "10": 3
+      },
+      "record_multiset_equal": false
+    },
+    {
+      "entry": "yellow-mask",
+      "expected_records": 35,
+      "actual_records": 35,
+      "unexpected_by_tag": {},
+      "missing_by_tag": {},
+      "record_multiset_equal": true
+    },
+    {
+      "entry": "yellow-output",
+      "expected_records": 35,
+      "actual_records": 35,
+      "unexpected_by_tag": {
+        "4": 1,
+        "10": 1
+      },
+      "missing_by_tag": {
+        "4": 1,
+        "10": 1
+      },
+      "record_multiset_equal": false
+    }
+  ],
+  "limitations": [
+    "Native rlibs perform deterministic metadata projection; exact complete SHA independently anchors resulting payload to actual reported MCU input.",
+    "No delegated body admission or execution factory invoked.",
+    "Layout failure is a demonstrated frozen structural incompatibility, not evidence of the actual hardware fault location.",
+    "Line shared decoder acceptance is executed by GeneratedLineForePlan::checked_layout when deriving normalized actual record requirements."
+  ],
+  "executed_sampling_kernel_table_result": "AssignedKernelRefusal::Layout",
+  "executed_output_decoder_result": "AssignedPlanRefusal::UnknownForeEndpoint",
+  "earliest_demonstrated_gate": "Output Fore ABI validation (before preparation callback; sampling layout mismatch is subsequent)",
+  "output_frame_abi_difference": {
+    "frozen_item_capacity": 1,
+    "actual_item_capacity": 1,
+    "frozen_byte_capacity": 651,
+    "actual_byte_capacity": 268,
+    "all_other_abi_fields_equal": true
+  },
+  "native_library_source": "work/dictionary-source-composition-qualification-20261116",
+  "frozen_comparison_source": "work/source-composition-fore-qualification-20261116",
+  "relevant_library_sources_identical_to_frozen": {
+    "architecture/assigned-plan/src/fore.rs": true,
+    "architecture/assigned-plan/src/line_fore.rs": true,
+    "architecture/assigned-plan/src/records.rs": true,
+    "architecture/assigned-plan/src/validation.rs": true,
+    "architecture/kernel/src/assigned.rs": true,
+    "architecture/kernel/src/assigned/layout.rs": true,
+    "architecture/kernel/src/assigned/line_fore.rs": true
+  },
+  "helper_private_path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/private/unsigned-projection-diagnosis-20261116/reconstruct.rs",
+  "output_selected_offer": {
+    "capability_id": "conduit.expression/resident-structured@1/conduit.expression/resident-source@1/e7fc5f1ca46128f28cd15f845e895a3efb1dd5c7d8143ac8406adf2be0909155/instance/32a994522145a85abf7c035df0a70e0d0d6bf524df8b43855b7ef53c87f7bad3",
+    "kind_id": "conduitese/pure-expression/00fd2070d7671883424ffce5de7687ac5641d6992f4a93307a6378844874978b",
+    "max_queue_bytes": 651,
+    "input_value_contract_maximum_bytes": 651
+  },
+  "helper_run_log_private_path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/private/unsigned-projection-diagnosis-20261116/run.log",
+  "corrected_trusted_recipe_sampling_table_result": "Ok",
+  "corrected_kernel_geometry": {
+    "nodes": 18,
+    "cords": 20,
+    "ports": 2,
+    "route_slots": 36,
+    "targets": 19,
+    "host_call_slots": 36
+  },
+  "recipe_sources": [
+    "independently checked frozen local projection template",
+    "original BodyPlan canonical current Fore placements",
+    "independently derived exact selected physical Line/session profile"
+  ],
+  "recipe_limitations": [
+    "CPU harness collects lazy expected fingerprints only for compatibility with existing slice-only kernel API. Production lazy integration is not implemented.",
+    "Canonical current placement acquisition and authority remain separate obligations.",
+    "An initial CPU harness incorrectly used route-record count for indexed route-slot capacity; corrected to N*P=36 before reporting success."
+  ],
+  "sparse_preflight": {
+    "changed_rows": 5,
+    "scratch_slots": 6,
+    "scratch_bytes_native": 216,
+    "iterations": 200,
+    "unoptimized_native_total_microseconds": 85003,
+    "target_cost_measured": false,
+    "expected_fingerprint_hashes_during_kernel_multiset_scan": 0
+  },
+  "source_canonical_placement_proof": {
+    "exact_actual_sampling_matches": 3,
+    "ambiguous_initialized_offer_refuses": true,
+    "wrong_artifact_refuses": true,
+    "wrong_kind_refuses": true
+  }
+}

@@ -3,10 +3,7 @@ use super::*;
 use conduit_body as b;
 use conduit_mcu_host_runtime::continuation_native::ContinuationNativeContext;
 use core::fmt::Write;
-pub struct Installed<'a> {
-    pub acceptance: conduit_mcu_host_runtime::root::InstalledContinuationAcceptance,
-    pub prefix: &'a [u8; 8192],
-}
+pub use conduit_mcu_host_runtime::continuation_startup::Installed;
 mod factory {
     include!(concat!(
         env!("OUT_DIR"),

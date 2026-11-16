@@ -2,6 +2,9 @@
 // independent owned members of the SAME complete admitted/Started workset.
 use super::*;
 #[cfg(fore_carrier)]
+#[path="source_play_fore_layout.rs"]
+mod layout_recipe;
+#[cfg(fore_carrier)]
 use conduit_mcu_host_runtime::{
     fore_bridge::BoundForeBridge,
     root::{BoundForeCarrierKernels, BoundForeSessions, ForeCarrierKernels},
@@ -108,6 +111,7 @@ unsafe impl<'a, 'p, S: PreparedLocalKernels> PreparedLocalKernels for PreparedSa
 #[allow(clippy::too_many_arguments)]
 pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, SP>>(
     approved: &b::DelegatedBodyFragment<'_>,
+    actual: &c::HostAdvertisement,
     profile: b::AssignedBodyPreparationProfile<'_>,
     all_fore: &[c::AssignedForeRequirement],
     line: Option<c::AssignedLineForeProfile<'_>>,
@@ -135,6 +139,7 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
     >,
     Refusal<&'static str>,
 > {
+    let _=actual;
     let layout = ResidentLayout {
         records: source::sampling_layout::RECORDS,
         counts: source::sampling_layout::COUNTS,
@@ -147,19 +152,31 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
         None => HostedSignLog::new(SS as u16, (SS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     }.map_err(|_| Refusal::Bounds)?;
     match line {
-        Some(line_fore) => PreparedFragment::prepare_with_line_fore_linked_terminal_transductions(
+        #[cfg(fore_carrier)]
+        Some(line_fore) => {
+            let template=c::AssignedLocalProjectionTemplate::check(source::sampling_layout::PROJECTION_TEMPLATE,&source::sampling_layout::PROJECTION_TEMPLATE_DIGEST,source::sampling_layout::MAXIMA).map_err(|_|Refusal::Scope)?;
+            let placements=layout_recipe::placements(actual).map_err(Refusal::Back)?;
+            let fresh:[c::FreshAssignedFore<'_>;source::sampling_layout::FORE_PORTS]=core::array::from_fn(|i|c::FreshAssignedFore {placement:placements[i].as_str(),..source::sampling_layout::FRESH_FORE[i]});
+            let mut overrides=[c::AssignedLayoutOverride::EMPTY;source::sampling_layout::FORE_PORTS*2];
+            let recipe=template.line_layout(&fresh,line_fore).map_err(|_|Refusal::Scope)?;
+            let overrides=recipe.write_overrides(layout.records,&mut overrides).map_err(|_|Refusal::Scope)?;
+            let view=conduit_kernel::assigned::ResidentLayoutView::checked(&layout,overrides).map_err(Refusal::Tables)?;
+            PreparedFragment::prepare_with_line_fore_recipe_linked_terminal_transductions(
             approved,
             b::AssignedBodyLineForePreparationProfile {
                 preparation: profile,
                 line_fore,
             },
-            &layout,
+            view,
             values,
             signs,
             maximum,
             || Ok::<_, &'static str>(backs),
             &SAMPLING_TERMINALS,
-        ),
+        )
+        },
+        #[cfg(not(fore_carrier))]
+        Some(_) => Err(Refusal::Scope),
         None => PreparedFragment::prepare_with_linked_terminal_transductions(
             approved,
             profile,

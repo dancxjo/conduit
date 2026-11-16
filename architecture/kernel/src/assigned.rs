@@ -4,6 +4,8 @@
 use crate as k;
 use conduit_assigned_plan as c;
 mod boundary;
+mod layout_view;
+pub use layout_view::{ResidentLayoutView, ResidentLayoutSource};
 mod line_fore;
 mod local_fore;
 use line_fore::ForeProfile;
@@ -154,7 +156,7 @@ impl<
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
-        layout: &ResidentLayout<'_>,
+        layout: impl ResidentLayoutSource,
         fore: Option<ForeProfile<'_>>,
     ) -> Result<Self, AssignedKernelRefusal> {
         Self::prepare_capacity_profile(input, maxima, required, computations, layout, fore, true)
@@ -165,7 +167,7 @@ impl<
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
-        layout: &ResidentLayout<'_>,
+        layout: impl ResidentLayoutSource,
         fore: Option<ForeProfile<'_>>,
         exact_counts: bool,
     ) -> Result<Self, AssignedKernelRefusal> {
@@ -206,7 +208,7 @@ impl<
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
-        layout: &ResidentLayout<'_>,
+        layout: impl ResidentLayoutSource,
         fore: Option<ForeProfile<'_>>,
         exact_counts: bool,
         nodes: &mut [NodeSpec<P>; N],
@@ -236,7 +238,7 @@ impl<
             || N > usize::from(u16::MAX)
             || P == 0
             || P > usize::from(u16::MAX)
-            || identity.counts != layout.counts
+            || identity.counts != layout.counts()
             || active_nodes == 0
             || active_nodes > N
             || active_cords > C

@@ -45,11 +45,10 @@ pub async fn run(
     let equipment = equipment
         .take()
         .expect("original initialized equipment slot");
-    let installed = prefix.map(|prefix| shared::continuation::Installed {
-        acceptance: crate::installed_continuation::accept(root, prefix)
-            .expect("invalid or uncertain installed continuation"),
-        prefix,
-    });
+    let installed =
+        conduit_mcu_host_runtime::continuation_startup::Startup::classify(prefix, |prefix| {
+            crate::installed_continuation::accept(root, prefix)
+        });
     let future = core::pin::pin!(shared::run(root, equipment, arena, link, installed));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }

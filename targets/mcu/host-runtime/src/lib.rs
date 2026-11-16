@@ -48,6 +48,9 @@ pub mod native_dispatch;
 pub mod native_supervisor;
 
 #[cfg(feature = "execution")]
+pub mod preparation_refusal;
+
+#[cfg(feature = "execution")]
 pub mod execution_group;
 
 #[cfg(feature = "execution")]
@@ -80,6 +83,9 @@ pub mod recording_service_equipment;
 
 /// Descriptive installed cross-Boot metadata; never authority by decoding.
 pub mod continuation_artifact;
+
+#[cfg(feature = "execution")]
+pub mod continuation_startup;
 
 #[cfg(feature = "execution")]
 pub mod fore_bridge;

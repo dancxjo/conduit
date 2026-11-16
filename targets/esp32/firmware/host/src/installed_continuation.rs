@@ -71,7 +71,11 @@ pub fn accept<const N: usize>(
     scratch.resize(PREFIX_BYTES, 0);
     let scratch: &mut [u8; PREFIX_BYTES] =
         scratch.as_mut_slice().try_into().map_err(|_| E::Bounds)?;
-    let accepted = root.read_continuation_acceptance(prefix, scratch)?;
-    root.restore_continuation_acceptance(&accepted)?;
-    Ok(accepted)
+    conduit_mcu_host_runtime::continuation_startup::verify(
+        root,
+        prefix,
+        scratch,
+        crate::play::continuation::SOURCE_DIGEST,
+        &crate::play::continuation::PINS,
+    )
 }

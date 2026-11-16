@@ -358,7 +358,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                     "kernel-headroom",
                 ));
             }
-            let sample = fore::prepare_kernel(sampling,sampling_profile(),sampling_fore,line.map(|l|l.profile),sampling_values,policy.maximum_retained_bytes,sample_backs)
+            let sample = fore::prepare_kernel(sampling,context.actual(),sampling_profile(),sampling_fore,line.map(|l|l.profile),sampling_values,policy.maximum_retained_bytes,sample_backs)
                 .map_err(|error| kernel_refusal(diagnostic,error,"sampling-kernel"))?;
             let sample=match carriage {Some(carriage)=>carriage.wrap(sample),None=>fore::PreparedSampling::Local(sample,core::marker::PhantomData)};
             let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog, OK, HostedValueStore, OQ, 0, OF, OU, OZ>::prepare_with_linked_terminal_transductions(

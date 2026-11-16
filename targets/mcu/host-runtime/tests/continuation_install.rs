@@ -18,6 +18,8 @@ use std::{
 #[allow(dead_code)]
 #[path = "../../../../architecture/body/tests/continuation_scope/reference.rs"]
 mod reference;
+#[path = "continuation_install/startup.rs"]
+mod startup;
 static PREP: b::HostPreparationDelegation = b::HostPreparationDelegation {
     authorizer: b::HostPreparationAuthorizer::SeedOwner,
     maximum_assignment_bytes: 24576,
@@ -239,6 +241,9 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
         assert_eq!(accepted.credential(), &receipt.credential);
         assert_eq!(accepted.membership_generation(), 1);
         assert_eq!(accepted.intent_generation(), 1);
+        startup::assert_cold_recovery(
+            selected, &bootstrap, &receipt, actual, source, pins, &mut media,
+        );
         let writes = media.programs;
         assert!(writes > 0 && writes <= 32);
         for cut in 1..=writes {

@@ -125,13 +125,14 @@ pub(super) async fn inspect(
     root: &Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }>,
     link: &mut crate::transport::Link,
     last_refusal: Option<conduit_mcu_host_runtime::root::Refusal>,
+    installed_refusal: Option<conduit_mcu_host_runtime::root::ContinuationAcceptanceRefusal>,
 ) -> Result<(), conduit_mcu_host_runtime::root::Refusal> {
     use conduit_mcu_host_runtime::transport::MessageTransport;
     use core::fmt::Write;
     let mut status = heapless::String::<384>::new();
     let _ = write!(status,
-                    "ROOT_INSPECTION@1 unsigned phase=not-started current_member={} retained_input={} heap_used={} last_refusal={:?}",
-                    root.has_current_member(), root.retained_input(), allocator_used(), last_refusal);
+                    "ROOT_INSPECTION@1 unsigned phase=not-started current_member={} retained_input={} heap_used={} last_refusal={:?} installed_refusal={:?}",
+                    root.has_current_member(), root.retained_input(), allocator_used(), last_refusal, installed_refusal);
     link.send(status.as_bytes())
         .await
         .map_err(|_| conduit_mcu_host_runtime::root::Refusal::Carrier)

@@ -25,6 +25,7 @@ pub(super) fn check_actual<B: PreparedBacks<N, P>, const N: usize, const P: usiz
 #[inline(never)]
 #[allow(clippy::too_many_arguments)]
 pub(super) fn prepare_checked_backs<
+    'layout,
     B,
     E,
     const N: usize,
@@ -37,7 +38,7 @@ pub(super) fn prepare_checked_backs<
     bytes: &[u8],
     profile: &super::b::AssignedBodyPreparationProfile<'_>,
     fore: super::ForeProfile<'_>,
-    layout: &super::ResidentLayout<'_>,
+    layout: impl Into<conduit_kernel::assigned::ResidentLayoutView<'layout>>,
     factory: impl FnOnce() -> Result<B, E>,
 ) -> Result<B, super::Refusal<E>> {
     check_tables::<N, C, P, R, T, H>(bytes, profile, fore, layout)
@@ -47,6 +48,7 @@ pub(super) fn prepare_checked_backs<
 
 #[inline(never)]
 fn check_tables<
+    'layout,
     const N: usize,
     const C: usize,
     const P: usize,
@@ -57,12 +59,12 @@ fn check_tables<
     bytes: &[u8],
     profile: &super::b::AssignedBodyPreparationProfile<'_>,
     fore: super::ForeProfile<'_>,
-    layout: &super::ResidentLayout<'_>,
+    layout: impl Into<conduit_kernel::assigned::ResidentLayoutView<'layout>>,
 ) -> Result<(), conduit_kernel::assigned::AssignedKernelRefusal> {
     // A bounded preparation-only validation pass. This scratch is retired before
     // factory/report inspection. The immutable input is decoded again by the
     // separate storage constructor; no temporary heap or new capacity is used.
-    fore.check::<N, C, P, R, T, H>(bytes, profile, layout)
+    fore.check::<N, C, P, R, T, H>(bytes, profile, layout.into())
 }
 
 #[cfg(test)]
