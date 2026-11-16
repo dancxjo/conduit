@@ -62,6 +62,7 @@ struct Trace {
     digits: [u8; 4],
     frames: heapless::Vec<[u8; 4], 128>,
     total_frames: usize,
+    last_frame_ms: u64,
     seen: [bool; 3],
     transactions: usize,
     acks: usize,
@@ -76,6 +77,7 @@ static WIRE: Mutex<Trace> = Mutex::new(Trace {
     digits: [0; 4],
     frames: heapless::Vec::new(),
     total_frames: 0,
+    last_frame_ms: 0,
     seen: [false; 3],
     transactions: 0,
     acks: 0,
@@ -114,6 +116,7 @@ pub fn data(released: bool) {
             } else if t.packet.len() == 1 && t.packet[0] & 0xf8 == 0x88 {
                 let digits = t.digits;
                 t.total_frames += 1;
+                t.last_frame_ms = crate::cpu_time::now_ms();
                 for (i, expected) in [
                     [0, 0x07, 0x4f, 0x71],
                     [0, 0x07, 0x6d, 0x71],
@@ -151,6 +154,9 @@ pub fn ack() -> bool {
 }
 pub fn frame_count() -> usize {
     WIRE.lock().unwrap().total_frames
+}
+pub fn last_frame_ms() -> u64 {
+    WIRE.lock().unwrap().last_frame_ms
 }
 pub fn check_frames() {
     let t = WIRE.lock().unwrap();

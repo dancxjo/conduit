@@ -80,7 +80,7 @@ receipt={
  'library_features':selected_features,
  'fixture_sources_sha256':{p.name:digest(p) for p in sorted(Path(__file__).parent.glob('*.rs'))},
  'constructor_exit':result.returncode,'compile_log_sha256':digest(a.output/'compile.log'),'run_log_sha256':digest(a.output/'run.log'),
- 'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,'original_Source_execution_completed':effects,
+ 'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,'original_Source_execution_completed':effects and result.returncode==0,
  'not_proved':([] if started else ['Successful complete Source preparation','Renderer preparation and whole admission/Start'])+([] if effects else ['Provider effects or continuing Play'])+['Target stack/heap/ABI fit','Physical device execution'],
 }
 (a.output/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')

@@ -86,7 +86,7 @@
     "MCU runtime RAM peak",
     "Physical restart/history continuity",
     "Reconnection or exact remote durable history handoff",
-    "Overnight horizon beyond this six-period CPU window"
+    "Full authored960-period horizon still pending"
   ],
   "logs": {
     "compile.log": {
@@ -96,6 +96,42 @@
     "run.log": {
       "retained_path": "target/qualification/Source-execution-read-failure/run.log",
       "sha256": "f32f715ae353c40ec1f9d0bacd6d9f7452dfd79e97f190224f6f96346ce1ca41"
+    }
+  },
+  "extended_65_observation_horizon": {
+    "simulated_elapsed_ms": 3901930,
+    "polls": 390193,
+    "captures": 65,
+    "waits_started": 66,
+    "NOR_program_units": 138,
+    "committed_records": 69,
+    "exact_recovered_samples": 65,
+    "Face_source_sequence": 65,
+    "display_transactions": 1953,
+    "display_ACKs": 17577,
+    "last_frame_age_ms": 920,
+    "display_remained_fresh": true,
+    "steady_heap_at_sequences_2_4_16_32_64_65": 105240,
+    "Source_run_heap_peak": 105647,
+    "Source_count_and_grants_unchanged": true,
+    "read_timeout_ms": 30000,
+    "read_failures": 1,
+    "incoming_frames": 0,
+    "durable_acknowledgments": 0,
+    "witness_ring_capacity": 128,
+    "witness_ring_is_external_CPU_instrumentation_not_execution_custody": true,
+    "execution_evidence_evicted": false,
+    "media_gaps": 0,
+    "media_corruption": 0,
+    "logs": {
+      "compile.log": {
+        "retained_path": "target/qualification/Source-execution-65/compile.log",
+        "sha256": "053a16d8403edc7dc5b460a69b1d1c10d0ac322cc922276e65233b61f2369c44"
+      },
+      "run.log": {
+        "retained_path": "target/qualification/Source-execution-65/run.log",
+        "sha256": "d0dd4938f5c5afe149f6cbbc6a3df53244ececd29950a77382fc1ca0ca6b62ab"
+      }
     }
   }
 }

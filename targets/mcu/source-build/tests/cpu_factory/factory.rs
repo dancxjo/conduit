@@ -355,13 +355,17 @@ pub fn probe(
                     status,
                 );
                 crate::accounting::begin_phase();
-                crate::execution::drive(future, &face);
+                let display_fresh = crate::execution::drive(future, &face);
                 println!(
                     "CPU_PHASE Source_run_peak={}",
                     crate::accounting::phase_peak()
                 );
                 crate::accounting::begin_phase();
                 crate::execution::recover();
+                assert!(
+                    display_fresh,
+                    "original Source display stopped while sampling continued"
+                );
                 assert_eq!(*parts.workspace.payload_digest().unwrap(), retained_digest);
                 assert!(!parts.resources.admissions().is_empty());
                 println!("CPU_CUSTODY_AFTER_OUTAGE retained_digest_unchanged=true original_admissions_retained=true");
@@ -373,6 +377,10 @@ pub fn probe(
             core::hint::black_box((&started, &scopes));
         }
     }
+    assert!(
+        crate::accounting::peak() <= crate::config::HEAP_BYTES,
+        "CPU fixture exceeded original heap grant; no target fit inference"
+    );
     println!("CPU_PEAK whole_fixture_heap={} original_limit={} all_fixture_metadata_included=true target_fit=false",crate::accounting::peak(),crate::config::HEAP_BYTES);
     println!("CPU_AFTER_CASE_RAM charged_retained={} available={} original_limit={} simulated_nor_bytes={} fixture_metadata_and_sender_included=true",allocator_used(),crate::runtime::remaining(),crate::config::HEAP_BYTES,crate::config::RECORDING_PREFIX_BYTES as usize+crate::config::RECORDING_SLOTS as usize*512);
 }
