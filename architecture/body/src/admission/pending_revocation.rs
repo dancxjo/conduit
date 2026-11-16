@@ -26,6 +26,28 @@ impl AdmissionManager {
         &mut self,
         invitation: &SpawnInvitation,
     ) -> Result<(), PendingInvitationRevocationRefusal> {
+        let index = self.owned_pending_spawn_invitation_index(invitation)?;
+        self.invitations.remove(index);
+        Ok(())
+    }
+
+    /// Check exact owner custody of an unused pending invitation without mutation.
+    /// This is a point-in-time check, not a reservation, lease or issuer grant.
+    /// It does not check the clock or establish time validity. Revalidate against
+    /// this same manager and perform the existing expiry checks before sealing
+    /// or delivery, including after any await.
+    pub fn validate_owned_pending_spawn_invitation(
+        &self,
+        invitation: &SpawnInvitation,
+    ) -> Result<(), PendingInvitationRevocationRefusal> {
+        self.owned_pending_spawn_invitation_index(invitation)
+            .map(|_| ())
+    }
+
+    fn owned_pending_spawn_invitation_index(
+        &self,
+        invitation: &SpawnInvitation,
+    ) -> Result<usize, PendingInvitationRevocationRefusal> {
         use PendingInvitationRevocationRefusal::*;
         if invitation.body_id != self.body_id {
             return Err(WrongBody);
@@ -52,8 +74,7 @@ impl AdmissionManager {
         if record.used {
             return Err(AlreadyUsed);
         }
-        self.invitations.remove(index);
-        Ok(())
+        Ok(index)
     }
 }
 
