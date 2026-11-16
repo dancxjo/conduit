@@ -1,0 +1,45 @@
+{
+  "schema": "conduit.evidence/bounded-physical-fore-bootstrap@1",
+  "date": "2026-11-16",
+  "scope": "Actual Linux Carriage::handshake software proof; not live UART or MCU execution evidence",
+  "source_base": "980999cfa400aade3c134cc09573530675a25476",
+  "implementation_commit": "82eccc35cc3feccc38ec3b287b32aa972d3b1682",
+  "followup": "Explicit Option<usize> inference annotation; no scheduling or protocol change",
+  "strategy": "Receive scoped peer Hello first; retain both route Hellos; activate one route at a time while receiving all routes",
+  "existing_protocol_message_or_buffer_added": false,
+  "original_frame_time_cancellation_bounds_preserved": true,
+  "tested_peer_fifo_bytes": 128,
+  "maximum_unread_bytes": 126,
+  "schedule_variants": 512,
+  "first_route_orders": 2,
+  "handshake_attempted_frames": 8,
+  "actual_selected_tests": {
+    "passed": 16,
+    "failed": 0,
+    "ignored": 0,
+    "includes": [
+      "actual client bootstrap interleavings",
+      "foreign scope before Root writes",
+      "interrupted second route without retry",
+      "original owned PTY and decoder preservation",
+      "application pressure and delivery distinctions"
+    ]
+  },
+  "checks": {
+    "owning_library_tests": "passed release profile",
+    "clippy_all_no_deps": "passed; existing unrelated dead_code warning remains",
+    "rust_toolchain": "1.98.1"
+  },
+  "role_requirement": "MCU actor initiates Hello only after genuine Started. This is not a symmetric both-listener bootstrap.",
+  "claims_excluded": [
+    "physical UART timing measured",
+    "remote workset retirement",
+    "Started evidence reconstructed from traffic",
+    "durable recording acknowledgment",
+    "deployment to current Root"
+  ],
+  "retained_log_sha256": {
+    "tests": "35bfc835b28894a37a6f9d031b3ea3196757a9a8ef5977c79b3688b9412a1394",
+    "clippy": "c1cc7d5e8b989eba839acfa69250db0ee61fbbafe0f05787e14fc5a91d1dcac2"
+  }
+}

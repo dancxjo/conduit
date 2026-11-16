@@ -46,7 +46,7 @@ impl<F: Frames> Carriage<F> {
         let mut hello = [false; 2];
         let mut ready = [false; 2];
         let mut started = [false; 2];
-        let mut current = None;
+        let mut current: Option<usize> = None;
         for _ in 0..4 {
             let frame = self.receive(output, left()?)?;
             let route = frame.route;
