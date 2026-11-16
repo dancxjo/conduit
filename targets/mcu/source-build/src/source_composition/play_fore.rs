@@ -124,7 +124,7 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
         ST,
         SH,
         SS,
-        HostedSignLog,
+        SamplingSignLog,
         SK,
         HostedValueStore,
         SQ,
@@ -146,6 +146,9 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
         }
         None => HostedSignLog::new(SS as u16, (SS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
     }.map_err(|_| Refusal::Bounds)?;
+    #[cfg(dictionary_sign_archive)]
+    let signs = SamplingSignLog::try_prepare_dictionary(signs, crate::config::DICTIONARY_ARCHIVE_LIMITS)
+        .map_err(|_| Refusal::Bounds)?;
     match line {
         Some(line_fore) => PreparedFragment::prepare_with_line_fore_linked_terminal_transductions(
             approved,

@@ -42,7 +42,7 @@ type Wire = crate::equipment::Wire;
 mod shapes {
     include!(concat!(env!("OUT_DIR"), "/source_play_shapes.rs"));
 }
-pub(crate) use shapes::FORE_PORTS;
+pub(crate) use shapes::{FORE_PORTS, SamplingSignLog};
 #[cfg(fore_carrier)]
 pub(crate) use shapes::SAMPLING_LINE_SIGNS;
 use shapes::{

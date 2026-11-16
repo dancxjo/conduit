@@ -22,9 +22,11 @@ fn main() {
     );
     println!("cargo:rerun-if-changed={}", path.display());
     let source = fs::read_to_string(&path).expect("Host Source");
-    let packages =
-        conduit_host_make::MakePackageSet::compose(&[&conduit_host_esp32_make::Esp32MakePackage])
-            .unwrap();
+    let archive_package = conduit_host_make::dictionary_sign_archive::DictionarySignArchivePackage::for_targets(
+        vec!["esp32/xtensa-lx6/hw-463-esp-wroom-32".into()],
+    ).expect("explicit supported dictionary archive target");
+    let packages = conduit_host_make::MakePackageSet::compose(&[&conduit_host_esp32_make::Esp32MakePackage, &archive_package])
+        .expect("coherent physical and software construction packages");
     let catalog = conduit_host_make::MakeCatalog::canonical().with_packages(&packages);
     let parsed =
         conduit_host_make::parse_host_configuration_conduit(&source).expect("Host Source syntax");
@@ -54,6 +56,15 @@ fn main() {
     if fore_carrier.is_some() {
         println!("cargo:rustc-cfg=fore_carrier");
     }
+    let dictionary_archive = conduit_mcu_source_build::dictionary_sign_archive::CheckedDictionarySignArchiveConstruction::from_configuration(&checked)
+        .expect("checked explicit dictionary archive construction");
+    println!("cargo:rustc-check-cfg=cfg(dictionary_sign_archive)");
+    if let Some(archive) = dictionary_archive {
+        assert!(fore_carrier.is_some() && recording.service,
+            "archived duplex Source requires the checked single-result record service and Fore carrier");
+        println!("cargo:rustc-cfg={}", archive.cfg_selection());
+    }
+    let dictionary_archive_constants = dictionary_archive.map_or_else(String::new, |c| c.rust_module());
     let fore_carrier_bounds = fore_carrier.map_or_else(
         || "None".to_string(),
         |c| format!("Some({})", c.rust_bounds()),
@@ -98,6 +109,7 @@ fn main() {
 pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
 pub const RECORDING_SLOTS:u32={recording_slots};
 pub const RECORDING_READ_OPERATIONS:u32={recording_read_operations};
+{dictionary_archive_constants}
 pub const FORE_CARRIER_BOUNDS:Option<conduit_mcu_host_runtime::root::ForeCarrierBounds>={fore_carrier_bounds};
 pub const FORE_CARRIER_IMPLEMENTATION:&str={fore_carrier_implementation:?};
 pub const CONFIGURATION_ID:&str={configuration:?};
