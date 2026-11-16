@@ -265,6 +265,6 @@ fn exercise() {
         &operations,
         &runtime,
     );
-    assert_eq!(bus_calls.get(), 54);
+    assert_eq!(bus_calls.get(), if FAIL_DISPLAY { 49 } else { 54 });
     assert!(clock_calls.get() > 0);
 }

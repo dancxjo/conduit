@@ -57,3 +57,47 @@ MCU receiving/persistence owner: `targets/mcu/host-runtime/src/{member_return.rs
 Tests belong beside existing `architecture/body/src/admission_receipt_attestation.rs` / federation-current-member tests, `products/conduit/src/body_owner/tests/{member_carrier.rs,member_return.rs,state tests}`, and MCU member-return protocol tests. Require: same durable authority with genuinely fresh Root Boot/key; original installed anchor; exact Body/owner/member scope; wrong/self-signed successor refusal; changed Boot/generation/key tampering; stale/replayed/expired/cancelled transition; revocation and concurrent successor; interrupted commit/ACK/reopen; old carrier/receipt cannot become current; ordinary fresh member Return still required; local Play/reservation custody stays untouched on refusal.
 
 Immediate outcome: retain the correctly refused pre-device-open evidence and continue independent preparation work. This audit does not qualify Return, authorize a pin change, or establish that the MCU has adopted the new Root.
+
+## Addendum — does the owner Host already have a durable key? (bounded follow-up)
+
+**Joined Host: yes, a scoped member continuity key exists. Born Body-owner Host: the inspected construction/reopen path does not provision one. Neither finding supplies an existing receipt-issuer authority API.** No live Root/state-directory I/O was performed, so this is a source-path finding, not a claim that a particular physical file is absent on Root746.
+
+The follow-up stayed within20 source files and performed no builds or changes outside this addendum. Relevant additional sources: `products/conduit/src/durable_host_membership{.rs,/continuity_key.rs,/continuity_key/tests.rs,/returned.rs}`, `durable_host_control/body_birth.rs`, `body_owner/{controller.rs,controller/birth.rs}`, `durable_host{.rs,/installation_read.rs,/runtime_marker.rs}`, and existing preparation-delegation/canon references.
+
+### Proven durable member-key custody
+
+`durable_host_membership/continuity_key.rs::RetainedKey` stores schema, Body, Part, Host, invitation identity and the original invitation secret at **`body/member-continuity-key.json`**. This is separate from `MemberCarrierCustody.key`.
+
+`complete_body_join_document` requires explicit membership authorization, validates the exact pending request and accepted receipt against installed Host identity, then calls `continuity_key::retain` before publishing joined membership. `retain_rendezvous_membership` has the corresponding pending-join path. `retain` independently rechecks the pending invitation/request, exact current admitted advertisement and signature produced from that same invitation secret. Existing different identity/scope refuses overwrite. Publication uses a private staging inode, file sync, atomic no-clobber hard-link publication and directory sync; crash retry validates the existing exact record. Tests include key-publication-before-membership interruption and restart completion. Returning membership calls `validate_member_scope` and commits the new credential separately; it does not replace the key on each Boot.
+
+Reading requires actual directories, a bounded nonempty regular record (maximum4096 bytes), Unix0600 permissions and matching opened inode/device metadata. Temporary serialized buffers and record secret fields are cleared on their defined cleanup paths. These are the existing finite filesystem custody rules, not a new cryptographic revocation guarantee.
+
+There is deliberately **no raw key getter or generic signing endpoint**. `read` and `RetainedKey` are private to the module. Two typed gates reconstruct the signer internally:
+
+* `sign_return_challenge`: exact retained Body/Part/Host scope, exact actual new member Boot/offer matching the challenge, nonzero nonce and bounded current challenge lifetime; signs only the canonical PartReturn transcript. It proves the member's key possession, not that the member may issue receipts to other Hosts.
+* `sign_member_carrier_challenge`: independently loads installed current credential, checks exact member key/actual current Boot/offer and trusted receiver/session/Line/security/frame/time facts, then signs only the existing federation transcript. It does not grant admission, presence, Line initialization or effects.
+
+This key originated as the private invitation's member-admission secret. Its existing purpose and trust distribution must not be silently upgraded to an exclusive Root authority key. Possession/availability and permission to attest membership receipts are separate questions.
+
+### Born owner path is different
+
+`durable_host_control/body_birth.rs` calls `Owner::prepare_born`, journals `PreparedBirth::retain`, then transfers the actual installed Host into `Owner::from_prepared_born`. In `body_owner/controller/birth.rs`, the initial Part and presence are established through the locally authorized Birth and exact Host/Boot Sign context. `PreparedBirth` retains the lifecycle session and resident Plot; it generates/persists no member signing secret and makes no pending invitation join.
+
+`durable_host.rs::Installation` persists Host identity and release/body bindings, not a cryptographic Host signing key. Reopening the owner resumes Body membership against the actual current advertised Host/Boot and restores the admission manager. The separate `member_carrier` signer is still created afresh as previously audited. Thus a born-owner source path does not automatically acquire the joined-member continuity file simply because it is also a Host/Part in the Body.
+
+The current Root's actual ownership classification/state was not reread under this read-only/no-Root-I/O task. If it has separately completed a joined-Host installation, the durable member key could physically exist, but its availability would still need the exact existing scope checks and explicit receipt-issuer authorization. No such receipt-signing accessor or authorization role was found in this bounded source path.
+
+### Evaluation of a new durable Host-authority anchor
+
+**Yes, a new Seed can explicitly anchor a durable `(Body, authorized Host, verifying key)` identity while receipts name the actual current owner Boot and the exact committed returning-device Boot/grants, with the transport peer remaining fresh.** This is a coherent proposed **new typed authority contract**, not behavior already furnished by the current `FederationPeer` pin or existing member-key signer. The durable signer must be privately and recoverably owned, and authorized for that receipt-issuance purpose. A joined member's existing key could be considered only through an explicit role/purpose decision and typed signing gate; a born owner currently needs a lawful durable signer-custody path or separately installed authority. Do not expose the secret to caller code or rename the ephemeral transport key into this role.
+
+The required acceptance obligations are:
+
+* Independently installed anchor plus explicit Body-owner/receipt-issuer role. A matching Host name, Body label, public key, ordinary membership proof or discovery observation is insufficient.
+* Domain-separated typed receipt/peer-authorization statements. Bind exact Body/issuer identity and current owner Boot/offer, exact member/Part/key/current device Boot/offer, original proof/receipt bytes and committed grant projection. Neither a transport ACK nor a member's own proof becomes durable admission.
+* Actual current Boot comes from the issuer's owning Root, not an incoming caller; a durable key does not preserve old runtime leases, Plans, reservations, session sequences or effects. Transport authentication and current owner proof remain distinct from installed durable trust.
+* Explicit key/role replacement, withdrawal/revocation and finite issuance identity. Persist accepted advancement/revocation before acknowledgment; reject stale chains and reused issuance identities. Account honestly for unknown remote revocation while disconnected rather than claiming omniscience.
+* Atomic interruption/reopen semantics for signer publication, accepted authority state and receipt commit; no silent fallback to a newly generated key when a durable record is missing/corrupt. Preserve least-authority filesystem/IMAGE ownership and finite backing.
+* A→fault/restart→B tests must retain the same durable authority while changing the actual owner Boot and transport key, prove old-peer/receipt refusal, and preserve member admission commit-before-ACK and reservation cleanup. Compromised-key recovery is an explicit installation/rotation policy, not key-file deletion.
+
+Old Seeds still pin the entire old peer and do not opt into this proposed contract. The user's authorized operator reseed can establish the new anchor; it must not be presented as cryptographic succession from a lost old key. No issue, wire format, signer implementation or deployment was created by this evaluation.

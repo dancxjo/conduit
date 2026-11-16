@@ -16,6 +16,7 @@ struct View {
     pins: [c::AssignedForeRequirement; 12],
     validators: [c::BorrowedStructuredValueValidator<'static>; 12],
     staged: [bool; 3],
+    frame_closed_without_value: bool,
     counts: [usize; 9],
     closed: [bool; 9],
     steps: usize,
@@ -48,6 +49,7 @@ impl View {
                 c::BorrowedStructuredValueValidator::new(crate::typed::PORTS[i].1, 4096).unwrap()
             }),
             staged: [false; 3],
+            frame_closed_without_value: false,
             counts: [0; 9],
             closed: [false; 9],
             steps: 0,
@@ -61,6 +63,11 @@ impl View {
             self.counts,
             self.closed
         );
+        if !self.staged[2] && !self.frame_closed_without_value && self.counts[5] > 0 {
+            let pin = self.pins[2];
+            kernel.close_remote_input(RemoteEndpointId(pin.endpoint()), CordId(pin.cord()))?;
+            self.frame_closed_without_value = true;
+        }
         for i in 0..3 {
             if !self.staged[i] && (i != 2 || self.counts[4] > 0) {
                 let pin = self.pins[i];
@@ -118,9 +125,22 @@ impl View {
                         &[14]
                     );
                 }
+                if i == 5 {
+                    assert!(crate::FAIL_DISPLAY);
+                    let bus_failure = value
+                        .variant_payload("bus")
+                        .unwrap()
+                        .expect("typed initialization bus failure");
+                    assert_eq!(bus_failure.variant_tag().unwrap(), "not-acknowledged");
+                }
                 self.counts[i] += 1;
                 assert!(
-                    matches!(i, 0 | 1 | 4 | 6),
+                    matches!(i, 0 | 1)
+                        || if crate::FAIL_DISPLAY {
+                            i == 5
+                        } else {
+                            matches!(i, 4 | 6)
+                        },
                     "unexpected refused/unrouted output {}",
                     crate::typed::PORTS[i + 3].0
                 );
@@ -285,8 +305,16 @@ pub fn run<
         "execution attempted allocation"
     );
     view.service(kernel).unwrap();
-    assert_eq!(view.staged, [true; 3]);
-    assert_eq!(view.counts, [1, 1, 0, 0, 1, 0, 1, 0, 0]);
+    assert_eq!(view.staged, [true, true, !crate::FAIL_DISPLAY]);
+    assert_eq!(view.frame_closed_without_value, crate::FAIL_DISPLAY);
+    assert_eq!(
+        view.counts,
+        if crate::FAIL_DISPLAY {
+            [1, 1, 0, 0, 0, 1, 0, 0, 0]
+        } else {
+            [1, 1, 0, 0, 1, 0, 1, 0, 0]
+        }
+    );
     assert_eq!(view.closed, [true; 9]);
     assert_eq!(bus.bound_owner().inspection().in_flight_operations, 0);
     assert_eq!(clock.bound_owner().inspection().in_flight_operations, 0);
@@ -298,5 +326,5 @@ pub fn run<
         clock.bound_owner().inspection().lifecycle,
         c::CapabilityLifecycle::Revoked
     );
-    println!("whole_source76 authenticated_Start=true typed_inputs=3 typed_outputs=9 observed=4 all_outputs_closed=true native_dispatch=true execution_allocations=0 finite_component_only");
+    println!("whole_source76 authenticated_Start=true typed_inputs=3 typed_outputs=9 display_nack={} frame_sent={} outputs={:?} all_outputs_closed=true native_dispatch=true execution_allocations=0 finite_component_only",crate::FAIL_DISPLAY,view.staged[2],view.counts);
 }

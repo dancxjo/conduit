@@ -1,0 +1,27 @@
+[
+  {
+    "command": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/measure-cold-factory-20261115.py"
+    ],
+    "exit": 0,
+    "log": "outputs/positive-cold-factory-wrapper-20261115.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "+1.98.1",
+      "test",
+      "--locked",
+      "-p",
+      "conduit-host-rp2040",
+      "--test",
+      "neutral_execution",
+      "--",
+      "--ignored",
+      "--nocapture"
+    ],
+    "exit": 0,
+    "log": "outputs/neutral-execution-cold-factory-20261115.log"
+  }
+]

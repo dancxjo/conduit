@@ -90,6 +90,13 @@ impl I2cProvider for CpuBus<'_> {
                 };
                 assert_eq!(write, expected, "display transcript order at {step}");
                 assert_eq!(transaction.read_length(), 0);
+                if crate::FAIL_DISPLAY {
+                    assert_eq!(
+                        step, 0,
+                        "no retry or frame write after initialization refusal"
+                    );
+                    return Err(I2cDisposition::NotAcknowledged);
+                }
                 assert!(
                     matches!(write, [0x21] | [0x80] | [0xe7] | [0x81])
                         || write == [0; 17]

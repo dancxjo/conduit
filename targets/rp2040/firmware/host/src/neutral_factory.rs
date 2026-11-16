@@ -55,6 +55,8 @@ pub type Bound<'a, 'f, I, D> = (
 
 /// Whole factory accepts original owners and opaque Root context. Generated
 /// definitions/identities must be initialized together by the installed entry.
+// Keep cold factory scratch off the earlier software-initialization call frame.
+#[inline(never)]
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider + 'a>(
     workspace: &'w b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>,

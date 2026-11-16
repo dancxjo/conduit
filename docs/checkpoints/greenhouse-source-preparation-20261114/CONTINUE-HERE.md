@@ -1,6 +1,10 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: 4d3fbc71504ef6eb93a2afb96d3090ddc5bcc8f1. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: 80a7229e0456e265e2c5dea725ecb1d612f1c278. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+
+## Latest cold-phase stack qualification — 2026-11-15
+
+The no-inline factory phase fence passes original factory/no_std and authenticated Source76 execution tests. Exact ARM ELF5ee7d2fbac0725740ed36fe82b1d82d68601b7f09d38ffe8f3cf41a8dc073fc6 reduces preflight frame26960 to15480. Largest identified direct-call path52840 versus historical64320; region61248 unchanged. This is NOT a complete stack upper bound: indirect calls, dynamic paths and interrupts remain unqualified. No hardware deployment or heap fit claim. Older stack-gate evidence below predates this change.
 
 ## Latest Cord-terminal stock + real Source execution — 2026-11-15
 

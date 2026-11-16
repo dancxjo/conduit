@@ -29,6 +29,14 @@ fn constant<'a>(source: &'a str, name: &str) -> &'a str {
 #[test]
 #[ignore = "requires ordinary Make neutral OUT_DIR; full checked Source execution with CPU providers"]
 fn actual_checked_source_admits_starts_and_executes_complete_local_fore() {
+    run(false);
+}
+#[test]
+#[ignore = "requires ordinary Make neutral OUT_DIR; full Source display failure independence"]
+fn display_nack_preserves_source_measurement_and_complete_fore_closure() {
+    run(true);
+}
+fn run(fail_display: bool) {
     let out = fs::canonicalize(
         std::env::var_os("CONDUIT_NEUTRAL_CPU_OUT_DIR")
             .expect("explicit ordinary Make neutral OUT_DIR"),
@@ -77,7 +85,9 @@ fn actual_checked_source_admits_starts_and_executes_complete_local_fore() {
     .into_iter()
     .map(|(name, kind)| format!("pub const {name}:{kind}={};", constant(&host, name)))
     .collect::<String>();
-    let mut generated = format!("extern crate alloc;mod config{{{config}{extra}}}\n");
+    let mut generated = format!(
+        "extern crate alloc;const FAIL_DISPLAY:bool={fail_display};mod config{{{config}{extra}}}\n"
+    );
     for name in [
         "neutral_equipment_owners",
         "neutral_workset",
@@ -119,7 +129,7 @@ fn actual_checked_source_admits_starts_and_executes_complete_local_fore() {
     ));
     let exercise = format!("#[path={positive:?}] mod positive;\nmod probe{{include!({probe:?});pub fn current()->usize{{OBSERVATION.with(|o|o.get().live_bytes)}}pub fn snapshot()->Observation{{OBSERVATION.with(|o|o.get())}}}}\n#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;\n{}",include_str!("neutral_execution/exercise.rs"));
     let temporary = std::env::temp_dir().join(format!(
-        "conduit-neutral-execution-cpu-{}",
+        "conduit-neutral-execution-cpu-{}-{fail_display}",
         std::process::id()
     ));
     fs::create_dir(&temporary).unwrap();
