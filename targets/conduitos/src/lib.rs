@@ -52,6 +52,7 @@ mod execution_region;
 pub mod expression_host_call;
 #[path = "face_nucleus/offers.rs"]
 mod face_offers;
+pub mod filter_host_call;
 pub mod flow_concat_finite;
 pub mod flow_merge_finite;
 pub mod flow_singleton;
@@ -320,8 +321,20 @@ mod native_surface_possession;
     feature = "armv6-product"
 ))]
 mod native_surface_provider;
-#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+#[cfg(any(
+    test,
+    all(target_arch = "x86_64", feature = "native-compositor"),
+    feature = "native-compositor-core",
+    feature = "armv6-product"
+))]
 mod pointer_coordinates;
+#[cfg(any(
+    test,
+    all(target_arch = "x86_64", feature = "native-compositor"),
+    feature = "native-compositor-core",
+    feature = "armv6-product"
+))]
+mod pointer_state;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -482,3 +495,6 @@ mod service_zero_storage_tests;
 #[cfg(test)]
 #[path = "arch/armv6/framebuffer_response.rs"]
 mod bcm2835_framebuffer_response_tests;
+
+#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
+pub mod armv6_usb_input;

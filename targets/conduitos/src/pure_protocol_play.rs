@@ -50,6 +50,7 @@ impl PreparedPureProtocolPlay {
                     || !matches!(
                         gear.implementation_id.as_str(),
                         crate::expression_host_call::IMPLEMENTATION
+                            | crate::filter_host_call::IMPLEMENTATION
                             | crate::offer::TEXT_LITERAL_IMPLEMENTATION
                             | crate::bytes_literal::IMPLEMENTATION
                             | crate::flow_singleton::IMPLEMENTATION
@@ -65,19 +66,6 @@ impl PreparedPureProtocolPlay {
             return Err(Refusal::Unsupported);
         }
         operations
-            .joins
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
-        operations
-            .states
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
-        operations
-            .concats
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
-        operations
-            .merges
             .validate_plan(plan)
             .map_err(|_| Refusal::InvalidPlan)?;
         let lowered = lower_plan_fragment(fragment).map_err(|_| Refusal::InvalidPlan)?;
@@ -100,10 +88,6 @@ impl PreparedPureProtocolPlay {
                 return Err(Refusal::Unsupported);
             }
         }
-        operations
-            .singletons
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(operations.singletons)
@@ -113,6 +97,9 @@ impl PreparedPureProtocolPlay {
             .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(crate::text_literal::TextLiteralOperationFactory::default())
+            .map_err(|_| Refusal::InvalidPlan)?;
+        registry
+            .install(crate::filter_host_call::FilterOperationFactory::default())
             .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(ExpressionOperationFactory::default())

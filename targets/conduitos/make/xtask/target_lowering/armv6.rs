@@ -11,8 +11,12 @@ pub(crate) fn lower_armv6_bplus(
 ) -> Result<TargetBuildInputs, ConduitosError> {
     let graphical = manifest.presenters.iter().any(|p| p == NATIVE_PRESENTER);
     let mut presenters = vec![LINEAR_SERIAL_PRESENTER];
-    let mut bases = vec![SERIAL_TEXT_BASE, "audio/pcm-output"];
-    let mut drivers = vec![PL011_DRIVER, "raspberry-pi/pwm-jack@1"];
+    let mut bases = vec![SERIAL_TEXT_BASE, "audio/pcm-output", "usb/host-controller"];
+    let mut drivers = vec![
+        PL011_DRIVER,
+        "raspberry-pi/pwm-jack@1",
+        "raspberry-pi/dwc2@1",
+    ];
     let mut facilities = Vec::new();
     if graphical {
         presenters.push(NATIVE_PRESENTER);
@@ -49,6 +53,8 @@ pub(crate) fn lower_armv6_bplus(
     for base in &manifest.base_selections {
         let expected = if base.kind == SERIAL_TEXT_BASE {
             PL011_DRIVER
+        } else if base.kind == "usb/host-controller" {
+            "raspberry-pi/dwc2@1"
         } else if base.kind == "audio/pcm-output" {
             "raspberry-pi/pwm-jack@1"
         } else {
@@ -69,6 +75,26 @@ pub(crate) fn lower_armv6_bplus(
         }
     }
     let mut graphical_manifest = manifest.clone();
+    for call in [
+        "conduit.host/usb-control@1",
+        "conduit.host/usb-endpoint-read@2",
+        "conduit.host/monotonic-clock-at@1",
+    ] {
+        if graphical_manifest
+            .host_calls
+            .iter()
+            .filter(|c| c.as_str() == call)
+            .count()
+            != 1
+        {
+            return Err(refusal(
+                "armv6-usb-host-call-missing",
+                format!("missing exact native operation {call}"),
+            ));
+        }
+        graphical_manifest.host_calls.retain(|c| c != call);
+    }
+
     if graphical_manifest
         .host_calls
         .iter()
@@ -102,6 +128,7 @@ pub(crate) fn lower_armv6_bplus(
         cargo_features: features,
         implementations: portable_backbone
             | conduitos::make::IMPL_STARTUP_CHIME
+            | conduitos::make::IMPL_USB_TRANSPORT
             | conduitos::make::IMPL_LINEAR_PRESENTER
             | if graphical {
                 conduitos::make::IMPL_NATIVE_PRESENTER
@@ -120,6 +147,7 @@ pub(crate) fn lower_armv6_bplus(
         },
         bases: conduitos::make::BASE_SERIAL_TEXT
             | conduitos::make::BASE_PCM_AUDIO
+            | conduitos::make::BASE_USB_CONTROLLER
             | if graphical {
                 conduitos::make::BASE_DISPLAY_SCANOUT
             } else {
@@ -127,6 +155,7 @@ pub(crate) fn lower_armv6_bplus(
             },
         drivers: conduitos::make::DRIVER_PL011_SERIAL
             | conduitos::make::DRIVER_PWM_AUDIO
+            | conduitos::make::DRIVER_DWC2_USB
             | if graphical {
                 conduitos::make::DRIVER_LINEAR_FRAMEBUFFER
             } else {
@@ -204,6 +233,9 @@ mod tests {
             .any(|p| p == LINEAR_SERIAL_PRESENTER));
         assert!(manifest.presenters.iter().any(|p| p == NATIVE_PRESENTER));
         assert_eq!(lowered.proof_instrumentation, 0);
+        assert!(lowered.implementations & conduitos::make::IMPL_USB_TRANSPORT != 0);
+        assert!(lowered.bases & conduitos::make::BASE_USB_CONTROLLER != 0);
+        assert!(lowered.drivers & conduitos::make::DRIVER_DWC2_USB != 0);
     }
     #[test]
     fn missing_or_foreign_devices_and_audio_calls_refuse() {

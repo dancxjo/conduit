@@ -1,4 +1,4 @@
-//! Shared HID Source execution through the existing production kernel.
+//! Shared USB Source execution through the existing production kernel.
 //! Pure call owners are retained; physical endpoint calls require native admission.
 use crate::{
     protocol_host_calls::ProtocolCallRefusal,
@@ -11,15 +11,66 @@ use conduit_core::*;
 use conduit_kernel::{HostCallDisposition, HostCallOutcome, NodeId};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
-pub struct PreparedHidSourceKernel {
+pub struct PreparedUsbSourceKernel {
     kernel: KernelCompositeHost,
     pure: Vec<(NodeId, PureProtocolOwner)>,
     identity: PreparationHostIdentity,
 }
-impl PreparedHidSourceKernel {
+/// Existing HID callers share this same USB kernel wrapper.
+pub type PreparedHidSourceKernel = PreparedUsbSourceKernel;
+
+impl PreparedUsbSourceKernel {
     pub fn prepare(
         artifact: PreparedProtocolArtifact,
         storage: KernelCompositeSignStorage,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_for(
+            artifact,
+            storage,
+            Some(super::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION),
+        )
+    }
+
+    /// Control transactions use the same prepared operations and production
+    /// kernel. The caller must independently retain native control possession.
+    pub fn prepare_control(
+        artifact: PreparedProtocolArtifact,
+        storage: KernelCompositeSignStorage,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_for(
+            artifact,
+            storage,
+            Some(super::control_factory::CONTROL_IMPLEMENTATION),
+        )
+    }
+
+    /// Pure descriptor/state preparation uses the same finite operations and
+    /// kernel, with no native call factory or physical authority.
+    pub fn prepare_pure(
+        artifact: PreparedProtocolArtifact,
+        storage: KernelCompositeSignStorage,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_for(artifact, storage, None)
+    }
+
+    /// Clock waits share the same kernel and independently admitted clock owner.
+    pub(crate) fn prepare_clock(
+        artifact: PreparedProtocolArtifact,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_for(
+            artifact,
+            KernelCompositeSignStorage {
+                additional_local_items: 8192,
+                additional_remote_items: 8192,
+            },
+            Some(crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION),
+        )
+    }
+
+    fn prepare_for(
+        artifact: PreparedProtocolArtifact,
+        storage: KernelCompositeSignStorage,
+        native_implementation: Option<&str>,
     ) -> Result<Self, ProtocolCallRefusal> {
         use ProtocolCallRefusal as Error;
         let (definition, operations) = artifact.into_preparation_parts();
@@ -29,34 +80,26 @@ impl PreparedHidSourceKernel {
         let endpoint_count = fragment
             .placements
             .iter()
-            .filter(|gear| {
-                gear.implementation_id.as_str()
-                    == super::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION
-            })
+            .filter(|gear| Some(gear.implementation_id.as_str()) == native_implementation)
             .count();
-        if !(1..=8).contains(&endpoint_count)
+        if (native_implementation.is_some() && !(1..=8).contains(&endpoint_count))
             || !plan.activations.is_empty()
             || !plan.activation_preparations.is_empty()
         {
             return Err(Error::Unsupported);
         }
-        operations
-            .joins
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        operations
-            .states
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        operations
-            .concats
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        operations
-            .merges
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        let lowered = lower_plan_fragment(fragment).map_err(|_| Error::InvalidPlan)?;
+        operations.validate_plan(plan).map_err(|error| {
+            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
+                child: fragment.host_id.clone(),
+                reason: alloc::format!("{}: {}", error.family, error.reason),
+            })
+        })?;
+        let lowered = lower_plan_fragment(fragment).map_err(|error| {
+            Error::Kernel(conduit_composite::KernelCompositeError::Lowering {
+                child: fragment.host_id.clone(),
+                error,
+            })
+        })?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         let identity = PreparationHostIdentity {
             host_id: fragment.host_id.clone(),
@@ -73,13 +116,15 @@ impl PreparedHidSourceKernel {
                     .ok_or(Error::InvalidPlan)?;
                 pure.push((node, owner));
             } else if !gear.host_calls.is_empty()
-                && gear.implementation_id.as_str()
-                    != super::endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION
+                && Some(gear.implementation_id.as_str()) != native_implementation
             {
                 return Err(Error::Unsupported);
             }
         }
         let mut registry = KernelOperationRegistry::new();
+        registry
+            .install(crate::filter_host_call::FilterOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(crate::expression_host_call::ExpressionOperationFactory::default())
             .map_err(|_| Error::InvalidPlan)?;
@@ -101,12 +146,30 @@ impl PreparedHidSourceKernel {
         registry
             .install(operations.merges)
             .map_err(|_| Error::InvalidPlan)?;
-        registry
-            .install(
-                super::endpoint_read_factory::EndpointReadOperationFactory::prepare_contract()
-                    .map_err(|_| Error::InvalidPlan)?,
-            )
-            .map_err(|_| Error::InvalidPlan)?;
+        if native_implementation == Some(super::control_factory::CONTROL_IMPLEMENTATION) {
+            registry
+                .install(
+                    super::control_factory::ControlOperationFactory::prepare_contract()
+                        .map_err(|_| Error::InvalidPlan)?,
+                )
+                .map_err(|_| Error::InvalidPlan)?;
+        } else if native_implementation
+            == Some(crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION)
+        {
+            registry
+                .install(
+                    crate::monotonic_clock::factory::ClockOperationFactory::prepare_contract()
+                        .map_err(|_| Error::InvalidPlan)?,
+                )
+                .map_err(|_| Error::InvalidPlan)?;
+        } else if native_implementation.is_some() {
+            registry
+                .install(
+                    super::endpoint_read_factory::EndpointReadOperationFactory::prepare_contract()
+                        .map_err(|_| Error::InvalidPlan)?,
+                )
+                .map_err(|_| Error::InvalidPlan)?;
+        }
         let kernel = KernelCompositeHost::prepare_with_sign_storage(definition, &registry, storage)
             .map_err(Error::Kernel)?;
         Ok(Self {

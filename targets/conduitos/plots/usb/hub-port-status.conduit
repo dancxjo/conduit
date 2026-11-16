@@ -1,0 +1,48 @@
+# USB 2.0 hub port observations over the same admitted control transfer.
+# A reported connection is a wire observation, never an attachment capability.
+type UsbHubPortStatusPreparation =
+    request UsbControlRequest
+    | invalid-port
+
+type UsbHubPortStatus = {
+    status: U16
+    change: U16
+    connected: Boolean
+    enabled: Boolean
+    suspended: Boolean
+    overcurrent: Boolean
+    resetting: Boolean
+    powered: Boolean
+    low-speed: Boolean
+    high-speed: Boolean
+}
+
+type UsbHubPortStatusResult =
+    observed UsbHubPortStatus
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+
+plot usb-hub-port-status-request (
+    port: U8...| >> prepared: UsbHubPortStatusPreparation...|
+) = (. == 0 ? invalid-port(empty) : request({ setup: 0x00040000000000a3 | (value/u64(.) * 4294967296), output: [] }))
+
+# Read exactly four actual octets. Reusable receive-buffer padding cannot
+# become status, and change bits remain visible until explicitly acknowledged.
+plot usb-hub-port-status-result (
+    result: UsbControlResult...| >> status: UsbHubPortStatusResult...|
+) = (. is completed ? (.completed.transferred != 4 || .completed.short || sequence/length(.completed.input) != 4 ? malformed(empty) : observed({ status: value/u16(.completed.input.0) | (value/u16(.completed.input.1) * 256), change: value/u16(.completed.input.2) | (value/u16(.completed.input.3) * 256), connected: (.completed.input.0 & 1) != 0, enabled: (.completed.input.0 & 2) != 0, suspended: (.completed.input.0 & 4) != 0, overcurrent: (.completed.input.0 & 8) != 0, resetting: (.completed.input.0 & 16) != 0, powered: (.completed.input.1 & 1) != 0, low-speed: (.completed.input.1 & 2) != 0, high-speed: (.completed.input.1 & 4) != 0 })) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : unsupported(empty))))
+
+plot usb-hub-observe-port (
+    >> port: U8...|
+    prepared: UsbHubPortStatusPreparation...| >>
+    result: UsbHubPortStatusResult...| >>
+) {
+    request: usb-hub-port-status-request()
+    transfer: machine/usb/control
+    interpret: usb-hub-port-status-result()
+    port >> request
+    request >> prepared
+    request >> select(UsbHubPortStatusPreparation.request, unmatched=drop) >> transfer >> interpret >> result
+}

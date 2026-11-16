@@ -3,7 +3,7 @@ use conduit_host_make::{
     PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
 
-pub const MAKE_PACKAGE_REVISION: u32 = 5;
+pub const MAKE_PACKAGE_REVISION: u32 = 6;
 
 pub const B_PLUS_TARGET: &str = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const B_PLUS_LINUX_TARGET: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
@@ -38,6 +38,9 @@ fn bare_metal_target(label: &str, machine: &str) -> TargetDescriptor {
             vec![
                 "conduit.host/present@1".into(),
                 "conduit.host/native-startup-chime@1".into(),
+                "conduit.host/usb-control@1".into(),
+                "conduit.host/usb-endpoint-read@2".into(),
+                "conduit.host/monotonic-clock-at@1".into(),
             ]
         } else {
             Vec::new()
@@ -179,6 +182,14 @@ impl HostMakePackage for RaspberryPiMakePackage {
             ],
             offers: vec![
                 ImplementationOffer {
+                    base_kind: "usb/host-controller".into(),
+                    implementation_id: "raspberry-pi/dwc2@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec![B_PLUS_TARGET.into()],
+                    prerequisites: Vec::new(),
+                    build_feature: Some("base-dwc2".into()),
+                },
+                ImplementationOffer {
                     base_kind: "audio/pcm-output".into(),
                     implementation_id: "raspberry-pi/pwm-jack@1".into(),
                     implementation_revision: 1,
@@ -226,8 +237,20 @@ mod tests {
     #[test]
     fn aarch64_profiles_preserve_exact_board_and_finite_bounds() {
         for (machine, source, key) in [
-            ("raspberry-pi-3-model-b-plus-rev-1.3", include_str!("../../../std/profiles/raspberry-pi-3-model-b-plus-rev-1.3-aarch64-linux.host.conduit"), PI3_AARCH64_TARGET),
-            ("raspberry-pi-5-model-b-rev-1.1-8gb", include_str!("../../../std/profiles/raspberry-pi-5-model-b-rev-1.1-8gb-aarch64-linux.host.conduit"), PI5_AARCH64_TARGET),
+            (
+                "raspberry-pi-3-model-b-plus-rev-1.3",
+                include_str!(
+                    "../../../std/profiles/raspberry-pi-3-model-b-plus-rev-1.3-aarch64-linux.host.conduit"
+                ),
+                PI3_AARCH64_TARGET,
+            ),
+            (
+                "raspberry-pi-5-model-b-rev-1.1-8gb",
+                include_str!(
+                    "../../../std/profiles/raspberry-pi-5-model-b-rev-1.1-8gb-aarch64-linux.host.conduit"
+                ),
+                PI5_AARCH64_TARGET,
+            ),
         ] {
             let target = aarch64_linux_target("Linux", machine);
             let profile = conduit_host_make::parse_host_configuration_conduit(source).unwrap();

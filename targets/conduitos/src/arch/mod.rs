@@ -3,6 +3,10 @@
 //! Shared ConduitOS code depends on this surface. Architecture facts never flow
 //! upward into authored meaning or semantic implementation identity.
 
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[allow(dead_code)] // Mechanism preparation alone does not offer a USB Base.
+pub(crate) mod dwc2;
+
 // Native controller mechanism compilation does not advertise a USB Host offer.
 #[cfg(any(
     target_arch = "x86_64",
@@ -342,3 +346,6 @@ compile_error!("select exactly one AArch64 board feature");
     not(any(feature = "aarch64-orange-pi-5", feature = "aarch64-jetson-nano"))
 ))]
 compile_error!("aarch64-board is an internal feature; select an exact board");
+
+#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
+pub(crate) use armv6::usb::{Registers as BcmUsbRegisters, UsbHost as BcmUsbHost};

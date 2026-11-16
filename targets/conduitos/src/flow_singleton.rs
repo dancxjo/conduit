@@ -70,7 +70,12 @@ impl FlowSingletonOperationFactory {
         if !verify_plan(plan) || plan.fragments.len() != 1 {
             return Err("native singleton requires one sealed fragment".into());
         }
-        for gear in plan.fragments[0]
+        self.validate_selections(&plan.fragments[0])
+    }
+
+    /// Check this family against an immutable fragment whose seal the caller verified.
+    pub(crate) fn validate_selections(&self, fragment: &PlanFragment) -> Result<(), String> {
+        for gear in fragment
             .placements
             .iter()
             .filter(|gear| gear.implementation_id.as_str() == IMPLEMENTATION)

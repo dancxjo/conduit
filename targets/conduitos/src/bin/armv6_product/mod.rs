@@ -3,6 +3,8 @@ use conduitos::{
     arch, cryptographic_entropy::CryptographicEntropyBase, firmware_face::FirmwareFace,
     identity::BootIdentities, make::EMBEDDED_MAKE, offer::HostOffer,
 };
+#[cfg(feature = "native-startup-chime")]
+mod startup;
 pub(super) fn prepare_graphics(
     ids: &BootIdentities,
     offer: &HostOffer<'_>,
@@ -72,6 +74,92 @@ pub(super) fn prepare_graphics(
             arch::present(reason.as_bytes());
             arch::present(b"\n");
             None
+        }
+    }
+}
+
+/// The product Root retains native input custody through all refusal paths.
+/// USB plots establish port power before scanout samples a USB-powered panel's
+/// EDID. Pointer delivery starts only after the ordinary shared Mask is ready.
+pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
+    use conduitos::armv6_usb_input::BPlusUsbInput;
+    use core::fmt::Write;
+    arch::present(b"CONDUIT_BOOT_STAGE usb-before-display\n");
+    let mut input = match BPlusUsbInput::prepare(ids) {
+        Ok(input) => Some(input),
+        Err(reason) => {
+            arch::present(b"CONDUIT_USB_INPUT_UNAVAILABLE ");
+            arch::present(reason.as_bytes());
+            arch::present(b"\n");
+            None
+        }
+    };
+    #[cfg(feature = "native-startup-chime")]
+    let mut _audio = None;
+    let mut graphic = None;
+    let mut graphics_prepared = false;
+    let mut started = false;
+    let mut refused = false;
+    loop {
+        if !graphics_prepared && (refused || input.as_ref().is_none_or(BPlusUsbInput::ready)) {
+            #[cfg(feature = "native-startup-chime")]
+            {
+                _audio = startup::play(ids, offer);
+            }
+            graphic = prepare_graphics(ids, offer);
+            graphics_prepared = true;
+            arch::present(b"CONDUIT_BOOT_STAGE armv6-product-ready\n");
+        }
+        if !refused {
+            if let Some(input) = input.as_mut() {
+                let outcome = (|| {
+                    if input.ready() && !started {
+                        if let Some(graphic) = graphic.as_mut() {
+                            // SAFETY: the actual selected endpoint owner is
+                            // retained above, and loss retires delivery below.
+                            unsafe { graphic.admit_pointer() }?;
+                        }
+                        input.start_pointer()?;
+                        started = true;
+                    }
+                    if let Some(sample) = input.step()? {
+                        if let Some(graphic) = graphic.as_mut() {
+                            graphic.observe_pointer(sample)?;
+                        }
+                        let mut text = conduitos::sign_format::FixedText::new();
+                        let _ = writeln!(
+                            &mut text,
+                            "CONDUIT_POINTER_SAMPLE sequence={} x={} y={} primary={} coalesced={} dropped={}",
+                            sample.sequence,
+                            sample.position_x,
+                            sample.position_y,
+                            sample.primary_pressed,
+                            sample.coalesced,
+                            sample.dropped
+                        );
+                        arch::present(text.as_bytes());
+                    }
+                    Ok::<_, &'static str>(())
+                })();
+                if let Err(reason) = outcome {
+                    refused = true;
+                    if let Some(graphic) = graphic.as_mut() {
+                        let _ = graphic.retire_pointer();
+                    }
+                    arch::present(b"CONDUIT_POINTER_UNAVAILABLE ");
+                    arch::present(reason.as_bytes());
+                    arch::present(b"\n");
+                }
+            }
+        }
+        if refused || input.as_ref().is_none_or(BPlusUsbInput::needs_tick) {
+            // The native Root owns this one-shot machine wake path. Protocol
+            // waits themselves complete only through the admitted clock Play.
+            arch::timer_arm();
+            arch::enable_interrupts();
+            arch::interruptible_idle();
+            arch::disable_interrupts();
+            while arch::pop_interrupt().is_some() {}
         }
     }
 }

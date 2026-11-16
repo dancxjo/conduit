@@ -1,0 +1,39 @@
+# Hub class protocol over the existing admitted class-neutral control transfer.
+# Port numbers are wire facts, never controller or attachment authority.
+type UsbHubPortPowerPreparation =
+    request UsbControlRequest
+    | invalid-port
+
+type UsbHubPortPowerResult =
+    acknowledged
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+
+# SET_FEATURE / CLEAR_FEATURE(PORT_POWER), class request to the selected port.
+plot usb-hub-port-power-on-request (
+    port: U8...| >> prepared: UsbHubPortPowerPreparation...|
+) = (. == 0 ? invalid-port(empty) : request({ setup: 0x0000000000080323 | (value/u64(.) * 4294967296), output: [] }))
+
+plot usb-hub-port-power-off-request (
+    port: U8...| >> prepared: UsbHubPortPowerPreparation...|
+) = (. == 0 ? invalid-port(empty) : request({ setup: 0x0000000000080123 | (value/u64(.) * 4294967296), output: [] }))
+
+# Acknowledgement does not imply power-good delay, attachment or HID readiness.
+plot usb-hub-port-power-result (
+    result: UsbControlResult...| >> power: UsbHubPortPowerResult...|
+) = (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0 ? acknowledged(empty) : malformed(empty)) : (. is stalled ? stalled(empty) : (. is provider-lost ? provider-lost(empty) : unsupported(empty))))
+
+plot usb-hub-power-port (
+    >> port: U8...|
+    prepared: UsbHubPortPowerPreparation...| >>
+    result: UsbHubPortPowerResult...| >>
+) {
+    request: usb-hub-port-power-on-request()
+    transfer: machine/usb/control
+    interpret: usb-hub-port-power-result()
+    port >> request
+    request >> prepared
+    request >> select(UsbHubPortPowerPreparation.request, unmatched=drop) >> transfer >> interpret >> result
+}

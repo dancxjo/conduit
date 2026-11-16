@@ -1,0 +1,27 @@
+# Bounded HID 1.11 descriptor-prefix profile for one unsigned absolute contact.
+# Interprets at most 32 short items, stopping as soon as the first contact's
+# Tip Switch and byte-aligned X/Y fields are known. This is not a full-report
+# descriptor validator or a multi-touch gesture implementation. Unsupported
+# globals/ranges, signed axes and resource limits remain explicit refusals.
+# No vendor IDs, report offsets or panel dimensions are embedded in this plot.
+type UsbHidDescriptorTransfer = {
+    wire: sequence U8 <= 256
+    actual: U64
+}
+type UsbAbsoluteHidLayout = {
+    report-id: U8
+    tip-byte: U64
+    tip-mask: U8
+    x-byte: U64
+    y-byte: U64
+    x-width: U8
+    y-width: U8
+    maximum-x: U16
+    maximum-y: U16
+}
+type UsbAbsoluteHidLayoutResult =
+    layout UsbAbsoluteHidLayout
+    | short
+    | malformed
+    | unsupported
+    | pressure

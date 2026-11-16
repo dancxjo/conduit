@@ -32,6 +32,8 @@ pub fn offer(
     limits.max_queue_bytes = limits
         .max_queue_bytes
         .min(input_bytes.max(output_bytes).max(1));
+    // Even Empty has a positive storage admission; its exact encoded extent
+    // stays zero. This matches the shared kernel's bounded-value lifecycle.
     Ok(BackOfferBuilder::new(
         contract,
         Back {
@@ -43,8 +45,8 @@ pub fn offer(
                 contract_id: HostCallContractId::from(CALL),
                 target_kind: Some(kind),
                 maximum_in_flight: 1,
-                maximum_input_bytes: input_bytes,
-                maximum_output_bytes: output_bytes,
+                maximum_input_bytes: input_bytes.max(1),
+                maximum_output_bytes: output_bytes.max(1),
             }],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
@@ -83,6 +85,10 @@ impl ExpressionHostCall {
         placement: &PlacementId,
     ) -> Result<Self, ExpressionCallRefusal> {
         ExpressionPreparation::new(fragment, lowered, active)?.prepare(placement)
+    }
+
+    pub(crate) fn maximum_input_bytes(&self) -> u32 {
+        self.maximum_input_bytes
     }
 
     /// Evaluate once using storage admitted at preparation; never retry a failed program.
@@ -125,6 +131,17 @@ impl ExpressionHostCall {
 fn prepared_program(
     gear: &PlannedGear,
 ) -> Result<PortableExpressionProgram, ExpressionCallRefusal> {
+    prepared_program_mode(gear, false)
+}
+pub(crate) fn prepared_filter_program(
+    gear: &PlannedGear,
+) -> Result<PortableExpressionProgram, ExpressionCallRefusal> {
+    prepared_program_mode(gear, true)
+}
+fn prepared_program_mode(
+    gear: &PlannedGear,
+    filter: bool,
+) -> Result<PortableExpressionProgram, ExpressionCallRefusal> {
     use ExpressionCallRefusal as Refusal;
     let [entry] = gear.configuration.as_slice() else {
         return Err(Refusal::InvalidProgram);
@@ -135,7 +152,12 @@ fn prepared_program(
     let program = PortableExpressionProgram::from_canonical_hex(encoded)
         .map_err(|_| Refusal::InvalidProgram)?;
     let temporal = gear.inputs.first().ok_or(Refusal::WrongBinding)?.temporal;
-    let expected = offer(&program, temporal).map_err(|_| Refusal::InvalidProgram)?;
+    let expected = if filter {
+        crate::filter_host_call::offer(&program, temporal)
+    } else {
+        offer(&program, temporal)
+    }
+    .map_err(|_| Refusal::InvalidProgram)?;
     if gear.kind_id != expected.kind_id
         || gear.kind_contract_revision != expected.kind_contract_revision
         || gear.capability_id != expected.capability_id

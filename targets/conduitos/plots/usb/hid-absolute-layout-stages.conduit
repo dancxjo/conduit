@@ -1,0 +1,45 @@
+# Four-item forward pass with Source-owned bounded iteration.
+plot usb-hid-absolute-layout-descriptor-input (
+    input: UsbHidDescriptorTransfer...| <= 4096B >> output: UsbHidDescriptorTransfer...| <= 4096B
+) = (.)
+plot usb-hid-absolute-layout-state-input (
+    input: UsbAbsoluteHidLayoutState...| <= 4096B >> output: UsbAbsoluteHidLayoutState...| <= 4096B
+) = (.)
+plot usb-hid-absolute-layout-state-output (
+    input: UsbAbsoluteHidLayoutState...| <= 4096B >> output: UsbAbsoluteHidLayoutState...| <= 4096B
+) = (.)
+plot usb-hid-absolute-layout-result-output (
+    input: UsbAbsoluteHidLayoutResult...| <= 4096B >> output: UsbAbsoluteHidLayoutResult...| <= 4096B
+) = (.)
+# A retained forward pass is reusable across descriptors. The Source driver
+# decides when to iterate and when to finish; Root only connects typed ports.
+plot usb-hid-absolute-layout-pass (
+    >> input: UsbAbsoluteHidLayoutState...| <= 4096B
+    result: UsbAbsoluteHidLayoutState...| <= 4096B >>
+) {
+    load0: usb-hid-absolute-layout-load()
+    classify0: usb-hid-absolute-layout-classify()
+    step0: usb-hid-absolute-layout-step()
+    load1: usb-hid-absolute-layout-load()
+    classify1: usb-hid-absolute-layout-classify()
+    step1: usb-hid-absolute-layout-step()
+    load2: usb-hid-absolute-layout-load()
+    classify2: usb-hid-absolute-layout-classify()
+    step2: usb-hid-absolute-layout-step()
+    load3: usb-hid-absolute-layout-load()
+    classify3: usb-hid-absolute-layout-classify()
+    step3: usb-hid-absolute-layout-step()
+    input >> usb-hid-absolute-layout-state-input() >> load0 >> classify0 >> step0 >> load1 >> classify1 >> step1 >> load2 >> classify2 >> step2 >> load3 >> classify3 >> step3 >> usb-hid-absolute-layout-state-output() >> result
+}
+plot usb-hid-absolute-layout-driver (
+    >> input: UsbHidDescriptorTransfer...| <= 4096B
+    >> iterate: UsbAbsoluteHidLayoutState...| <= 4096B
+    work: UsbAbsoluteHidLayoutState...| <= 4096B >>
+    result: UsbAbsoluteHidLayoutResult...| <= 4096B >>
+) {
+    merge: UsbHidLayoutWorkMerge
+    input >> usb-hid-absolute-layout-descriptor-input() >> usb-hid-absolute-layout-start() >> merge.left
+    iterate >> when(!.terminal) >> merge.right
+    merge.merged >> usb-hid-absolute-layout-state-output() >> work
+    iterate >> when(.terminal) >> usb-hid-absolute-layout-finish() >> usb-hid-absolute-layout-result-output() >> result
+}

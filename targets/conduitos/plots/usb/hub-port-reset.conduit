@@ -1,0 +1,35 @@
+# Hub port reset and change acknowledgement are reviewed wire protocol.
+# Successful SET_FEATURE is not reset completion; observe the port separately.
+type UsbHubPortResetPreparation =
+    request UsbControlRequest
+    | invalid-port
+
+plot usb-hub-port-reset-request (
+    port: U8...| >> prepared: UsbHubPortResetPreparation...|
+) = (. == 0 ? invalid-port(empty) : request({ setup: 0x0000000000040323 | (value/u64(.) * 4294967296), output: [] }))
+
+plot usb-hub-port-reset-change-acknowledge-request (
+    port: U8...| >> prepared: UsbHubPortResetPreparation...|
+) = (. == 0 ? invalid-port(empty) : request({ setup: 0x0000000000140123 | (value/u64(.) * 4294967296), output: [] }))
+
+plot usb-hub-port-connection-change-acknowledge-request (
+    port: U8...| >> prepared: UsbHubPortResetPreparation...|
+) = (. == 0 ? invalid-port(empty) : request({ setup: 0x0000000000100123 | (value/u64(.) * 4294967296), output: [] }))
+
+# Wire readiness never creates an attachment, endpoint claim or input provider.
+# Speed bits are meaningful only on a connected, enabled port after reset.
+type UsbHubPortReadiness =
+    disconnected
+    | unpowered
+    | overcurrent
+    | resetting
+    | suspended
+    | disabled
+    | ready-full-speed
+    | ready-low-speed
+    | ready-high-speed
+    | malformed
+
+plot usb-hub-port-readiness (
+    status: U16...| >> readiness: UsbHubPortReadiness...|
+) = ((. & 8) != 0 ? overcurrent(empty) : ((. & 256) == 0 ? unpowered(empty) : ((. & 1) == 0 ? disconnected(empty) : ((. & 16) != 0 ? resetting(empty) : ((. & 4) != 0 ? suspended(empty) : ((. & 2) == 0 ? disabled(empty) : ((. & 1536) == 1536 ? malformed(empty) : ((. & 512) != 0 ? ready-low-speed(empty) : ((. & 1024) != 0 ? ready-high-speed(empty) : ready-full-speed(empty))))))))))

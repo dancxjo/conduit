@@ -33,16 +33,31 @@ impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
             return None;
         }
         let mut order = [0; N];
+        let mut prefixes = FingerprintPrefix::new();
         for (i, item) in order[..values.len()].iter_mut().enumerate() {
-            *item = (u32::from(fingerprint(key(&values[i]))) << 16) | i as u32;
+            *item = (u32::from(prefixes.fingerprint(key(&values[i])))) << 16 | i as u32;
         }
         order[..values.len()].sort_unstable();
         Some(Self { values, order, key })
     }
-    pub fn contains(&self, value: &T) -> bool {
+    /// One immutable checkpoint is compared without rehashing adjacent primary
+    /// keys. This scratch borrows only this invocation's slice; it never survives
+    /// a revision, publication, or mutation of the authoritative projection.
+    pub fn contains_all(&self, values: &[T]) -> bool {
+        let mut prefixes = FingerprintPrefix::new();
+        values.iter().all(|value| {
+            let key = (self.key)(value);
+            self.contains_fingerprint(value, key, prefixes.fingerprint(key))
+        })
+    }
+    #[cfg(test)]
+    fn contains(&self, value: &T) -> bool {
         let key = (self.key)(value);
+        self.contains_fingerprint(value, key, fingerprint(key))
+    }
+    fn contains_fingerprint(&self, value: &T, key: (&str, &str), fingerprint: u16) -> bool {
         let order = &self.order[..self.values.len()];
-        let fingerprint = u32::from(fingerprint(key));
+        let fingerprint = u32::from(fingerprint);
         let first = order.partition_point(|&entry| entry >> 16 < fingerprint);
         order[first..]
             .iter()
@@ -51,7 +66,50 @@ impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
             .any(|candidate| (self.key)(candidate) == key && candidate == value)
     }
 }
-// A collision is harmless: contains always checks the original borrowed content.
+
+/// FNV state after the complete first key and its original separator. Reuse
+/// requires exact borrowed-string equality, never a fingerprint or pointer match.
+struct FingerprintPrefix<'a> {
+    primary: Option<&'a str>,
+    state: u32,
+    #[cfg(test)]
+    hashed_bytes: usize,
+}
+impl<'a> FingerprintPrefix<'a> {
+    fn new() -> Self {
+        Self {
+            primary: None,
+            state: 0,
+            #[cfg(test)]
+            hashed_bytes: 0,
+        }
+    }
+    fn fingerprint(&mut self, key: (&'a str, &str)) -> u16 {
+        if self.primary != Some(key.0) {
+            let mut hash = 2_166_136_261u32;
+            for byte in key.0.bytes().chain(core::iter::once(255)) {
+                hash = (hash ^ u32::from(byte)).wrapping_mul(16_777_619);
+                #[cfg(test)]
+                {
+                    self.hashed_bytes += 1;
+                }
+            }
+            self.primary = Some(key.0);
+            self.state = hash;
+        }
+        let mut hash = self.state;
+        for byte in key.1.bytes().chain(core::iter::once(255)) {
+            hash = (hash ^ u32::from(byte)).wrapping_mul(16_777_619);
+            #[cfg(test)]
+            {
+                self.hashed_bytes += 1;
+            }
+        }
+        (hash ^ (hash >> 16)) as u16
+    }
+}
+// Independent original scalar definition, retained as the exact test oracle.
+#[cfg(test)]
 fn fingerprint(key: (&str, &str)) -> u16 {
     let mut hash = 2_166_136_261u32;
     for part in [key.0, key.1] {
@@ -121,3 +179,7 @@ mod tests {
         assert!(!empty.contains(&("a", "1", 3)));
     }
 }
+
+#[cfg(test)]
+#[path = "index_prefix_tests.rs"]
+mod prefix_tests;

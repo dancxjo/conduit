@@ -21,10 +21,11 @@ pub fn usb_hid_mouse_order_package() -> Result<ProtocolSourcePackage, ProtocolSo
     };
     ProtocolSourcePackage::compile(
         format!(
-            "{header}\n{}\n{}\n{}\n{body}",
+            "{header}\n{}\n{}\n{}\n{}\n{body}",
             include_str!("../../plots/usb/hid-reports.conduit"),
             include_str!("../../plots/usb/hid-mouse-order.conduit"),
             include_str!("../../plots/usb/hid-mouse-pointer.conduit"),
+            include_str!("../../plots/usb/hid-absolute-pointer.conduit"),
         ),
         &[
             ProtocolSpecializationRequest::SeededUntil {
@@ -142,6 +143,115 @@ pub fn usb_hid_keyboard_order_package() -> Result<ProtocolSourcePackage, Protoco
             },
             ProtocolSpecializationRequest::Merge {
                 value: value("UsbKeyboardOrderMessage"),
+            },
+        ],
+    )
+}
+
+/// Absolute report interpretation feeds the existing mouse pointer contract.
+/// Layouts are checked descriptor facts; endpoint possession is separate.
+pub fn usb_hid_absolute_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
+    let endpoint = include_str!("../../plots/usb/hid-absolute-endpoint.conduit");
+    let (header, body) =
+        endpoint
+            .split_once("\n\n")
+            .ok_or(ProtocolSourceRefusal::Specialization(
+                "absolute HID imports",
+            ))?;
+    let value = |name: &str| ProtocolValueReference {
+        type_name: name.into(),
+        maximum_bytes: 4096,
+    };
+    ProtocolSourcePackage::compile(
+        format!(
+            "{header}\n{}\n{}\n{}\n{}\n{}\n{}\n{body}\n{}",
+            include_str!("../../plots/usb/hid-reports.conduit"),
+            include_str!("../../plots/usb/hid-mouse-order.conduit"),
+            include_str!("../../plots/usb/hid-mouse-pointer.conduit"),
+            include_str!("../../plots/usb/hid-absolute-pointer.conduit"),
+            include_str!("../../plots/usb/hid-absolute-layout-types.conduit"),
+            include_str!("../../plots/usb/hid-absolute-report.conduit"),
+            include_str!("../../plots/usb/hid-absolute-device.conduit")
+        ),
+        &[
+            ProtocolSpecializationRequest::Zip {
+                left: value("UsbAbsoluteReadContext"),
+                right: value("UsbEndpointReadResult"),
+            },
+            ProtocolSpecializationRequest::FeedbackZipInstance {
+                alias: "UsbAbsoluteInitialJoin".into(),
+                paired_alias: "UsbAbsoluteInitialPair".into(),
+                left: value("UsbAbsoluteDeviceParameters"),
+                right: value("UsbMousePointerState"),
+            },
+        ],
+    )
+}
+
+/// Descriptor parsing reuses one finite state cell and the checked pure stages.
+pub fn usb_hid_absolute_descriptor_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal>
+{
+    ProtocolSourcePackage::compile(
+        alloc::format!(
+            "{}{}",
+            include_str!("../../plots/usb/hid-absolute-layout-types.conduit"),
+            include_str!("../../plots/usb/hid-absolute-layout.conduit")
+        ),
+        &[ProtocolSpecializationRequest::SeededUntil {
+            value: ProtocolValueReference {
+                type_name: "UsbAbsoluteHidLayoutState".into(),
+                maximum_bytes: 4096,
+            },
+        }],
+    )
+}
+
+/// Configuration walking and HID endpoint selection retain wire facts only.
+pub fn usb_hid_configuration_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
+    ProtocolSourcePackage::compile(
+        alloc::format!(
+            "{}\n{}",
+            include_str!("../../plots/usb/configuration-walk.conduit"),
+            include_str!("../../plots/usb/hid-input-profile.conduit")
+        ),
+        &[],
+    )
+}
+
+/// Complete configuration geometry through one bounded forward-only stage.
+pub fn usb_configuration_decode_package() -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
+    ProtocolSourcePackage::compile(
+        alloc::format!(
+            "{}\n{}",
+            include_str!("../../plots/usb/configuration-walk.conduit"),
+            include_str!("../../plots/usb/configuration-decode.conduit")
+        ),
+        &[],
+    )
+}
+/// The same unsigned-contact policy with a reusable pass and Source iteration.
+pub fn usb_hid_absolute_descriptor_stages_package()
+-> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
+    ProtocolSourcePackage::compile(
+        alloc::format!(
+            "{}\n{}\n{}",
+            include_str!("../../plots/usb/hid-absolute-layout-types.conduit"),
+            include_str!("../../plots/usb/hid-absolute-layout.conduit"),
+            include_str!("../../plots/usb/hid-absolute-layout-stages.conduit")
+        ),
+        &[
+            ProtocolSpecializationRequest::MergeInstance {
+                alias: "UsbHidLayoutWorkMerge".into(),
+                value: ProtocolValueReference {
+                    type_name: "UsbAbsoluteHidLayoutState".into(),
+                    maximum_bytes: 4096,
+                },
+            },
+            ProtocolSpecializationRequest::SeededUntil {
+                value: ProtocolValueReference {
+                    type_name: "UsbAbsoluteHidLayoutState".into(),
+                    maximum_bytes: 4096,
+                },
             },
         ],
     )

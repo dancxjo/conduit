@@ -1,68 +1,7 @@
 //! Physical gesture history survives Face/Show and foreground changes.
 use conduit_semantic_catalog::NormalizedPointerSample;
 
-pub(super) struct PointerState {
-    x: i64,
-    y: i64,
-    primary_pressed: bool,
-    sequence: u64,
-    retired: bool,
-}
-
-impl PointerState {
-    pub(super) const fn new() -> Self {
-        Self {
-            x: 500_000,
-            y: 500_000,
-            primary_pressed: false,
-            sequence: 0,
-            retired: false,
-        }
-    }
-
-    pub(super) fn retire(&mut self) {
-        self.retired = true;
-    }
-
-    pub(super) fn observe(
-        &mut self,
-        sample: NormalizedPointerSample,
-    ) -> Result<bool, &'static str> {
-        if self.retired {
-            return Err("product-pointer-retired");
-        }
-        if !(0..=1_000_000).contains(&sample.position_x)
-            || !(0..=1_000_000).contains(&sample.position_y)
-            || sample.sequence <= self.sequence
-        {
-            return Err("product-pointer-sample-invalid");
-        }
-        // A coalesced button history cannot establish a unique press edge.
-        if sample.coalesced != 0 || sample.dropped != 0 {
-            return Err("product-pointer-gesture-history-gap");
-        }
-        let activate = sample.primary_pressed && !self.primary_pressed;
-        self.x = sample.position_x;
-        self.y = sample.position_y;
-        self.primary_pressed = sample.primary_pressed;
-        self.sequence = sample.sequence;
-        Ok(activate)
-    }
-
-    pub(super) fn position(
-        &self,
-        display: &impl crate::display::PixelTarget,
-    ) -> Result<(u32, u32), &'static str> {
-        let format = display
-            .format()
-            .validate()
-            .map_err(crate::display::DisplayError::as_str)?;
-        Ok((
-            crate::pointer_coordinates::display_coordinate(self.x, format.width)?,
-            crate::pointer_coordinates::display_coordinate(self.y, format.height)?,
-        ))
-    }
-}
+pub(super) use crate::pointer_state::PointerState;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn dispatch(
@@ -79,7 +18,7 @@ pub(super) fn dispatch(
     identities: &crate::identity::BootIdentities,
     offer: &crate::offer::HostOffer<'_>,
 ) -> Result<(), &'static str> {
-    if state.retired {
+    if state.is_retired() {
         return Ok(());
     }
     let _native_timing = crate::native_observation::Interval::begin(
@@ -142,7 +81,7 @@ pub(super) fn render(
     face_workspace: &mut super::FaceWorkspace,
     display: &mut impl crate::display::PixelTarget,
 ) -> Result<(), &'static str> {
-    if state.retired {
+    if state.is_retired() {
         return Ok(());
     }
     let (x, y) = state.position(display)?;
@@ -158,7 +97,3 @@ pub(super) fn render(
     }
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "pointer_input_tests.rs"]
-mod tests;

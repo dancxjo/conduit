@@ -1,0 +1,17 @@
+# Absolute HID observations reuse the mouse pointer state and output contract.
+# A checked descriptor/report profile supplies unsigned axis extents and contact
+# meaning. No report offsets, device identities or attachment authority live here.
+type UsbAbsolutePointerInput = {
+    state: UsbMousePointerState
+    ordinal: U64
+    x: U16
+    y: U16
+    maximum-x: U16
+    maximum-y: U16
+    primary-pressed: Boolean
+    queue-capacity: U64
+}
+
+plot usb-hid-absolute-pointer-advance (
+    input: UsbAbsolutePointerInput...| >> update: UsbMousePointerUpdate...|
+) = ((.state.position-x < 0 || .state.position-x > 1000000 || .state.position-y < 0 || .state.position-y > 1000000 || .queue-capacity == 0) ? invalid-state(empty) : ((.maximum-x == 0 || .maximum-y == 0 || .x > .maximum-x || .y > .maximum-y) ? invalid-motion(empty) : (.state.sequence == 18446744073709551615 ? sequence-exhausted(empty) : ready({ state: { position-x: (value/i64(.x) * 1000000 / value/i64(.maximum-x)), position-y: (value/i64(.y) * 1000000 / value/i64(.maximum-y)), sequence: .state.sequence + 1 }, ordinal: .ordinal, sample: { position-x: (value/i64(.x) * 1000000 / value/i64(.maximum-x)), position-y: (value/i64(.y) * 1000000 / value/i64(.maximum-y)), delta-x: (value/i64(.x) * 1000000 / value/i64(.maximum-x)) - .state.position-x, delta-y: (value/i64(.y) * 1000000 / value/i64(.maximum-y)) - .state.position-y, primary-pressed: .primary-pressed, coalesced: 0, dropped: 0, queue-capacity: .queue-capacity, sequence: .state.sequence + 1 } }))))

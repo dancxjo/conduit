@@ -1,0 +1,39 @@
+# Small prefixes are interpreted only within the actual received extent.
+type UsbEnumerationDescriptorTransfer = {
+    wire: sequence U8 <= 256
+    actual: U64
+}
+
+type UsbDeviceInitialDescriptor = {
+    class: U8
+    subclass: U8
+    protocol: U8
+    maximum-packet: U8
+}
+type UsbDeviceInitialDescriptorResult =
+    device UsbDeviceInitialDescriptor
+    | short
+    | malformed
+    | unsupported
+
+type UsbHubDescriptor = {
+    ports: U8
+    power-good-delay-ms: U64
+    power-switching: Boolean
+    individual-power: Boolean
+}
+type UsbHubDescriptorResult =
+    hub UsbHubDescriptor
+    | short
+    | malformed
+    | unsupported
+
+plot usb-device-initial-descriptor (
+    input: UsbEnumerationDescriptorTransfer...| >> result: UsbDeviceInitialDescriptorResult...|
+) = (.actual != sequence/length(.wire) || .actual > 8 ? malformed(empty) : .actual < 8 ? short(empty) : sequence/at(.wire, 0) != 18 || sequence/at(.wire, 1) != 1 ? malformed(empty) : (sequence/at(.wire, 7) != 8 && sequence/at(.wire, 7) != 16 && sequence/at(.wire, 7) != 32 && sequence/at(.wire, 7) != 64) ? unsupported(empty) : device({ class: sequence/at(.wire, 4), subclass: sequence/at(.wire, 5), protocol: sequence/at(.wire, 6), maximum-packet: sequence/at(.wire, 7) }))
+
+# This full-speed/low-speed profile admits at most seven downstream ports.
+# Ports and power-good delay are learned from the device, never board constants.
+plot usb-hub-descriptor (
+    input: UsbEnumerationDescriptorTransfer...| >> result: UsbHubDescriptorResult...|
+) = (.actual != sequence/length(.wire) || .actual > 9 ? malformed(empty) : .actual < 9 ? short(empty) : sequence/at(.wire, 0) != 9 || sequence/at(.wire, 1) != 41 || sequence/at(.wire, 2) == 0 ? malformed(empty) : sequence/at(.wire, 2) > 7 || (sequence/at(.wire, 3) & 3) == 3 ? unsupported(empty) : hub({ ports: sequence/at(.wire, 2), power-good-delay-ms: value/u64(sequence/at(.wire, 5)) * 2, power-switching: (sequence/at(.wire, 3) & 3) != 2, individual-power: (sequence/at(.wire, 3) & 3) == 1 }))
