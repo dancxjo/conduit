@@ -181,7 +181,7 @@ fn prepare_runtime_with_composition(
     if scanout.is_some() && selected_image.is_none() {
         return Err("initialized scanout has no selected Seed IMAGE".into());
     }
-    let source_selection = super::source_revision::retained(state_dir)?;
+    let source_selection = source_selection_for_startup(state_dir)?;
     #[cfg(not(target_os = "linux"))]
     if source_selection.is_some() {
         return Err("selected bounded File compiler requires Linux".into());
@@ -468,3 +468,20 @@ fn prepare_runtime_with_composition(
     })?;
     Ok((status, runtime))
 }
+
+// A recovered claim authorizes no Source preparation. The installed IMAGE is
+// still verified and constructed normally below; an incompatible compiler IMAGE
+// must refuse rather than silently dropping its Bases or resource budgets.
+fn source_selection_for_startup(
+    state_dir: &Path,
+) -> Result<Option<super::source_revision::Selection>, String> {
+    if owner::has_recovered_source_claim(state_dir)? {
+        Ok(None)
+    } else {
+        super::source_revision::retained(state_dir)
+    }
+}
+
+#[cfg(test)]
+#[path = "runtime_preparation/recovered_claim_tests.rs"]
+mod recovered_claim_tests;

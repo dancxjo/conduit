@@ -37,6 +37,11 @@ const MAXIMUM_SOURCE: u64 = 256 * 1024;
 const MAXIMUM_CONTROL_REQUEST: u64 = 4096;
 const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 
+/// Presence is denial evidence only; no pending request bytes are decoded.
+pub(crate) fn has_recovered_source_claim(root: &Path) -> Result<bool, String> {
+    controller::recovered_source_claim::inspect(root)
+}
+
 /// OS-private recovered evidence can only deny effects, never authorize them.
 pub(crate) fn require_no_recovered_source_claim(root: &Path) -> Result<(), String> {
     if controller::recovered_source_claim::inspect(root)? {
