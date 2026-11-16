@@ -25,7 +25,7 @@ pub mod continuation {
 }
 pub async fn run<'s>(
     root: &mut Root<'s, { crate::config::MAX_ASSIGNMENT_BYTES }>,
-    equipment: crate::equipment::Equipment,
+    mut equipment: crate::equipment::Equipment,
     arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'_>,
     link: &mut crate::transport::Link,
     installed: Option<continuation::Installed<'_>>,
@@ -96,7 +96,6 @@ pub async fn run<'s>(
     let mut response = initialization::response_buffer();
     // Equipment remains owned here; only the shared whole-workset factory may
     // withdraw its providers after original admission and authenticated Start.
-    let mut equipment = equipment;
     let mut sampling_values = Some(sampling_values);
     let mut output_values = Some(output_values);
     let mut reader = Some(reader);
@@ -336,44 +335,26 @@ pub async fn run<'s>(
             crate::runtime::stack_checkpoint(8);
             match outcome {
                 Ok(()) => {
-                    // Withdraw the Started payload only inside the continuing
-                    // poll, so the parent never needs its by-value return scratch.
-                    let future = async {
-                        let started = started_slot.take().expect("original Started output slot");
-                        let scopes = scopes_slot.take().expect("original Scopes output slot");
-                        let evidence = started.evidence();
-                        let ((sampling, mask, output), renderer) = started.into_kernels();
-                        crate::play::fore::run_started(
-                            sampling,
-                            mask,
-                            output,
-                            renderer,
-                            optional.take().expect("original optional tracking"),
-                            scopes,
-                            evidence,
-                            arena,
-                            &face,
-                            {
-                                #[cfg(fore_carrier)]
-                                {
-                                    None
-                                }
-                                #[cfg(not(fore_carrier))]
-                                {
-                                    Some(link)
-                                }
-                            },
-                            &equipment.activity,
-                            &mut append_output,
-                            append_status
-                                .take()
-                                .expect("original prepared status custody"),
-                        )
-                        .await
-                    };
+                    // Destructure affine Started ownership synchronously before
+                    // constructing the run future; no duplicate whole owner is
+                    // retained beside its executing children across suspension.
+                    let future = crate::play::fore::run_started(
+                        started_slot.take().expect("original Started output slot"),
+                        optional.take().expect("original optional tracking"),
+                        scopes_slot.take().expect("original Scopes output slot"),
+                        arena,
+                        &face,
+                        {
+                            #[cfg(fore_carrier)] { None }
+                            #[cfg(not(fore_carrier))] { Some(link) }
+                        },
+                        &equipment.activity,
+                        &mut append_output,
+                        append_status.take().expect("original prepared status custody"),
+                    );
                     let mut future = core::pin::pin!(future);
-                    return conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut())
-                        .await;
+                    match conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await {}
+
                 }
                 Err(reason) => {
                     // No partial execution: retain the original signed input and

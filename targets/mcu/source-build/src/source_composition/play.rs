@@ -79,7 +79,7 @@ static OUTPUT_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTra
     ON] = terminal_contracts(&source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
 
 pub const CONTINUATION_FORE_PORTS: usize = FORE_PORTS;
-pub type ContinuationStarted<'a, 'f> =
+pub type StartedWorkset<'a, 'f> =
     conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
         (
             fore::BoundSampling<'a, 'a, SamplingBound<'a, 'f>>,
@@ -88,6 +88,8 @@ pub type ContinuationStarted<'a, 'f> =
         ),
         conduit_mcu_host_runtime::execution_mask::RendererService<'a, crate::renderer::Clock>,
     )>;
+// The same physical owner shape serves ordinary Start and continuation.
+pub type ContinuationStarted<'a, 'f> = StartedWorkset<'a, 'f>;
 macro_rules! profile {
     ($module:ident,$host:expr,$boot:expr,$fore:expr) => {{
         use crate::workset::generated::$module as f;

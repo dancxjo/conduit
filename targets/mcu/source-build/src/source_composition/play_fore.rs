@@ -114,8 +114,27 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
     values: HostedValueStore,
     maximum: usize,
     backs: B,
-) -> Result<PreparedFragment<B, SN, SC, SP, SR, ST, SH, SS, HostedSignLog, SK, HostedValueStore, SQ, 0, SF, SU, SZ>, Refusal<&'static str>>
-{
+) -> Result<
+    PreparedFragment<
+        B,
+        SN,
+        SC,
+        SP,
+        SR,
+        ST,
+        SH,
+        SS,
+        HostedSignLog,
+        SK,
+        HostedValueStore,
+        SQ,
+        0,
+        SF,
+        SU,
+        SZ,
+    >,
+    Refusal<&'static str>,
+> {
     let layout = ResidentLayout {
         records: source::sampling_layout::RECORDS,
         counts: source::sampling_layout::COUNTS,
@@ -251,66 +270,65 @@ pub fn prepare_components<'a, 'p>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn run_started<'a, 'f>(
-    sampling: BoundSampling<'a, 'a, SamplingBound<'a, 'f>>,
-    mask: conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
-    output: OutputBound<'a, 'f>,
-    renderer: conduit_mcu_host_runtime::execution_mask::RendererService<'_, crate::renderer::Clock>,
+pub fn run_started<'a, 'f: 'a>(
+    started: crate::play::StartedWorkset<'a, 'f>,
     optional: conduit_kernel::scheduler::prepared_session::OptionalOutputStorage<6>,
     scopes: crate::play_service::Scopes,
-    evidence: conduit_mcu_host_runtime::execution_workset::StartedEvidence,
-    arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'_>,
-    face: &conduit_environment_runtime::publication_face_custody::LocalPublicationFace,
-    local_link: Option<&mut crate::transport::Link>,
-    activity: &conduit_mcu_host_runtime::native_runner::NativeActivity,
-    append_output: &mut [u8],
+    arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'a>,
+    face: &'a conduit_environment_runtime::publication_face_custody::LocalPublicationFace,
+    local_link: Option<&'a mut crate::transport::Link>,
+    activity: &'a conduit_mcu_host_runtime::native_runner::NativeActivity,
+    append_output: &'a mut [u8],
     append_status: conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
-) -> ! {
-    let (output, output_calls) = output;
-    macro_rules! run {
-        ($sample:expr,$calls:expr,$carriage:expr) => {
-            crate::play_run::run(
-                $sample,
-                $calls,
-                mask,
-                output,
-                output_calls,
-                renderer,
-                optional,
-                scopes,
-                evidence,
-                arena,
-                face,
-                $carriage,
-                activity,
-                append_output,
-                append_status,
-            )
-            .await
-        };
-    }
-    #[cfg(fore_carrier)]
-    let mut sampling = sampling;
-    match sampling {
-        BoundSampling::Local((mut sample, mut calls), _) => run!(
-            &mut *sample,
-            &mut calls,
-            crate::play_run::Carriage::Local {
-                link: local_link.expect("original local carrier"),
-                control: None
+) -> impl core::future::Future<Output = core::convert::Infallible> + 'a {
+    // Ownership-only phase boundary: all native execution remains in the poll.
+    // Do not retain a partially moved whole Started beside its running children.
+    let evidence = started.evidence();
+    let ((mut sampling, mask, (output, output_calls)), renderer) = started.into_kernels();
+    async move {
+        macro_rules! run {
+            ($sample:expr,$calls:expr,$carriage:expr) => {
+                crate::play_run::run(
+                    $sample,
+                    $calls,
+                    mask,
+                    output,
+                    output_calls,
+                    renderer,
+                    optional,
+                    scopes,
+                    evidence,
+                    arena,
+                    face,
+                    $carriage,
+                    activity,
+                    append_output,
+                    append_status,
+                )
+                .await
+            };
+        }
+        match sampling {
+            BoundSampling::Local((mut sample, mut calls), _) => run!(
+                &mut *sample,
+                &mut calls,
+                crate::play_run::Carriage::Local {
+                    link: local_link.expect("original local carrier"),
+                    control: None
+                }
+            ),
+            #[cfg(fore_carrier)]
+            BoundSampling::Line(ref mut bound) => {
+                assert!(local_link.is_none(), "exclusive original Line reader");
+                let ((sample, calls), observer, actor) = bound
+                    .activate_actor(&evidence)
+                    .expect("original preflighted Fore Start");
+                run!(
+                    &mut **sample,
+                    calls,
+                    crate::play_run::Carriage::Line { actor, observer }
+                )
             }
-        ),
-        #[cfg(fore_carrier)]
-        BoundSampling::Line(ref mut bound) => {
-            assert!(local_link.is_none(), "exclusive original Line reader");
-            let ((sample, calls), observer, actor) = bound
-                .activate_actor(&evidence)
-                .expect("original preflighted Fore Start");
-            run!(
-                &mut **sample,
-                calls,
-                crate::play_run::Carriage::Line { actor, observer }
-            )
         }
     }
 }
