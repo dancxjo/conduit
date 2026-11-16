@@ -87,12 +87,22 @@ fn foreign_claim_secret_nonce_and_times_refuse_without_mutation() {
     let mut manager = manager();
     let invitation = issue(&mut manager, 21);
     let original = manager.clone();
+    assert_eq!(
+        manager.validate_owned_pending_spawn_invitation(&invitation),
+        Ok(())
+    );
+    assert_eq!(manager, original);
     let mut wrong_secret = invitation.clone();
     wrong_secret.secret = SpawnInvitationSecret::from_csprng_bytes([22; 32]).unwrap();
     assert_eq!(
         manager.revoke_pending_spawn_invitation(&wrong_secret),
         Err(SecretMismatch)
     );
+    assert_eq!(
+        manager.validate_owned_pending_spawn_invitation(&wrong_secret),
+        Err(SecretMismatch)
+    );
+    assert_eq!(manager, original);
     for field in 0..5 {
         let mut claim = invitation.clone();
         let expected = match field {
@@ -120,6 +130,11 @@ fn foreign_claim_secret_nonce_and_times_refuse_without_mutation() {
                 ClaimMismatch
             }
         };
+        assert_eq!(
+            manager.validate_owned_pending_spawn_invitation(&claim),
+            Err(expected)
+        );
+        assert_eq!(manager, original);
         assert_eq!(
             manager.revoke_pending_spawn_invitation(&claim),
             Err(expected)
@@ -166,6 +181,11 @@ fn completed_admission_refuses_revocation_without_erasing_part_or_receipt() {
         .unwrap();
     let before = manager.clone();
     let parts = membership.clone();
+    assert_eq!(
+        manager.validate_owned_pending_spawn_invitation(&invitation),
+        Err(PendingInvitationRevocationRefusal::AlreadyUsed)
+    );
+    assert_eq!(manager, before);
     assert_eq!(
         manager.revoke_pending_spawn_invitation(&invitation),
         Err(PendingInvitationRevocationRefusal::AlreadyUsed)
@@ -227,4 +247,27 @@ fn retiring_another_invitation_preserves_existing_admission_custody() {
         ),
         Err(AdmissionRefusal::Replay)
     );
+}
+
+#[test]
+fn readonly_check_does_not_assert_time_validity_and_refuses_pruned_record() {
+    let mut manager = manager();
+    let invitation = issue(&mut manager, 71);
+    assert_eq!(
+        invitation.claim().inspect(1000),
+        Err(AdmissionRefusal::Expired)
+    );
+    let before = manager.clone();
+    assert_eq!(
+        manager.validate_owned_pending_spawn_invitation(&invitation),
+        Ok(())
+    );
+    assert_eq!(manager, before);
+    manager.invitations.clear();
+    let pruned = manager.clone();
+    assert_eq!(
+        manager.validate_owned_pending_spawn_invitation(&invitation),
+        Err(PendingInvitationRevocationRefusal::UnknownInvitation)
+    );
+    assert_eq!(manager, pruned);
 }

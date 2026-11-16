@@ -1,5 +1,7 @@
 //! Complete contribution comparison using the same emitter in finite chunks.
 mod index;
+#[cfg(test)]
+mod lookup_work;
 use super::{graph_face, PatchbayApplicationPort};
 use alloc::{format, vec::Vec};
 use conduit_body::BodyId;
@@ -60,7 +62,7 @@ impl PatchbayApplicationPort {
         let body = format!("body/{}", body.as_str());
         // Source subjects already belong to the observation. Seeding these
         // preserves the shared emitter's existing subject/disclosure decision.
-        let mut subjects = base.subjects.clone();
+        let mut subjects = base.subjects;
         let mut relationships = Vec::new();
         let mut properties = Vec::new();
         let mut texts = Vec::new();
@@ -77,10 +79,16 @@ impl PatchbayApplicationPort {
             },
             |content| {
                 let planned = |identity: &str| {
+                    #[cfg(test)]
+                    lookup_work::query(identity);
+                    let Some(checked_plot_id) = identity.strip_prefix("plot/") else {
+                        return false;
+                    };
                     self.plots.iter().any(|plot| {
+                        #[cfg(test)]
+                        lookup_work::entry(identity);
                         plot.plan_id.is_some()
-                            && identity.strip_prefix("plot/")
-                                == Some(plot.graph.checked_plot_id.as_str())
+                            && checked_plot_id == plot.graph.checked_plot_id.as_str()
                     })
                 };
                 let before_filter = content.subjects.len();
