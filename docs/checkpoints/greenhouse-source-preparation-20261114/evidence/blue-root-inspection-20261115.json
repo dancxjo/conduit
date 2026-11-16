@@ -1,8 +1,8 @@
 {
-  "captured_unix": 1794805429.8244822,
+  "captured_unix": 1794805881.8910372,
   "host": "victus.local",
   "device": "blue",
   "exit": 0,
   "query": "Root Inspect only; no provisioning/admission/Start",
-  "refusal": "Unexpected framing"
+  "inspection": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"b9f563bd49078758d469757f29972c25355ec7ffa792d3766cf83dae47466de4\",\"fragments\":[{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":0,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":null},\"control_refusal\":null}"
 }
