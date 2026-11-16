@@ -52,6 +52,15 @@ impl FaceArrival {
             .map_err(|error| error.as_str())
     }
 
+    pub(in crate::product_front_door) fn cancel_pointer_gesture(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), &'static str> {
+        self.mask
+            .cancel_pointer_gesture(display)
+            .map_err(|error| error.as_str())
+    }
+
     pub(in crate::product_front_door) fn observe_pointer(
         &self,
         sample: conduit_semantic_catalog::NormalizedPointerSample,
@@ -68,6 +77,8 @@ impl FaceArrival {
         &mut self,
         x: u32,
         y: u32,
+        pressed: bool,
+        press_edge: bool,
         door: &mut FrontDoor,
         journey: &mut ProductJourney,
         presenter: &mut FrontDoorPresenter,
@@ -77,7 +88,10 @@ impl FaceArrival {
         let show = self.mask.show().cloned().ok_or("creche-face-show-absent")?;
         let sequence = self.next_interaction;
         self.next_interaction = sequence.checked_add(1).ok_or("creche-face-input-bound")?;
-        let input = match self.mask.pointer(x, y, sequence, display) {
+        let input = match self
+            .mask
+            .pointer_sample(x, y, pressed, press_edge, sequence, display)
+        {
             Ok(input) => input,
             Err(error) if self.observe_input_refusal(error, sequence)? => {
                 return Ok(FaceArrivalInput::Continue);

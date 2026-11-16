@@ -14,7 +14,7 @@ import { patchbayFixture } from './conduitos-patchbay-fixture.mjs';
 const names = [
   'front-door-ready', 'creche-ready',
   'creche-editorial-compact', 'creche-engineering-phosphor-compact', 'creche-engineering-editorial-compact', 'creche-engineering-phosphor-spacious',
-  'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-playing', 'wake-refused',
+  'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected-pending', 'creche-pointer-three-selected', 'creche-pointer-four-restored-pending', 'creche-pointer-four-restored', 'body-playing', 'wake-refused',
   'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'patchbay-inspected-other-and-returned',
@@ -44,6 +44,10 @@ test('Pages composition publishes only the exact refusal and reentry QMP journey
     for (const name of names) assert.match(page, new RegExp(`src="${name}\\.png"`));
     assert.match(page, /A Body, its Patchbay, and its Face/);
     assert.match(page, /What changed:/);
+    assert.match(page, /No action is requested until a valid release/);
+    assert.match(page, /One typed Boolean false reaches the Source owner after release/);
+    assert.match(page, /This new press is provisional/);
+    assert.doesNotMatch(page, /held motion across the fresh Show/);
     assert.match(page, new RegExp(`${names.length} screenshots`));
     assert.equal((page.match(/class="journey-step"/g) ?? []).length, names.length);
     const retained = readFileSync(path.join(fixture.site, `journeys/commits/${commit}/conduitos/x86_64/index.html`), 'utf8');
@@ -113,7 +117,7 @@ test('Pages composition refuses a transcript from another Body before writing pa
   }
 });
 
-for (const checkpoint of ['creche-editorial-compact', 'creche-engineering-phosphor-compact', 'creche-engineering-editorial-compact', 'creche-engineering-phosphor-spacious', 'creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
+for (const checkpoint of ['creche-pointer-three-selected-pending', 'creche-pointer-four-restored-pending', 'creche-editorial-compact', 'creche-engineering-phosphor-compact', 'creche-engineering-editorial-compact', 'creche-engineering-phosphor-spacious', 'creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'patchbay-inspected-other-and-returned',
   'patchbay-mask-replanned', 'patchbay-source-editor-loaded']) {
   test(`Pages composition refuses a journey missing ${checkpoint}`, () => {
@@ -147,7 +151,23 @@ test('Pages composition refuses reordered captures', () => {
   }
 });
 
-for (const checkpoint of ['patchbay-inspected-other-and-returned', 'patchbay-mask-replanned', 'patchbay-source-editor-loaded']) {
+test('Pages composition refuses pending and completed gesture captures in reverse order', () => {
+  const fixture = makeFixture();
+  try {
+    const manifestPath = path.join(fixture.evidence, 'manifest.json');
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const index = names.indexOf('creche-pointer-three-selected-pending');
+    [manifest.checkpoints[index], manifest.checkpoints[index + 1]] = [manifest.checkpoints[index + 1], manifest.checkpoints[index]];
+    writeFileSync(manifestPath, JSON.stringify(manifest));
+    const result = publish(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /violates the captured journey/);
+    assert.equal(readFileSync(path.join(fixture.site, 'journeys/index.html'), 'utf8'),
+      '<!-- conduit-conduitos-journey-card@1 -->');
+  } finally { rmSync(fixture.root, { recursive: true, force: true }); }
+});
+
+for (const checkpoint of ['creche-pointer-three-selected-pending', 'creche-pointer-four-restored-pending', 'patchbay-inspected-other-and-returned', 'patchbay-mask-replanned', 'patchbay-source-editor-loaded']) {
   test(`Pages composition refuses substituted ${checkpoint} screenshot`, () => {
     const fixture = makeFixture();
     try {
@@ -248,7 +268,7 @@ function makeFixture() {
     + paired.paired_faces.slice(lookPairs.length).map(pair => `CONDUIT_NATIVE_FACE ${JSON.stringify(pair.native)}\n`).join('')
     + `CONDUIT_NATIVE_BIRTH ${JSON.stringify(paired.birth)}\n`
     + paired.actions.map(action => `CONDUIT_NATIVE_ACTION ${JSON.stringify(action)}\n`).join('')
-    + pointerFixture().serial);
+    + pointerFixture(true).serial);
   writeFileSync(path.join(root, 'evidence/journey-qmp.log'), 'fixture QMP transcript; no emulator claim\n');
   return { root, evidence, site };
 }
@@ -319,7 +339,7 @@ function pairedFixture() {
     birth: receipt(0, { body_id: null, born_sign_id: null }, owner(1)), paired_faces,
     actions: [receipt(1, owner(1), owner(2)), receipt(2, owner(2), owner(2), true), receipt(3, owner(2), owner(3))],
     accepted_action_count: 2, refused_action_count: 1, fresh_action_after_refusal: true,
-    screenshots: 'journey-frames/manifest.json', pointer: pointerFixture().receipt, browser: { status: 'unsupported' },
+    screenshots: 'journey-frames/manifest.json', pointer: pointerFixture(true).receipt, browser: { status: 'unsupported' },
     parent_5356_acceptance: 'open', physical_evidence: false, human_enactment: false };
 }
 

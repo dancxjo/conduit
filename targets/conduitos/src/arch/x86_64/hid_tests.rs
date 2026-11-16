@@ -95,11 +95,7 @@ fn protocol_loss_and_queue_pressure_are_distinct() {
 
     let mut queue = [HidKeyTransition::default(); 2];
     let mut count = 0;
-    let transition = HidKeyTransition {
-        usage: 4,
-        pressed: true,
-        modifiers: 0,
-    };
+    let transition = HidKeyTransition::new(4, true, 0);
     assert_eq!(
         retain_transition(&mut queue, &mut count, transition),
         Ok(())
@@ -120,24 +116,10 @@ fn reports_derive_press_then_release_without_text() {
     let pressed = parse_report(&[0, 0, 4, 0, 0, 0, 0, 0]).unwrap();
     let (first, first_count) = derive_transitions(empty, pressed).unwrap();
     assert_eq!(first_count, 1);
-    assert_eq!(
-        first[0],
-        HidKeyTransition {
-            usage: 4,
-            pressed: true,
-            modifiers: 0
-        }
-    );
+    assert_eq!(first[0], HidKeyTransition::new(4, true, 0));
     let (second, second_count) = derive_transitions(pressed, empty).unwrap();
     assert_eq!(second_count, 1);
-    assert_eq!(
-        second[0],
-        HidKeyTransition {
-            usage: 4,
-            pressed: false,
-            modifiers: 0
-        }
-    );
+    assert_eq!(second[0], HidKeyTransition::new(4, false, 0));
 }
 
 #[test]
@@ -155,7 +137,7 @@ fn modifier_and_usage_order_is_canonical() {
         (7, true),
     ];
     for (event, expected) in events[..count].iter().zip(expected) {
-        assert_eq!((event.usage, event.pressed), expected);
+        assert_eq!((event.usage(), event.pressed()), expected);
     }
 }
 

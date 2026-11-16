@@ -3,6 +3,7 @@ use super::*;
 
 pub(in crate::native_face_scene) struct RowChromeMetrics {
     pub focus_marker_width: u16,
+    pub pressed: bool,
     pub control_radius: Option<u8>,
 }
 
@@ -42,6 +43,7 @@ pub(in crate::native_face_scene) fn append_row_chrome(
 ) -> Result<(), FaceSceneError> {
     let RowChromeMetrics {
         focus_marker_width,
+        pressed,
         control_radius,
     } = metrics;
     if !showing_details && row.region_start && row.region.is_none() {
@@ -87,7 +89,17 @@ pub(in crate::native_face_scene) fn append_row_chrome(
     if focused {
         // Selected control padding may be zero. Keep the non-color marker in
         // its admitted leading gutter, outside both glyph and choice ink.
-        let (marker, shape) = if row.insets.leading() != 0 {
+        let (marker, shape) = if pressed {
+            (
+                LayoutRect {
+                    x: row.bounds.x + 3,
+                    y: row.bounds.y + row.bounds.height as i16 - 5,
+                    width: row.bounds.width - 6,
+                    height: 2,
+                },
+                GraphicsShapeStyle::Fill,
+            )
+        } else if row.insets.leading() != 0 {
             (
                 LayoutRect {
                     x: row.bounds.x + ((row.insets.leading() - focus_marker_width) / 2) as i16,

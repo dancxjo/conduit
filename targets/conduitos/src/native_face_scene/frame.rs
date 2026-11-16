@@ -135,9 +135,11 @@ impl NativeFaceScene {
                         .availability
                         .is_available()
                 });
-            let focused = (available && row.control == self.focus)
-                || (!focus_marked && self.graph_subject_focused(row.subject_index));
-            let outline = if focused {
+            let focused = self.pressed_control().is_none()
+                && ((available && row.control == self.focus)
+                    || (!focus_marked && self.graph_subject_focused(row.subject_index)));
+            let pressed = available && row.control == self.pressed_control();
+            let outline = if focused || pressed {
                 GraphicsPaintRole::Focus
             } else {
                 row.paint
@@ -148,13 +150,14 @@ impl NativeFaceScene {
                 self.screen,
                 outline,
                 self.showing_details,
-                focused && !focus_marked,
+                (focused || pressed) && !focus_marked,
                 layout::RowChromeMetrics {
+                    pressed,
                     focus_marker_width: self.focus_marker_width,
                     control_radius: self.look_corners.map(|c| c.control),
                 },
             )?;
-            focus_marked |= focused;
+            focus_marked |= focused || pressed;
             super::boolean_choice::append(&mut scene, row, self.screen)?;
             super::semantic_icons::append(&mut scene, row, self.screen)?;
             push(

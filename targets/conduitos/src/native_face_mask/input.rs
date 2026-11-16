@@ -68,9 +68,13 @@ impl NativeFaceMask {
         let cleared_notice = event.transition() == KeyTransition::Pressed
             && !(0xe0..=0xe7).contains(&event.usage())
             && scene.clear_local_notice();
+        let cancelled_pointer = scene.cancel_pointer_gesture();
         let result = scene.key(event, &show, sequence);
         let result = self.present_input_result(result, display)?;
-        if cleared_notice && matches!(result, FaceSceneInput::Unchanged) {
+        if cancelled_pointer && matches!(result, FaceSceneInput::Submitted { .. }) {
+            self.repaint(display)?;
+        }
+        if (cleared_notice || cancelled_pointer) && matches!(result, FaceSceneInput::Unchanged) {
             return self.repaint(display).map(NativeFaceMaskInput::Redrawn);
         }
         self.accept_scene_input(result, display)
@@ -108,6 +112,8 @@ impl NativeFaceMask {
         Ok(())
     }
 
+    /// Activate an already completed pointer gesture. Physical adapters should
+    /// pass their ordered observations to `pointer_sample` instead.
     pub fn pointer(
         &mut self,
         x: u32,
@@ -140,6 +146,78 @@ impl NativeFaceMask {
             .pointer(route.local_x as i16, route.local_y as i16, &show, sequence);
         let result = self.present_input_result(result, display)?;
         self.accept_scene_input(result, display)
+    }
+
+    /// Physical samples are provisional until release. `press_edge` is supplied
+    /// by the device history owner, so replacing a Show cannot rearm a held pointer button.
+    pub fn pointer_sample(
+        &mut self,
+        x: u32,
+        y: u32,
+        pressed: bool,
+        press_edge: bool,
+        sequence: u64,
+        display: &mut impl PixelTarget,
+    ) -> Result<NativeFaceMaskInput, NativeFaceMaskError> {
+        if !self.local_input_available {
+            return Err(NativeFaceMaskError::InputUnavailable);
+        }
+        let route = self
+            .compositor
+            .route_pointer(x, y, press_edge)
+            .map_err(NativeFaceMaskError::Compositor)?;
+        let show = self
+            .session
+            .as_ref()
+            .ok_or(NativeFaceMaskError::Face)?
+            .show();
+        let InputRoute::Delivered(route) = route else {
+            self.cancel_pointer_gesture(display)?;
+            self.compose_and_commit(display)?;
+            return Ok(NativeFaceMaskInput::Unchanged);
+        };
+        self.compositor
+            .validate_pointer_route(&route)
+            .map_err(NativeFaceMaskError::Compositor)?;
+        if route.manifestation_id != show.show.manifestation_id {
+            self.cancel_pointer_gesture(display)?;
+            return Err(NativeFaceMaskError::Face);
+        }
+        let result = self
+            .scene
+            .as_mut()
+            .ok_or(NativeFaceMaskError::Face)?
+            .pointer_sample(
+                route.local_x as i16,
+                route.local_y as i16,
+                pressed,
+                press_edge,
+                show,
+                sequence,
+            );
+        let result = self.present_input_result(result, display)?;
+        match &result {
+            FaceSceneInput::Unchanged => self.compose_and_commit(display)?,
+            FaceSceneInput::Submitted { .. } => {
+                self.repaint(display)?;
+            }
+            FaceSceneInput::Changed => {}
+        }
+        self.accept_scene_input(result, display)
+    }
+
+    pub fn cancel_pointer_gesture(
+        &mut self,
+        display: &mut impl PixelTarget,
+    ) -> Result<(), NativeFaceMaskError> {
+        if self
+            .scene
+            .as_mut()
+            .is_some_and(NativeFaceScene::cancel_pointer_gesture)
+        {
+            self.repaint(display)?;
+        }
+        Ok(())
     }
 
     fn accept_scene_input(

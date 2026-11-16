@@ -1,5 +1,5 @@
 // Structural publication fixture only. This is not physical or QEMU evidence.
-export function pointerFixture() {
+export function pointerFixture(releaseActivation = false) {
   const source_changes = Array.from({ length: 4 }, (_, index) => ({
     schema: 'conduit.creche-change/v1', disposition: 'source-accepted-and-shown',
     before_face_id: `creche/face/${index}`, before_revision: index,
@@ -17,8 +17,8 @@ export function pointerFixture() {
     position_x: 500_000, position_y: 500_000, display_x: 40, display_y: 25, coalesced: 0, dropped: 0,
   });
   const presses = [sample(1, 2, true, true), sample(4, 3, true, true)];
-  const releases = [sample(3, 3, false, false), sample(5, 4, false, false)];
-  const held = sample(2, 3, true, false, 4_000);
+  const releases = [sample(3, releaseActivation ? 2 : 3, false, false), sample(5, releaseActivation ? 3 : 4, false, false)];
+  const held = sample(2, releaseActivation ? 2 : 3, true, false, 4_000);
   const focuses = [2, 3].map(revision => ({ action_id: 'creche.plot.3', argument_name: null,
     face_id: `creche/face/${revision}`, face_revision: revision, show_id: `creche/show/${revision}`,
     hit_bounds: { x: 30, y: 10, width: 200, height: 40 },
@@ -29,6 +29,13 @@ export function pointerFixture() {
     keyboard_action_count: 2, pointer_action_count: 2, source_changes, presses, releases,
     held_motion_after_fresh_show: held, held_motion_duplicate_effects: 0, held_motion_on_refreshed_control: true,
     physical_evidence: false, human_enactment: false };
+  if (releaseActivation) {
+    receipt.schema = 'conduit.creche/native-pointer-proof@2';
+    receipt.held_motion_before_release = receipt.held_motion_after_fresh_show;
+    receipt.held_motion_on_pending_control = true;
+    delete receipt.held_motion_after_fresh_show;
+    delete receipt.held_motion_on_refreshed_control;
+  }
   const lines = (prefix, values) => values.map(value => prefix + JSON.stringify(value) + '\n').join('');
   return { receipt, serial: lines('CONDUIT_CRECHE_FOCUS ', focuses)
     + lines('CONDUIT_NATIVE_POINTER ', [presses[0], held, releases[0], presses[1], releases[1]])

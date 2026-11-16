@@ -1,8 +1,8 @@
 //! Mechanical checked-Source output conversion into whole-report input ingress.
 //! USB report decoding, normalization and delta meaning remain in Source.
 use crate::{
-    arch::HidKeyTransition,
-    keyboard_input::{KeyboardIngress, KeyboardIngressRefusal},
+    hid_key_transition::HidKeyTransition,
+    keyboard_ingress::{KeyboardIngress, KeyboardIngressRefusal},
 };
 use conduit_core::{
     PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,

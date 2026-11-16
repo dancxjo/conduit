@@ -1,5 +1,8 @@
 //! Exact installed implementation factory catalog.
 
+mod support;
+pub(crate) use support::supports;
+
 use super::address_detect_back::FACTORY as ADDRESS_DETECT_FACTORY;
 use super::alife_backs::{LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_FACE_FACTORY};
 use super::audio_pitch_analysis_back::FACTORY as AUDIO_PITCH_ANALYSIS_FACTORY;
@@ -207,7 +210,7 @@ use super::wav_artifact_back::FACTORY as WAV_ARTIFACT_FACTORY;
 use super::whisper_speech_back::{
     CLIP_FACTORY as WHISPER_CLIP_SPEECH_FACTORY, FACTORY as WHISPER_SPEECH_FACTORY,
 };
-use conduit_core::{ImplementationId, PlanFragment};
+use conduit_core::ImplementationId;
 
 const FACTORIES: &[&BackFactory] = &[
     &super::temporal_evidence_back::FACTORY,
@@ -514,15 +517,4 @@ pub(super) fn factory(implementation_id: &ImplementationId) -> Option<&'static B
         .iter()
         .copied()
         .find(|factory| factory.implementation_id == implementation_id.as_str())
-}
-
-pub(crate) fn supports(fragment: &PlanFragment) -> bool {
-    !fragment.placements.is_empty()
-        && fragment.placements.iter().all(|placement| {
-            factory(&placement.implementation_id).is_some()
-                || placement.implementation_id.as_str()
-                    == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
-                || placement.implementation_id.as_str()
-                    == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
-        })
 }
