@@ -43,6 +43,11 @@ for src in a.generated.iterdir():
    assert original.is_file(),original
    dst.symlink_to(original)
   else:dst.symlink_to(src.resolve())
+# Also emit newly registered Source siblings absent from frozen Make inputs.
+for original in (repo/'targets/mcu/source-build/src/source_composition').glob('*.rs'):
+ dst=generated/('source_'+original.name)
+ if dst.exists() or dst.is_symlink():dst.unlink()
+ dst.symlink_to(original)
 env=dict(os.environ,OUT_DIR=str(generated.resolve()),CPU_BOARD_SOURCE=str(repo/'targets/esp32/firmware/host/src'))
 command=['rustc','--edition=2021','--cfg','fore_carrier','--cfg','record_service','--cfg','assigned_workset','-L',f'dependency={deps}','--crate-name','a422_cpu_factory',str(Path(__file__).with_name('probe.rs')),'-o',str(a.output/'probe')]
 for name,lib in sorted(selected.items()):command+=['--extern',f'{name}={lib}']
@@ -50,10 +55,13 @@ with (a.output/'compile.log').open('w') as log:result=subprocess.run(command,env
 print(json.dumps({'phase':'compile','exit':result.returncode,'log':str(a.output/'compile.log')}),flush=True)
 if result.returncode:raise SystemExit(result.returncode)
 with (a.output/'run.log').open('w') as log:result=subprocess.run([str(a.output/'probe')],env=env,stdout=log,stderr=subprocess.STDOUT)
-print(json.dumps({'phase':'constructors','exit':result.returncode,'log':str(a.output/'run.log')}),flush=True)
+print(json.dumps({'phase':'cpu-factory','exit':result.returncode,'log':str(a.output/'run.log')}),flush=True)
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
+trace=(a.output/'run.log').read_text()
+started='CPU_FACTORY_STARTED' in trace
+entered='original_complete_factory_called=true' in trace
 receipt={
- 'scope':'Fresh public Root signed three-fragment ingress and unchanged complete factory; baseline refuses sampling Tables(Layout)',
+ 'scope':'Fresh public Root signed three-fragment ingress and unchanged complete factory; conditional original renderer/admission/Start',
  'fresh_public_root_admission':'CPU_AUTHORITY_GATE public_root_spawn=true' in (a.output/'run.log').read_text(),
  'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
  'fingerprint':str(a.fingerprint),'fingerprint_sha256':digest(a.fingerprint),
@@ -61,8 +69,8 @@ receipt={
  'generated_inputs':{p.name:{'path':str(p.resolve()),'sha256':digest(p)} for p in generated.glob('*.rs') if not p.name.startswith('source_')},
  'library_paths':{name:str(lib) for name,lib in selected.items()},
  'constructor_exit':result.returncode,'compile_log_sha256':digest(a.output/'compile.log'),'run_log_sha256':digest(a.output/'run.log'),
- 'whole_factory_called':'CPU_FACTORY_NEGATIVE original_complete_factory_called=true' in (a.output/'run.log').read_text(),'preparation_result':'sampling-kernel/Tables(Layout)','admission':False,'Start':False,'hardware_effects':False,
- 'not_proved':['Successful complete Source preparation','Renderer preparation and whole admission/Start','Target stack/heap/ABI fit','Actual live refusal stage'],
+ 'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,
+ 'not_proved':([] if started else ['Successful complete Source preparation','Renderer preparation and whole admission/Start'])+['Target stack/heap/ABI fit','Actual live refusal stage','Provider effects or continuing Play'],
 }
 (a.output/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
 raise SystemExit(result.returncode)

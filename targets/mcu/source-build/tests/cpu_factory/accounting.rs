@@ -1,15 +1,26 @@
 //! CPU allocation accounting. Simulated external NOR bytes are not RAM custody.
 use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst};
 static CURRENT: AtomicUsize = AtomicUsize::new(0);
 static BASELINE: AtomicUsize = AtomicUsize::new(0);
 static EXTERNAL_MEDIA: AtomicUsize = AtomicUsize::new(0);
+static TRACK: AtomicBool = AtomicBool::new(false);
+static PEAK: AtomicUsize = AtomicUsize::new(0);
+fn observe() {
+    if TRACK.load(SeqCst) {
+        PEAK.fetch_max(used(), SeqCst);
+    }
+}
+pub fn peak() -> usize {
+    PEAK.load(SeqCst)
+}
 pub struct Allocator;
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ptr = unsafe { System.alloc(layout) };
         if !ptr.is_null() {
             CURRENT.fetch_add(layout.size(), SeqCst);
+            observe();
         }
         ptr
     }
@@ -22,6 +33,7 @@ unsafe impl GlobalAlloc for Allocator {
         if !result.is_null() {
             CURRENT.fetch_add(new, SeqCst);
             CURRENT.fetch_sub(layout.size(), SeqCst);
+            observe();
         }
         result
     }
@@ -33,6 +45,8 @@ pub fn begin() {
 }
 pub fn exclude_media(bytes: usize) {
     EXTERNAL_MEDIA.fetch_add(bytes, SeqCst);
+    PEAK.store(used(), SeqCst);
+    TRACK.store(true, SeqCst);
 }
 pub fn used() -> usize {
     CURRENT

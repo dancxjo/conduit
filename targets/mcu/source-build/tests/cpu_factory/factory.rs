@@ -273,5 +273,6 @@ pub fn probe(
             core::hint::black_box((&started, &scopes));
         }
     }
+    println!("CPU_PEAK preparation_heap={} original_limit={} all_fixture_metadata_included=true target_fit=false",crate::accounting::peak(),crate::config::HEAP_BYTES);
     println!("CPU_RAM charged_retained={} available={} original_limit={} simulated_nor_bytes={} fixture_metadata_and_sender_included=true",allocator_used(),crate::runtime::remaining(),crate::config::HEAP_BYTES,crate::config::RECORDING_PREFIX_BYTES as usize+crate::config::RECORDING_SLOTS as usize*512);
 }
