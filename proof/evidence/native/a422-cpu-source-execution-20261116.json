@@ -85,7 +85,8 @@
     "only_excluded_external_NOR_emulator_bytes": 655360,
     "steady_at_observations_2_4_8_16_32_64_128_256_512_960": 105240,
     "full_horizon_run_peak": 105647,
-    "full_horizon_quiesced_recovery_peak": 37647
+    "full_horizon_quiesced_recovery_peak": 37647,
+    "measurement_kind": "GlobalAlloc Layout requested-byte totals after fixture entry, not allocator headers, fragmentation, RSS, CPU stack or target static memory. Target physical RAM remains unproved."
   },
   "memory_assurance": "The sender buffer is actually freed only after public Root ingress authenticates/copies its identical bytes. Original fixed18432 command arena and digest are unchanged. No grant increase or silent exclusion. Fixed static counters/wire ring and inline Timer futures are CPU instrumentation; no target footprint inference.",
   "feature_profile_correction": "Earlier execution-workspace-enabled CPU graph stops at InvalidPlan when run without workspace funding; it is not the production firmware feature graph. Preparation/Start-only witness remains limited to its stated profile.",
@@ -181,7 +182,8 @@
   "full_Source_runtime_borrow_compile": {
     "result": "PASS",
     "features": "execution-only production-parity graph",
-    "retained_path": "/tmp/conduit-full-factory-borrow-20261116/execution-only-final/compile.log",
+    "retained_path": "target/qualification/Source-runtime-execution-profile-borrow/compile.log",
     "sha256": "d9db500acc78b4f6f6288720cbd9d82c0c7627a6c79bfb6edbc4f7dcaa04bc7e"
-  }
+  },
+  "reproduction_horizon": "CPU_TARGET_SAMPLES=960 CPU_FAIL_FORE_READ=1 CPU_RUN_SOURCE=1 CPU_EXPECT_PREPARED=1; invoke tests/cpu_factory/run.py with original a422 Make generated immutable inputs and completed execution-only Cargo dependency fingerprint graph."
 }
