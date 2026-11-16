@@ -596,3 +596,6 @@ fn pin_request_cannot_redefine_fore_ports_or_capacity() {
     assert!(serde_json::from_value::<Request>(document).is_err());
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
+
+#[path = "source_revision_reselect_tests/recovered_claim.rs"]
+mod recovered_claim;

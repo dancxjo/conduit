@@ -43,5 +43,37 @@ impl Owner {
 }
 
 #[cfg(test)]
+impl Owner {
+    /// Local lifecycle-only fixture. Empty sealed Plans carry the actual
+    /// workset identities; this is no physical placement or Play claim.
+    pub(crate) fn propose_recovered_claim_test_awake(&mut self, root: &Path) -> Result<(), String> {
+        let plans = self
+            .session
+            .evidence()
+            .body
+            .workset
+            .plots()
+            .iter()
+            .map(|plot| conduit_body::BodyPlotPlan {
+                plot: plot.clone(),
+                plan: conduit_core::seal_plan(
+                    conduit_core::PlotIdentity {
+                        source_document_id: plot.source_document_id.clone(),
+                        checked_plot_id: plot.checked_plot_id.clone(),
+                        expanded_plot_id: "fixture/recovery-metadata".into(),
+                    },
+                    vec![],
+                ),
+            })
+            .collect();
+        let ad = self.host.advertisement();
+        self.session
+            .propose(plans, &ad.host_id, &ad.boot_id)
+            .map_err(|e| format!("{e:?}"))?;
+        self.persist(root)
+    }
+}
+
+#[cfg(test)]
 #[path = "recovered_source_claim/tests.rs"]
 mod tests;
