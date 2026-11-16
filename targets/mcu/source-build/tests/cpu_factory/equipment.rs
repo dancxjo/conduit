@@ -65,6 +65,11 @@ impl RecordingStorage {
         storage
     }
 }
+impl Drop for RecordingStorage {
+    fn drop(&mut self) {
+        crate::accounting::restore_media(self.bytes.capacity());
+    }
+}
 impl conduit_resource_snapshot::nor::NorStorage for RecordingStorage {
     fn capacity(&self) -> u32 {
         self.bytes.len() as u32

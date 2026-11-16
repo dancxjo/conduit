@@ -273,11 +273,21 @@ pub fn probe(
             assert!(started.is_some());
             assert!(scopes.is_some());
             assert_eq!(parts.workspace.payload_digest(), Some(original_input));
-            assert!(!parts.resources.assignments().is_empty());
+            assert!(!parts.resources.admissions().is_empty());
+            assert_ne!(
+                started.as_ref().unwrap().evidence().custody_identity(),
+                &[0; 32]
+            );
             println!("CPU_FACTORY_STARTED original_complete_factory_called=true renderer_prepared=true admission=true Start=true provider_effects=0 retained_input=true");
+            println!(
+                "CPU_STARTED_RAM retained={} available={} original_limit={}",
+                allocator_used(),
+                crate::runtime::remaining(),
+                crate::config::HEAP_BYTES
+            );
             core::hint::black_box((&started, &scopes));
         }
     }
     println!("CPU_PEAK preparation_heap={} original_limit={} all_fixture_metadata_included=true target_fit=false",crate::accounting::peak(),crate::config::HEAP_BYTES);
-    println!("CPU_RAM charged_retained={} available={} original_limit={} simulated_nor_bytes={} fixture_metadata_and_sender_included=true",allocator_used(),crate::runtime::remaining(),crate::config::HEAP_BYTES,crate::config::RECORDING_PREFIX_BYTES as usize+crate::config::RECORDING_SLOTS as usize*512);
+    println!("CPU_AFTER_CASE_RAM charged_retained={} available={} original_limit={} simulated_nor_bytes={} fixture_metadata_and_sender_included=true",allocator_used(),crate::runtime::remaining(),crate::config::HEAP_BYTES,crate::config::RECORDING_PREFIX_BYTES as usize+crate::config::RECORDING_SLOTS as usize*512);
 }

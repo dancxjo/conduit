@@ -179,8 +179,8 @@ pub fn verify_public_admission() {
     .unwrap();
     authority.admit(&mut root);
     assert!(root.execution_parts().is_ok());
+    println!("CPU_AUTHORITY_GATE public_root_spawn=true fresh_body=true current_member=true initial_retained_input=false spawn_creates_play=false");
     crate::factory::probe(&authority, &mut root, equipment);
-    println!("CPU_AUTHORITY_GATE public_root_spawn=true fresh_body=true current_member=true retained_input=true admission=false Start=false");
 }
 
 /// Test sender signs only the actual receiver challenge; Root retains the

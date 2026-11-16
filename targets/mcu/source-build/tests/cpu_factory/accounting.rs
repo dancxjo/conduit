@@ -48,6 +48,9 @@ pub fn exclude_media(bytes: usize) {
     PEAK.store(used(), SeqCst);
     TRACK.store(true, SeqCst);
 }
+pub fn restore_media(bytes: usize) {
+    EXTERNAL_MEDIA.fetch_sub(bytes, SeqCst);
+}
 pub fn used() -> usize {
     CURRENT
         .load(SeqCst)
