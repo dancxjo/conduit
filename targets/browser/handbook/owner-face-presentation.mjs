@@ -61,13 +61,17 @@ export class OwnerFacePresentation {
     this.#render = undefined;
     this.#dispatched = true;
     this.disabled = true;
+    this.busy = false;
     this.#pendingFocus = undefined;
+  }
+  // The owner supplies actual pending Face work independently of input agency.
+  set busy(value) {
+    this.#element.setAttribute('aria-busy', String(Boolean(value)));
   }
   set disabled(value) {
     const focused = value ? this.#focusedState() : undefined;
     if (focused) this.#pendingFocus = focused;
     this.#disabled = Boolean(value);
-    this.#element.setAttribute('aria-busy', String(this.#disabled));
     for (const control of this.#surface.querySelectorAll('button, input, select, textarea')) {
       control.disabled = this.#disabled || control.dataset.unavailable === 'true';
     }
@@ -134,6 +138,8 @@ export class OwnerFacePresentation {
     }
     const render = this.#render = {};
     this.#dispatched = false;
+    // Host attributes cannot be set while constructing an autonomous custom element.
+    if (!this.#element.hasAttribute('aria-busy')) this.busy = false;
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
     this.#supportsAction = supportsAction;
