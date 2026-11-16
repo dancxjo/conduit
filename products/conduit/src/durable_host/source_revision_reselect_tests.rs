@@ -68,6 +68,7 @@ fn fixture_source(source_text: &str) -> (std::path::PathBuf, Installation, Selec
         expected,
         retire_actions: false,
         configuration_pin_replacements: Vec::new(),
+        local_fore_queue_replacements: Vec::new(),
     };
     (state, installation, selection, request)
 }
@@ -106,6 +107,7 @@ fn reselection_refuses_changed_digest_release_host_configuration_and_body() {
                 expected: request.expected.clone(),
                 retire_actions: false,
                 configuration_pin_replacements: Vec::new(),
+                local_fore_queue_replacements: Vec::new(),
             }
         };
         assert!(candidate(&changed, &reviewed, &installation, &request.expected).is_err());
