@@ -1,0 +1,65 @@
+{
+  "scope": "Finite protocol scheduling proof only; no hardware timing, native Start, authority or remote retirement evidence",
+  "test_source": "architecture/wire/tests/bounded_fore_bootstrap.rs",
+  "codec_bytes": 40,
+  "stream_prefix_bytes": 2,
+  "framed_control_bytes": 42,
+  "mcu_uart_capacity_bytes": 128,
+  "linux_receive_bound_bytes": 1024,
+  "strategies": {
+    "eager": {
+      "reachable_states": 36,
+      "peak_mcu_pending_bytes": 168,
+      "legal_counterexample": [
+        "MCU Hello0",
+        "MCU Hello1",
+        "Root Hello0 (pending42)",
+        "Root Hello1 (pending84)",
+        "Root receives MCU Hello0",
+        "Root Ready0 (pending126)",
+        "Root receives MCU Hello1",
+        "Root Ready1 (pending168)"
+      ]
+    },
+    "unsequenced_listen_first": {
+      "reachable_states": 21,
+      "peak_mcu_pending_bytes": 168,
+      "legal_counterexample": [
+        "MCU Hello0",
+        "MCU Hello1",
+        "Root receives MCU Hello0",
+        "Root Hello0 (pending42)",
+        "Root Ready0 (pending84)",
+        "Root receives MCU Hello1",
+        "Root Hello1 (pending126)",
+        "Root Ready1 (pending168)"
+      ]
+    },
+    "sequential_listen_first": {
+      "reachable_states": 23,
+      "completed_terminal_states": 1,
+      "deadlocked_states": 0,
+      "overflow_states": 0,
+      "peak_mcu_pending_bytes": 126,
+      "local_cancellation_checked_prefixes": 23
+    }
+  },
+  "coverage_and_assumptions": [
+    "Exactly two original scoped Fore sessions, with actual source/sink roles and real wire-machine Hello/Ready validation.",
+    "Arbitrary interleaving of Root and MCU control actions; FIFO ordering preserved in both directions; no application payloads during bootstrap.",
+    "A send queues a complete framed control message; a receive removes one. Atomic queuing overapproximates unread FIFO bytes because partial physical or framed reads can drain additional bytes.",
+    "MCU uses existing Hello/Ready send priority before receive, modeled after its separate genuine StartedEvidence activation gate. This test creates no StartedEvidence.",
+    "Sequential Root receives and remembers future-session Hello without replying until the prior session is active. It must not block the receive loop waiting only for one session.",
+    "After prior session becomes active, at most its unread42-byte Root Ready can precede the next84-byte Hello/Ready pair; therefore pending <=126 bytes.",
+    "Every reachable sequential prefix is locally cancellable without advancing machine state. Cancellation or deadline never asserts peer termination, releases remote custody, or authorizes retry.",
+    "64-step proof ceiling is a finite-state exploration guard, not a wall-time model. Existing production10-second handshake budget is unchanged.",
+    "No scheduling duration, UART arrival timing, electrical behavior, packet corruption, or fairness under permanent task starvation is proved."
+  ],
+  "validation": {
+    "tests_passed": 4,
+    "compiler": "rustc1.98.1",
+    "warnings": "denied",
+    "heavy_builds": false,
+    "production_edits": false
+  }
+}

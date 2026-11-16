@@ -132,11 +132,19 @@ fn sequential_listen_first_stays_at_126_bytes_and_terminates(){
     println!("Sequential: states={} completed={} peak={}",result.states,result.completed,result.peak);
 }
 #[test]
-fn cancellation_or_deadline_never_manufactures_active_sessions(){
-    let mut m=Model::new(Strategy::Sequential);assert!(m.mcu_step());assert!(m.root_step().unwrap());
-    assert!(!m.root.active()&&!m.mcu.active());m.cancelled=true;
-    let before=m.key();for _ in 0..DEADLINE_STEPS {assert!(!m.root_step().unwrap());assert!(!m.mcu_step());}
-    assert_eq!(m.key(),before);assert!(!m.complete());
+fn local_cancellation_freezes_all_23_prefixes_without_remote_end_claim(){
+    let mut stack=vec![Model::new(Strategy::Sequential)];let mut seen=HashSet::new();
+    while let Some(model)=stack.pop(){
+        if !seen.insert(model.key()){continue;}
+        let mut cancelled=model.clone();cancelled.cancelled=true;let before=cancelled.key();
+        for _ in 0..DEADLINE_STEPS {assert!(!cancelled.root_step().unwrap());assert!(!cancelled.mcu_step());}
+        // Preserve any previously observed active state. A local deadline does
+        // not assert peer termination, retirement, or permission to retry.
+        assert_eq!(cancelled.key(),before);
+        let mut root=model.clone();if root.root_step().unwrap(){stack.push(root);}
+        let mut mcu=model;if mcu.mcu_step(){stack.push(mcu);}
+    }
+    assert_eq!(seen.len(),23);
 }
 
 #[test]
