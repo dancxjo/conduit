@@ -1,6 +1,6 @@
 //! Consume policy-owned Source custody before the guarded Root workset effect.
 //! Incoming proposal Info, copied IDs or matching Source do not grant this call.
-use super::{Owner, debug, state};
+use super::{debug, state, Owner};
 use conduit_body::{BodyBiographyEvidence, BodyState, BodyWorkset, ResidentPlot};
 use std::path::Path;
 
@@ -233,6 +233,17 @@ impl Owner {
         for (_, plot) in sources {
             wake_ingress_requirements.observe(&staged.evidence().body, plot)?;
         }
+        let plot_names = super::plot_names::PlotNames::prepare(
+            &staged.evidence().body.workset,
+            sources.iter().map(|(_, plot)| {
+                (
+                    &plot.expanded.source_document_id,
+                    &plot.expanded.checked_plot_id,
+                    plot.expanded.name.as_str(),
+                )
+            }),
+            self.host.optional_root_preparation(),
+        )?;
         let retained = state::WorksetSources::checked(
             staged.evidence(),
             sources
@@ -264,6 +275,7 @@ impl Owner {
         self.wake_ingress_requirements = wake_ingress_requirements;
         self.resident = foreground;
         self.resident_name = name;
+        self.plot_names = plot_names;
         self.clock_interval_ms = None;
         #[cfg(target_os = "linux")]
         {

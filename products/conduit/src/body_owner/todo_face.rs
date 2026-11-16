@@ -219,16 +219,7 @@ impl Owner {
         &self,
         todo: Option<(&TodoState, bool)>,
     ) -> Result<BodyFace, String> {
-        let plot_name = self
-            .resident
-            .as_ref()
-            .zip(self.resident_name.as_deref())
-            .map(|(resident, name)| FaceResidentPlotName {
-                source_document_id: &resident.source_document_id,
-                checked_plot_id: &resident.checked_plot_id,
-                name,
-            });
-        let plot_names: Vec<_> = plot_name.into_iter().collect();
+        let plot_names = self.face_plot_names();
         let contributions = todo
             .map(|(state, actions_admitted)| {
                 let fragment = todo_fragment(state, self.todo_basis()?, actions_admitted)

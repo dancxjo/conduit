@@ -126,6 +126,8 @@ mod notebook;
 #[path = "text_file_play.rs"]
 mod text_file_play;
 pub(crate) use notebook::NotebookWaitingWorker;
+#[path = "plot_names.rs"]
+mod plot_names;
 #[path = "todo_face.rs"]
 mod todo_face;
 #[path = "todo_next.rs"]
@@ -328,6 +330,7 @@ pub(crate) struct Owner {
     session: BodyLifecycleSession,
     resident: Option<ResidentPlot>,
     resident_name: Option<String>,
+    plot_names: plot_names::PlotNames,
     clock_interval_ms: Option<u64>,
     owner_navigation: owner_navigation::OwnerNavigation,
     last_execution: Option<serde_json::Value>,
@@ -456,6 +459,7 @@ impl Owner {
             session,
             resident: Some(resident),
             resident_name: None,
+            plot_names: Default::default(),
             clock_interval_ms: None,
             owner_navigation: owner_navigation::OwnerNavigation::default(),
             last_execution: None,
@@ -501,6 +505,7 @@ impl Owner {
             session,
             resident,
             resident_name: None,
+            plot_names: Default::default(),
             clock_interval_ms: None,
             owner_navigation: owner_navigation::OwnerNavigation::default(),
             last_execution: None,
@@ -561,6 +566,7 @@ impl Owner {
         if self.resident.as_ref() != Some(&resident) {
             return Err("checked source differs from the Body's resident Plot".into());
         }
+        self.observe_plot_name(checked)?;
         self.resident_name = Some(checked.expanded.name.clone());
         self.clock_interval_ms = clock_interval::recognized_interval(&resident);
         self.wake_ingress_requirements

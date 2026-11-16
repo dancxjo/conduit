@@ -104,6 +104,7 @@ impl Owner {
             session: prepared.session,
             resident: prepared.resident,
             resident_name: None,
+            plot_names: Default::default(),
             clock_interval_ms: None,
             owner_navigation: super::owner_navigation::OwnerNavigation::default(),
             last_execution: None,
