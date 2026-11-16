@@ -53,7 +53,8 @@
     "After prior session becomes active, at most its unread42-byte Root Ready can precede the next84-byte Hello/Ready pair; therefore pending <=126 bytes.",
     "Every reachable sequential prefix is locally cancellable without advancing machine state. Cancellation or deadline never asserts peer termination, releases remote custody, or authorizes retry.",
     "64-step proof ceiling is a finite-state exploration guard, not a wall-time model. Existing production10-second handshake budget is unchanged.",
-    "No scheduling duration, UART arrival timing, electrical behavior, packet corruption, or fairness under permanent task starvation is proved."
+    "No scheduling duration, UART arrival timing, electrical behavior, packet corruption, or fairness under permanent task starvation is proved.",
+    "Cancellation test is solely a model-local fence, not an executed original MCU actor cancellation or remote-retirement proof."
   ],
   "validation": {
     "tests_passed": 4,
@@ -61,5 +62,10 @@
     "warnings": "denied",
     "heavy_builds": false,
     "production_edits": false
+  },
+  "delivery": {
+    "purpose_branch": "prove/bounded-fore-bootstrap-20261116",
+    "base": "8cebe9cddd",
+    "integration": "Proof-only checkpoint for integrator cherry-pick to current dev; no production transport edits or new PR queue slot."
   }
 }
