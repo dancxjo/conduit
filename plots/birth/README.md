@@ -1,4 +1,8 @@
-# Birth draft
+# Crib and Birth draft
+
+Crib makes Bodies through explicit Birth. Womb prepares member Seeds for a
+Body that already exists. This package owns the shared Birth encounter used
+by Crib; admission and the resulting Body identity remain lifecycle-owned.
 
 `conduit-birth-plot` owns the renderer-neutral Birth draft: bounded friendly-name
 editing and suggestion, naming tradition and variation, revision-checked plot
