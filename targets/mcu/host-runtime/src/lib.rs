@@ -17,6 +17,8 @@ pub mod execution;
 #[cfg(feature = "execution")]
 pub mod execution_profile;
 #[cfg(feature = "execution")]
+pub mod execution_sign_budget;
+#[cfg(feature = "execution")]
 pub mod execution_authority;
 #[cfg(feature = "execution")]
 pub mod execution_factory;

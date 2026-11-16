@@ -56,6 +56,15 @@ pub(super) const OZ: usize = storage::cord_terminals(
     source::output_layout::ABNORMAL_CORD_COUNT,
     source::output_layout::EXTERNAL_INGRESS_CORD_COUNT,
 );
+#[cfg(fore_carrier)]
+pub(crate) const SAMPLING_LINE_SIGNS: conduit_mcu_host_runtime::execution_sign_budget::DuplexSignBudget =
+    match conduit_mcu_host_runtime::execution_sign_budget::DuplexSignBudget::select(
+        SS as u16, source::sampling_layout::PHYSICAL_SIGN_ITEM_CEILING,
+        source::sampling_layout::PHYSICAL_SIGN_BYTE_CEILING as usize,
+    ) {
+        Some(budget) => budget,
+        None => panic!("checked Source lacks finite duplex Sign capacity"),
+    };
 #[cfg(not(record_service))]
 type RecordingDriver = conduit_mcu_host_runtime::execution_factory::NoExtraBack;
 #[cfg(record_service)]
@@ -102,7 +111,10 @@ pub type OutputKernel<'a, 'f> = ExecutionKernel<
 #[used]
 #[no_mangle]
 pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
-    core::mem::size_of::<SamplingKernel<'static, 'static>>() + sign_bytes(SS, 0),
+    core::mem::size_of::<SamplingKernel<'static, 'static>>() + {
+        #[cfg(fore_carrier)] { match SAMPLING_LINE_SIGNS.backing_bytes() { Some(n) => n, None => panic!("finite Sign geometry") } }
+        #[cfg(not(fore_carrier))] { sign_bytes(SS, 0) }
+    },
     core::mem::size_of::<conduit_seven_segment_mask::native_kernel::Kernel>(),
     core::mem::size_of::<OutputKernel<'static, 'static>>() + sign_bytes(OS, OS),
 ];

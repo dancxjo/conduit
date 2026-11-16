@@ -104,6 +104,8 @@ fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
             image: e::EmbeddedImageBounds {
                 maximum_nodes: 1,
                 maximum_remote_endpoints: 0,
+                maximum_sign_items: 64,
+                maximum_sign_bytes: 24576,
                 ..e::EmbeddedImageBounds::HOST_TOOLING
             },
             computations: e::EmbeddedComputationBounds {
@@ -188,6 +190,8 @@ fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
         make(&host, &BTreeMap::new()).is_err(),
         "missing independently selected Fore refuses"
     );
+    assert_eq!(layout.physical_sign_item_ceiling, 64);
+    assert_eq!(layout.physical_sign_byte_ceiling, 24576);
     assert_eq!(layout.abnormal_cord_count, 0);
     assert_eq!(layout.external_ingress_cord_count, 1);
     // Real lowered Fore topology must emit its stock facts even when this
@@ -226,6 +230,8 @@ fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
             .count(),
         1
     );
+    assert!(emitted.contains("pub const PHYSICAL_SIGN_ITEM_CEILING:u16=64;"));
+    assert!(emitted.contains("pub const PHYSICAL_SIGN_BYTE_CEILING:u32=24576;"));
     assert!(!emitted.contains("pub const CORD_VALUE_PROFILES"));
     std::fs::remove_dir_all(directory).unwrap();
 }

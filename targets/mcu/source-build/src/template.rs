@@ -55,6 +55,8 @@ pub struct Layout {
     pub ports_per_node: usize,
     pub sign_items: u16,
     pub sign_bytes: u32,
+    pub physical_sign_item_ceiling: u16,
+    pub physical_sign_byte_ceiling: u32,
     /// Physical node/operation table geometry, not packed Host Call count.
     pub host_call_slots: usize,
     /// One pending request per independently checked callable node.
@@ -299,6 +301,8 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             .unwrap_or(1),
         sign_items: kernel.sign_items,
         sign_bytes: kernel.sign_bytes,
+        physical_sign_item_ceiling: input.image.maximum_sign_items,
+        physical_sign_byte_ceiling: input.image.maximum_sign_bytes,
         host_call_slots: host_call_storage::slot_count(
             kernel.nodes.len(),
             kernel.host_calls.iter().map(|call| call.call),
