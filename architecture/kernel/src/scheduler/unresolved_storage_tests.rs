@@ -32,7 +32,7 @@ fn zero_unresolved_stock_preserves_normal_abnormal_and_cancel_execution() {
     zero.close_remote_input_abnormal(RemoteEndpointId(1), CordId(1), terminal)
         .unwrap();
     assert_eq!(full.step(), zero.step());
-    assert_eq!(zero.cords[1].abnormal_terminal, Some(terminal));
+    assert_eq!(zero.cord_terminal(1).unwrap(), Some(terminal));
     let mut full = bound::<0>(true);
     let mut zero = small();
     full.cancel().unwrap();

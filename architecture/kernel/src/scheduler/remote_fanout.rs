@@ -16,6 +16,7 @@ impl<
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
         const UNRESOLVED_NODES: usize,
+        const CORD_TERMINALS: usize,
     >
     FixedScheduler<
         D,
@@ -32,6 +33,7 @@ impl<
         TERMINAL_ROWS,
         PHASE_BYTES,
         UNRESOLVED_NODES,
+        CORD_TERMINALS,
     >
 where
     D: StepBack<PORTS>,
@@ -164,7 +166,7 @@ where
             }
             let state = &self.cords[index];
             if state.producer_closed {
-                if state.abnormal_terminal != terminal {
+                if self.cord_terminal(index)? != terminal {
                     return Err(SchedulerError::RemoteDeliveryRejected);
                 }
             } else {

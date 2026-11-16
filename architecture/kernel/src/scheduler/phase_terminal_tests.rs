@@ -46,7 +46,7 @@ fn zero_phase_bytes_keep_normal_close_abnormal_and_cancellation_parity() {
         .close_remote_input_abnormal(RemoteEndpointId(1), CordId(1), terminal)
         .unwrap();
     assert_eq!(full.step(), small.step());
-    assert_eq!(small.cords[1].abnormal_terminal, Some(terminal));
+    assert_eq!(small.cord_terminal(1).unwrap(), Some(terminal));
     assert_eq!(
         full.signs.events().collect::<std::vec::Vec<_>>(),
         small.signs.events().collect::<std::vec::Vec<_>>()
@@ -151,22 +151,24 @@ impl StepBack<1> for Spontaneous {
         }
     }
 }
-pub(super) type SpontaneousKernel<const B: usize, const U: usize = 1> = FixedScheduler<
-    Spontaneous,
-    FixedValueStore<2, 100>,
-    FixedSignLog<64>,
-    1,
-    2,
-    1,
-    2,
-    1,
-    2,
-    0,
-    1,
-    0,
-    B,
-    U,
->;
+pub(super) type SpontaneousKernel<const B: usize, const U: usize = 1, const T: usize = 2> =
+    FixedScheduler<
+        Spontaneous,
+        FixedValueStore<2, 100>,
+        FixedSignLog<64>,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        0,
+        1,
+        0,
+        B,
+        U,
+        T,
+    >;
 fn spontaneous<const B: usize>() -> Box<SpontaneousKernel<B>> {
     prepare_spontaneous::<B, 1>(true)
         .unwrap()
@@ -175,6 +177,12 @@ fn spontaneous<const B: usize>() -> Box<SpontaneousKernel<B>> {
 pub(super) fn prepare_spontaneous<const B: usize, const U: usize>(
     routed: bool,
 ) -> Result<PreparedKernelStorage<Spontaneous, SpontaneousKernel<B, U>, 1>, KernelPreparationError>
+{
+    prepare_spontaneous_stock::<B, U, 2>(routed)
+}
+pub(super) fn prepare_spontaneous_stock<const B: usize, const U: usize, const T: usize>(
+    routed: bool,
+) -> Result<PreparedKernelStorage<Spontaneous, SpontaneousKernel<B, U, T>, 1>, KernelPreparationError>
 {
     static NONE: [[Option<AssignedTerminalTransduction>; 1]; 1] = [[None]];
     SpontaneousKernel::prepare_boxed_with_linked_table_writer(
@@ -231,7 +239,7 @@ fn zero_phase_bytes_preserve_full_spontaneous_cord_and_unresolved_truth() {
     let mut small = spontaneous::<0>();
     assert_eq!(full.step(), small.step());
     let terminal = CanonicalValue::new(&[9; 100]).unwrap();
-    assert_eq!(small.cords[1].abnormal_terminal, Some(terminal));
+    assert_eq!(small.cord_terminal(1).unwrap(), Some(terminal));
     assert_eq!(small.unresolved_abnormal[0].unwrap().terminal, terminal);
     let output = small
         .remote_egress_offer(RemoteEndpointId(0), CordId(0))

@@ -77,6 +77,7 @@ pub struct PreparedKernelSession<
     const TERMINAL_ROWS: usize = N,
     const PHASE_BYTES: usize = { crate::CanonicalValue::MAXIMUM_BYTES },
     const UNRESOLVED_NODES: usize = N,
+    const CORD_TERMINALS: usize = C,
 > where
     D: ReusableStepBack<P>,
     S: ValueStorage,
@@ -98,6 +99,7 @@ pub struct PreparedKernelSession<
             TERMINAL_ROWS,
             PHASE_BYTES,
             UNRESOLVED_NODES,
+            CORD_TERMINALS,
         >,
     >,
     phase: Phase,
@@ -121,6 +123,7 @@ impl<
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
         const UNRESOLVED_NODES: usize,
+        const CORD_TERMINALS: usize,
     >
     PreparedKernelSession<
         D,
@@ -137,6 +140,7 @@ impl<
         TERMINAL_ROWS,
         PHASE_BYTES,
         UNRESOLVED_NODES,
+        CORD_TERMINALS,
     >
 where
     D: ReusableStepBack<P>,
@@ -163,6 +167,7 @@ where
                 TERMINAL_ROWS,
                 PHASE_BYTES,
                 UNRESOLVED_NODES,
+                CORD_TERMINALS,
             >,
         >,
     ) -> Result<
@@ -185,6 +190,7 @@ where
                     TERMINAL_ROWS,
                     PHASE_BYTES,
                     UNRESOLVED_NODES,
+                    CORD_TERMINALS,
                 >,
             >,
         ),
@@ -214,6 +220,7 @@ where
                 TERMINAL_ROWS,
                 PHASE_BYTES,
                 UNRESOLVED_NODES,
+                CORD_TERMINALS,
             >,
         >,
         boundaries: &[OwnedValueBoundary],
@@ -238,6 +245,7 @@ where
                     TERMINAL_ROWS,
                     PHASE_BYTES,
                     UNRESOLVED_NODES,
+                    CORD_TERMINALS,
                 >,
             >,
         ),
@@ -265,6 +273,7 @@ where
                 TERMINAL_ROWS,
                 PHASE_BYTES,
                 UNRESOLVED_NODES,
+                CORD_TERMINALS,
             >,
         >,
         boundaries: &[OwnedValueBoundary],
@@ -290,6 +299,7 @@ where
                     TERMINAL_ROWS,
                     PHASE_BYTES,
                     UNRESOLVED_NODES,
+                    CORD_TERMINALS,
                 >,
             >,
         ),
@@ -324,6 +334,7 @@ where
                 TERMINAL_ROWS,
                 PHASE_BYTES,
                 UNRESOLVED_NODES,
+                CORD_TERMINALS,
             >,
         >,
         boundaries: &[OwnedValueBoundary],
@@ -350,6 +361,7 @@ where
                     TERMINAL_ROWS,
                     PHASE_BYTES,
                     UNRESOLVED_NODES,
+                    CORD_TERMINALS,
                 >,
             >,
         ),
@@ -381,6 +393,7 @@ where
                 TERMINAL_ROWS,
                 PHASE_BYTES,
                 UNRESOLVED_NODES,
+                CORD_TERMINALS,
             >,
         >,
         boundaries: &[OwnedValueBoundary],
@@ -407,6 +420,7 @@ where
                     TERMINAL_ROWS,
                     PHASE_BYTES,
                     UNRESOLVED_NODES,
+                    CORD_TERMINALS,
                 >,
             >,
         ),
@@ -507,6 +521,7 @@ where
         TERMINAL_ROWS,
         PHASE_BYTES,
         UNRESOLVED_NODES,
+        CORD_TERMINALS,
     > {
         &self.kernel
     }
@@ -622,6 +637,7 @@ where
         self.kernel.terminal_phases.fill(None);
         self.kernel.terminal_cancellation_pending.fill(false);
         self.kernel.unresolved_abnormal.fill(None);
+        self.kernel.cord_terminals.fill(None);
         self.kernel.projected_recovery_source.fill(None);
         for (index, cord) in self.kernel.cords[..self.kernel.active_cords]
             .iter_mut()

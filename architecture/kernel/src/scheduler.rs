@@ -56,6 +56,7 @@ mod host_call_settlement;
 mod queue_index;
 mod quiescence;
 use queue_index::queue_slot;
+mod cord_terminal_storage;
 mod payload_admission;
 mod phase_terminal;
 #[cfg(feature = "alloc")]
@@ -1015,7 +1016,6 @@ struct CordState {
     queued_bytes: u32,
     producer_closed: bool,
     producer_abnormal: bool,
-    abnormal_terminal: Option<CanonicalValue>,
     next_remote_sequence: u64,
     offered_remote_sequence: Option<u64>,
     remote_accepted: bool,
@@ -1035,7 +1035,6 @@ impl CordState {
         queued_bytes: 0,
         producer_closed: false,
         producer_abnormal: false,
-        abnormal_terminal: None,
         next_remote_sequence: 0,
         offered_remote_sequence: None,
         remote_accepted: false,
@@ -1052,6 +1051,9 @@ impl CordState {
 /// `UNRESOLVED_NODES=NODES` retains routed abnormal-origin evidence per node.
 /// Zero removes that stock only for topology without AbnormalTerminal Cords;
 /// spontaneous unrouted abnormal errors still return their complete value.
+/// `CORD_TERMINALS=CORDS` retains Cord-indexed full terminal payloads. A compact
+/// profile retains exactly the logical ingress count and refuses every active
+/// AbnormalTerminal track; local Fore ingress remains part of that stock.
 pub struct FixedScheduler<
     D,
     S,
@@ -1067,6 +1069,7 @@ pub struct FixedScheduler<
     const TERMINAL_ROWS: usize = NODES,
     const PHASE_BYTES: usize = { CanonicalValue::MAXIMUM_BYTES },
     const UNRESOLVED_NODES: usize = NODES,
+    const CORD_TERMINALS: usize = CORDS,
 > where
     D: StepBack<PORTS>,
     S: ValueStorage,
@@ -1078,6 +1081,7 @@ pub struct FixedScheduler<
     terminal_phases: [Option<ActiveTerminalPhase<PHASE_BYTES>>; NODES],
     terminal_cancellation_pending: [bool; NODES],
     unresolved_abnormal: [Option<UnresolvedAbnormal>; UNRESOLVED_NODES],
+    cord_terminals: [Option<CanonicalValue>; CORD_TERMINALS],
     projected_recovery_source: [Option<NodeId>; NODES],
     recovery_for_cord: [Option<NodeId>; CORDS],
     cord_specs: [CordSpec; CORDS],
@@ -1138,6 +1142,7 @@ impl<
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
         const UNRESOLVED_NODES: usize,
+        const CORD_TERMINALS: usize,
     >
     FixedScheduler<
         D,
@@ -1154,6 +1159,7 @@ impl<
         TERMINAL_ROWS,
         PHASE_BYTES,
         UNRESOLVED_NODES,
+        CORD_TERMINALS,
     >
 where
     D: StepBack<PORTS>,
@@ -1193,6 +1199,9 @@ where
         unresolved_storage::validate_capacity::<UNRESOLVED_NODES, NODES>(
             &cord_specs[..active_cords],
         )?;
+        cord_terminal_storage::validate_capacity::<CORD_TERMINALS, CORDS>(
+            &cord_specs[..active_cords],
+        )?;
         if PORTS == 0 || QUEUE_SLOTS == 0 || !routes.is_sealed() {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -1215,6 +1224,7 @@ where
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
             unresolved_abnormal: [None; UNRESOLVED_NODES],
+            cord_terminals: [None; CORD_TERMINALS],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
             quiescence_cord_end: quiescence::quiescence_cord_end(&cord_specs[..active_cords]),
@@ -1302,6 +1312,9 @@ where
     ) -> Result<Self, SchedulerError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         unresolved_storage::validate_capacity::<UNRESOLVED_NODES, NODES>(
+            &cord_specs[..active_cords],
+        )?;
+        cord_terminal_storage::validate_capacity::<CORD_TERMINALS, CORDS>(
             &cord_specs[..active_cords],
         )?;
         if PENDING_REQUESTS == 0 || !host_bindings.is_sealed() {
@@ -1818,7 +1831,7 @@ where
             _ => return Err(SchedulerError::InvalidRemoteCordAccess),
         };
         if self.cords[cord_index].producer_closed {
-            return if self.cords[cord_index].abnormal_terminal == abnormal_terminal {
+            return if self.cord_terminal(cord_index)? == abnormal_terminal {
                 Ok(())
             } else {
                 Err(SchedulerError::RemoteDeliveryRejected)
@@ -1826,9 +1839,9 @@ where
         }
         self.ensure_sign_capacity(1)?;
         self.ensure_boundary_remote_capacity(cord_index, 1)?;
+        self.set_cord_terminal(cord_index, abnormal_terminal)?;
         self.cords[cord_index].producer_closed = true;
         self.cords[cord_index].producer_abnormal = abnormal_terminal.is_some();
-        self.cords[cord_index].abnormal_terminal = abnormal_terminal;
         self.set_ready(usize::from(sink_node.0), true);
         self.record_boundary_sign(
             cord_index,
@@ -1916,10 +1929,7 @@ where
         {
             return Ok(None);
         }
-        self.cords
-            .get(usize::from(cord.0))
-            .map(|state| state.abnormal_terminal)
-            .ok_or(SchedulerError::InvalidRemoteCordAccess)
+        self.cord_terminal(usize::from(cord.0))
     }
 
     pub fn has_ready_work(&self) -> bool {
@@ -2141,7 +2151,7 @@ where
                 && self.cords[cord_index].producer_abnormal
                 && !projected_recovery_handles_source
                 && self.cords[cord_index].len == 0)
-                .then_some(self.cords[cord_index].abnormal_terminal)
+                .then_some(self.cord_terminal(cord_index)?)
                 .flatten();
         }
         for (port, output_maximum) in output_maximum_bytes.iter_mut().enumerate() {
@@ -3687,8 +3697,10 @@ where
             self.cords[cord].producer_closed = true;
             self.cords[cord].producer_abnormal =
                 spec.track != AssignedConnectionTrack::AbnormalTerminal;
-            self.cords[cord].abnormal_terminal =
-                (spec.track != AssignedConnectionTrack::AbnormalTerminal).then_some(terminal);
+            self.set_cord_terminal(
+                cord,
+                (spec.track != AssignedConnectionTrack::AbnormalTerminal).then_some(terminal),
+            )?;
             if let CordEndpoint::Local { node, .. } = target.sink {
                 self.set_ready(usize::from(node.0), true);
             } else {
