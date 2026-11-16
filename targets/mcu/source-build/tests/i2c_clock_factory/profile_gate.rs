@@ -91,6 +91,27 @@ fn main() {
         ),
         Err(error) => (None, None, Some(error)),
     };
+    // Explicit compiler-only measurement ceiling. It is the existing compiler
+    // representation maximum, NOT a Host pool or runtime admission. Artifacts
+    // produced here are inspected and dropped, never used for calibration.
+    let full = source.prepare_selected_residents_with_storage(
+        source_build::resident_expression_bounds(u16::MAX - 3),
+        conduit_embedded_build::ResidentExecutionStorage::SharedWorkspaceSchema,
+    );
+    let (full_required, full_count, largest, full_refusal) = match full {
+        Ok(residents) => (
+            Some(
+                residents
+                    .iter()
+                    .map(|r| u32::from(r.computation_work()))
+                    .sum::<u32>(),
+            ),
+            Some(residents.len()),
+            residents.iter().map(|r| r.computation_work()).max(),
+            None,
+        ),
+        Err(error) => (None, None, None, Some(error)),
+    };
     let (prepared, refusal) = match result {
         Ok(residents) => (residents.len(), None),
         Err(error) => (0, Some(error)),
@@ -110,6 +131,11 @@ fn main() {
         "compiler_only_total_work_requirement":required,
         "compiler_only_resident_count":resident_count,
         "compiler_only_measurement_refusal":diagnostic_refusal,
+        "full_compiler_only_ceiling":u16::MAX-3,
+        "full_compiler_only_work_requirement":full_required,
+        "full_compiler_only_resident_count":full_count,
+        "full_compiler_only_largest_owner":largest,
+        "full_compiler_only_refusal":full_refusal,
             "prepared_resident_count":prepared,
             "resident_preparation_refusal":refusal,
             "whole_factory_called":false,
