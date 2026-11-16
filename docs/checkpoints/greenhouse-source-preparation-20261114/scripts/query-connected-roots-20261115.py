@@ -9,10 +9,10 @@ path=PORT
 result={'query':'Root Inspect only; no provisioning/admission/Start'}
 try:
  if subprocess.run(['fuser',path],capture_output=True).returncode==0:raise RuntimeError('Serial device has active owner; no query')
- p=serial.Serial(port=None,baudrate=115200,timeout=.2,write_timeout=2,exclusive=True);p.dtr=False;p.rts=False;p.port=path;p.open()
+ p=serial.Serial(port=None,baudrate=115200,timeout=.2,write_timeout=2,exclusive=True);p.dtr=True;p.rts=not IS_CDC;p.port=path;p.open()
  with p:
   time.sleep(3 if not IS_CDC else .2)
-  p.reset_input_buffer();p.dtr=IS_CDC;p.write(b'\\0\\1?');deadline=time.monotonic()+8;raw=b'';size=None
+  p.reset_input_buffer();p.write(b'\\0\\1?');deadline=time.monotonic()+8;raw=b'';size=None
   while time.monotonic()<deadline:
    raw+=p.read(4096)
    if len(raw)>=2:

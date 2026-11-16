@@ -1,0 +1,15 @@
+{
+  "scope": "unsigned Root inspections; serial observation continuity, not physical display or current remote membership proof",
+  "line_handling": "DTR and RTS steady asserted before open; no later toggles",
+  "same_custody_as_previous_post_backup_capture": true,
+  "previous_capture_unix": 1794813494.254065,
+  "current_capture_unix": 1794818709.3201756,
+  "probe_seconds": 150,
+  "initial_sampling_completed_calls": 259,
+  "final_sampling_completed_calls": 265,
+  "initial_output_completed_calls": 2532,
+  "final_output_completed_calls": 2608,
+  "new_records": 0,
+  "capacity_refusals": 91,
+  "flash_writes": false
+}

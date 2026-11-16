@@ -1,8 +1,8 @@
 {
-  "captured_unix": 1794805881.8910372,
+  "captured_unix": 1794818965.440486,
   "host": "victus.local",
   "device": "blue",
   "exit": 0,
   "query": "Root Inspect only; no provisioning/admission/Start",
-  "inspection": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"b9f563bd49078758d469757f29972c25355ec7ffa792d3766cf83dae47466de4\",\"fragments\":[{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":0,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":null},\"control_refusal\":null}"
+  "inspection": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"75f7b41571e2bcc35129de2baad798a5990f0afe16b6fde68f1ad2c96ea88f97\",\"fragments\":[{\"observed_events\":280,\"completed_calls\":280,\"overwritten_slots\":279,\"last\":{\"sequence\":6407,\"node\":0,\"port\":null,\"request\":95,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":920,\"completed_calls\":0,\"overwritten_slots\":919,\"last\":{\"sequence\":30,\"node\":1,\"port\":null,\"request\":null,\"kind\":\"BackCompleted\"},\"condition\":\"drained\",\"refusal\":null},{\"observed_events\":2736,\"completed_calls\":2736,\"overwritten_slots\":2735,\"last\":{\"sequence\":51982,\"node\":3,\"port\":null,\"request\":2735,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":96,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":\"capacity\"},\"control_refusal\":null}"
 }

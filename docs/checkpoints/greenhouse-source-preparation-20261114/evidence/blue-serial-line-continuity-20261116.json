@@ -1,0 +1,25 @@
+{
+  "captured_unix": 1794818709.3201756,
+  "host": "victus.local",
+  "device": "blue",
+  "exit": 0,
+  "query": "Root Inspect only; no provisioning/admission/Start",
+  "inspections": [
+    {
+      "elapsed_seconds": 0,
+      "value": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"75f7b41571e2bcc35129de2baad798a5990f0afe16b6fde68f1ad2c96ea88f97\",\"fragments\":[{\"observed_events\":259,\"completed_calls\":259,\"overwritten_slots\":258,\"last\":{\"sequence\":5924,\"node\":0,\"port\":null,\"request\":88,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":850,\"completed_calls\":0,\"overwritten_slots\":849,\"last\":{\"sequence\":30,\"node\":1,\"port\":null,\"request\":null,\"kind\":\"BackCompleted\"},\"condition\":\"drained\",\"refusal\":null},{\"observed_events\":2532,\"completed_calls\":2532,\"overwritten_slots\":2531,\"last\":{\"sequence\":48106,\"node\":3,\"port\":null,\"request\":2531,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":89,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":\"capacity\"},\"control_refusal\":null}"
+    },
+    {
+      "elapsed_seconds": 60,
+      "value": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"75f7b41571e2bcc35129de2baad798a5990f0afe16b6fde68f1ad2c96ea88f97\",\"fragments\":[{\"observed_events\":262,\"completed_calls\":262,\"overwritten_slots\":261,\"last\":{\"sequence\":5993,\"node\":0,\"port\":null,\"request\":89,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":860,\"completed_calls\":0,\"overwritten_slots\":859,\"last\":{\"sequence\":30,\"node\":1,\"port\":null,\"request\":null,\"kind\":\"BackCompleted\"},\"condition\":\"drained\",\"refusal\":null},{\"observed_events\":2562,\"completed_calls\":2562,\"overwritten_slots\":2561,\"last\":{\"sequence\":48676,\"node\":3,\"port\":null,\"request\":2561,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":90,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":\"capacity\"},\"control_refusal\":null}"
+    },
+    {
+      "elapsed_seconds": 120,
+      "value": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"75f7b41571e2bcc35129de2baad798a5990f0afe16b6fde68f1ad2c96ea88f97\",\"fragments\":[{\"observed_events\":265,\"completed_calls\":265,\"overwritten_slots\":264,\"last\":{\"sequence\":6062,\"node\":0,\"port\":null,\"request\":90,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":870,\"completed_calls\":0,\"overwritten_slots\":869,\"last\":{\"sequence\":30,\"node\":1,\"port\":null,\"request\":null,\"kind\":\"BackCompleted\"},\"condition\":\"drained\",\"refusal\":null},{\"observed_events\":2593,\"completed_calls\":2593,\"overwritten_slots\":2592,\"last\":{\"sequence\":49265,\"node\":3,\"port\":null,\"request\":2592,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":91,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":\"capacity\"},\"control_refusal\":null}"
+    },
+    {
+      "elapsed_seconds": 150,
+      "value": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"75f7b41571e2bcc35129de2baad798a5990f0afe16b6fde68f1ad2c96ea88f97\",\"fragments\":[{\"observed_events\":265,\"completed_calls\":265,\"overwritten_slots\":264,\"last\":{\"sequence\":6062,\"node\":0,\"port\":null,\"request\":90,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":870,\"completed_calls\":0,\"overwritten_slots\":869,\"last\":{\"sequence\":30,\"node\":1,\"port\":null,\"request\":null,\"kind\":\"BackCompleted\"},\"condition\":\"drained\",\"refusal\":null},{\"observed_events\":2608,\"completed_calls\":2608,\"overwritten_slots\":2607,\"last\":{\"sequence\":49550,\"node\":3,\"port\":null,\"request\":2607,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":91,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":\"capacity\"},\"control_refusal\":null}"
+    }
+  ]
+}

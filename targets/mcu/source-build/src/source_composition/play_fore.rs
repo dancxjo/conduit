@@ -114,7 +114,7 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
     values: HostedValueStore,
     maximum: usize,
     backs: B,
-) -> Result<PreparedFragment<B, SN, SC, SP, SR, ST, SH, SS, HostedSignLog, SK>, Refusal<&'static str>>
+) -> Result<PreparedFragment<B, SN, SC, SP, SR, ST, SH, SS, HostedSignLog, SK, HostedValueStore, SQ, 0, SF, SU, SZ>, Refusal<&'static str>>
 {
     let layout = ResidentLayout {
         records: source::sampling_layout::RECORDS,
@@ -126,7 +126,7 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
     )
     .map_err(|_| Refusal::Bounds)?;
     match line {
-        Some(line_fore) => PreparedFragment::prepare_with_line_fore_terminal_transductions_ref(
+        Some(line_fore) => PreparedFragment::prepare_with_line_fore_linked_terminal_transductions(
             approved,
             b::AssignedBodyLineForePreparationProfile {
                 preparation: profile,
@@ -139,7 +139,7 @@ pub fn prepare_kernel<B: conduit_mcu_host_runtime::execution::PreparedBacks<SN, 
             || Ok::<_, &'static str>(backs),
             &SAMPLING_TERMINALS,
         ),
-        None => PreparedFragment::prepare_with_terminal_transductions_ref(
+        None => PreparedFragment::prepare_with_linked_terminal_transductions(
             approved,
             profile,
             all_fore,

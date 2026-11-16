@@ -1,0 +1,17 @@
+{
+  "tool": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/xtask-source-composition-profile-20261116",
+  "sha256": "1471f985ae57df0bb941116c736686ca08fa4d610cf79a0fff30461ad0c077a1",
+  "bytes": 212353600,
+  "build_base_commit": "b849dbc9fd2c5c3be9d27955f2bad60c174d60c3",
+  "head_after_build": "b849dbc9fd2c5c3be9d27955f2bad60c174d60c3",
+  "source_files": {
+    "targets/mcu/source-build/src/source_composition/play.rs": "ed618ccd1bb4f22dccc261d901b62a65b0c36214cfa4a2658ad7a3ec7975a01c",
+    "targets/mcu/source-build/src/source_composition/play_shapes.rs": "f22d634a6c11a4e111570e71d997d179e1fba368c918bafbf56bf8a91be60e2e",
+    "targets/mcu/source-build/src/source_composition/play_fore.rs": "cff123018b158516d7787480aa81754d4a15abebb4721e5bceb9a60e8f24b5c3",
+    "targets/mcu/host-runtime/src/execution_line_fore.rs": "37d442ede5482e64f18de3c5b579e3b51afea02d824a4da2fc31f8c23a5a3e13",
+    "targets/mcu/host-runtime/src/execution_profile.rs": "4942ec913f2d4f341a3dc24b62bb961d17ced65ad1811875a06f48ba456c022f",
+    "targets/mcu/host-runtime/src/fore_bridge/observer.rs": "b23f37d00bf8ad702f9630fd127dcbbfa7225780a15aff5399e237d5212ca191"
+  },
+  "qualification": "current integration Make/emission tool; dirty source snapshot, not a clean release; no firmware build/device write",
+  "build_log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/source-composition-current-xtask-build-20261116.log"
+}

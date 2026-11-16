@@ -1,0 +1,14 @@
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/products/conduit)
+    Finished `test` profile [unoptimized] target(s) in 19.37s
+     Running unittests src/main.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit-3329dd4bd6998cb6)
+
+running 2 tests
+test durable_host::owner::controller::retained_local_fore::tests::retained_fore_restart_refreshes_after_committed_authentication_and_fences_changed_source ... retained-local-fore-unavailable: selected local adapter Host has no current offer
+retained-local-fore-unavailable: selected local adapter Host has no current offer
+retained-local-fore-unavailable: retained checked File differs from current Body workset or original capture
+ok
+test durable_host::source_revision::retained_planning::tests::retained_fore_original_image_custody_restores_current_workset_and_reselects_fresh_offers ... retained-source restore caller requested-byte observation: Statistics { allocations: 50865, reallocations: 731, requested_bytes: 6982528, live_bytes: 20486, peak_live_bytes: 3584443 }
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 529 filtered out; finished in 12.62s
+
