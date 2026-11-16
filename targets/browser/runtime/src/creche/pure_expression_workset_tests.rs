@@ -168,7 +168,7 @@ fn application_subjects_retain_original_resident_order_titles_and_checked_glyphs
 fn browser_repeated_expression_capacity_stays_at_its_admitted_profile() {
     for count in [16, 17] {
         let source = format!(
-            "plot repeated (\n input: U64 >> output: U64\n) {{\n input{} >> output\n}}\n",
+            "plot repeated (\n input: U64 >> output: U64\n) {{\n input >> (.){} >> output\n}}\n",
             " >> (. + 1)".repeat(count)
         );
         let document = initial_plots::check_inventory(&source).unwrap();
@@ -188,14 +188,35 @@ fn browser_repeated_expression_capacity_stays_at_its_admitted_profile() {
             "boot/repeated".into(),
         )
         .unwrap();
+        // The first identity establishes a finite U64 input ceiling. All additions
+        // therefore share one exact program and one admitted sixteen-instance Back.
+        let mut kinds = std::collections::BTreeMap::new();
+        for gear in &expanded.expanded.gears {
+            *kinds.entry(&gear.kind_id).or_insert(0) += 1;
+        }
+        assert_eq!(kinds.len(), 2);
+        let repeated_kind = kinds
+            .iter()
+            .find(|(_, instances)| **instances == count)
+            .unwrap()
+            .0;
+        let offer = host
+            .capabilities
+            .iter()
+            .find(|offer| &offer.kind_id == *repeated_kind)
+            .unwrap();
+        assert_eq!(offer.limits.max_active_instances, 16);
         let result = conduit_planner::default_expanded_placements(&expanded.expanded, &[host]);
         if count == 16 {
-            assert_eq!(result.unwrap().by_gear.len(), 16);
+            assert_eq!(result.unwrap().by_gear.len(), 17);
         } else {
-            assert!(matches!(
-                result,
-                Err(conduit_planner::PlannerError::UnknownCapability(_))
-            ));
+            assert!(
+                matches!(
+                    result,
+                    Err(conduit_planner::PlannerError::UnknownCapability(_))
+                ),
+                "{result:?}"
+            );
         }
     }
 }
