@@ -20,6 +20,7 @@ impl PointerState {
         }
     }
 
+    #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
     pub(crate) fn is_retired(&self) -> bool {
         self.retired
     }
