@@ -14,6 +14,20 @@ pub(super) fn emit(workset: &Workset, out: &Path, legacy_roles: bool) -> Result<
         std::fs::write(out.join(format!("workset_{i}.rs")), &entry.rust)
             .map_err(|e| e.to_string())?;
     }
+    if workset.entries.iter().any(|entry| {
+        entry
+            .plot
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == "machine/i2c/transact")
+    }) {
+        std::fs::write(
+            out.join("source_native_i2c_clock.rs"),
+            include_str!("source_composition/native_i2c_clock.rs"),
+        )
+        .map_err(|e| e.to_string())?;
+    }
     std::fs::write(out.join("workset.rs"), index).map_err(|e| e.to_string())
 }
 fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
@@ -50,7 +64,7 @@ fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
             writeln!(index, "pub use entry_{entry}_layout as {role}_layout;").unwrap();
         }
     }
-    for (i, _) in workset.entries.iter().enumerate() {
+    for (i, entry) in workset.entries.iter().enumerate() {
         let filename = format!("workset_{i}.rs");
         writeln!(
             index,
@@ -58,9 +72,27 @@ fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
         )
         .unwrap();
         writeln!(index,"pub mod entry_{i}_layout{{include!(concat!(env!(\"OUT_DIR\"),\"/workset_{i}_layout.rs\"));}}\n").unwrap();
+        // The executable constructor uses NATIVE_KINDS from the generated
+        // software module: calibration may permute Source nodes into kernel
+        // slots, so original expanded-gear indices are not executable nodes.
+        if entry
+            .plot
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == "machine/i2c/transact")
+        {
+            writeln!(index, "pub mod entry_{i}_native{{\nuse super::entry_{i}_layout as layout;\nuse super::entry_{i} as source;\ninclude!(concat!(env!(\"OUT_DIR\"),\"/source_native_i2c_clock.rs\"));\n}}").unwrap();
+        }
     }
     Ok(index)
 }
+
+#[cfg(test)]
+use crate as source_build;
+#[cfg(test)]
+#[path = "../tests/fixtures/environmental_exchange_source.rs"]
+mod environmental_source;
 
 #[cfg(test)]
 mod tests {
@@ -77,6 +109,29 @@ mod tests {
         .unwrap()
     }
     #[test]
+    fn real_shared_bme_ht_source_selects_native_constructor() {
+        let fixture = environmental_source::selected_source();
+        let workset = fixture.compile().unwrap();
+        let text = index(&workset, false).unwrap();
+        assert!(text.contains("pub mod entry_0_native"));
+        let kinds = &workset.entries[0].plot.expanded.gears;
+        assert_eq!(
+            kinds
+                .iter()
+                .filter(|g| g.kind_id.as_str() == "machine/i2c/transact")
+                .count(),
+            1
+        );
+        assert_eq!(
+            kinds
+                .iter()
+                .filter(|g| g.kind_id.as_str() == "machine/clock/at")
+                .count(),
+            1
+        );
+        assert!(!text.contains(" as sampling"));
+    }
+    #[test]
     fn neutral_index_preserves_source_entry_and_layout_without_dht_roles() {
         let workset = workset();
         let text = index(&workset, false).unwrap();
@@ -84,6 +139,7 @@ mod tests {
         assert!(text.contains("ENTRY_NAMES:&[&str]=&[\"value\"]"));
         assert!(text.contains("pub mod entry_0{"));
         assert!(text.contains("pub mod entry_0_layout{"));
+        assert!(!text.contains("entry_0_native"));
         assert!(!text.contains(" as sampling"));
         assert!(!text.contains(" as mask"));
         assert!(!text.contains(" as output"));

@@ -10,6 +10,10 @@ mod continuation_binding_tests;
 
 pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
+        (
+            "native_i2c_clock",
+            include_str!("source_composition/native_i2c_clock.rs"),
+        ),
         ("runtime", include_str!("source_composition/runtime.rs")),
         (
             "runtime_online_prepare",
@@ -124,3 +128,7 @@ mod tests {
         std::fs::remove_dir_all(directory).unwrap();
     }
 }
+
+#[cfg(test)]
+#[path = "source_composition/native_i2c_clock_tests.rs"]
+mod native_i2c_clock_tests;
