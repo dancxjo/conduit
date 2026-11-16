@@ -69,11 +69,13 @@
       "Root preparation blocked local control; both continuing route processes exited on timeout",
       "Same-Boot routes restarted and full contact equality verified; no automatic owner/key renewal",
       "Viewer reboot exposed NotLulled and stale pending-return/proof-attempt refusals",
-      "One viewer hostname subsequently unavailable; do not treat initial acknowledgments as continuous availability"
+      "One viewer hostname subsequently unavailable; do not treat initial acknowledgments as continuous availability",
+      "Both viewers subsequently rebooted; both standard SDL services are active, but no current-process Show acknowledgment has been obtained",
+      "Owner and continuing routes remain active on the same Boot; current return is refused by lifecycle policy, not a missing deployment permission"
     ]
   },
   "remaining_gates": [
-    "Obtain bounded original-owner evidence distinguishing native pre-Start refusal, post-Start activation fault and slow preparation; never bypass Ready",
+    "Align canonical fabrication and runtime preparation contracts, qualify whole-factory execution, and resolve original pending outcome without claiming transport closure is receiver retirement",
     "Complete one canonical admitted read on the original transport",
     "Permit safe already-admitted unused viewer return without changing active realization or consuming proof attempts for lifecycle-policy refusal",
     "Keep owner control responsive during preparation; preserve exact identity and freshness rather than extending deadlines",
@@ -85,5 +87,18 @@
     "multi-device graph delivery",
     "continuous two-viewer availability",
     "durable history commitment"
-  ]
+  ],
+  "offline_preparation_diagnosis": {
+    "scope": "Deterministic structural checks of reconstructed unsigned input; does not establish the live receiver outcome or retire original approval",
+    "reconstructed_input_bytes": 15530,
+    "reconstructed_input_sha256": "f870841d25f18f2ef4949e8c2e247dfaa1fde07a3d286f54581a3baec9dfb410",
+    "frozen_output_profile_check": "UnknownForeEndpoint",
+    "frozen_output_frame_capacity_bytes": 651,
+    "actual_selected_plan_output_frame_capacity_bytes": 268,
+    "authenticated_selected_offer_output_frame_maximum_bytes": 651,
+    "frozen_sampling_kernel_check": "Layout refusal with selected-Line schema8 input versus compiled schema7 inventory",
+    "caller_capacity_semantics": "A selected offer maximum is not a mandatory reservation; do not silently enlarge the original caller queue or globally reject smaller legitimate queues",
+    "live_remote_refusal_received": false,
+    "live_native_start_proved": false
+  }
 }
