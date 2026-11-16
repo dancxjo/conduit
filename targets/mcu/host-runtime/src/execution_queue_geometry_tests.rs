@@ -147,6 +147,8 @@ fn exact_queue_geometry_refuses_short_storage_before_back_transfer() {
 #[test]
 fn independent_queue_slots_preserve_step_pressure_order_evidence_and_no_allocations() {
     let binds = Cell::new(0);
+    // Workspace preparation below requires mutation only when selected.
+    #[cfg_attr(not(feature = "execution-workspace"), allow(unused_mut))]
     let mut prepared = prepare::<3>(&binds, usize::MAX).unwrap();
     #[cfg(feature = "execution-workspace")]
     {
