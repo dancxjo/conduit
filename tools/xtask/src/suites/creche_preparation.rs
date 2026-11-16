@@ -2,6 +2,32 @@
 use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
+        "crib-preparation.same-body-release",
+        "Check same-Body Host selection and verified release binding",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-body-make",
+            "--lib",
+            "joining_host",
+        ],
+    ),
+    Step::new(
+        "crib-preparation.same-body-package",
+        "Check bounded member Seed package bytes and refusal paths",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-body-make",
+            "--test",
+            "joining_host_package",
+        ],
+    ),
+    Step::new(
         "creche-preparation.contract",
         "Check Crib/Womb typed Source and transactional kernel preparation",
         "cargo",

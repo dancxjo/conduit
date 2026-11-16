@@ -2,14 +2,45 @@
 //! No birth, invitation issuance, artifact production or admission occurs here.
 use std::collections::BTreeMap;
 
-use conduit_body::{BodyBiographyEvidence, SpawnInvitationClaim};
+use conduit_body::{
+    AdmissionRefusal, BodyBiographyError, BodyBiographyEvidence, SpawnInvitationClaim,
+};
 use conduit_host_make::{CheckedHostConfiguration, MakeCatalog, MakePackageSet, SporeOutputKind};
 
 use crate::{
-    check_body_description, BodyBindingTarget, BodyDescription, BodyHostDescription,
-    BodyWardrobeDescription, CheckedBodyDescription, DeploymentDescription, SporeDescription,
-    SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
+    check_body_description, BodyBindingTarget, BodyDescription, BodyDescriptionDiagnostic,
+    BodyHostDescription, BodyWardrobeDescription, CheckedBodyDescription, DeploymentDescription,
+    SporeDescription, SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
 };
+
+/// Structural preparation refusals retain their original contract diagnostics.
+/// They do not classify later builder, deployment or membership outcomes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum JoiningHostRefusal {
+    BodyEvidence(BodyBiographyError),
+    Invitation(AdmissionRefusal),
+    WrongBody,
+    BodyFulfilled,
+    Construction(Vec<BodyDescriptionDiagnostic>),
+    ConfigurationChanged,
+}
+
+impl std::fmt::Display for JoiningHostRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::BodyEvidence(error) => write!(f, "joining Host Body evidence: {error:?}"),
+            Self::Invitation(error) => write!(f, "joining Host invitation: {error:?}"),
+            Self::WrongBody => f.write_str("joining Host invitation names a different Body"),
+            Self::BodyFulfilled => f.write_str("a fulfilled Body cannot acquire another Host"),
+            Self::Construction(errors) => write!(f, "joining Host construction: {errors:?}"),
+            Self::ConfigurationChanged => {
+                f.write_str("joining Host configuration changed under the selected catalogue")
+            }
+        }
+    }
+}
+
+impl std::error::Error for JoiningHostRefusal {}
 
 pub struct JoiningHostSelection<'a> {
     pub configuration: &'a CheckedHostConfiguration,
@@ -28,17 +59,16 @@ pub fn check_joining_host(
     now_millis: u64,
     catalog: &MakeCatalog,
     packages: &MakePackageSet,
-) -> Result<CheckedBodyDescription, String> {
-    body.validate()
-        .map_err(|error| format!("joining Host Body evidence: {error:?}"))?;
+) -> Result<CheckedBodyDescription, JoiningHostRefusal> {
+    body.validate().map_err(JoiningHostRefusal::BodyEvidence)?;
     invitation
         .inspect(now_millis)
-        .map_err(|error| format!("joining Host invitation: {error:?}"))?;
+        .map_err(JoiningHostRefusal::Invitation)?;
     if invitation.body_id != body.body_id {
-        return Err("joining Host invitation names a different Body".into());
+        return Err(JoiningHostRefusal::WrongBody);
     }
     if matches!(body.body.state, conduit_body::BodyState::Fulfilled { .. }) {
-        return Err("a fulfilled Body cannot acquire another Host".into());
+        return Err(JoiningHostRefusal::BodyFulfilled);
     }
     let configuration = selection.configuration;
     let name = configuration.configuration().name.clone();
@@ -73,11 +103,11 @@ pub fn check_joining_host(
         catalog,
         packages,
     )
-    .map_err(|errors| format!("joining Host construction: {errors:?}"))?;
+    .map_err(JoiningHostRefusal::Construction)?;
     if checked.hosts()[0].configuration.configuration_id() != configuration.configuration_id()
         || checked.hosts()[0].configuration.profile() != configuration.profile()
     {
-        return Err("joining Host configuration changed under the selected catalogue".into());
+        return Err(JoiningHostRefusal::ConfigurationChanged);
     }
     Ok(checked)
 }
