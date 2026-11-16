@@ -992,7 +992,7 @@ fn lower_verified_fragment_for_profile(
             ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
         ) && source_value_bound
             .zip(sink_value_bound)
-            .is_some_and(|(source, sink)| source != sink)
+            .is_some_and(|(source, sink)| source > sink)
         {
             return Err(LoweringError::ConnectionContractMismatch(
                 connection.connection_id.clone(),
