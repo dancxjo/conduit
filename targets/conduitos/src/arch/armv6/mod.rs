@@ -13,7 +13,6 @@ mod entropy;
 pub use audio::PwmAudio;
 #[cfg(feature = "armv6-product")]
 mod framebuffer;
-#[cfg(feature = "armv6-product")]
 mod mailbox;
 mod memory;
 #[cfg(feature = "armv6-product")]
