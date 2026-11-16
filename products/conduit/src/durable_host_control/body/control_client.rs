@@ -149,9 +149,9 @@ fn clear_token(request: &mut Request) {
         | Request::BodyLull { token, .. }
         | Request::BodyExportSeed { token, .. }
         | Request::InspectWorkerText { token, .. }
-        | Request::CompleteWorkerText { token, .. } => token.fill(0),
-        Request::Status { .. }
-        | Request::Join { .. }
+        | Request::CompleteWorkerText { token, .. }
+        | Request::Status { token, .. } => token.fill(0),
+        Request::Join { .. }
         | Request::InstallBodyContext { .. }
         | Request::ObserveLocalModelPool { .. }
         | Request::PrepareRemote { .. }
@@ -173,6 +173,41 @@ mod tests {
         thread,
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    #[test]
+    fn source_execution_status_wakeup_uses_the_bounded_control_round_trip() {
+        let directory = std::env::temp_dir().join(format!(
+            "conduit-control-status-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).unwrap();
+        let listener = UnixListener::bind(directory.join("control.sock")).unwrap();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut bytes = Vec::new();
+            stream.read_to_end(&mut bytes).unwrap();
+            let request: Request = serde_json::from_slice(&bytes).unwrap();
+            assert!(matches!(request, Request::Status { protocol: 2, token } if token == [7; 32]));
+            stream
+                .write_all(br#"{"kind":"refused","protocol":2,"code":"fixture"}"#)
+                .unwrap();
+        });
+        let response = call(
+            &directory,
+            Request::Status {
+                protocol: 2,
+                token: vec![7; 32],
+            },
+        )
+        .unwrap();
+        assert!(matches!(response, Response::Refused { protocol: 2, code } if code == "fixture"));
+        server.join().unwrap();
+        fs::remove_dir_all(directory).unwrap();
+    }
 
     #[test]
     fn accepted_request_with_no_reply_has_an_unknown_outcome() {
