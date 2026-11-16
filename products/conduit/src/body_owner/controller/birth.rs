@@ -44,54 +44,36 @@ impl Owner {
             .map_err(|error| format!("{error:?}"))?;
         let proof = MembershipProofId::bind("conduit/installed-host/creche-birth")
             .map_err(|error| format!("{error:?}"))?;
-        let mut membership =
+        let membership =
             BodyMembership::new(body.body_id.clone()).map_err(|error| format!("{error:?}"))?;
-        let mut evidence =
-            BodyBiographyEvidence::born(body.clone(), membership.clone(), friendly_name)
-                .map_err(|error| format!("{error:?}"))?;
-        let admitted = membership
-            .admit(
-                &body.body_id,
-                membership.revision,
-                part.clone(),
-                proof.clone(),
-                bind_sign(
-                    &advertised.host_id,
-                    &advertised.boot_id,
-                    None,
-                    admitted_sequence,
-                )
-                .sign_id,
-            )
+        let evidence = BodyBiographyEvidence::born(body.clone(), membership, friendly_name)
             .map_err(|error| format!("{error:?}"))?;
-        let present = membership
-            .observe_present(
-                &body.body_id,
-                membership.revision,
-                &part,
-                AuthenticatedHostObservation {
-                    host_id: advertised.host_id.clone(),
-                    boot_id: advertised.boot_id.clone(),
-                    offer_generation: advertised.offer_generation,
-                    proof_id: proof,
-                    sequence: 0,
-                },
-                bind_sign(
-                    &advertised.host_id,
-                    &advertised.boot_id,
-                    None,
-                    present_sequence,
-                )
-                .sign_id,
+        let session = BodyLifecycleSession::prepare_first_host(
+            &evidence,
+            part,
+            AuthenticatedHostObservation {
+                host_id: advertised.host_id.clone(),
+                boot_id: advertised.boot_id.clone(),
+                offer_generation: advertised.offer_generation,
+                proof_id: proof,
+                sequence: 0,
+            },
+            bind_sign(
+                &advertised.host_id,
+                &advertised.boot_id,
+                None,
+                admitted_sequence,
             )
-            .map_err(|error| format!("{error:?}"))?;
-        evidence
-            .append_membership_events(
-                membership,
-                &[(admitted, admitted_sequence), (present, present_sequence)],
+            .sign_id,
+            bind_sign(
+                &advertised.host_id,
+                &advertised.boot_id,
+                None,
+                present_sequence,
             )
-            .map_err(|error| format!("{error:?}"))?;
-        let session = BodyLifecycleSession::open(evidence).map_err(|error| format!("{error:?}"))?;
+            .sign_id,
+        )
+        .map_err(|error| format!("{error:?}"))?;
         Ok(PreparedBirth {
             resident: body.workset.plots().first().cloned(),
             session,
