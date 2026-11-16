@@ -1,0 +1,12 @@
+{
+  "removed": "obsolete work/tm1637-proof-target Cargo artifacts",
+  "cargo_report": "Removed 3944 files, 2.4GiB total",
+  "preserved": [
+    "source and proof logs",
+    "all private keys and device flash archives",
+    "active MCU CPU/ARM caches",
+    "Face and ambient caches",
+    "historical worktrees and uncertain generated model caches"
+  ],
+  "guard_correction": "Preflight matched ancestor shell command; subsequent shell command was not conditional. Future cleanup must execute subprocess only inside successful Python guard or use explicit conditional; exclude scanner ancestors from self-match. No source or device state changed."
+}

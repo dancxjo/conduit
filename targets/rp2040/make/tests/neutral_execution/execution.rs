@@ -3,11 +3,9 @@ use crate::{
     neutral_factory::Kernel,
     neutral_workset::{self, layout},
 };
-use conduit_body as b;
 use conduit_core as c;
 use conduit_kernel::{scheduler::*, *};
 use conduit_mcu_host_runtime::{
-    execution::Policy,
     native_dispatch::{deadline, Dispatch},
     native_runner::{synchronous, CooperativeYield, NativeActivity, Observer, Runner},
 };
@@ -20,6 +18,7 @@ struct View {
     counts: [usize; 9],
     closed: [bool; 9],
     steps: usize,
+    backing_known: bool,
 }
 impl View {
     fn new() -> Self {
@@ -53,6 +52,7 @@ impl View {
             counts: [0; 9],
             closed: [false; 9],
             steps: 0,
+            backing_known: true,
         }
     }
     fn service(&mut self, kernel: &mut Kernel<'_, '_>) -> Result<(), SchedulerError> {
@@ -152,6 +152,18 @@ impl View {
         Ok(())
     }
 }
+// SAFETY: this installed fixture owns only its complete fixed Fore state and
+// borrowed static validators. Binding moves it unchanged without effects or
+// allocation; all input/output service happens after the enclosing Start.
+unsafe impl conduit_mcu_host_runtime::execution_workset::PreparedLocalKernels for View {
+    type Bound = Self;
+    fn retained_backing_bytes(&self) -> Option<usize> {
+        self.backing_known.then_some(core::mem::size_of::<Self>())
+    }
+    unsafe fn bind(self) -> Self {
+        self
+    }
+}
 impl Observer<Kernel<'_, '_>> for View {
     type Error = SchedulerError;
     fn before_step(&mut self, kernel: &mut Kernel<'_, '_>) -> Result<(), Self::Error> {
@@ -200,8 +212,7 @@ pub fn run<
     runtime: &crate::neutral_preflight::Runtime,
 ) {
     let parts = root.execution_parts().unwrap();
-    let actual_owned = parts.resources.host().clone();
-    let actual = &actual_owned;
+    let actual = parts.resources.host();
     let (observations, observation_cost) = crate::probe::observe(|| {
         actual
             .resources
@@ -219,19 +230,12 @@ pub fn run<
             })
             .collect::<Vec<_>>()
     });
-    let context = b::NativePreparationContext {
+    let scope = crate::neutral_execution::RootScope {
+        workspace: parts.workspace,
         bootstrap: parts.bootstrap,
         member: parts.member,
-        actual,
-        image_id: parts.configuration.image_id,
-        configuration_id: parts.configuration.configuration_id,
-        now_millis: (runtime.now)(),
-    };
-    let policy = Policy {
-        preparation: parts.configuration.preparation,
-        execution: parts.configuration.execution,
-        active_worksets: 0,
-        maximum_retained_bytes: 1024 * 1024,
+        configuration: parts.configuration,
+        now_millis: runtime.now,
     };
     let publisher = RefCell::new(None);
     let mut software = conduit_mcu_host_runtime::execution_factory::SoftwareInventory::<
@@ -253,50 +257,42 @@ pub fn run<
             )
             .unwrap();
     }
-    let prepared = crate::neutral_factory::prepare(
-        parts.workspace,
-        context,
-        policy,
+    let mut output = vec![0; conduit_i2c_transaction::contract::I2C_RESULT_VALUE_BYTES];
+    let pins = layout::fore();
+    check_cold_refusals(&pins, equipment, parts.resources);
+    let fore =
+        crate::neutral_execution::PreparedFore::new(View::new(), &pins, &mut output).unwrap();
+    let mut committed = crate::neutral_execution::admit(
+        scope,
+        parts.resources,
+        equipment,
         residents,
         &mut software,
-        &mut equipment.bus,
-        &mut equipment.clock,
-        &mut issuers.bus,
-        &mut issuers.clock,
+        issuers,
         operations,
+        fore,
+        &observations,
+        observation_cost.peak_bytes,
+        0,
+        1024 * 1024,
     )
     .unwrap();
-    let mut committed = prepared
-        .admit::<&'static str>(parts.resources, &observations, observation_cost.peak_bytes)
-        .unwrap();
-    let mut started = committed
-        .start::<{ crate::config::MAX_ASSIGNMENT_BYTES }, &'static str>(
-            parts.workspace,
-            context,
-            policy,
-            parts.resources,
-        )
-        .unwrap();
+    let mut started =
+        crate::neutral_execution::start(&mut committed, scope, parts.resources, 0, 1024 * 1024)
+            .unwrap();
     assert!(
-        committed
-            .start::<{ crate::config::MAX_ASSIGNMENT_BYTES }, &'static str>(
-                parts.workspace,
-                context,
-                policy,
-                parts.resources
-            )
+        crate::neutral_execution::start(&mut committed, scope, parts.resources, 0, 1024 * 1024)
             .is_err(),
         "Start cannot bind providers twice"
     );
-    let (kernel, calls) = started.kernels_mut();
-    let mut output = vec![0; conduit_i2c_transaction::contract::I2C_RESULT_VALUE_BYTES];
-    let mut bus = synchronous::Service::new(&mut calls.buses[0], &mut output).unwrap();
+    let ((kernel, calls), services) = started.kernels_mut();
+    let (view, output) = services.parts_mut();
+    let mut bus = synchronous::Service::new(&mut calls.buses[0], output).unwrap();
     let mut clock = deadline::Service::new(&mut calls.clocks[0]);
-    let mut view = View::new();
     let activity = NativeActivity::new();
     let pause = Yield;
     let cancelled = || false;
-    let runner = Runner::new(&mut **kernel, &mut view, &pause, &cancelled).with_activity(&activity);
+    let runner = Runner::new(&mut **kernel, view, &pause, &cancelled).with_activity(&activity);
     let (result, cost) =
         crate::probe::observe(|| finish(runner.run_with_i2c_clock(&mut bus, &mut clock)));
     assert!(result.is_ok(), "whole Source runner refused: {result:?}");
@@ -327,4 +323,49 @@ pub fn run<
         c::CapabilityLifecycle::Revoked
     );
     println!("whole_source76 authenticated_Start=true typed_inputs=3 typed_outputs=9 display_nack={} frame_sent={} outputs={:?} all_outputs_closed=true native_dispatch=true execution_allocations=0 finite_component_only",crate::FAIL_DISPLAY,view.staged[2],view.counts);
+}
+
+fn check_cold_refusals<I, D>(
+    pins: &[c::AssignedForeRequirement],
+    equipment: &crate::neutral_equipment::Equipment<I, D>,
+    resources: &c::ResourceAdmissionOwner,
+) {
+    let before = resources.clone();
+    for mode in 0..5 {
+        let mut changed = pins.to_vec();
+        let mut output = vec![0; conduit_i2c_transaction::contract::I2C_RESULT_VALUE_BYTES];
+        match mode {
+            0 => {
+                changed.pop();
+            }
+            1 => {
+                changed[1] = changed[0];
+            }
+            2 => {
+                let pin = changed[0];
+                let mut abi: [u8; 32] = pin.payload()[21..].try_into().unwrap();
+                abi[0] ^= 1;
+                changed[0] = c::AssignedForeRequirement::new(
+                    pin.endpoint(),
+                    pin.cord(),
+                    pin.direction(),
+                    c::AssignedIdentity(pin.payload()[5..21].try_into().unwrap()),
+                    abi,
+                );
+            }
+            3 => {
+                output.pop();
+            }
+            _ => {}
+        }
+        let mut observer = View::new();
+        observer.backing_known = mode != 4;
+        let result = crate::neutral_execution::PreparedFore::new(observer, &changed, &mut output);
+        assert!(result.is_err(), "invalid Fore/buffer accepted mode={mode}");
+        assert_eq!(resources, &before, "cold refusal changed admission");
+        assert!(
+            equipment.bus.is_some() && equipment.clock.is_some(),
+            "cold refusal bound provider"
+        );
+    }
 }

@@ -2,6 +2,12 @@
 
 Shared qualified source parent: 80a7229e0456e265e2c5dea725ecb1d612f1c278. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
+## Production execution handoff — 2026-11-15
+
+New neutral_execution module is included by the board and original CPU/no_std fixtures. It safely checks complete Fore pins and result backing cold, uses original prepared service custody and factory/admission/Start, samples time again at Start and never clones the Root advertisement. Actual serial service still refuses missing installed Fore/Mask. Final updated two-scenario/no_std qualification may still be running; read newest production receipt before claiming PASS. No hardware update.
+
+Blue operator-reseed preflight confirms same Body and retained original Part/key, but current credential differs old103basis and current Root peer differs old Seed pin. Existing reviewed application matches archived install readbacks; current flash not re-read. No reseed done. History audit confirms read-only official service/provenance; no qualified erase/generation reclamation.
+
 ## Latest cold-phase stack qualification — 2026-11-15
 
 The no-inline factory phase fence passes original factory/no_std and authenticated Source76 execution tests. Exact ARM ELF5ee7d2fbac0725740ed36fe82b1d82d68601b7f09d38ffe8f3cf41a8dc073fc6 reduces preflight frame26960 to15480. Largest identified direct-call path52840 versus historical64320; region61248 unchanged. This is NOT a complete stack upper bound: indirect calls, dynamic paths and interrupts remain unqualified. No hardware deployment or heap fit claim. Older stack-gate evidence below predates this change.

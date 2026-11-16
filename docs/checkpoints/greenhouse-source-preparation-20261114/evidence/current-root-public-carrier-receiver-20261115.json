@@ -1,0 +1,43 @@
+{
+  "captured_unix": 1794812152.9034743,
+  "read_only": true,
+  "receiver": {
+    "host_id": "host/installed/a5df8bd0de854216bdf68abcbbaf40960c0ef52db7eb7d06386882670434742d",
+    "boot_id": "boot/installed/61504ab8ff016de9cf6ae6238852e2038daa4efd7e56055ba108ed7c35ae6a5d",
+    "offer_generation": 1,
+    "verifying_key": [
+      138,
+      123,
+      124,
+      39,
+      94,
+      92,
+      79,
+      7,
+      126,
+      172,
+      93,
+      197,
+      208,
+      248,
+      227,
+      228,
+      88,
+      36,
+      131,
+      157,
+      228,
+      23,
+      130,
+      44,
+      79,
+      92,
+      107,
+      141,
+      231,
+      229,
+      168,
+      129
+    ]
+  }
+}

@@ -82,6 +82,7 @@ fn actual_board_factory_and_root_preflight_prepare_complete_checked_source_witho
         "neutral_authority",
         "neutral_factory",
         "neutral_preflight",
+        "neutral_execution",
         "resident",
     ] {
         generated.push_str(&format!(

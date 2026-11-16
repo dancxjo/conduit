@@ -1,0 +1,21 @@
+{
+  "build_image": "image:sha256:f35757b90995b19ab40a9fe2d1420231262ef2001a09cef11c469af7a125fb4a",
+  "configuration": "sha256:97fc8423fb98a953d2882d35d8ee5802386ca73c354aa7a4927e39867f702976",
+  "application_sha256": "225c3fd5476e826890e987fabcb360fda6dd92c36e7be127a1b437938c0c1727",
+  "application_bytes": 1830656,
+  "reviewed_application_integrity": true,
+  "historical_install_archives": [
+    {
+      "mode": "selected",
+      "archived_application_matches_reviewed_build": true,
+      "history_preserved": true
+    },
+    {
+      "mode": "application",
+      "archived_application_matches_reviewed_build": true,
+      "history_preserved": true
+    }
+  ],
+  "current_device_flash_match_unverified": true,
+  "device_mutation": false
+}

@@ -1,0 +1,11 @@
+{
+  "body_matches": true,
+  "old_part_retained_by_current_owner": true,
+  "credential_equal_to_old_basis": false,
+  "current_owner_differs_from_old_independent_pin": true,
+  "old_part_id": "ef6c0feb5da33f515edb8e39732783256bf8d9dd348ef901748fb8abcd32ec23",
+  "current_peer_boot": "boot/installed/61504ab8ff016de9cf6ae6238852e2038daa4efd7e56055ba108ed7c35ae6a5d",
+  "device_or_membership_mutation": false,
+  "reseed_still_requires_explicit_trust_installation_and_postinstall_return": true,
+  "original_member_verifying_key_matches_current_owner_retention": true
+}

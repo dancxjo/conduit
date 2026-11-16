@@ -94,6 +94,7 @@ fn run(fail_display: bool) {
         "neutral_authority",
         "neutral_factory",
         "neutral_preflight",
+        "neutral_execution",
         "resident",
     ] {
         generated.push_str(&format!(
@@ -115,6 +116,7 @@ fn run(fail_display: bool) {
         .join("tests/neutral_source/positive.rs")
         .canonicalize()
         .unwrap();
+    let production = format!("#![no_std]\n{generated}");
     generated.push_str(&typed::emit(&fixture));
     let execution = root
         .join("tests/neutral_execution/execution.rs")
@@ -159,7 +161,10 @@ fn run(fail_display: bool) {
             "ed25519_dalek",
         ],
     );
-    for (name, source, kind) in [("image", format!("{generated}{exercise}"), "bin")] {
+    for (name, source, kind) in [
+        ("image", format!("{generated}{exercise}"), "bin"),
+        ("no_std", production, "rlib"),
+    ] {
         let path = temporary.join(format!("{name}.rs"));
         fs::write(&path, source).unwrap();
         let mut compiler = Command::new("rustc");
