@@ -309,44 +309,27 @@ fn gesture(
 ) -> Result<(), ConduitosError> {
     let before = records(serial, CHANGE)?.len();
     let prior_sequence = last_sequence(serial)?;
+    let current = focus(serial, (ACTION, None))?;
+    let focus_before = records(serial, FOCUS)?.len();
     let observed = journey_input::primary_button(stream, reader, true, "creche-pointer-press")
         .and_then(|()| {
+            let press = wait_sample(serial, child, prior_sequence, |sample| {
+                sample["primary_pressed"] == true && sample["press_edge"] == true
+            })?;
+            bind(&press, &current)?;
+            if !within_hit(&press, &current)? {
+                return Err(refusal("provisional press missed the original hit"));
+            }
             journey_input::wait_for_record_retaining_guest(
                 serial,
                 child,
-                "creche-pointer-change-timeout",
+                "creche-pointer-feedback-timeout",
                 name,
-                |text| Ok(face_correspondence::records(text, CHANGE)?.len() > before),
+                |text| Ok(face_correspondence::records(text, FOCUS)?.len() > focus_before),
             )?;
-            let serial_text = text(serial)?;
-            let change = creche_choices::validate(&serial_text, ACTION, expected)?;
-            if records(serial, CHANGE)?.len() != before + 1 {
-                return Err(refusal(
-                    "one physical press produced more than one Source edit",
-                ));
-            }
-            let samples = records(serial, POINTER)?;
-            let presses = samples
-                .iter()
-                .filter(|sample| {
-                    sample["sequence"]
-                        .as_u64()
-                        .is_some_and(|sequence| sequence > prior_sequence)
-                        && sample["primary_pressed"] == true
-                        && sample["press_edge"] == true
-                        && sample["face_id"] == change["before_face_id"]
-                        && sample["show_id"] == change["before_show_id"]
-                })
-                .count();
-            if presses != 1 {
-                return Err(refusal(
-                    "accepted Source edit lacks one exact physical press on its prior Show",
-                ));
-            }
+            bind(&press, &focus(serial, (ACTION, None))?)?;
             if held {
-                // First observe the still-held cursor under the fresh Show,
-                // then move onto its current hit without releasing the button.
-                move_by(
+                let sample = move_by(
                     serial,
                     child,
                     stream,
@@ -356,45 +339,83 @@ fn gesture(
                     true,
                     (ACTION, None),
                 )?;
-                move_to_hit(serial, child, stream, reader, scale, true, (ACTION, None))?;
-                let sample = records(serial, POINTER)?
-                    .last()
-                    .cloned()
-                    .ok_or_else(|| refusal("held cursor observation absent"))?;
-                if !within_hit(&sample, &focus(serial, (ACTION, None))?)?
+                bind(&sample, &current)?;
+                if !within_hit(&sample, &current)?
+                    || (number(&sample, "display_x")? - number(&press, "display_x")?).abs() > 8
+                    || (number(&sample, "display_y")? - number(&press, "display_y")?).abs() > 8
                     || sample["press_edge"] != false
-                    || records(serial, CHANGE)?.len() != before + 1
                 {
-                    return Err(refusal(
-                        "held motion after fresh Show repeated the Source action",
-                    ));
+                    return Err(refusal("held probe exceeded the provisional tap policy"));
                 }
-                creche_choices::validate(&text(serial)?, ACTION, expected)?;
             }
-            artifacts.capture(stream, reader, name, true)?;
+            if records(serial, CHANGE)?.len() != before {
+                return Err(refusal("provisional press invoked before release"));
+            }
+            artifacts.capture(stream, reader, &format!("{name}-pending"), true)?;
             Ok(())
         });
-    // Always release this one gesture, including on an observation refusal.
-    // No semantic action is replayed to recover a missing receipt.
+    // Always terminate this physical sequence, including on proof refusal.
     let after = last_sequence(serial);
     let released = journey_input::primary_button(stream, reader, false, "creche-pointer-release")
         .and_then(|()| {
             let sample = wait_sample(serial, child, after?, |sample| {
                 sample["primary_pressed"] == false
             })?;
-            bind(&sample, &focus(serial, (ACTION, None))?)?;
+            bind(&sample, &current)?;
             if sample["press_edge"] != false {
-                return Err(refusal("release became an activation"));
+                return Err(refusal("release became a new physical press"));
             }
             Ok(())
         });
-    observed.and(released)
+    observed?;
+    released?;
+    journey_input::wait_for_record_retaining_guest(
+        serial,
+        child,
+        "creche-pointer-change-timeout",
+        name,
+        |text| Ok(face_correspondence::records(text, CHANGE)?.len() > before),
+    )?;
+    creche_choices::validate(&text(serial)?, ACTION, expected)?;
+    if records(serial, CHANGE)?.len() != before + 1 {
+        return Err(refusal(
+            "one completed tap produced more than one Source edit",
+        ));
+    }
+    // Release was observed on the original Show before its owner effect. A
+    // harmless released motion establishes physical custody on the fresh Show
+    // for the next gesture; never relabel the old release as a fresh sample.
+    move_by(
+        serial,
+        child,
+        stream,
+        reader,
+        scale,
+        (1, 0),
+        false,
+        (ACTION, None),
+    )?;
+    if records(serial, CHANGE)?.len() != before + 1 {
+        return Err(refusal(
+            "released motion repeated the completed Source action",
+        ));
+    }
+    artifacts.capture(stream, reader, name, true)?;
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+    #[test]
+    fn release_observation_cannot_be_rebound_after_its_owner_effect() {
+        let released = json!({"face_id":"face/3","face_revision":3,"show_id":"show/3"});
+        let fresh = json!({"face_id":"face/4","face_revision":4,"show_id":"show/4"});
+        assert!(bind(&released, &fresh).is_err());
+        assert!(bind(&fresh, &fresh).is_ok());
+    }
+
     #[test]
     fn motion_rounds_in_both_directions_and_keeps_boot_report_bounds() {
         assert_eq!(relative_delta(900_000, 500_000, 4_000), 100);

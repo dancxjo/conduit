@@ -225,6 +225,7 @@ fn measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outli
                 false,
                 false,
                 RowChromeMetrics {
+                    pressed: false,
                     focus_marker_width: 2,
                     control_radius: None,
                 },

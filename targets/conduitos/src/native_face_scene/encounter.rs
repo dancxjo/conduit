@@ -52,6 +52,7 @@ impl NativeFaceScene {
             self.page = page;
         }
         self.input = previous.input;
+        self.input.pointer = None;
         // The new layout must admit the retained draft/reading view before Show.
         self.frame()?;
         Ok(())
