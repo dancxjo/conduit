@@ -3,8 +3,9 @@ use super::*;
 use conduit_mcu_host_runtime::native_runner::{Exit, Observer, Refusal as RunRefusal, Runner};
 
 // No active Cords; one queue slot remains required by kernel admission. The
-// ordinary fixture reserves two slots. Both original native requests still run.
-type Profile = PairKernel<1, 0, 0, 0>;
+// ordinary fixture reserves two slots and two terminal payloads. This profile
+// retains zero Cord terminals; both original native requests still run.
+type Profile = PairKernel<1, 0, 0, 0, 0>;
 #[derive(Default)]
 struct ProfileObserver {
     requests: [Option<HostCallRequest>; 2],
@@ -56,7 +57,7 @@ fn specialized_profile_runs_original_i2c_clock_and_retires_without_allocating() 
                 revoked: clock_revoked.clone(),
             },
         );
-        let mut kernel = pair_kernel_profile::<1, 0, 0, 0>();
+        let mut kernel = pair_kernel_profile::<1, 0, 0, 0, 0>();
         let mut output = [0; I2C_RESULT_VALUE_BYTES];
         let mut bus_service = Service::new(&mut bus, &mut output).unwrap();
         let mut clock_service = deadline::Service::new(&mut clock);

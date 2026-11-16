@@ -107,8 +107,8 @@ fn abnormal_closure_preserves_one_exact_terminal_on_every_branch() {
     scheduler
         .close_remote_input_fanout_abnormal(&TARGETS, terminal)
         .unwrap();
-    assert_eq!(scheduler.cords[0].abnormal_terminal, Some(terminal));
-    assert_eq!(scheduler.cords[1].abnormal_terminal, Some(terminal));
+    assert_eq!(scheduler.cord_terminal(0).unwrap(), Some(terminal));
+    assert_eq!(scheduler.cord_terminal(1).unwrap(), Some(terminal));
     assert_eq!(
         scheduler.close_remote_input_fanout(&TARGETS),
         Err(SchedulerError::RemoteDeliveryRejected)

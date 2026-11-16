@@ -1,0 +1,12 @@
+{
+  "captured_unix": 1794807497.7046309,
+  "exact_product_source": "74657acfb6",
+  "operation": "standard return-usb read-only owner-pin preflight with nonexistent device path",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "error: live return owner differs from the Seed's independent pin",
+  "receipt_created": false,
+  "device_path_exists": false,
+  "membership_begin_or_commit": false,
+  "old_basis_sha256": "806f980b991b07e4baf1badea7719df2d6b4966d17733866c8d77b86d03329c3"
+}

@@ -99,3 +99,11 @@ pub const UNRESOLVED_NODES: usize = if layout::ABNORMAL_CORD_COUNT == 0 {
 } else {
     N
 };
+
+/// Full terminal truth on every logical ingress, including local Fore. The
+/// ordinary kernel independently checks its actual active topology before bind.
+pub const CORD_TERMINALS: usize = if layout::ABNORMAL_CORD_COUNT == 0 {
+    layout::EXTERNAL_INGRESS_CORD_COUNT
+} else {
+    C
+};

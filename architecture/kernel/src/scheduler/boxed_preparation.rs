@@ -20,6 +20,7 @@ impl<
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
         const UNRESOLVED_NODES: usize,
+        const CORD_TERMINALS: usize,
     >
     FixedScheduler<
         D,
@@ -36,6 +37,7 @@ impl<
         TERMINAL_ROWS,
         PHASE_BYTES,
         UNRESOLVED_NODES,
+        CORD_TERMINALS,
     >
 where
     D: StepBack<PORTS>,
@@ -155,6 +157,9 @@ where
         unresolved_storage::validate_capacity::<UNRESOLVED_NODES, NODES>(
             &cord_specs[..active_cords],
         )?;
+        cord_terminal_storage::validate_capacity::<CORD_TERMINALS, CORDS>(
+            &cord_specs[..active_cords],
+        )?;
         if PORTS == 0
             || QUEUE_SLOTS == 0
             || !routes.is_sealed()
@@ -225,6 +230,7 @@ where
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
             unresolved_abnormal: [None; UNRESOLVED_NODES],
+            cord_terminals: [None; CORD_TERMINALS],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: recovery_for_cord,
             quiescence_cord_end: quiescence_cord_end,

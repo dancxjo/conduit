@@ -1,0 +1,9 @@
+{
+  "assurance": "ActualARMcompile-onlysoftwarepreparationtypegeometry",
+  "sizes": {
+    "SOFTWARE_DEFINITION_BYTES": 40,
+    "SOFTWARE_INVENTORY_BYTES": 8832,
+    "SOFTWARE_NODE_IDENTITY_BYTES": 50
+  },
+  "probe_sha256": "fd218ca6c2b20d640ebb36b3e8f2bb10ffae380ce94244a4bea2cd2e3507aef0"
+}

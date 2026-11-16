@@ -26,7 +26,8 @@ impl<
         const M: usize,
         const F: usize,
         const U: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M, F, U>
+        const Z: usize,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M, F, U, Z>
 {
     /// Derive one pair of physical extents from the exact selected owners.
     /// All allocation is cold, fallible and bounded by the original remaining

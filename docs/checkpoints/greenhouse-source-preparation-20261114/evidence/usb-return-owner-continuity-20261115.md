@@ -1,0 +1,11 @@
+Concrete greenhouse return gate for #6409/#6340 (no new MCU memory epic): standard product Source74657acfb6 `body return-usb` rejects an already admitted Hamm MCU's public return basis after owner restart with `live return owner differs from the Seed's independent pin`.
+
+Read-only reproduction used a deliberately nonexistent serial path. Product exited1 before receipt reservation/serial open; no admission/return begin/proof/commit, no device I/O and no new receipt. Evidence: `usb-return-owner-pin-preflight-20261115.json` preserved with recovery PR #6902. Same Body28fb…21d3a and owner Hosta5df…742d; public basis pins historical boot/local-source-policy/c5f5…78c6, while current owner is Boot6844…20eb with a different public receiver key.
+
+Source relationship: `durable_host/usb_member_return.rs` compares `basis.owner` with `durable_host_control::carrier_receiver` before any device contact. `body_owner/member_carrier.rs::prepare_current_member_carrier_receiver` generates its key in ephemeral MemberCarrierCustody per Owner instance; its FederationPeer contains current Host/Boot/generation. Receipt attestation also uses that carrier custody. The MCU independently verifies the original Seed's owner pin. Replacing a public basis file alone is neither successor authority nor a valid fix.
+
+Preserve the refusal. The missing obligation is an authenticated, scoped owner-successor/receipt-authority continuity path, separate from disposable transport-session keys. Do not reuse old Boot grants, resurrect retired issuers, replace Body identity, silently invite the same Part again, or trust arbitrary edited pins.
+
+Acceptance should demonstrate MCU return after owner restart with unchanged Body/member identity; authenticated current-Boot offers and acknowledgment; stale/forged/revoked owner rejection; and interrupted commit/delivery recovery. A durable authority or delegation implementation must follow the existing custody/lifetime canon; this comment does not prescribe blindly persisting a session key.
+
+Independent MCU preparation/Source execution work is progressing; this finding is not a reason to enlarge grants or bypass membership checks. No live authority or firmware changed during the reproduction.

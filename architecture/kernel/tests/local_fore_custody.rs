@@ -19,7 +19,23 @@ impl StepBack<1> for Echo {
     }
 }
 type Tables = AssignedKernelTables<1, 2, 1, 1, 1, 1>;
-type Kernel = FixedScheduler<Echo, FixedValueStore<1, 4>, FixedSignLog<16>, 1, 2, 1, 2, 1, 1>;
+type Kernel<const T: usize = 2> = FixedScheduler<
+    Echo,
+    FixedValueStore<1, 4>,
+    FixedSignLog<16>,
+    1,
+    2,
+    1,
+    2,
+    1,
+    1,
+    0,
+    0,
+    1,
+    100,
+    1,
+    T,
+>;
 fn capacity(slot_start: u16) -> CordCapacity {
     CordCapacity {
         slot_start,
@@ -226,6 +242,13 @@ fn kernel_with_remote_capacity(
     cords: [CordSpec; 2],
     remote_items: u16,
 ) -> Result<Kernel, SchedulerError> {
+    kernel_with_stock::<2>(tables, cords, remote_items)
+}
+fn kernel_with_stock<const T: usize>(
+    tables: Tables,
+    cords: [CordSpec; 2],
+    remote_items: u16,
+) -> Result<Kernel<T>, SchedulerError> {
     Kernel::new(
         tables.nodes,
         cords,
@@ -240,7 +263,7 @@ fn kernel_with_remote_capacity(
         .unwrap(),
     )
 }
-fn frame(kernel: &mut Kernel, sequence: u64) {
+fn frame<const T: usize>(kernel: &mut Kernel<T>, sequence: u64) {
     assert_eq!(
         kernel
             .admit_remote_input(RemoteEndpointId(0), CordId(0), sequence, b"data")
@@ -383,7 +406,7 @@ fn owned_local_value_session_rearms_without_fictitious_line_reservations() {
     use conduit_kernel::scheduler::prepared_session::{OwnedValueBoundary, PreparedKernelSession};
     let tables = prepared();
     let cords = tables.cords;
-    let kernel = kernel(tables, cords).unwrap();
+    let kernel = kernel_with_stock::<1>(tables, cords, 0).unwrap();
     let boundaries = [
         OwnedValueBoundary {
             cord: CordId(0),
@@ -453,4 +476,29 @@ impl conduit_kernel::scheduler::prepared_session::ReusableStepBack<1> for Echo {
         true
     }
     fn begin_next(&mut self, _: ()) {}
+}
+
+#[test]
+fn compact_local_fore_counts_ingress_and_keeps_full_abnormal_replay_without_line_signs() {
+    let tables = prepared();
+    let cords = tables.cords;
+    assert!(matches!(
+        kernel_with_stock::<0>(tables, cords, 0),
+        Err(SchedulerError::InvalidPlan)
+    ));
+    let tables = prepared();
+    let cords = tables.cords;
+    let mut compact = kernel_with_stock::<1>(tables, cords, 0).unwrap();
+    let terminal = CanonicalValue::new(&[31; 100]).unwrap();
+    compact
+        .close_remote_input_abnormal(RemoteEndpointId(0), CordId(0), terminal)
+        .unwrap();
+    compact
+        .close_remote_input_abnormal(RemoteEndpointId(0), CordId(0), terminal)
+        .unwrap();
+    assert_eq!(
+        compact.close_remote_input(RemoteEndpointId(0), CordId(0)),
+        Err(SchedulerError::RemoteDeliveryRejected)
+    );
+    assert_eq!(compact.signs().remote_len(), 0);
 }

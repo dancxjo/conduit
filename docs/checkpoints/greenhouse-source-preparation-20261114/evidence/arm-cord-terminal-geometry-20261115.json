@@ -1,0 +1,29 @@
+{
+  "assurance": "Actual ARM ABI compile only; not target runtime fit/admission/Start",
+  "sizes": {
+    "FULL_CORD_TERMINAL_KERNEL_BYTES": 31352,
+    "LINKED_FULL_PHASE_KERNEL_BYTES": 47008,
+    "LINKED_PHASE0_FULL_UNRESOLVED_BYTES": 39408,
+    "NEUTRAL_DRIVER_BYTES": 64,
+    "NEUTRAL_HOST_CALL_BACK_BYTES": 16,
+    "NEUTRAL_KERNEL_BYTES": 21968,
+    "NEUTRAL_RESIDENT_BYTES": 9016,
+    "NEUTRAL_ROOT_BYTES": 33432,
+    "NEUTRAL_SOFTWARE_BACK_BYTES": 64,
+    "NEUTRAL_VALUES_BYTES": 120,
+    "NEUTRAL_WRITE_BACK_BYTES": 28,
+    "OWNED_KERNEL_BYTES": 64032,
+    "SELECTED_CORD_TERMINALS": 3,
+    "TERMINAL_ENTRY_BYTES": 112,
+    "TERMINAL_TABLE_BYTES": 17024,
+    "SELECTED_PHASE_BYTES": 0,
+    "SELECTED_UNRESOLVED_NODES": 0
+  },
+  "selected_generated_out": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-1c5d21540636c3c8/out",
+  "selected_generated_layout_sha256": "6ba7f22b6a87397af357f93f6e93e87b966108114de28cdb6d4793132fdbb65d",
+  "probe_sha256": "e70b3219f460c3086e65e56ec85ab131c4c7976d3b6e4fc13b7b30a079aa7465",
+  "execution": false,
+  "cord_stock_saving_same_code_bytes": 9384,
+  "previous_selected_kernel_bytes": 31536,
+  "saving_from_previous_selected_kernel_bytes": 9568
+}

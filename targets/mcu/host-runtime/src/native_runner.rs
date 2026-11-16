@@ -74,6 +74,7 @@ pub struct Runner<
     const TERMINAL_ROWS: usize = N,
     const PHASE_BYTES: usize = { conduit_kernel::CanonicalValue::MAXIMUM_BYTES },
     const UNRESOLVED_NODES: usize = N,
+    const CORD_TERMINALS: usize = C,
 > {
     kernel: RefCell<
         &'a mut StoredExecutionKernel<
@@ -91,6 +92,7 @@ pub struct Runner<
             TERMINAL_ROWS,
             PHASE_BYTES,
             UNRESOLVED_NODES,
+            CORD_TERMINALS,
         >,
     >,
     observer: RefCell<&'a mut O>,
@@ -125,6 +127,7 @@ impl<
                 TERMINAL_ROWS,
                 PHASE_BYTES,
                 UNRESOLVED_NODES,
+                CORD_TERMINALS,
             >,
         >,
         F: Fn() -> bool,
@@ -134,6 +137,7 @@ impl<
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
         const UNRESOLVED_NODES: usize,
+        const CORD_TERMINALS: usize,
         V: ValueStorage,
     >
     Runner<
@@ -155,6 +159,7 @@ impl<
         TERMINAL_ROWS,
         PHASE_BYTES,
         UNRESOLVED_NODES,
+        CORD_TERMINALS,
     >
 {
     pub fn new(
@@ -173,6 +178,7 @@ impl<
             TERMINAL_ROWS,
             PHASE_BYTES,
             UNRESOLVED_NODES,
+            CORD_TERMINALS,
         >,
         observer: &'a mut O,
         yield_to_host: &'a Y,

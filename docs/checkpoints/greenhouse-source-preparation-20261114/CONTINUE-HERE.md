@@ -1,6 +1,14 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: 816230877a05e1e9e3c21e8e2bb7f55d460ce9f7. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: 4d3fbc71504ef6eb93a2afb96d3090ddc5bcc8f1. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+
+## Latest Cord-terminal stock + real Source execution — 2026-11-15
+
+QualifiedsharedCordstock defaultsfullC; compactexactalllogicalRemote->Localcount onlywithoutAbnormalTerminaltracks. Source76 uses3, not0. Full100byteingressterminals/localFore/replay/cancelinspection/rearmtruth remain. Kernel271allfeaturetests/3ignored,5localForetests,noalloccheck/strictallfeaturelibtestsClippy PASS. Runtime140+21tests/strictClippy PASS; Source7tests/strictClippy PASS. ActualSource76wholeadmission/Start/nativeRunner/numerical54transactionproof repeatedPASS withnewstock3. Originalfactory/Root/no_std PASS CPUretained141533/peak143572, additional9576 saved/combined68821fromoriginal. ActualARMkernel21968 versus31536previous(total9568saving;9384versusnewfullstockrepresentation31352). FullprepentranceELFc28b24b9da97080a6ef43926dd3c532c1e3a11255defa225c81e423726bd8ba8, flashmargin49380, static209088, stack61248, heap131072unchanged.
+
+STACK GATE: exactELFdirectcallchainshows64320>61248 (beforeindirectcalls/IRQs); notsafehardwarefit. Localpreflightframe26960; initializerinventory8832, schema/numberdecoderpathslarge. LLVM IR/cold-stackevidence savedasreceipts, originalIRregenerable53MB localonly. Nexttestcoldphaseoutlining/actualtemporaryoverlap, notgrantgrowth. No newhardwareimageflashed.
+
+OWNER CONTINUITY GATE: standardRoot746 return-usb oldBluepublicbasis withnonexistentport deterministicallyrefusesownerpinbeforedeviceI/O/receipt/commit. CurrentRootcarrierkeynewperBoot; MCUseedpinexactoldowner. Existingmembercontinuity/recipepermissiondonotadvanceissuerpin. Preservechecks; authorizedreseedorexplicitdelegateddurableauthorityrequired, noarbitrarypinrewrite. Seeexisting6409commentandowner-return-continuity-audit. Root/Faceownercontrolsallliveupdates; latest746Body28fbstablebothPiACKs/touchproof. Do notclaimcurrentMCUfeeds.
 
 ## Actual checked Source76 execution qualification — 2026-11-15
 

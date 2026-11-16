@@ -1,0 +1,65 @@
+{
+  "assurance": "Kernel CPU qualification only; no ARM geometry, physical deployment, admission or Start claim",
+  "base_head": "816230877a05e1e9e3c21e8e2bb7f55d460ce9f7",
+  "checks": [
+    {
+      "command": "cargo +1.98.1 test --locked -p conduit-kernel --features alloc,execution-workspace --lib --test local_fore_custody",
+      "exit": 0,
+      "log": "outputs/cord-terminal-qualified-20261115.log",
+      "sha256": "9d5eda1529140535b3b1b7ab50d56642c1a63557bf31fc1482412b75fd3d3d21"
+    },
+    {
+      "command": "cargo +1.98.1 check --locked -p conduit-kernel --no-default-features",
+      "exit": 0,
+      "log": "outputs/cord-terminal-noalloc-20261115.log",
+      "sha256": "edcf1d5375a3def070b65f1bd495db2a6c1b035d49d06a1bd0be13ab99c60ecd"
+    },
+    {
+      "command": "cargo +1.98.1 clippy --locked -p conduit-kernel --features alloc,execution-workspace --lib --test local_fore_custody -- -D warnings",
+      "exit": 0,
+      "log": "outputs/cord-terminal-clippy-20261115.log",
+      "sha256": "80fad0f6b59850e39e0b2952caff92827eebd800a1474ad9b796ae2206c90586"
+    }
+  ],
+  "results": {
+    "kernel_lib_passed": 271,
+    "kernel_lib_ignored": 3,
+    "local_fore_integration_passed": 5
+  },
+  "files": {
+    "architecture/kernel/src/scheduler.rs": "992240b0921708b2d43095bd8c19ea48ae9ac93b61588602c4f59f7fa45821ed",
+    "architecture/kernel/src/scheduler/boxed_preparation.rs": "17cbe43e72d1bcea65b7068917a47e0364cc57fdb5778d0466b99ad555ed866b",
+    "architecture/kernel/src/scheduler/boxed_preparation/fixed_signs.rs": "427d0d3e67683052969032457bfe8c8e9b11bb9819653c14dcbe47a9005c9676",
+    "architecture/kernel/src/scheduler/boxed_preparation/table_writer.rs": "3d2d37f054d59976fed070f752847ab3b033fb52f625d4695dc05b0d4f800820",
+    "architecture/kernel/src/scheduler/compact_f32.rs": "066ff9110596a10e7991a3b3b1426aba1391a0f592a66bd6ba90d2c6677f616e",
+    "architecture/kernel/src/scheduler/execution_dag.rs": "d5b1526a50cb8a53b7c88208b7c9aebe0140f581e81f39aa6c657a70e495a5cb",
+    "architecture/kernel/src/scheduler/execution_region.rs": "5d57dc2c1234747882b98036557beb1c4bbfaef953535f5077dca8a7b0abd3b5",
+    "architecture/kernel/src/scheduler/execution_workspace.rs": "2e7228ca16b652590e5aa085de614aefcb898f523a11204e62c592e236aa4c2d",
+    "architecture/kernel/src/scheduler/host_call_index.rs": "362953ba8af6c937a238f19d573eceb9586ad2c65de76856a6b31c14774092e4",
+    "architecture/kernel/src/scheduler/host_call_settlement.rs": "1e1696ac7e56563db83d57f006f3215d4800860d2500e4a77f92e0cbfb8f993b",
+    "architecture/kernel/src/scheduler/host_dispatch.rs": "8ae1acfdbd6e100d4e7837614250ae5bf7468de672edff1583aad1f575d9ff27",
+    "architecture/kernel/src/scheduler/host_input_ownership.rs": "0c17eb2f62d855c07e681ec04613b8ff59e18cffe1d0ac0bbccc1d5bef45113c",
+    "architecture/kernel/src/scheduler/host_values.rs": "76aa14b1ec321ff2c502de182dd4606aadf40b067ba651d6d77b4b8f70d57fc4",
+    "architecture/kernel/src/scheduler/linked_terminal_tests.rs": "b8ca24627933c5797976144c3822d9ce9e21ba9df45a3ef3416d7928e405f9d0",
+    "architecture/kernel/src/scheduler/local_fore.rs": "ad7358cd511504acb5e1dc7c6ea0bb24a05de9dd08c2be344bdfccab63887add",
+    "architecture/kernel/src/scheduler/native_region.rs": "c183c5640c920d715ddb23b63d34d113aa77c21d5ee5bfbab16a59369c7e8ac4",
+    "architecture/kernel/src/scheduler/payload_admission.rs": "4dbd28b8620fae835a73183aab73462d7c0c4c7b5a6418183c31c00579743e2b",
+    "architecture/kernel/src/scheduler/phase_terminal_tests.rs": "766c7599692a58697d28a961d98772ef7257de6ef431ab09779324b81f096d8c",
+    "architecture/kernel/src/scheduler/prepared_session.rs": "e4c94ffc5d04eda660ad879ef978df875877ed8a89a1cdf08a92b77be1d77f11",
+    "architecture/kernel/src/scheduler/prepared_session/owned_boundaries.rs": "a99fa16050deafd60ab2a660e38a18e9b90d4f2b5cb67d669e5ec7936df4c087",
+    "architecture/kernel/src/scheduler/quiescence.rs": "9a802f0324d2b572df08beb3e0473bdce6e2ceef8cfe3557f5d133be6518663e",
+    "architecture/kernel/src/scheduler/remote_fanout.rs": "0d26b0bf06edf980a17f7a0c01b4abc863fac210e61cda91915b332bb9d585b6",
+    "architecture/kernel/src/scheduler/retirement.rs": "1b3c9c51344acf76adc328311add134bfaf36d58c94fa82b192a734561c349c9",
+    "architecture/kernel/src/scheduler/schema_region.rs": "466c2700f0fd9ddfce96f2b63e98d2f432c603a0746303307a5f7419d3c83aa2",
+    "architecture/kernel/src/scheduler/terminal_admission.rs": "90df0eb1a3ea3b78813a3191ebbda49f5b151dac7ef43436f38a5feaac066568",
+    "architecture/kernel/src/scheduler/tests/remote_fanout.rs": "8c585b60034d700d7163ecdf55bab399231a78b562e0ffa0ef68739a8ab7d1c4",
+    "architecture/kernel/src/scheduler/unresolved_storage_tests.rs": "d305778564815c101a496c85320d5b90608aac658e11668ea5e9dee83a8470d1",
+    "architecture/kernel/tests/local_fore_custody.rs": "f7363765832b57d39979201db53c226342433da382fa5f023e9db79f935a6218",
+    "architecture/kernel/src/scheduler/cord_terminal_storage.rs": "7f2986b4574c464f867c0b55e96d965974653ae663ca90b6c50757f7a4d97662",
+    "architecture/kernel/src/scheduler/cord_terminal_tests.rs": "6cfd76fc6568cbeac9ce79f95200b7133112af2f45270ad83df8fd45924396b5"
+  },
+  "storage_contract": "Default CORD_TERMINALS=CORDS; compact exact all logical Remote-source/Local-sink count only with no active AbnormalTerminal tracks; full100-byte terminals retained; cancel preserves, normal rearm clears",
+  "unsafe_added": false,
+  "source_frozen": true,
+  "cpu_cache_released": true
+}

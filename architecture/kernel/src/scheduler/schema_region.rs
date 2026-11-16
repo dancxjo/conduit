@@ -46,8 +46,25 @@ impl<
         const TERMINAL_ROWS: usize,
         const PHASE_BYTES: usize,
         const UNRESOLVED_NODES: usize,
+        const CORD_TERMINALS: usize,
     >
-    FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES, UNRESOLVED_NODES>
+    FixedScheduler<
+        D,
+        S,
+        E,
+        N,
+        C,
+        P,
+        Q,
+        R,
+        T,
+        H,
+        A,
+        TERMINAL_ROWS,
+        PHASE_BYTES,
+        UNRESOLVED_NODES,
+        CORD_TERMINALS,
+    >
 {
     /// Representation selection only. Every payload recipient must accept the
     /// exact immutable schema; remote/canonical boundaries retain full bytes.

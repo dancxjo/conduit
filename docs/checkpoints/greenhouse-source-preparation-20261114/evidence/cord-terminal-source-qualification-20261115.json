@@ -1,0 +1,59 @@
+[
+  {
+    "command": [
+      "cargo",
+      "+1.98.1",
+      "test",
+      "--locked",
+      "-p",
+      "conduit-mcu-source-build",
+      "--lib",
+      "value_profiles"
+    ],
+    "exit": 0,
+    "log": "outputs/source-cord-terminal-tests-20261115.log"
+  },
+  {
+    "command": [
+      "python3",
+      "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/measure-cord-terminal-factory-20261115.py"
+    ],
+    "exit": 0,
+    "log": "outputs/positive-cord-terminal-factory-wrapper-20261115.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "+1.98.1",
+      "test",
+      "--locked",
+      "-p",
+      "conduit-host-rp2040",
+      "--test",
+      "neutral_execution",
+      "--",
+      "--ignored",
+      "--nocapture"
+    ],
+    "exit": 0,
+    "log": "outputs/neutral-execution-cord-terminals-20261115.log"
+  },
+  {
+    "command": [
+      "cargo",
+      "+1.98.1",
+      "clippy",
+      "--locked",
+      "-p",
+      "conduit-mcu-source-build",
+      "--lib",
+      "--tests",
+      "--no-deps",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit": 0,
+    "log": "outputs/source-cord-terminal-clippy-20261115.log"
+  }
+]

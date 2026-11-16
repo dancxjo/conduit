@@ -240,3 +240,24 @@ fn abnormal_topology_stock_fact_counts_tracks_without_changing_value_profiles() 
         .emit_rust()
         .contains("pub const ABNORMAL_CORD_COUNT:usize=1;"));
 }
+
+#[test]
+fn external_ingress_stock_counts_logical_boundaries_without_granting_authority() {
+    let bytes = schema();
+    let mut plan = graph(&bytes);
+    assert_eq!(select(&plan, &[]).unwrap().external_ingress_cord_count, 0);
+    plan.cords[0].source = Endpoint::Remote { endpoint: 77 };
+    let profiles = select(&plan, &[]).unwrap();
+    assert_eq!(profiles.external_ingress_cord_count, 1);
+    assert!(profiles
+        .emit_rust()
+        .contains("pub const EXTERNAL_INGRESS_CORD_COUNT:usize=1;"));
+    assert_eq!(profiles.cords.len(), 2);
+    plan.cords[1].source = Endpoint::Remote { endpoint: 78 };
+    assert_eq!(select(&plan, &[]).unwrap().external_ingress_cord_count, 2);
+    // External egress is not ingress stock. Local Fore and Line distinctions
+    // belong to actual lowering/custody, so all logical ingress is counted.
+    plan.cords[0].source = Endpoint::Local { node: 0, port: 0 };
+    plan.cords[0].sink = Endpoint::Remote { endpoint: 79 };
+    assert_eq!(select(&plan, &[]).unwrap().external_ingress_cord_count, 1);
+}

@@ -148,6 +148,8 @@ fn bound<const M: usize>(linked: bool) -> Box<Kernel<M>> {
         }])
 }
 
+#[path = "cord_terminal_tests.rs"]
+mod cord_terminal_tests;
 #[path = "phase_terminal_tests.rs"]
 mod phase_terminal_tests;
 #[path = "unresolved_storage_tests.rs"]

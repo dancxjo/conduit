@@ -11,6 +11,7 @@ repo = task / "work/environment-extraction-integration-20261111"
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--candidate", default="work/state-profile-candidate-20261113")
 parser.add_argument("--log", default="outputs/rp2040-full-source-link-20261113.log")
+parser.add_argument("--llvm-ir", action="store_true", help="Emit LLVM IR alongside this exact qualification ELF for cold-stack analysis")
 args = parser.parse_args()
 candidate = task / args.candidate
 target = task / "work/cache-backing/rp2040-source-fit-20261113"
@@ -29,9 +30,9 @@ for field, filename in [("SOURCE", "workset.conduit"), ("SPECIALIZATIONS", "spec
     env["CONDUIT_WORKSET_" + field] = str(path)
     env["CONDUIT_WORKSET_" + field + "_SHA256"] = hashlib.sha256(path.read_bytes()).hexdigest()
 with (task / args.log).open("w") as log:
-    result = subprocess.run(["cargo", "+1.98.1", "build", "--manifest-path",
+    result = subprocess.run(["cargo", "+1.98.1", "rustc" if args.llvm_ir else "build", "--manifest-path",
                              "targets/rp2040/firmware/host/Cargo.toml", "--locked", "--offline",
-                             "--release", "--target", "thumbv6m-none-eabi"],
+                             "--release", "--target", "thumbv6m-none-eabi"] + (["--", "--emit=llvm-ir,link"] if args.llvm_ir else []),
                             cwd=repo, env=env, stdout=log, stderr=subprocess.STDOUT)
 print("Qualification build exit:", result.returncode, flush=True)
 raise SystemExit(result.returncode)

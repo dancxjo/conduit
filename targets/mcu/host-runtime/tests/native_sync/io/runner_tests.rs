@@ -79,13 +79,23 @@ fn paired_owners(bus: Bus, clock: Clock) -> (I2cHostCall<Bus>, MonotonicClockHos
     );
     (bus, clock)
 }
-type PairKernel<const Q: usize = 2, const M: usize = 2, const B: usize = 100, const U: usize = 2> =
-    StoredExecutionKernel<Request, Signs, 2, 2, 1, 0, 0, 2, 2, HostedValueStore, Q, M, B, U>;
+type PairKernel<
+    const Q: usize = 2,
+    const M: usize = 2,
+    const B: usize = 100,
+    const U: usize = 2,
+    const Z: usize = 2,
+> = StoredExecutionKernel<Request, Signs, 2, 2, 1, 0, 0, 2, 2, HostedValueStore, Q, M, B, U, Z>;
 fn pair_kernel() -> PairKernel {
-    pair_kernel_profile::<2, 2, 100, 2>()
+    pair_kernel_profile::<2, 2, 100, 2, 2>()
 }
-fn pair_kernel_profile<const Q: usize, const M: usize, const B: usize, const U: usize>(
-) -> PairKernel<Q, M, B, U> {
+fn pair_kernel_profile<
+    const Q: usize,
+    const M: usize,
+    const B: usize,
+    const U: usize,
+    const Z: usize,
+>() -> PairKernel<Q, M, B, U, Z> {
     let mut values = HostedValueStore::new(8, I2C_MAXIMUM_BYTES, 16384).unwrap();
     let bus = values.store(&bus_request(0x76)).unwrap();
     let clock = values.store(&clock_request()).unwrap();
@@ -122,7 +132,7 @@ fn pair_kernel_profile<const Q: usize, const M: usize, const B: usize, const U: 
     ];
     // Linked immutable laws are required for the explicit M=0 profile. Both
     // profiles use the same validated topology and original native bindings.
-    *PairKernel::<Q, M, B, U>::prepare_boxed_with_linked_table_writer(
+    *PairKernel::<Q, M, B, U, Z>::prepare_boxed_with_linked_table_writer(
         values,
         Signs {
             log: FixedSignLog::new(64 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
