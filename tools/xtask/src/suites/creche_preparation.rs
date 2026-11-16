@@ -3,7 +3,7 @@ use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
         "creche-preparation.contract",
-        "Check Crèche/Womb typed Source and transactional kernel preparation",
+        "Check Crib/Womb typed Source and transactional kernel preparation",
         "cargo",
         &[
             "test",

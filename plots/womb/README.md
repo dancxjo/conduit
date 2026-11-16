@@ -13,6 +13,9 @@ current invitation, effect authority, and finite work/storage/evidence limits.
 The reference grants no authority. Host configuration uses existing make
 catalogues and `check_joining_host`; preparation must not call Birth or assign
 an already-admitted Part to the target.
+Issuer authority and invitation scope must be checked independently of the
+contact route. Editing a Seed's owner/contact is not proof of successor
+authority after an issuer restart.
 
 The 65-byte outcome retains the exact request, one classified disposition and
 a digest of retained canonical evidence. Prepared means a Body-bound member
@@ -34,6 +37,6 @@ artifact manufacture/acquisition, target launch or authenticated join. The
 installed owner, canonical Face encounter and selected backend remain required
 before offering Womb as a runnable product capability.
 
-Repository contract checks enter through `cargo xtask check creche-preparation`.
+Repository contract checks enter through `cargo xtask check crib-preparation`.
 The suite covers both preparation protocols; it does not establish a target
 launch or membership receipt.
