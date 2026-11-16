@@ -8,7 +8,7 @@ use conduit_seven_segment_mask::{DigitWiring, SevenSegmentLook, Tm1637Profile, W
 pub struct Clock;
 impl RendererClock for Clock {
     fn now_ms(&self) -> u64 {
-        17
+        crate::cpu_time::now_ms()
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)

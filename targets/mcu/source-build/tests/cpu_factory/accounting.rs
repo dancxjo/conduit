@@ -5,14 +5,22 @@ static CURRENT: AtomicUsize = AtomicUsize::new(0);
 static BASELINE: AtomicUsize = AtomicUsize::new(0);
 static EXTERNAL_MEDIA: AtomicUsize = AtomicUsize::new(0);
 static TRACK: AtomicBool = AtomicBool::new(false);
+static PHASE_PEAK: AtomicUsize = AtomicUsize::new(0);
 static PEAK: AtomicUsize = AtomicUsize::new(0);
 fn observe() {
     if TRACK.load(SeqCst) {
         PEAK.fetch_max(used(), SeqCst);
+        PHASE_PEAK.fetch_max(used(), SeqCst);
     }
 }
 pub fn peak() -> usize {
     PEAK.load(SeqCst)
+}
+pub fn begin_phase() {
+    PHASE_PEAK.store(used(), SeqCst);
+}
+pub fn phase_peak() -> usize {
+    PHASE_PEAK.load(SeqCst)
 }
 pub struct Allocator;
 unsafe impl GlobalAlloc for Allocator {

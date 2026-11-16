@@ -22,6 +22,16 @@ pub fn probe(
     root: &mut conduit_mcu_host_runtime::root::Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }>,
     mut equipment: crate::equipment::Equipment,
 ) {
+    println!("CPU_PHASE setup_peak={}", crate::accounting::peak());
+    crate::accounting::begin_phase();
+    let memory = unsafe {
+        conduit_mcu_host_runtime::image_memory::StagedImageMemory::verified_heap(
+            crate::config::HEAP_BYTES,
+        )
+    }
+    .unwrap();
+    let mut arena = Some(memory.reserve_remaining().unwrap());
+    let mut append_output = [0u8; crate::play::RECORDING_OUTPUT_BYTES];
     let mut residents = crate::resident::inventory().unwrap();
     let mut routing = initialization::routing();
     let clocks: &[(u16, u64, u64); W] = source::sampling::CLOCKS.try_into().unwrap();
@@ -106,8 +116,18 @@ pub fn probe(
         &source::sampling_layout::fore(),
     )
     .unwrap();
+    println!(
+        "CPU_PHASE native_back_setup_peak={}",
+        crate::accounting::phase_peak()
+    );
+    crate::accounting::begin_phase();
     let payload = crate::payload::workset(context, &issuers, &hot);
     crate::authority::prepare(root, authority, &payload);
+    println!(
+        "CPU_PHASE owner_payload_and_ingress_peak={}",
+        crate::accounting::phase_peak()
+    );
+    crate::accounting::begin_phase();
     let parts = root.execution_parts().unwrap();
     let context = conduit_body::NativePreparationContext {
         bootstrap: parts.bootstrap,
@@ -208,6 +228,7 @@ pub fn probe(
             .map(Some)
         },
     );
+    println!("CPU_PHASE factory_peak={}", crate::accounting::phase_peak());
     println!(
         "CPU_FACTORY_RETURN original_complete_factory_called=true error={:?} detail={}",
         result.as_ref().err(),
@@ -236,6 +257,7 @@ pub fn probe(
                 std::env::var_os("CPU_EXPECT_PREPARED").is_some(),
                 "baseline unexpectedly prepared; explicitly qualify corrected case"
             );
+            crate::accounting::begin_phase();
             let presentation = crate::play_service::prepare_presentation(
                 &prepared,
                 context.into(),
@@ -247,6 +269,11 @@ pub fn probe(
                 &face,
             )
             .expect("original renderer preparation");
+            println!(
+                "CPU_PHASE renderer_peak={}",
+                crate::accounting::phase_peak()
+            );
+            crate::accounting::begin_phase();
             let mut started = None;
             let mut scopes = None;
             crate::play_service::start_prepared_into(
@@ -270,6 +297,10 @@ pub fn probe(
                 &mut scopes,
             )
             .expect("original complete admission and Start");
+            println!(
+                "CPU_PHASE admission_Start_peak={}",
+                crate::accounting::phase_peak()
+            );
             assert!(started.is_some());
             assert!(scopes.is_some());
             assert_eq!(parts.workspace.payload_digest(), Some(original_input));
@@ -285,9 +316,36 @@ pub fn probe(
                 crate::runtime::remaining(),
                 crate::config::HEAP_BYTES
             );
+            if std::env::var_os("CPU_RUN_SOURCE").is_some() {
+                crate::effects::open(&started.as_ref().unwrap().evidence());
+                let status=conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare_selected(&source::sampling_layout::fore(),source::sampling_layout::append_status_fore()).unwrap();
+                let future = crate::play::fore::run_started(
+                    started.take().unwrap(),
+                    initialization::optional_outputs(),
+                    scopes.take().unwrap(),
+                    arena.take().unwrap(),
+                    &face,
+                    None,
+                    &equipment.activity,
+                    &mut append_output,
+                    status,
+                );
+                crate::accounting::begin_phase();
+                crate::execution::drive(future, &face);
+                println!(
+                    "CPU_PHASE Source_run_peak={}",
+                    crate::accounting::phase_peak()
+                );
+                crate::accounting::begin_phase();
+                crate::execution::recover();
+                println!(
+                    "CPU_PHASE post_quiescence_recovery_peak={}",
+                    crate::accounting::phase_peak()
+                );
+            }
             core::hint::black_box((&started, &scopes));
         }
     }
-    println!("CPU_PEAK preparation_heap={} original_limit={} all_fixture_metadata_included=true target_fit=false",crate::accounting::peak(),crate::config::HEAP_BYTES);
+    println!("CPU_PEAK whole_fixture_heap={} original_limit={} all_fixture_metadata_included=true target_fit=false",crate::accounting::peak(),crate::config::HEAP_BYTES);
     println!("CPU_AFTER_CASE_RAM charged_retained={} available={} original_limit={} simulated_nor_bytes={} fixture_metadata_and_sender_included=true",allocator_used(),crate::runtime::remaining(),crate::config::HEAP_BYTES,crate::config::RECORDING_PREFIX_BYTES as usize+crate::config::RECORDING_SLOTS as usize*512);
 }

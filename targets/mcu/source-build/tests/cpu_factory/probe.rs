@@ -1,9 +1,12 @@
-//! CPU construction probe of unchanged generated three-fragment factory modules.
-//! Native provider methods panic: no IO or execution is permitted by this probe.
+//! CPU qualification of original three-fragment Source setup and execution.
+//! Platform effects require original authenticated Start; no peer frames exist.
 #![allow(dead_code, unused_imports)]
 extern crate alloc;
 mod accounting;
 mod authority;
+mod cpu_time;
+mod effects;
+mod execution;
 mod factory;
 mod payload;
 mod config {
@@ -19,11 +22,15 @@ mod runtime {
     impl conduit_monotonic_wait::MonotonicWaitProvider for MonotonicTimer {
         async fn wait(
             &mut self,
-            _: u64,
+            milliseconds: u64,
         ) -> Result<(), conduit_monotonic_wait::WaitProviderFailure> {
-            panic!("CPU preparation must not wait")
+            crate::effects::require();
+            crate::effects::WAITS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            crate::cpu_time::Timer::after_millis(milliseconds).await;
+            Ok(())
         }
     }
+
     pub fn remaining() -> usize {
         crate::config::HEAP_BYTES.saturating_sub(allocator_used())
     }
@@ -31,23 +38,50 @@ mod runtime {
         crate::accounting::used()
     }
     pub fn now_ms() -> u64 {
-        17
+        crate::cpu_time::now_ms()
+    }
+    pub fn stack_checkpoint(_: u32) {}
+    pub fn observe_receipt(_: Option<[u8; 32]>) {
+        panic!("absent owner cannot return a receipt")
     }
 }
 mod equipment;
 mod renderer;
 mod transport {
     pub struct Link;
+    impl Link {
+        pub async fn connected(&mut self) {}
+        pub fn reset(&mut self) {}
+        pub async fn receive<'a>(&mut self, _: &'a mut [u8]) -> Result<&'a [u8], ()> {
+            crate::effects::require();
+            crate::effects::RECEIVES.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            core::future::pending().await
+        }
+        pub async fn send(&mut self, _: &[u8]) -> Result<(), ()> {
+            crate::effects::require();
+            crate::effects::TRANSPORT_SENDS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok(())
+        }
+    }
     impl conduit_mcu_host_runtime::transport::MessageTransport for Link {
         type Error = ();
-        async fn receive<'a>(&mut self, _: &'a mut [u8]) -> Result<&'a [u8], ()> {
-            panic!("CPU construction probe must not receive")
+        async fn receive<'a>(&mut self, out: &'a mut [u8]) -> Result<&'a [u8], ()> {
+            self.receive(out).await
         }
-        async fn send(&mut self, _: &[u8]) -> Result<(), ()> {
-            panic!("CPU construction probe must not send")
+        async fn send(&mut self, bytes: &[u8]) -> Result<(), ()> {
+            self.send(bytes).await
+        }
+    }
+    impl conduit_mcu_host_runtime::transport::DocumentTransport for Link {
+        async fn receive_document(
+            &mut self,
+            _: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+        ) -> Result<(), ()> {
+            core::future::pending().await
         }
     }
 }
+
 mod native_images {
     include!(concat!(env!("OUT_DIR"), "/native_images.rs"));
 }
@@ -72,41 +106,12 @@ mod play {
 mod play_service {
     include!(concat!(env!("OUT_DIR"), "/source_play_service.rs"));
 }
-// Execution is deliberately unavailable; this probe invokes constructors only.
-// The unchanged factory is included above, rather than copied or weakened.
+// The exact production Source execution, with CPU platform time only.
 mod play_run {
-    use conduit_mcu_host_runtime::{fore_bridge::ObserverPort, root::ForeIoActor};
-    pub enum Carriage<'a, 'b, 'p> {
-        Local {
-            link: &'a mut crate::transport::Link,
-            control: Option<()>,
-        },
-        Line {
-            actor: ForeIoActor<'a, 'b, 'p, crate::transport::Link>,
-            observer: ObserverPort<'a, 'b, 'p>,
-        },
-    }
-    #[allow(clippy::too_many_arguments)]
-    pub async fn run<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(
-        _: A,
-        _: B,
-        _: C,
-        _: D,
-        _: E,
-        _: F,
-        _: G,
-        _: H,
-        _: I,
-        _: J,
-        _: K,
-        _: L,
-        _: M,
-        _: N,
-        _: O,
-    ) -> ! {
-        panic!("CPU construction probe cannot execute")
-    }
+    use crate::cpu_time as embassy_time;
+    include!(concat!(env!("OUT_DIR"), "/source_play_run.rs"));
 }
+
 fn main() {
     std::thread::Builder::new()
         .stack_size(32 * 1024 * 1024)

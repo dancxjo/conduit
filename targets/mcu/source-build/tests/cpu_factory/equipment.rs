@@ -1,4 +1,4 @@
-//! CPU-only finite provider owners with original native identities and no IO effects.
+//! Finite CPU providers; all effects require original authenticated Start.
 use conduit_core::{HostAdvertisement, ResourceGenerationId};
 use conduit_mcu_host_runtime::recording_service_equipment as recording;
 use conduit_pulse_capture::{
@@ -27,34 +27,50 @@ pub struct Capture;
 impl conduit_pulse_capture::owner::PulseReadProvider for Capture {
     async fn read(
         &mut self,
-        _: conduit_pulse_capture::CheckedPulseRead,
+        request: conduit_pulse_capture::CheckedPulseRead,
     ) -> Result<conduit_pulse_capture::PulseReadCapture, conduit_pulse_capture::PulseReadRefusal>
     {
-        panic!("CPU preparation must not capture")
+        Ok(crate::effects::capture(request))
     }
 }
 pub struct Wire;
 impl conduit_tm1637_wire::OpenDrain for Wire {
     type Error = ();
-    fn clock(&mut self, _: bool) -> Result<(), ()> {
-        panic!("CPU preparation must not drive GPIO")
+    fn begin_transaction(&mut self) -> Result<(), ()> {
+        crate::effects::begin_wire();
+        Ok(())
     }
-    fn data(&mut self, _: bool) -> Result<(), ()> {
-        panic!("CPU preparation must not drive GPIO")
+    fn clock(&mut self, released: bool) -> Result<(), ()> {
+        crate::effects::clock(released);
+        Ok(())
+    }
+    fn data(&mut self, released: bool) -> Result<(), ()> {
+        crate::effects::data(released);
+        Ok(())
     }
     fn read_data(&mut self) -> Result<bool, ()> {
-        panic!("CPU preparation must not read GPIO")
+        Ok(crate::effects::ack())
     }
     fn half_period(&mut self) -> Result<(), ()> {
-        panic!("CPU preparation must not delay")
+        crate::effects::require();
+        Ok(())
     }
 }
+
 pub struct RecordingStorage {
     bytes: Vec<u8>,
+    retain: bool,
 }
 impl RecordingStorage {
+    pub fn from_retained(bytes: Vec<u8>) -> Self {
+        Self {
+            bytes,
+            retain: false,
+        }
+    }
     pub fn new() -> Self {
         let storage = Self {
+            retain: true,
             bytes: vec![
                 255;
                 crate::config::RECORDING_PREFIX_BYTES as usize
@@ -67,7 +83,11 @@ impl RecordingStorage {
 }
 impl Drop for RecordingStorage {
     fn drop(&mut self) {
-        crate::accounting::restore_media(self.bytes.capacity());
+        if self.retain && crate::effects::enabled() {
+            crate::effects::save_media(std::mem::take(&mut self.bytes));
+        } else {
+            crate::accounting::restore_media(self.bytes.capacity());
+        }
     }
 }
 impl conduit_resource_snapshot::nor::NorStorage for RecordingStorage {
@@ -91,10 +111,26 @@ impl conduit_resource_snapshot::nor::NorStorage for RecordingStorage {
     }
     fn program(
         &mut self,
-        _: u32,
-        _: &[u8],
+        offset: u32,
+        bytes: &[u8],
     ) -> Result<(), conduit_resource_snapshot::nor::NorRefusal> {
-        panic!("no media writes before Start")
+        use conduit_resource_snapshot::nor::NorRefusal;
+        crate::effects::require();
+        if offset % 256 != 0 || bytes.len() != 256 {
+            return Err(NorRefusal::Geometry);
+        }
+        let target = self
+            .bytes
+            .get_mut(offset as usize..offset as usize + bytes.len())
+            .ok_or(NorRefusal::Capacity)?;
+        if target.iter().zip(bytes).any(|(old, new)| old & new != *new) {
+            return Err(NorRefusal::Occupied);
+        }
+        for (old, new) in target.iter_mut().zip(bytes) {
+            *old &= *new;
+        }
+        crate::effects::PROGRAMS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Ok(())
     }
 }
 pub type RecordingReady =

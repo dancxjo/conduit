@@ -1,4 +1,4 @@
-"""Bounded fresh CPU Root and whole-factory negative qualification; no hardware.
+"""Bounded fresh CPU Root, original whole Source and admitted execution; no hardware.
 
 Uses original Make generated workset data and unchanged production Source
 composition modules. --fingerprint must name a completed Cargo test graph.
@@ -13,6 +13,7 @@ p.add_argument('--output',type=Path,required=True)
 a=p.parse_args();repo=Path(__file__).resolve().parents[5];a.output.mkdir(parents=True,exist_ok=True)
 cache=a.fingerprint.parents[2];deps=cache/'deps';root=cache/'.fingerprint'
 selected={}
+selected_features={}
 def resolve(name,value):
  expected=int(value).to_bytes(8,'little').hex();found=[]
  for folder in root.iterdir():
@@ -28,10 +29,15 @@ def resolve(name,value):
   assert selected[name]==lib,(name,selected[name],lib)
   return
  selected[name]=lib
- for entry in json.loads(manifest.read_text())['deps']:
+ metadata=json.loads(manifest.read_text())
+ selected_features[name]=metadata.get('features')
+ for entry in metadata['deps']:
   if not entry[2]:resolve(entry[1],entry[3])
 for entry in json.loads(a.fingerprint.read_text())['deps']:
  if not entry[2]:resolve(entry[1],entry[3])
+if os.environ.get('CPU_RUN_SOURCE'):
+ assert 'execution-workspace' not in selected_features['conduit_mcu_host_runtime'],selected_features
+ assert 'execution-workspace' not in selected_features['conduit_kernel'],selected_features
 # Read-only generated inputs; production Source modules come from THIS frozen
 # checkout, not mutable reconstructed template copies alongside those inputs.
 generated=a.output/'generated';generated.mkdir(exist_ok=True)
@@ -62,6 +68,7 @@ digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
 trace=(a.output/'run.log').read_text()
 started='CPU_FACTORY_STARTED' in trace
 entered='original_complete_factory_called=true' in trace
+effects='CPU_SOURCE_HISTORY' in trace
 receipt={
  'scope':'Fresh public Root signed three-fragment ingress and unchanged complete factory; conditional original renderer/admission/Start',
  'fresh_public_root_admission':'CPU_AUTHORITY_GATE public_root_spawn=true' in (a.output/'run.log').read_text(),
@@ -70,9 +77,10 @@ receipt={
  'production_templates':{p.name:{'path':str(p.resolve()),'sha256':digest(p)} for p in generated.glob('source_*.rs')},
  'generated_inputs':{p.name:{'path':str(p.resolve()),'sha256':digest(p)} for p in generated.glob('*.rs') if not p.name.startswith('source_')},
  'library_paths':{name:str(lib) for name,lib in selected.items()},
+ 'library_features':selected_features,
  'constructor_exit':result.returncode,'compile_log_sha256':digest(a.output/'compile.log'),'run_log_sha256':digest(a.output/'run.log'),
- 'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,
- 'not_proved':([] if started else ['Successful complete Source preparation','Renderer preparation and whole admission/Start'])+['Target stack/heap/ABI fit','Actual live refusal stage','Provider effects or continuing Play'],
+ 'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,'original_Source_execution_completed':effects,
+ 'not_proved':([] if started else ['Successful complete Source preparation','Renderer preparation and whole admission/Start'])+([] if effects else ['Provider effects or continuing Play'])+['Target stack/heap/ABI fit','Physical device execution'],
 }
 (a.output/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
 raise SystemExit(result.returncode)
