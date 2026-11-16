@@ -245,10 +245,17 @@ pub(crate) struct AuthorizedFileRevision {
     caller: ImagePreparedValue<()>,
 }
 
+#[cfg(target_os = "linux")]
+#[path = "source_revision_retained.rs"]
+mod retained_planning;
+#[cfg(target_os = "linux")]
+pub(crate) use retained_planning::RetainedSourcePreparation;
+
 /// Actual original captures and the checked workset move together. This is
 /// retained planning custody after admission, never fresh Source authority.
 #[cfg(target_os = "linux")]
 pub(crate) struct RetainedFileWorkset {
+    local_fore_adapters: Vec<super::local_fore_policy::LocalForeAdapterIntent>,
     // Field order releases all derived backing before its original guards.
     pub(crate) checked: CheckedFileRevision,
     source: ImagePreparedValue<OwnedSourceCheckInput>,
@@ -291,6 +298,7 @@ impl AuthorizedFileRevision {
 
     pub(crate) fn into_retained(self) -> RetainedFileWorkset {
         RetainedFileWorkset {
+            local_fore_adapters: self.selection.local_fore_adapters,
             source: self.source,
             caller: self.caller,
             checked: self.checked,

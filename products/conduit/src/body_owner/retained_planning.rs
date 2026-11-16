@@ -37,6 +37,11 @@ impl Owner {
         ) -> Result<BTreeMap<ResidentPlot, OwnedForeLineSelection>, String>,
     {
         self.ensure_execution_retained(root)?;
+        #[cfg(target_os = "linux")]
+        {
+            self.refresh_retained_local_fore();
+            self.require_retained_local_fore()?;
+        }
         if let Some(ingress) = ingress {
             self.host.verify_selected_image_fore_input(&ingress.input)?;
         }

@@ -371,6 +371,8 @@ impl Owner {
         self.session = next;
         self.admissions = Some(manager);
         self.current_host_offers = offers;
+        #[cfg(target_os = "linux")]
+        self.refresh_retained_local_fore();
         self.retire_native_member_route(&prior);
         self.pending_member_return
             .as_mut()

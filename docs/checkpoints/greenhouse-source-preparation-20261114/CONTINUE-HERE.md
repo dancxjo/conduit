@@ -2,6 +2,10 @@
 
 Shared qualified source parent: 6589896b8d29928bdedc55f0153bd7aef4e24ad7. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
+## Draft retained Source planning restoration — 2026-11-15
+
+First compiling product recovery slice saved from integration worktree, not deployed: originalSource/caller IMAGE guards move through a private token into resumed Owner; checked capture closure must equal CURRENTBodyworkset; only finite adapter intent retained, no admissions/returns/plays replay. Fresh authenticated offer commits refresh planning boundaries without changing membership outcome. cargo check productbinPASS; negative tests and review of stalebinding invalidation/caller-overlap funding still pending. DO NOT treat this draft as qualified/applied to running Root615. Faceowner retains liveRoot/deployment ownership; actual Fore/Line/nativeStart remains separate.
+
 ## Fresh physical Blue recovery — 2026-11-15
 
 Fresh MAC-bound 4MiB read-only flash backup matches reviewed application225c3fd5...c1727. Original production parser recovered1264committedrecords/1224observations/40contextfragments across10Boots, no corruption/gaps, remaining0. Private observations remain excluded; this is offline content recovery, not current admitted network/Face feed or recording ACK. Existing application hard-reset after ROMread, no flash writes. Explicit operatortrustSeed prepared against current canonical Make/Seed libs preserves sameBody/Part/key/latestcredential, but NOT installed. Currentownerpeer must be rechecked before any installation; Root-owned Source/return/adoption transition still coordinated separately.
