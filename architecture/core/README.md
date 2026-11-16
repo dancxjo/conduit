@@ -31,6 +31,7 @@ depends on semantic, application, target, or proof packages.
 | `activation_contract.rs` | universal architecture | Exact bounded each, select, and fold coordinator contracts, including finite total item bounds and terminal laws. |
 | `canonical_bytes.rs` | universal architecture | Shared canonical byte sink for stored encodings and streaming fingerprints, preserving exact field order and identity bytes. |
 | `plan_fingerprint.rs` and children | universal architecture | Canonical fragment and plan commitment encoding; incremental fragment hashing preserves immutable realization identity. |
+| `plan_connection_verification.rs` | universal architecture | Exact connection occurrence, endpoint uniqueness, and admitted Line binding identity, authority-reference and limit checks over immutable Plan data. |
 | `fore_ports.rs` | universal architecture | Exact external Fore verification, separately accounted typed terminal exports, and admitted Line binding checks. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |
 | `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, effect multiplicity, terminal and cancellation laws, and per-activation Sign storage. |
