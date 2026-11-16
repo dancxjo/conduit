@@ -1,0 +1,89 @@
+{
+  "schema": "conduit.evidence/native-source-fore-attempt@1",
+  "date": "2026-11-16",
+  "root_source_commit": "6b9169e364dd5bfe26015dd2197473d66ad00167",
+  "pull_request": 6895,
+  "scope": "Physical authenticated Return, exact Source resident preparation, signed workset projection and bounded Fore negotiation; read not completed",
+  "root_qualification": {
+    "executable_bytes": 64377816,
+    "maximum_executable_bytes": 67108864,
+    "executable_sha256": "7ef9e17604a4bcfa4f91142511739e64c6a3030269f97aba1b6bfb6b1df7fa3a",
+    "release_bundle_sha256": "845fc8adc8f0c3ab258d5b7916e480ac188096e08cc7ac47b2cd8d9bd1ccb20b",
+    "make_image_id": "image:sha256:155790ab82c518484aba923ca23f2048a284b51476dda361e82b6d87c1c4e8e7",
+    "prepare_only_hosts": 2,
+    "resident_images": 4,
+    "requested_rust_peak_bytes": 63254580,
+    "original_caller_bytes": 134217728,
+    "peak_excludes": [
+      "allocator metadata",
+      "C allocations",
+      "mappings",
+      "stacks",
+      "child compiler",
+      "later member/journal/planning/execution overlap"
+    ],
+    "installed_through_standard_user_service": true
+  },
+  "regressions": {
+    "status_wakeup_real_bounded_unix_socket": "passed",
+    "distinct_source_occurrence_owners_and_capacity": "passed",
+    "all_four_actual_authenticated_member_offers_match_original_preparation": "passed using privately retained authenticated member evidence and same authored Source/policy",
+    "selected_source_regressions": {
+      "passed": 38,
+      "ignored": 2,
+      "failed": 0,
+      "ignored_actual_member_case_run_separately": true
+    }
+  },
+  "physical_member": {
+    "application_image_id": "image:sha256:a4225275f0b38ce0a1664e938ae90ed65a042bb3159f7bfbff9e473d44680991",
+    "configuration_id": "sha256:777e4c70b4f1081f7e4f03e23e0e799e3a99ee2f96877d7f98f069280b80439d",
+    "application_sha256": "cb5aa9601a6627f95ea60e523b473384ebe56fe99d8f4c7ea6e7785ffbfb4c5b",
+    "all_observation_slots_preserved_by_full_flash_comparison": true,
+    "obsolete_execution_prefix_backed_up_and_explicitly_retired": true,
+    "new_seed_only_final_change": true,
+    "authenticated_return": "succeeded",
+    "original_workset_approval_retained": true,
+    "fore_bindings_prepared": true,
+    "owner_projection_refusal": null,
+    "input_receipt_reported": true,
+    "input_payload_sha256": "f870841d25f18f2ef4949e8c2e247dfaa1fde07a3d286f54581a3baec9dfb410",
+    "fore_negotiation": {
+      "result": "OutcomeUnknown",
+      "frames_attempted": 3,
+      "protocol_active": false,
+      "original_transport_and_approval_retained": true,
+      "automatic_retry": false
+    },
+    "canonical_record_read_proved": false,
+    "native_start_proved": false,
+    "fresh_sensing_or_mask_progress_proved": false,
+    "full_history_recovery_proved": false,
+    "durable_recording_acknowledgment_proved": false
+  },
+  "display_observations": {
+    "both_existing_sdl_clients_selected_exact_new_owner_contact": true,
+    "both_fresh_show_acknowledgments_observed": true,
+    "body_keys_executable_unit_startup_preserved": true,
+    "later_observations": [
+      "Root preparation blocked local control; both continuing route processes exited on timeout",
+      "Same-Boot routes restarted and full contact equality verified; no automatic owner/key renewal",
+      "Viewer reboot exposed NotLulled and stale pending-return/proof-attempt refusals",
+      "One viewer hostname subsequently unavailable; do not treat initial acknowledgments as continuous availability"
+    ]
+  },
+  "remaining_gates": [
+    "Obtain bounded original-owner evidence distinguishing native pre-Start refusal, post-Start activation fault and slow preparation; never bypass Ready",
+    "Complete one canonical admitted read on the original transport",
+    "Permit safe already-admitted unused viewer return without changing active realization or consuming proof attempts for lifecycle-policy refusal",
+    "Keep owner control responsive during preparation; preserve exact identity and freshness rather than extending deadlines",
+    "Only then qualify measurement-to-committed-Face and durable recording paths"
+  ],
+  "claims_excluded": [
+    "whole Body Playing",
+    "overnight autonomy",
+    "multi-device graph delivery",
+    "continuous two-viewer availability",
+    "durable history commitment"
+  ]
+}
