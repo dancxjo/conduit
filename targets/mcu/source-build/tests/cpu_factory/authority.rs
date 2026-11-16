@@ -142,6 +142,16 @@ pub fn ready<F: Future>(future: F) -> F::Output {
 pub fn verify_public_admission() {
     let authority = Authority::new();
     let seed = authority.seed();
+    let mut actual = authority.host();
+    let equipment = crate::equipment::Equipment::new(
+        &actual,
+        &authority.bootstrap.body_id,
+        crate::equipment::Capture,
+        crate::equipment::Wire,
+        crate::equipment::RecordingStorage::new(),
+    );
+    assert!(equipment.recording.recovery().unwrap().is_ok());
+    equipment.publish(&mut actual).unwrap();
     let mut root: Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }> = Root::new(
         Seed::parse(
             &seed,
@@ -150,7 +160,7 @@ pub fn verify_public_admission() {
             crate::config::CONFIGURATION_ID,
         )
         .unwrap(),
-        authority.host(),
+        actual,
         Configuration {
             image_id: crate::config::IMAGE_ID,
             configuration_id: crate::config::CONFIGURATION_ID,
@@ -162,5 +172,91 @@ pub fn verify_public_admission() {
     .unwrap();
     authority.admit(&mut root);
     assert!(root.execution_parts().is_ok());
-    println!("CPU_AUTHORITY_GATE public_root_spawn=true fresh_body=true current_member=true retained_input=false admission=false Start=false");
+    crate::factory::probe(&authority, &mut root, equipment);
+    println!("CPU_AUTHORITY_GATE public_root_spawn=true fresh_body=true current_member=true retained_input=true admission=false Start=false");
+}
+
+/// Test sender signs only the actual receiver challenge; Root retains the
+/// original complete command via its public bounded document ingress.
+pub fn prepare(
+    root: &mut Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }>,
+    authority: &Authority,
+    payload: &[u8],
+) {
+    use conduit_mcu_host_runtime::transport::DocumentTransport;
+    struct Command<'a> {
+        authority: &'a Authority,
+        payload: &'a [u8],
+        signature: Option<[u8; 64]>,
+        sends: usize,
+    }
+    impl MessageTransport for Command<'_> {
+        type Error = ();
+        async fn send(&mut self, bytes: &[u8]) -> Result<(), ()> {
+            if self.sends == 0 {
+                let challenge: b::HostCommandChallenge<'_> =
+                    serde_json::from_slice(bytes).map_err(|_| ())?;
+                assert_eq!(challenge.receiver_host, HOST);
+                assert_eq!(challenge.receiver_boot, BOOT);
+                assert_eq!(challenge.body_id, self.authority.bootstrap.body_id.as_str());
+                assert_eq!(
+                    challenge.issuer_key,
+                    self.authority.owner.verifying_key().to_bytes()
+                );
+                assert_eq!(
+                    challenge.payload_contract,
+                    b::HOST_PREPARED_WORKSET_CONTRACT
+                );
+                assert!(self.payload.len() <= challenge.maximum_payload_bytes as usize);
+                self.signature = Some(
+                    self.authority
+                        .owner
+                        .sign(
+                            &b::host_command_attribution_transcript(&challenge, self.payload)
+                                .unwrap(),
+                        )
+                        .to_bytes(),
+                );
+            }
+            self.sends += 1;
+            Ok(())
+        }
+        async fn receive<'a>(&mut self, out: &'a mut [u8]) -> Result<&'a [u8], ()> {
+            let sig = self.signature.take().ok_or(())?;
+            out.get_mut(..64).ok_or(())?.copy_from_slice(&sig);
+            Ok(&out[..64])
+        }
+    }
+    impl DocumentTransport for Command<'_> {
+        async fn receive_document(
+            &mut self,
+            assembly: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+        ) -> Result<(), ()> {
+            use sha2::{Digest, Sha256};
+            let digest = Sha256::digest(self.payload).into();
+            let mut offset = 0;
+            while offset < self.payload.len() {
+                let mut frame = [0; 4096];
+                let (n, next) = conduit_wire::encode_bounded_document_chunk(
+                    &mut frame,
+                    self.payload,
+                    offset,
+                    &digest,
+                )
+                .map_err(|_| ())?;
+                assembly.push(&frame[..n]).map_err(|_| ())?;
+                offset = next;
+            }
+            Ok(())
+        }
+    }
+    let mut command = Command {
+        authority,
+        payload,
+        signature: None,
+        sends: 0,
+    };
+    ready(root.receive_preparation(&mut command, [94; 32], || 17)).unwrap();
+    assert!(root.retained_input());
+    assert_eq!(command.sends, 2);
 }

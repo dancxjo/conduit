@@ -1,4 +1,4 @@
-"""Internal bounded CPU admission/constructor probe; no hardware or Play.
+"""Bounded fresh CPU Root and whole-factory negative qualification; no hardware.
 
 Uses original Make generated workset data and unchanged production Source
 composition modules. --fingerprint must name a completed Cargo test graph.
@@ -53,7 +53,7 @@ with (a.output/'run.log').open('w') as log:result=subprocess.run([str(a.output/'
 print(json.dumps({'phase':'constructors','exit':result.returncode,'log':str(a.output/'run.log')}),flush=True)
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
 receipt={
- 'scope':'Fresh public Root admission and CPU constructor preflight; unchanged whole factory compiled but NOT invoked',
+ 'scope':'Fresh public Root signed three-fragment ingress and unchanged complete factory; baseline refuses sampling Tables(Layout)',
  'fresh_public_root_admission':'CPU_AUTHORITY_GATE public_root_spawn=true' in (a.output/'run.log').read_text(),
  'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
  'fingerprint':str(a.fingerprint),'fingerprint_sha256':digest(a.fingerprint),
@@ -61,8 +61,8 @@ receipt={
  'generated_inputs':{p.name:{'path':str(p.resolve()),'sha256':digest(p)} for p in generated.glob('*.rs') if not p.name.startswith('source_')},
  'library_paths':{name:str(lib) for name,lib in selected.items()},
  'constructor_exit':result.returncode,'compile_log_sha256':digest(a.output/'compile.log'),'run_log_sha256':digest(a.output/'run.log'),
- 'whole_factory_called':False,'admission':False,'Start':False,'hardware_effects':False,
- 'not_proved':['Three-fragment signed online command and Fore scope','Native/renderer preparation and whole admission/Start','Target stack/heap/ABI fit','Actual live refusal stage'],
+ 'whole_factory_called':'CPU_FACTORY_NEGATIVE original_complete_factory_called=true' in (a.output/'run.log').read_text(),'preparation_result':'sampling-kernel/Tables(Layout)','admission':False,'Start':False,'hardware_effects':False,
+ 'not_proved':['Successful complete Source preparation','Renderer preparation and whole admission/Start','Target stack/heap/ABI fit','Actual live refusal stage'],
 }
 (a.output/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
 raise SystemExit(result.returncode)
