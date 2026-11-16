@@ -70,6 +70,33 @@ impl<const E: usize, const R: usize, const S: usize> InvocationArchive<E, R, S> 
             invocations: 0,
         }
     }
+    /// Initialize exact-layout storage without a whole archive/array temporary.
+    /// Each write still has a single Option<ArchivedSign> or Option<Run<S>>
+    /// temporary; chosen STREAMS and target stack use require qualification.
+    /// No field owns resources and no fallible operation or user callback runs
+    /// between the first and final write.
+    ///
+    /// SAFETY: `output` must point to aligned, writable, exclusively owned
+    /// uninitialized storage for Self; the caller publishes it only on return.
+    #[cfg(feature = "alloc")]
+    pub(crate) unsafe fn initialize_at(output: *mut Self) {
+        // SAFETY: the caller supplies the complete Self allocation. Each pointer
+        // addresses its corresponding array field, each index stays inside that
+        // field, and None/zero initialize valid values without reading old bytes.
+        unsafe {
+            let events = core::ptr::addr_of_mut!((*output).events).cast::<Option<ArchivedSign>>();
+            for index in 0..E {
+                events.add(index).write(None);
+            }
+            let runs = core::ptr::addr_of_mut!((*output).runs).cast::<Option<Run<S>>>();
+            for index in 0..R {
+                runs.add(index).write(None);
+            }
+            core::ptr::addr_of_mut!((*output).event_len).write(0);
+            core::ptr::addr_of_mut!((*output).run_len).write(0);
+            core::ptr::addr_of_mut!((*output).invocations).write(0);
+        }
+    }
     pub fn len(&self) -> u32 {
         self.invocations
     }

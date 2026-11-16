@@ -27,14 +27,14 @@ fn new() -> Log {
     let limits = limits::<32, 4, 2>(&active);
     Log::prepare(active, limits).unwrap()
 }
-fn duplex<const E: usize, const R: usize, const S: usize>(
-    log: &mut LiveSignLog<E, R, S>,
+fn duplex<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>(
+    log: &mut LiveSignLog<E, R, S, A>,
     sequence: u64,
 ) -> Vec<ArchivedSign> {
     duplex_at(log, sequence, NodeId(7))
 }
-fn duplex_at<const E: usize, const R: usize, const S: usize>(
-    log: &mut LiveSignLog<E, R, S>,
+fn duplex_at<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>(
+    log: &mut LiveSignLog<E, R, S, A>,
     sequence: u64,
     node: NodeId,
 ) -> Vec<ArchivedSign> {
@@ -512,4 +512,36 @@ fn actual_duplex_scheduler_transfers_while_value_is_unacknowledged_then_runs_126
         kernel.signs().archived_events, kernel.signs().archived_bytes,
         Log::required_archive_backing_bytes(), kernel.signs().owned_backing_bytes().unwrap(),
         Log::required_transfer_overlap_bytes(&kernel.signs().active).unwrap());
+}
+
+#[test]
+fn boxed_profile_preserves_inline_signs_remote_sidecars_and_transfer_truth() {
+    let mut inline = new();
+    let active = new_active();
+    let limits = ArchiveLimits {
+        retained_events: 10_000,
+        retained_bytes: 1_000_000,
+        archive_backing_bytes: BoxedLiveSignLog::<32, 4, 2>::required_archive_backing_bytes(),
+        transfer_overlap_bytes: BoxedLiveSignLog::<32, 4, 2>::required_transfer_overlap_bytes(
+            &active,
+        )
+        .unwrap(),
+    };
+    let mut boxed = BoxedLiveSignLog::<32, 4, 2>::try_prepare(active, limits).unwrap();
+    for sequence in 0..12 {
+        assert_eq!(duplex(&mut inline, sequence), duplex(&mut boxed, sequence));
+        assert_eq!(
+            inline.prepare_prefix_transfer().unwrap().commit(),
+            boxed.prepare_prefix_transfer().unwrap().commit()
+        );
+        assert_eq!(
+            inline.events_with_remote().collect::<Vec<_>>(),
+            boxed.events_with_remote().collect::<Vec<_>>()
+        );
+        assert_eq!(inline.retention_gap(), boxed.retention_gap());
+        assert_eq!(
+            inline.archived_canonical_bytes(),
+            boxed.archived_canonical_bytes()
+        );
+    }
 }

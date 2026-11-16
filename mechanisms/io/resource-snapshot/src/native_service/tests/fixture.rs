@@ -16,7 +16,7 @@ pub struct Storage {
 }
 impl NorStorage for Storage {
     fn capacity(&self) -> u32 {
-        4096
+        self.bytes.borrow().len().try_into().unwrap()
     }
     fn program_unit(&self) -> u32 {
         256
@@ -63,7 +63,7 @@ fn grant(read: bool) -> c::AuthorityGrant {
         capability_id: SERVICE_CAPABILITY.into(),
     }
 }
-fn operation(read: bool) -> c::BoundBaseOperation {
+fn operation(read: bool, operations: u32) -> c::BoundBaseOperation {
     let grant = grant(read);
     let parameter = if read { 8 } else { 200 };
     let work = if read { 2 } else { 6 };
@@ -92,7 +92,7 @@ fn operation(read: bool) -> c::BoundBaseOperation {
         maximum_result_bytes: result,
         maximum_work_units: work,
         maximum_in_flight: 1,
-        maximum_operations: 16,
+        maximum_operations: operations,
     };
     let authority = c::BaseCapabilityAuthority {
         grant,
@@ -106,7 +106,7 @@ fn operation(read: bool) -> c::BoundBaseOperation {
         maximum_result_bytes: result,
         maximum_work_units: work,
         maximum_in_flight: 1,
-        maximum_operations: 16,
+        maximum_operations: operations,
     };
     let claim = c::BaseOperationClaim {
         host_id: scope.host_id.clone(),
@@ -140,17 +140,27 @@ fn operation(read: bool) -> c::BoundBaseOperation {
         .unwrap_or_else(|_| panic!("actual operation bind"))
 }
 pub fn fixture(fail: bool) -> (RecordServiceHostCall<Storage>, Stats) {
+    fixture_with_limits(fail, 8, [16, 16], NodeId(3))
+}
+/// Test-only geometry and independently issued finite operation ceilings.
+/// Defaults above remain unchanged; this never edits a running operation grant.
+pub fn fixture_with_limits(
+    fail: bool,
+    slots: u32,
+    operations: [u32; 2],
+    node: NodeId,
+) -> (RecordServiceHostCall<Storage>, Stats) {
     let stats = Stats {
         reads: Rc::new(Cell::new(0)),
         programs: Rc::new(Cell::new(0)),
     };
     let storage = Storage {
-        bytes: RefCell::new(vec![255; 4096]),
+        bytes: RefCell::new(vec![255; slots as usize * RECORD_SLOT_BYTES as usize]),
         stats: stats.clone(),
         fail,
     };
     let mut provider =
-        PreparedNorRecordResidence::prepare(storage, RecordResidenceId([3; 32]), 0, 8)
+        PreparedNorRecordResidence::prepare(storage, RecordResidenceId([3; 32]), 0, slots)
             .unwrap_or_else(|_| panic!("geometry"));
     provider.recover().unwrap();
     let identity = AppendNativeIdentity {
@@ -173,8 +183,8 @@ pub fn fixture(fail: bool) -> (RecordServiceHostCall<Storage>, Stats) {
             provider,
             [grant(false), grant(true)],
             ServiceLimits {
-                append_operations: 16,
-                read_operations: 16,
+                append_operations: operations[0],
+                read_operations: operations[1],
             },
         )
     }
@@ -184,7 +194,10 @@ pub fn fixture(fail: bool) -> (RecordServiceHostCall<Storage>, Stats) {
     // through prepare_selected_retained and the separately tested checked binder.
     let owner = RecordServiceHostCall {
         ready,
-        operations: [operation(false), operation(true)],
+        operations: [
+            operation(false, operations[0]),
+            operation(true, operations[1]),
+        ],
         routes: [
             SelectedServiceRoute {
                 call: HostCallId(1),
@@ -201,7 +214,7 @@ pub fn fixture(fail: bool) -> (RecordServiceHostCall<Storage>, Stats) {
                 maximum_output_bytes: crate::read_result::READ_RESULT_BYTES as u32,
             },
         ],
-        node: NodeId(3),
+        node,
         next_request: 0,
         cached: None,
         input: [0; 200],

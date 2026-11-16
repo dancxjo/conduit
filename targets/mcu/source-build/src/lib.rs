@@ -229,3 +229,5 @@ mod tests {
 
 #[cfg(test)]
 mod bme_sampling_build_tests;
+
+pub mod sign_archive;
