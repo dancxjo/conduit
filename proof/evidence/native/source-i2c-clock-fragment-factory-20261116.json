@@ -1,0 +1,184 @@
+{
+  "implementation_commit": "91d2bd98a4af5b40cf44995bbb0985f3a97dd467",
+  "base": "55e36dee9a5d66e708380ef2056d411162c5674a",
+  "scope": "Reusable checked I2C/absolute-clock fragment preparation and honest finite Source fabrication gates. NO autonomous thermometer or completed BME Play.",
+  "source_fixture": "shared-environment is an open-Fore BME280/HT16K33 protocol service with externally supplied begin/configuration/frame values. It is not periodic sampling or a standard Face/Mask. Its counts are not final application requirements.",
+  "implementation": [
+    "Emitted prepare_fragment composes original checked resident loans, PreparedSoftware and original retained I2C/clock tickets via PreparedNativeDrivers and PreparedFragment::prepare_with_linked_terminal_transductions.",
+    "Optimized original kernel geometry is generic, with linked immutable terminal table M=0; no default-width expansion, provider binding, admission, or Start.",
+    "Original EntryPin source/configuration check reused publicly. Remaining budget successively charges resident/software backing, native tickets and actual prepared drivers before storage callback; original kernel preparation independently charges all backing.",
+    "Software definition lifetime is independent of short Root approval/profile/Fore lifetime. Compiler fixture with genuine opaque approval parameter and static software definitions rejected before correction and compiles after; it manufactures no token.",
+    "RP neutral Source builder uses existing exact compiler-work selection for current Owned storage. It no longer divides the shared pool uniformly or subtracts scheduler overhead from each private allowance."
+  ],
+  "authority_changes": false,
+  "device_effects": false,
+  "target_builds": false,
+  "work_measurement": {
+    "initialized_residents": 47,
+    "owned_private_work": 15117,
+    "shared_workspace_schema_private_work": 15117,
+    "largest_private_owner": 5379,
+    "compiler_only_measurement_ceiling": 65532,
+    "measurement_ceiling_is_not_a_host_grant": true,
+    "units": "Conservative compiler native-validation and expression-tape/child work. Not RAM bytes, CPU cycles or measured time. No universal bytes/unit ratio.",
+    "scheduler_overhead": "Original resource reservation remains private_work. Ordinary Source planner/lowerer regression checks maximum_step_fuel=private_work+(1+input_ports+output_ports+host_calls); unary resident base=3 remains present."
+  },
+  "preserved_physical_and_control_bounds": {
+    "heap": 49152,
+    "work_bookkeeping": 16384,
+    "assignment_bytes": 4096,
+    "assigned_runtime_state_bytes": 16384,
+    "buffered_bytes": 8192
+  },
+  "deliberate_candidate_changes": "Separate named checked candidates preserve baseline: clock-only adds one legitimate finite monotonic attachment; work candidate explicitly selects measured15117 work units; slots candidate explicitly selects97 logical queue slots. No further physical byte increase or feature changes.",
+  "cases": {
+    "profile_measurement": {
+      "baseline_configuration": "sha256:13115bb31f288edeabbd0f31bcb78d075cb0362c4a4b409bad672dd378040de4",
+      "baseline_missing_clock": "missing monotonic clock construction",
+      "candidate_configuration": "sha256:755cdca37628087be4407ffbaa72530b5addfbb24ff6695aef72ac33ee25df1c",
+      "clock_maximum_operations": 1024,
+      "clock_slots": 1,
+      "compiler_only_measurement_refusal": "selected resident preparation for shared-environment/instrument/sensor/protocol/inline-579195cb6ff8-0/inline-d6f4798826b2-0/expression-35fa85d2132e-0: PrivateWork { required: 5379, maximum: 5000 }",
+      "compiler_only_resident_count": null,
+      "compiler_only_total_work_requirement": null,
+      "emitted_original_factory_bytes": true,
+      "full_compiler_only_ceiling": 65532,
+      "full_compiler_only_largest_owner": 5379,
+      "full_compiler_only_refusal": null,
+      "full_compiler_only_resident_count": 47,
+      "full_compiler_only_work_requirement": 15117,
+      "hardware_effects": false,
+      "memory_work_operation_bounds_preserved": true,
+      "owned_compiler_only_largest_owner": 5379,
+      "owned_compiler_only_refusal": null,
+      "owned_compiler_only_resident_count": 47,
+      "owned_compiler_only_work_requirement": 15117,
+      "prepared_resident_count": 0,
+      "resident_pool_units": 5000,
+      "resident_preparation_refusal": "selected resident private work requires 5168 units; original pool has 5000",
+      "runtime_admission": false,
+      "scope": "fresh checked BME/HT Source and new clock attachment; no runtime Play",
+      "whole_factory_called": false
+    },
+    "old_uniform_builder_coherent_refusal": {
+      "bookkeeping_bytes": 16384,
+      "calibration_refusal": "selected resident preparation for shared-environment/instrument/initialize/protocol/actions/expression-61a9c353fc42-0: PrivateWork { required: 324, maximum: 318 }",
+      "configuration": "sha256:fb79f23ed9643d96ebff64a1b89e53966480434c4deaf61a6bb21aff17203df5",
+      "hardware_effects": false,
+      "heap_bytes": 49152,
+      "image": "image:sha256:234176711b288ee13c8cd4a8726f3df04faa79c33a48bb7e6d6f8d2980a4e363",
+      "prepared_resident_count": 0,
+      "resident_work_units": 15117,
+      "runtime_admission": false,
+      "scope": "fresh checked Host IMAGE and ordinary BME Source calibration; emit-only",
+      "whole_runtime_factory_called": false
+    },
+    "exact_work_builder_next_refusal": {
+      "bookkeeping_bytes": 16384,
+      "calibration_refusal": "native lowering: BoundExceeded { table: \"cord value slots\", actual: 97, maximum: 16 }",
+      "configuration": "sha256:fb79f23ed9643d96ebff64a1b89e53966480434c4deaf61a6bb21aff17203df5",
+      "hardware_effects": false,
+      "heap_bytes": 49152,
+      "image": "image:sha256:234176711b288ee13c8cd4a8726f3df04faa79c33a48bb7e6d6f8d2980a4e363",
+      "prepared_resident_count": 0,
+      "resident_work_units": 15117,
+      "runtime_admission": false,
+      "scope": "fresh checked Host IMAGE and ordinary BME Source calibration; emit-only",
+      "whole_runtime_factory_called": false
+    },
+    "slots_candidate_next_refusal": {
+      "assignment_byte_ceiling": 4096,
+      "bookkeeping_bytes": 16384,
+      "calibration_refusal": "native lowering: BoundExceeded { table: \"cord value bytes\", actual: 164818, maximum: 8192 }",
+      "configuration": "sha256:dfa15fad0649c38006041211b8df60ec816d6630dab06bee78d0b90d5bf8a478",
+      "hardware_effects": false,
+      "heap_bytes": 49152,
+      "image": "image:sha256:fc648a33059c5444e0c0f2e18d25e13052ea309024b79f02fbdd2bf4646c9049",
+      "logical_queue_item_ceiling": 97,
+      "prepared_resident_count": 0,
+      "resident_work_units": 15117,
+      "runtime_admission": false,
+      "runtime_state_byte_ceiling": 16384,
+      "scope": "fresh checked Host IMAGE and open-Fore BME/HT protocol service calibration; emit-only",
+      "whole_runtime_factory_called": false
+    }
+  },
+  "qualification": {
+    "toolchain": "1.98.1",
+    "coherent_cargo_graph": true,
+    "jobs": 1,
+    "incremental": false,
+    "tests": "2 exact-work tests (Owned heterogeneous/exact-total/total-deficit and repeated shared owners), 2 native inventory tests, 1 real DHT generated resident executable/no_std regression PASS. Short Root/static software compiler fixture fails E0521 before fix and compiles afterward.",
+    "lint": "Owned Source lib/tests and RP Make examples strict -D warnings PASS with --no-deps. Full dependency lint was blocked by unchanged assigned-plan projection_line_layout.rs chunks_exact_to_as_chunks; parent owns separate fix aa043cd3f005006fab9caae684121e2d7f119f1e, not applied here.",
+    "earlier_diagnosis_correction": "Initial manual graph suspicion did not explain324/318. One coherent Cargo rebuild confirmed it. Actual cause was frozen builder uniform division15117/47 minus3=318 with Owned storage; I had initially inspected a different archived prototype builder. No compiler/resealing fix or grant inflation was used.",
+    "initial_zero_test_filter": "An initial --exact basename selected zero; not counted as pass. Correct fully qualified tests subsequently selected and passed.",
+    "logs": {
+      "coherent-calibration.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-calibration.log",
+        "sha256": "596b2edb1d53edb36f9daf8dcf67ad035869d6191f1f4918b899863e848d0e96"
+      },
+      "coherent-exact-work-calibration.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-exact-work-calibration.log",
+        "sha256": "e05cee05d5fa86516486c058a7fcef7f04ebd2aafab812efe335ec87168c631e"
+      },
+      "coherent-slots-calibration.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-slots-calibration.log",
+        "sha256": "d84092684ef1f0ee64633fcde9a9ddb5c465e0b96d6d4731b854c673d838865b"
+      },
+      "coherent-profile.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-profile.log",
+        "sha256": "e49eb38857235396db26c3ed7c76a8eab28e4ce24e192154177dfd1ab7b36d69"
+      },
+      "coherent-exact-work-test.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-exact-work-test.log",
+        "sha256": "6a6e39c52b366b0e1d966f7c280f92912a868bcef5610cb61a161f902304b540"
+      },
+      "coherent-constructor-tests.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-constructor-tests.log",
+        "sha256": "55bff2c8301541a0c342830eb96407bbef06470700dfe499bee3834464dcef86"
+      },
+      "coherent-dht-regression.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-dht-regression.log",
+        "sha256": "df291d414b21d3def6c4f00e129a665a22fdbb22f3eeee7a49ea09da57635462"
+      },
+      "coherent-borrow-before.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-borrow-before.log",
+        "sha256": "524d1a55cf34cd3057fb2d753bdc7a6b3add1ccdf2ede8ea4ede34e85a09dfce"
+      },
+      "coherent-borrow-after.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-borrow-after.log",
+        "sha256": "79528d36b6e50ec9420b1531783431eaea7bccde82ebe832a0fa2de641e67486"
+      },
+      "coherent-source-clippy.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-source-clippy.log",
+        "sha256": "3f7ff8dd649240ba22e6f339347ba7df6936c2735aa54e2de466d6dc21a675c8"
+      },
+      "coherent-source-clippy-final.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-source-clippy-final.log",
+        "sha256": "5a06dd0bf92b76745729c1302f3b96dcac8d4f4fde76d4a0f21c6a3d62e0b21d"
+      },
+      "coherent-make-examples-clippy.log": {
+        "path": "/tmp/conduit-source-i2c-clock-fragment-20261116/coherent-make-examples-clippy.log",
+        "sha256": "ce217eab404838b3215856432e5c0ff2ec3f6b768cfc658bd0deb48efbc9509a"
+      }
+    },
+    "cargo_lock_sha256": "2825e29915c1ef065600711e91e5598900898cfae7e9a740ba971917f756dc64"
+  },
+  "current_gate": "Native lowering rejects aggregate logical canonical Cord byte budget164818 against8192. This is not a measured physical RAM requirement. Existing assigned runtime estimate also adds this total, so simply raising the artifact byte ceiling would not justify runtime16384.",
+  "not_proved": [
+    "Genuine successful full BME Root fragment preparation/admission/Start",
+    "Autonomous periodic BME sampling",
+    "Standard NativeDisplay/PreparedDisplayMask with HT encoder and typed recording/publication including pressure",
+    "Shared-schema/workspace backend selection for this target",
+    "Actual target ABI/static/preparation/steady/peak RAM fit",
+    "Physical sensor/display execution or history recovery"
+  ],
+  "source_sha256": {
+    "targets/mcu/source-build/src/source_composition/native_i2c_clock_factory.rs": "70c01cff08bee7fdc3587901f79db37417a784434580f1ec6945509fe84ac45e",
+    "targets/mcu/source-build/src/source_composition/native_i2c_clock_borrow_tests.rs": "6eb81e64cbf15028c3612474d86cd0b8d3c6370ca1044f16d30db74c6ae9b1dc",
+    "targets/mcu/source-build/src/workset_exact_work_tests.rs": "5df5962cdb483e083c8375aa6bd92a73b9a5ae145a67ac47c3260a7ecc362401",
+    "targets/rp2040/firmware/host/i2c_workset_build.rs": "d7ab5b27b58fe79e815cb30c4adb87cbec6cbf5e87e0ccd112de1ce3d27357c8",
+    "targets/mcu/host-runtime/src/execution_factory.rs": "8d848c45036c18bc9b1d07c72c9e8d6a0a23354454a827e5d56931a5ab48637f",
+    "targets/mcu/host-runtime/src/execution_group.rs": "d1a880cf38fc35ab339475bbe027e0f74b55c4a9d3cd6b2e6ccf7bbb4333a38c"
+  }
+}
