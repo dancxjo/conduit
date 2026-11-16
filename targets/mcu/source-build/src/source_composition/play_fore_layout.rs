@@ -2,15 +2,6 @@
 //! No incoming assignment row supplies a placement or capability selector.
 use super::*;
 
-fn identity(bytes: &[u8], offset: usize) -> Result<c::AssignedIdentity, &'static str> {
-    Ok(c::AssignedIdentity(
-        bytes
-            .get(offset..offset + 16)
-            .ok_or("line-layout-node")?
-            .try_into()
-            .map_err(|_| "line-layout-node")?,
-    ))
-}
 fn ordinal(bytes: &[u8], offset: usize) -> Result<u16, &'static str> {
     Ok(u16::from_le_bytes(
         bytes
@@ -20,66 +11,51 @@ fn ordinal(bytes: &[u8], offset: usize) -> Result<u16, &'static str> {
             .map_err(|_| "line-layout-node")?,
     ))
 }
-fn capability<'a>(
-    actual: &'a c::HostAdvertisement,
-    node: u16,
-) -> Result<&'a c::CapabilityOffer, &'static str> {
-    let bytes = source::sampling_layout::PROJECTION_TEMPLATE;
-    let mut node_pin = None;
-    for row in c::AssignedPlanRecords::new(bytes).map_err(|_| "line-layout-template")? {
-        let row = row.map_err(|_| "line-layout-template")?;
-        if row.tag == c::ASSIGNED_NODE && ordinal(row.payload, 0)? == node {
-            if node_pin.replace(row.payload).is_some() {
-                return Err("line-layout-node-duplicate");
-            }
-        }
-    }
-    let pin = node_pin.ok_or("line-layout-node-absent")?;
+fn capability(actual: &c::HostAdvertisement, node: u16) -> Result<&str, &'static str> {
+    // The original installed native records already pin capability and Base
+    // identities. Compact current truth retains their exact strings and Ready
+    // provenance without retaining decoded capability schemas.
     let mut selected = None;
-    for offer in &actual.capabilities {
-        if c::AssignedIdentity::from_text(offer.kind_id.as_str()) != identity(pin, 4)?
-            || c::AssignedIdentity::from_text(offer.implementation.implementation_id.as_str())
-                != identity(pin, 20)?
-            || c::AssignedIdentity::from_text(offer.implementation.artifact_id.as_str())
-                != identity(pin, 36)?
+    for row in c::AssignedPlanRecords::new(source::sampling_layout::PROJECTION_TEMPLATE)
+        .map_err(|_| "line-layout-template")?
+    {
+        let row = row.map_err(|_| "line-layout-template")?;
+        if row.tag != c::ASSIGNED_HOST_CALL || ordinal(row.payload, 0)? != node {
+            continue;
+        }
+        let binding = c::assigned_native_binding(row.payload)
+            .map_err(|_| "line-layout-native")?
+            .ok_or("line-layout-native")?;
+        let mut bases = actual
+            .bases
+            .iter()
+            .filter(|base| c::AssignedIdentity::from_text(base.base_id.as_str()) == binding.base);
+        let base = bases.next().ok_or("line-layout-base-absent")?;
+        if bases.next().is_some()
+            || base.lifecycle != c::BaseLifecycle::Ready
+            || c::AssignedIdentity::from_text(base.implementation_id.as_str())
+                != binding.base_implementation
+            || c::AssignedIdentity::from_text(base.mechanism_family.as_str()) != binding.mechanism
+            || base.enforcement_class as u8 != binding.enforcement
         {
-            continue;
+            return Err("line-layout-base-profile");
         }
-        let mut input = 0;
-        let mut output = 0;
-        let mut exact = true;
-        for row in c::AssignedPlanRecords::new(bytes).map_err(|_| "line-layout-template")? {
-            let row = row.map_err(|_| "line-layout-template")?;
-            if row.tag != c::ASSIGNED_PORT || ordinal(row.payload, 0)? != node {
-                continue;
-            }
-            let incoming = match row.payload.get(4) {
-                Some(0) => true,
-                Some(1) => false,
-                _ => return Err("line-layout-port-direction"),
-            };
-            let port_id = identity(row.payload, 5)?;
-            let value_kind = identity(row.payload, 21)?;
-            let ports = if incoming {
-                input += 1;
-                &offer.inputs
-            } else {
-                output += 1;
-                &offer.outputs
-            };
-            exact &= ports.iter().any(|port| {
-                c::AssignedIdentity::from_text(port.port_id.as_str()) == port_id
-                    && c::AssignedIdentity::from_text(port.value_kind.as_str()) == value_kind
-            });
-        }
-        if !exact || input != offer.inputs.len() || output != offer.outputs.len() {
-            continue;
-        }
-        if selected.replace(offer).is_some() {
+        let mut capabilities = base
+            .capability_ids
+            .iter()
+            .filter(|id| c::AssignedIdentity::from_text(id.as_str()) == binding.capability);
+        let id = capabilities.next().ok_or("line-layout-capability-absent")?;
+        if capabilities.next().is_some() {
             return Err("line-layout-capability-ambiguous");
         }
+        if selected.is_some_and(|previous| previous != id.as_str()) {
+            return Err("line-layout-native-capability-mismatch");
+        }
+        selected = Some(id.as_str());
     }
-    selected.ok_or("line-layout-capability-absent")
+    // A resident-only boundary needs its initialized resident identity. Never
+    // recover it by decoding offers or trusting an incoming assignment.
+    selected.ok_or("line-layout-native-identity-absent")
 }
 
 pub fn placements(
@@ -99,7 +75,7 @@ pub fn placements(
             source::sampling_layout::CHECKED_PLOT_ID,
             gear,
             actual.host_id.as_str(),
-            offer.capability_id.as_str(),
+            offer,
         );
         result[slot]
             .push_str(core::str::from_utf8(&id).map_err(|_| "line-layout-placement")?)
