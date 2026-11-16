@@ -87,18 +87,6 @@ impl Profiles<'_> {
             self.step_outputs
         )
         .unwrap();
-        writeln!(
-            text,
-            "pub const ABNORMAL_CORD_COUNT:usize={};",
-            self.abnormal_cord_count
-        )
-        .unwrap();
-        writeln!(
-            text,
-            "pub const EXTERNAL_INGRESS_CORD_COUNT:usize={};",
-            self.external_ingress_cord_count
-        )
-        .unwrap();
         text
     }
 }

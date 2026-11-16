@@ -1,0 +1,8 @@
+{
+  "captured_unix": 1794822907.638271,
+  "target": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/shared-assigned-lowering-20261101/target/esp32-electrical-check",
+  "files": 7367,
+  "removed_allocated_bytes": 1608134656,
+  "owner_confirmation": "Storage worker confirms canonical Make uses only separate active Q/target cache; no reference to removed cache",
+  "preserved": "All source, current Q cache, reviewed firmware outputs, raw flash backups, history, credentials and evidence"
+}

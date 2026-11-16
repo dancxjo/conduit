@@ -1,0 +1,28 @@
+{
+  "source_commit": "49e817f62ee84aa135d046118a76777b5343ef9c",
+  "worktree": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116",
+  "tool_sha256": "1471f985ae57df0bb941116c736686ca08fa4d610cf79a0fff30461ad0c077a1",
+  "source_sha256": "ec1b0410a8ca235e0b394625eede70c0d467cb1933c023c4f811b96db9e5f6c8",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/factory-tools/xtask-source-composition-profile-20261116",
+    "make",
+    "host",
+    "build",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/profiles/blue-wroom32.host.conduit",
+    "--workset-source",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/record-service-source-candidate-20261111/yellow-record-service.conduit",
+    "--workset-entry",
+    "yellow-sampling",
+    "--workset-entry",
+    "yellow-mask",
+    "--workset-entry",
+    "yellow-output",
+    "--output",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-fore-profile-qualified-20261116",
+    "--locked"
+  ],
+  "output": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-member-control-make-20261111/blue-fore-profile-qualified-20261116",
+  "requested_target_cache": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/shared-assigned-lowering-20261101/target/esp32-electrical-check",
+  "actual_target_cache": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check",
+  "cache_note": "Canonical Make selects its worktree-local target path, overriding the requested Cargo environment."
+}

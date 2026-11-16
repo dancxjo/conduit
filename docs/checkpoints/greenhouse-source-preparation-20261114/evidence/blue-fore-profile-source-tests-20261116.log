@@ -1,0 +1,100 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/assigned-plan)
+   Compiling conduit-rp2040-flash-layout v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/rp2040/flash-layout)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/plan-lowering)
+   Compiling conduit-typed-retention v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/implementations/typed-retention)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/composite)
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/resource-snapshot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/language)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/purpose)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/robotics)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/alife)
+   Compiling conduit-dht11-observation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/devices/dht11)
+   Compiling conduit-tm1637-protocol v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/devices/tm1637)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/wire)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/pulse-capture)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/plots/seven-segment-mask)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/bodies/environment/runtime)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/tm1637)
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/monotonic-wait)
+   Compiling conduit-i2c-transaction v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/i2c-transaction)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/human)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/planner)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/audio)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/face)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/protocols/midi)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/environment-face)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/catalog)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/make/embedded-build)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/make/host)
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/host-runtime)
+   Compiling conduit-mcu-source-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/source-build)
+    Finished `test` profile [unoptimized] target(s) in 2m 33s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_mcu_source_build-4d5e36b8aee23a00)
+
+running 52 tests
+test fore_carrier::tests::explicit_selection_and_absence ... ok
+test fore_carrier::tests::frame_and_original_host_caps_are_enforced ... ok
+test fore_carrier::tests::missing_policy_fields_and_duplicate_are_refused ... ok
+test installed_values::tests::exact_schema_native_laws_and_selected_envelope_are_rechecked ... ok
+test composite::instance_tests::distinct_terminal_state_instances_reuse_the_same_finite_runtime_family ... ok
+test composite::zip_instance_tests::two_finite_instances_keep_ordered_pair_types_envelopes_and_exact_capabilities ... ok
+test software::recording_tests::initialized_recording_owner_is_unbound_until_scope_and_binding_allocates_nothing ... ok
+test protocol_catalog::tests::selected_i2c_and_deadline_clock_remain_native_owners ... ok
+test source_composition::continuation_binding_tests::tests::repeated_fields_and_literals_keep_the_same_canonical_binding_values ... ok
+test source_composition::tests::emitted_binding_count_is_the_same_tested_source ... ok
+test template::host_call_storage::tests::no_calls_and_single_operation_keep_stride_one ... ok
+test template::host_call_storage::tests::pending_slots_count_callable_nodes_independently_of_binding_stride ... ok
+test template::host_call_storage::tests::pending_slots_keep_empty_constructor_valid_and_refuse_unproven_geometry ... ok
+test template::host_call_storage::tests::sparse_ids_and_overflow_follow_receiver_indexing ... ok
+test composite::ht_protocol_tests::selected_ht_initialization_and_output_preserve_one_native_bus_per_entry ... ok
+test template::host_call_storage::tests::two_operations_fund_the_last_node_instead_of_packing_records ... ok
+test template::value_profiles::selectors::tests::configuration_contract_and_selector_material_cannot_borrow_the_original_pins ... ok
+test template::value_profiles::selectors::tests::exact_standard_selector_pins_both_whole_schemas_and_never_a_foreign_realization ... ok
+test composite::instance_tests::two_exact_merges_share_a_source_without_overwriting_their_contracts ... ok
+test composite::zip_instance_tests::finite_and_feedback_instances_coexist_without_conflating_mode ... ok
+test template_calibration::seal_emission::tests::template_seal_emission_compiles_all_original_octets_and_keeps_ascii_compact ... ok
+test value_profiles::tests::abnormal_topology_stock_fact_counts_tracks_without_changing_value_profiles ... ok
+test value_profiles::tests::altered_artifacts_schemas_ports_duplicates_and_extents_refuse ... ok
+test value_profiles::tests::external_ingress_stock_counts_logical_boundaries_without_granting_authority ... ok
+test value_profiles::tests::fanout_requires_every_exact_receiver_and_preserves_counts_and_extents ... ok
+test value_profiles::tests::topology_associations_preserve_fanout_multioutput_queue_order_and_external_sinks ... ok
+test linked_source::tests::linked_image_keeps_checked_refinements_and_emits_real_factory_definition ... ok
+test template::tests::authored_resident_fore_lowers_independently_and_preserves_source_node ... ok
+test installed_values::tests::unavailable_and_duplicate_keys_never_select_another_datum ... ok
+test workset::inputs::tests::capture_refuses_unknown_fields_modes_and_unbounded_requests ... ok
+test workset::inputs::tests::explicit_capture_preserves_types_envelopes_and_mode_without_source_rewriting ... ok
+test tests::real_sampling_source_emits_exact_finite_software_factories_without_native_effect_offers ... ok
+test software::recording_tests::record_service_retains_its_native_equipment_selection_pin ... ok
+test composite::tests::checked_composites_emit_exact_schema_images_and_distinct_zip_laws ... ok
+test workset::inputs::tests::internal_receipt_is_pinned_to_exact_source_and_capture_bytes ... ok
+test workset::emission::tests::neutral_emission_cannot_bypass_original_structural_calibration ... ok
+test software::emit_inventory::tests::generated_ordinal_views_keep_exact_remapped_identities_and_clock_refusals ... ok
+test installed_values::tests::original_checked_workset_selects_and_emits_the_actual_installed_provider ... ok
+test workset::exact_work_tests::repeated_resident_owners_keep_exact_unequal_work_and_original_aggregate_limit ... ok
+test workset::emission::tests::neutral_index_preserves_source_entry_and_layout_without_dht_roles ... ok
+test installed_values::tests::captured_make_receipt_preserves_source_and_installed_material ... ok
+test installed_values::tests::recalibration_cannot_replace_the_original_installed_material ... ok
+test workset::tests::actual_sampling_mask_and_output_compile_from_one_checked_closure ... ok
+test tests::authored_dht_and_display_entries_emit_one_resident_inventory ... ok
+test composite::correlated_i2c_tests::correlated_bus_source_selects_one_native_owner_for_all_requests ... ok
+test composite::instance_tests::wrong_envelope_and_missing_instance_refuse_the_original_source_import ... ok
+test composite::zip_instance_tests::missing_instance_changed_envelope_or_mode_refuses_original_imports ... ok
+test software::recording_tests::authored_observation_selection_emits_scoped_recording_constructor_and_exact_contract ... ok
+test installed_values::tests::original_source_and_material_identity_remain_independent_pins ... ok
+test composite::tests::authored_bme_protocol_compiles_through_shared_mcu_source ... ok
+test bme_sampling_build_tests::repeated_sampling_selects_real_finite_state_and_pairing_owners ... ok
+test composite::shared_bus_tests::actual_environment_protocols_share_one_correlated_controller_and_clock ... ok
+
+test result: ok. 52 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.69s
+

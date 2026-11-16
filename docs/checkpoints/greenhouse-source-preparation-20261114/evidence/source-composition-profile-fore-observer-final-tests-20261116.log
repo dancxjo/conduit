@@ -1,0 +1,20 @@
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime)
+    Finished `test` profile [unoptimized] target(s) in 3.15s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_mcu_host_runtime-770e35c4c0951b9d)
+
+running 12 tests
+test fore_bridge::tests::egress_policy::checked_structured_output_retires_all_cold_metadata ... ok
+test fore_bridge::tests::egress_policy::every_claimed_output_abi_field_is_pinned_and_unsupported_shapes_refuse ... ok
+test fore_bridge::tests::egress_policy::original_policy_can_be_checked_before_admission_and_again_after_bind ... ok
+test fore_bridge::tests::dropping_either_actor_port_fences_the_bridge_even_during_a_mailbox_loan ... ok
+test fore_bridge::tests::structured_ingress::full_type_and_contract_envelope_are_pinned_independently_from_queue_capacity ... ok
+test fore_bridge::tests::queue_pressure_retains_ingress_sequence_and_never_claims_delivery ... ok
+test fore_bridge::tests::genuine_peer_acknowledgments_drive_kernel_custody_and_pressure_keeps_same_value ... ok
+test fore_bridge::tests::constrained_abi_refuses_and_preparation_and_pumping_allocate_nothing ... ok
+test fore_bridge::tests::compact_profile_fore_observer_preserves_typed_delivery_pressure_and_retirement ... ok
+test fore_bridge::tests::sign_pressure_retains_real_delivered_ack_and_retirement_leaves_kernel_value_owned ... ok
+test fore_bridge::tests::structured_ingress::structured_payload_uses_original_activation_pressure_and_delivery_without_allocation ... ok
+test fore_bridge::tests::generic_primitive_validation_and_exact_activation_refuse_unproved_inputs ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.00s
+

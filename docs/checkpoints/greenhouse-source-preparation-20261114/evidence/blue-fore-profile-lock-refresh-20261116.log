@@ -1,0 +1,4 @@
+     Locking 2 packages to latest compatible versions
+      Adding conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/composite)
+      Adding conduit-i2c-transaction v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/i2c-transaction)
+note: pass `--verbose` to see 22 unchanged dependencies behind latest

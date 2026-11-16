@@ -68,6 +68,9 @@ pub struct Layout {
     pub cord_value_slot_capacities: Vec<u32>,
     /// Explicit selected schema profiles, absent for canonical-only targets.
     pub value_profiles_rust: Option<String>,
+    /// Complete topology facts, independent of optional schema-specialized slots.
+    pub abnormal_cord_count: usize,
+    pub external_ingress_cord_count: usize,
     /// Additional generated-output staging, one slot per routed output port.
     pub step_value_slot_capacities: Vec<u32>,
     /// Native results may exceed their outgoing typed Cord representation.
@@ -326,6 +329,21 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             .maximum_total_program_bytes
             .checked_mul(2)
             .ok_or("computation ceiling overflow")?,
+        abnormal_cord_count: kernel
+            .cords
+            .iter()
+            .filter(|cord| {
+                cord.track == conduit_kernel::scheduler::AssignedConnectionTrack::AbnormalTerminal
+            })
+            .count(),
+        external_ingress_cord_count: kernel
+            .cords
+            .iter()
+            .filter(|cord| {
+                matches!(cord.source, e::GeneratedCordEndpoint::Remote { .. })
+                    && matches!(cord.sink, e::GeneratedCordEndpoint::Local { .. })
+            })
+            .count(),
         value_profiles_rust: value_profiles::emit(
             kernel,
             fragment,

@@ -1,0 +1,426 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling compiler_builtins v0.1.160 (/home/dancxjo/.rustup/toolchains/esp-conduit-1.91.1/lib/rustlib/src/rust/library/compiler-builtins/compiler-builtins)
+   Compiling serde_core v1.0.229
+   Compiling syn v3.0.6
+   Compiling serde v1.0.229
+   Compiling version_check v0.9.5
+   Compiling generic-array v0.14.7
+   Compiling libm v0.2.16
+   Compiling typenum v1.20.1
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling cfg-if v1.0.5
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling serde_derive v1.0.229
+   Compiling core v0.0.0 (/home/dancxjo/.rustup/toolchains/esp-conduit-1.91.1/lib/rustlib/src/rust/library/core)
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/core)
+   Compiling alloc v0.0.0 (/home/dancxjo/.rustup/toolchains/esp-conduit-1.91.1/lib/rustlib/src/rust/library/alloc)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/plot)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/kernel)
+   Compiling heapless v0.8.0
+   Compiling zmij v1.0.23
+   Compiling syn v2.0.119
+   Compiling thiserror v2.0.21
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling curve25519-dalek v4.1.3
+   Compiling thiserror-impl v2.0.21
+   Compiling itoa v1.0.18
+   Compiling portable-atomic-util v0.2.8
+   Compiling ryu v1.0.23
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/time)
+   Compiling byteorder v1.5.0
+   Compiling hash32 v0.3.1
+   Compiling stable_deref_trait v1.2.1
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/data)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/language)
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling indexmap v2.14.2
+   Compiling tinyvec v1.13.3
+   Compiling serde_json v1.0.151
+   Compiling unicode-normalization v0.1.25
+   Compiling litrs v1.0.0
+   Compiling memchr v2.8.3
+   Compiling document-features v0.2.12
+   Compiling portable-atomic v1.15.0
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/audio)
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling zeroize v1.9.0
+   Compiling signature v2.2.0
+   Compiling subtle v2.6.1
+   Compiling ed25519 v2.2.3
+   Compiling cobs v0.3.0
+   Compiling adler2 v2.0.1
+   Compiling esp-metadata-generated v0.4.0
+   Compiling miniz_oxide v0.8.9
+   Compiling postcard v1.1.3
+   Compiling serde-json-core v0.6.0
+   Compiling ed25519-dalek v2.2.0
+   Compiling minicbor v2.3.0
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/body)
+   Compiling ident_case v1.0.1
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/resource-snapshot)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/education)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/purpose)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/net)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/robotics)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/process)
+   Compiling somni-parser v0.2.2
+   Compiling unsafe-libyaml v0.2.11
+   Compiling serde_yaml v0.9.34+deprecated
+   Compiling somni-expr v0.2.0
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/face)
+   Compiling critical-section v1.2.0
+   Compiling fnv v1.0.7
+   Compiling esp-config v0.7.0
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/plan-lowering)
+   Compiling futures-core v0.3.34
+   Compiling strsim v0.11.1
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/pulse-capture)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/plots/seven-segment-mask)
+   Compiling conduit-tm1637-protocol v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/devices/tm1637)
+   Compiling conduit-dht11-observation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/devices/dht11)
+   Compiling esp-rom-sys v0.1.4
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/web)
+   Compiling futures-sink v0.3.34
+   Compiling heapless v0.9.3
+   Compiling embedded-io-async v0.6.1
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/planner)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/text)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/tm1637)
+   Compiling embedded-io v0.6.1
+   Compiling winnow v1.0.4
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling darling_core v0.21.3
+   Compiling embedded-io v0.7.1
+   Compiling pin-project-lite v0.2.17
+   Compiling futures-task v0.3.34
+   Compiling nb v1.1.0
+   Compiling embassy-sync v0.7.2
+   Compiling embassy-sync v0.6.2
+   Compiling autocfg v1.5.1
+   Compiling embassy-sync v0.8.0
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling toml_edit v0.25.15+spec-1.1.0
+   Compiling num-traits v0.2.19
+   Compiling futures-util v0.3.34
+   Compiling embedded-io-async v0.7.0
+   Compiling darling_macro v0.21.3
+   Compiling xtensa-lx v0.13.0
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/protocols/midi)
+   Compiling esp32 v0.40.2
+   Compiling embedded-hal-async v1.0.0
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/catalog)
+   Compiling darling v0.21.3
+   Compiling proc-macro-crate v3.5.0
+   Compiling nb v0.1.3
+   Compiling darling_core v0.24.1
+   Compiling esp-sync v0.2.1
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/wire)
+   Compiling void v1.0.2
+   Compiling embedded-storage v0.3.1
+   Compiling vcell v0.1.3
+   Compiling embedded-hal v1.0.0
+   Compiling embassy-hal-internal v0.4.0
+   Compiling xtensa-lx-rt v0.22.0
+   Compiling heck v0.5.0
+   Compiling termcolor v1.4.1
+   Compiling strum_macros v0.27.2
+   Compiling embedded-hal v0.2.7
+   Compiling darling_macro v0.24.1
+   Compiling enumset_derive v0.15.0
+   Compiling conduit-rp2040-flash-layout v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/rp2040/flash-layout)
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/monotonic-wait)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/bodies/environment/runtime)
+   Compiling conduit-i2c-transaction v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/io/i2c-transaction)
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling esp-metadata-generated v0.3.0
+   Compiling toml_write v0.1.2
+   Compiling paste v1.0.15
+   Compiling winnow v0.7.15
+   Compiling toml_edit v0.22.27
+   Compiling enumset v1.1.14
+   Compiling darling v0.24.1
+   Compiling strum v0.27.2
+   Compiling esp-hal-procmacros v0.22.0
+   Compiling embedded-storage-async v0.4.2
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/semantics/environment-face)
+   Compiling esp-hal v1.1.2
+   Compiling xtensa-lx-rt-proc-macros v0.5.0
+   Compiling conduit-typed-retention v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/mechanisms/implementations/typed-retention)
+   Compiling embassy-futures v0.1.2
+   Compiling gcd v2.3.0
+   Compiling bitfield-macros v0.19.5
+   Compiling embassy-time-driver v0.2.2
+   Compiling indoc v2.0.7
+   Compiling instability v0.3.14
+   Compiling bitfield v0.19.5
+   Compiling fugit v0.3.9
+   Compiling embassy-embedded-hal v0.6.0
+   Compiling toml v0.8.23
+   Compiling embedded-can v0.4.1
+   Compiling darling_core v0.20.11
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/architecture/composite)
+   Compiling sha1 v0.10.7
+   Compiling delegate v0.13.5
+   Compiling ufmt-write v0.1.0
+   Compiling bitflags v2.13.2
+   Compiling bytemuck v1.25.2
+   Compiling rand_core v0.9.5
+   Compiling rand_core v0.10.1
+   Compiling rand_core v0.6.4
+   Compiling darling_macro v0.20.11
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/make/host)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/make/embedded-build)
+   Compiling esp-sync v0.1.1
+   Compiling jiff-core v0.1.1
+   Compiling embassy-time-queue-utils v0.3.2
+   Compiling rustversion v1.0.23
+   Compiling jiff v0.2.37
+   Compiling conduit-mcu-source-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/source-build)
+   Compiling darling v0.20.11
+   Compiling esp-storage v0.8.1
+   Compiling embassy-executor-timer-queue v0.1.0
+   Compiling embassy-executor v0.10.0
+   Compiling embassy-executor-macros v0.8.0
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/make)
+   Compiling esp-bootloader-esp-idf v0.5.0
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/mcu/host-runtime)
+   Compiling esp-hal-procmacros v0.21.0
+   Compiling esp-alloc v0.10.0
+   Compiling esp-rtos v0.3.0
+   Compiling const-default v1.0.0
+   Compiling cordyceps v0.3.5
+   Compiling rlsf v0.2.3
+   Compiling conduit-esp32-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/firmware/host)
+   Compiling embassy-time v0.5.1
+   Compiling allocator-api2 v0.3.1
+   Compiling linked_list_allocator v0.10.6
+   Compiling conduit-esp32-electrical v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/electrical)
+   Compiling conduit-esp32-snapshot-nor v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/targets/esp32/snapshot-nor)
+   Compiling static_cell v2.1.1
+   Compiling panic-halt v1.0.0
+error[E0425]: cannot find value `ABNORMAL_CORD_COUNT` in module `source::sampling_layout`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_shapes.rs:46:60
+   |
+46 |     storage::unresolved_nodes(SN, source::sampling_layout::ABNORMAL_CORD_COUNT);
+   |                                                            ^^^^^^^^^^^^^^^^^^^ not found in `source::sampling_layout`
+
+error[E0425]: cannot find value `ABNORMAL_CORD_COUNT` in module `source::output_layout`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_shapes.rs:48:58
+   |
+48 |     storage::unresolved_nodes(ON, source::output_layout::ABNORMAL_CORD_COUNT);
+   |                                                          ^^^^^^^^^^^^^^^^^^^ not found in `source::output_layout`
+
+error[E0425]: cannot find value `ABNORMAL_CORD_COUNT` in module `source::sampling_layout`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_shapes.rs:51:30
+   |
+51 |     source::sampling_layout::ABNORMAL_CORD_COUNT,
+   |                              ^^^^^^^^^^^^^^^^^^^ not found in `source::sampling_layout`
+
+error[E0425]: cannot find value `EXTERNAL_INGRESS_CORD_COUNT` in module `source::sampling_layout`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_shapes.rs:52:30
+   |
+52 |     source::sampling_layout::EXTERNAL_INGRESS_CORD_COUNT,
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `source::sampling_layout`
+
+error[E0425]: cannot find value `ABNORMAL_CORD_COUNT` in module `source::output_layout`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_shapes.rs:56:28
+   |
+56 |     source::output_layout::ABNORMAL_CORD_COUNT,
+   |                            ^^^^^^^^^^^^^^^^^^^ not found in `source::output_layout`
+
+error[E0425]: cannot find value `EXTERNAL_INGRESS_CORD_COUNT` in module `source::output_layout`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_shapes.rs:57:28
+   |
+57 |     source::output_layout::EXTERNAL_INGRESS_CORD_COUNT,
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `source::output_layout`
+
+warning: unused import: `execution_authority::Operation`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_initialization.rs:7:5
+  |
+7 |     execution_authority::Operation,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `execution_authority::Operation`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime_transactions.rs:4:5
+  |
+4 |     execution_authority::Operation, root::InstalledContinuationAcceptance,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `execution_authority::Operation`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime_continuation_factory.rs:8:5
+  |
+8 |     execution_authority::Operation, execution_factory::SoftwareInventory,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `conduit_mcu_host_runtime::execution_factory::SoftwareDefinition as D`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_1.rs:16:5
+   |
+16 | use conduit_mcu_host_runtime::execution_factory::SoftwareDefinition as D;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `conduit_resource_snapshot::native_append::ReadyRecordAppender`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play.rs:30:5
+   |
+30 | use conduit_resource_snapshot::native_append::ReadyRecordAppender;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `SignQuery`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_run.rs:14:5
+   |
+14 |     SignQuery,
+   |     ^^^^^^^^^
+
+warning: unused import: `generated::*`
+ --> src/resident.rs:6:9
+  |
+6 | pub use generated::*;
+  |         ^^^^^^^^^^^^
+
+warning: unreachable expression
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime.rs:161:17
+    |
+161 | /                 return crate::play_run::run(
+162 | |                     &mut *sample,
+163 | |                     &mut sample_calls,
+164 | |                     mask,
+...   |
+187 | |                 .await;
+    | |                  ----^
+    | |__________________|___|
+    |                    |   unreachable expression
+    |                    any code following this expression is unreachable
+    |
+    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unreachable expression
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime.rs:375:21
+    |
+375 | /                     return conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut())
+376 | |                         .await;
+    | |                          ----^
+    | |__________________________|___|
+    |                            |   unreachable expression
+    |                            any code following this expression is unreachable
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `conduit_wire`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_fore_installation.rs:10:36
+   |
+10 | pub const SESSION_CONTRACT: &str = conduit_wire::PHYSICAL_FORE_SESSION_CONTRACT;
+   |                                    ^^^^^^^^^^^^ use of unresolved module or unlinked crate `conduit_wire`
+   |
+help: there is a crate or module with a similar name
+   |
+10 - pub const SESSION_CONTRACT: &str = conduit_wire::PHYSICAL_FORE_SESSION_CONTRACT;
+10 + pub const SESSION_CONTRACT: &str = conduit_core::PHYSICAL_FORE_SESSION_CONTRACT;
+   |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `conduit_wire`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_fore_installation.rs:218:25
+    |
+218 |         let described = conduit_wire::describe_physical_fore_line(
+    |                         ^^^^^^^^^^^^ use of unresolved module or unlinked crate `conduit_wire`
+    |
+help: there is a crate or module with a similar name
+    |
+218 -         let described = conduit_wire::describe_physical_fore_line(
+218 +         let described = conduit_core::describe_physical_fore_line(
+    |
+
+warning: unused import: `conduit_mcu_host_runtime::transport::MessageTransport`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime_transactions.rs:129:9
+    |
+129 |     use conduit_mcu_host_runtime::transport::MessageTransport;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `conduit_mcu_host_runtime::transport::MessageTransport`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_runtime.rs:193:21
+    |
+193 |                 use conduit_mcu_host_runtime::transport::MessageTransport;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `transport::MessageTransport`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_control.rs:4:53
+  |
+4 | use conduit_mcu_host_runtime::{root::MemberControl, transport::MessageTransport};
+  |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `waits`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_1.rs:15:34
+   |
+15 | pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory::Sof...
+   |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_waits`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `clocks`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_1.rs:22:32
+   |
+22 | pub fn identity_at(index:usize,clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<Option<conduit_plan_loweri...
+   |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_clocks`
+
+warning: unused variable: `waits`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_2.rs:19:34
+   |
+19 | pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory::Sof...
+   |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_waits`
+
+warning: unused variable: `clocks`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/workset_2.rs:30:32
+   |
+30 | pub fn identity_at(index:usize,clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<Option<conduit_plan_loweri...
+   |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_clocks`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `conduit_wire`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_fore_installation.rs:189:17
+    |
+189 |     let owner = conduit_wire::PhysicalForePeerFacts {
+    |                 ^^^^^^^^^^^^ use of unresolved module or unlinked crate `conduit_wire`
+    |
+help: there is a crate or module with a similar name
+    |
+189 -     let owner = conduit_wire::PhysicalForePeerFacts {
+189 +     let owner = conduit_core::PhysicalForePeerFacts {
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `conduit_wire`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_fore_installation.rs:178:24
+    |
+178 |     let installation = conduit_wire::PhysicalForeInstallation {
+    |                        ^^^^^^^^^^^^ use of unresolved module or unlinked crate `conduit_wire`
+    |
+help: there is a crate or module with a similar name
+    |
+178 -     let installation = conduit_wire::PhysicalForeInstallation {
+178 +     let installation = conduit_core::PhysicalForeInstallation {
+    |
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `conduit_wire`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/source-composition-fore-qualification-20261116/target/esp32-electrical-check/xtensa-esp32-none-elf/release/build/conduit-esp32-host-3991af066b1279aa/out/source_play_fore_installation.rs:184:17
+    |
+184 |     let local = conduit_wire::PhysicalForePeerFacts {
+    |                 ^^^^^^^^^^^^ use of unresolved module or unlinked crate `conduit_wire`
+    |
+help: there is a crate or module with a similar name
+    |
+184 -     let local = conduit_wire::PhysicalForePeerFacts {
+184 +     let local = conduit_core::PhysicalForePeerFacts {
+    |
+
+Some errors have detailed explanations: E0425, E0433.
+For more information about an error, try `rustc --explain E0425`.
+warning: `conduit-esp32-host` (bin "conduit-esp32-host") generated 16 warnings
+error: could not compile `conduit-esp32-host` (bin "conduit-esp32-host") due to 11 previous errors; 16 warnings emitted
+xtask error: selected native Cargo build failed: exit status: 101

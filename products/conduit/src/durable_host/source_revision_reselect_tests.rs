@@ -2,6 +2,10 @@ use super::*;
 const SOURCE: &str = include_str!("../../../../plots/hello/main.conduit");
 
 fn fixture() -> (std::path::PathBuf, Installation, Selection, Request) {
+    fixture_source(SOURCE)
+}
+
+fn fixture_source(source_text: &str) -> (std::path::PathBuf, Installation, Selection, Request) {
     let (manifest, state) = super::super::super::tests::fixture();
     let mut installation = install(&manifest, &state).unwrap();
     let configuration = crate::joining_host_package_test_common::configuration(false);
@@ -13,7 +17,7 @@ fn fixture() -> (std::path::PathBuf, Installation, Selection, Request) {
         "source": conduit_host_make::canonical_host_configuration_conduit(configuration.configuration()).unwrap(),
         "configuration_id": configuration.configuration_id(), "host_image": spore.image,
     })).unwrap());
-    let source = crate::plot_source::parse(SOURCE).unwrap();
+    let source = crate::plot_source::parse(source_text).unwrap();
     let document = source.check().unwrap();
     let plot = source
         .expand_checked_for_authoring(&document, "hello")
@@ -46,14 +50,14 @@ fn fixture() -> (std::path::PathBuf, Installation, Selection, Request) {
         "expected": expected,
         "file": state.join("source.conduit"),
         "snapshot": {"owner":"reselection-test", "generation":1,
-            "sha256":format!("{:x}", Sha256::digest(SOURCE.as_bytes())),
-            "source_document_id":conduit_plot::canonical_source_document_id(SOURCE).0},
+            "sha256":format!("{:x}", Sha256::digest(source_text.as_bytes())),
+            "source_document_id":conduit_plot::canonical_source_document_id(source_text).0},
         "entries":["hello"], "maximum_source_bytes":65536,
         "capture_preparation_bytes":131072, "capture_retained_bytes":65536,
         "caller_workspace_bytes":1048576,
     }))
     .unwrap();
-    fs::write(&selection.file, SOURCE).unwrap();
+    fs::write(&selection.file, source_text).unwrap();
     let original = serde_json::to_vec_pretty(&selection).unwrap();
     fs::write(state.join(SELECTION_FILE), &original).unwrap();
     write_json_atomic(&state.join("installation.json"), &installation).unwrap();
@@ -63,6 +67,7 @@ fn fixture() -> (std::path::PathBuf, Installation, Selection, Request) {
         installed_release_bundle_sha256: installation.release_bundle_sha256.clone(),
         expected,
         retire_actions: false,
+        configuration_pin_replacements: Vec::new(),
     };
     (state, installation, selection, request)
 }
@@ -100,6 +105,7 @@ fn reselection_refuses_changed_digest_release_host_configuration_and_body() {
                 installed_release_bundle_sha256: request.installed_release_bundle_sha256.clone(),
                 expected: request.expected.clone(),
                 retire_actions: false,
+                configuration_pin_replacements: Vec::new(),
             }
         };
         assert!(candidate(&changed, &reviewed, &installation, &request.expected).is_err());
@@ -347,4 +353,246 @@ fn selected_runtime_state_ceiling_preserves_high_word_without_widening_assignmen
     value["assigned_runtime_state_bytes"] = 218989.into();
     value["assigned_encoded_bytes"] = 65536.into();
     assert!(serde_json::from_value::<UsbPlaySelection>(value).is_err());
+}
+
+const FORE_SOURCE: &str = r#"plot hello (
+    >> input: Text...|
+    output: Text...| >>
+) {
+    upper: text/upper
+    input >> upper
+    upper >> output
+}
+"#;
+
+fn configuration_pin(byte: char) -> String {
+    format!("sha256:{}", byte.to_string().repeat(64))
+}
+fn fixture_pins() -> (std::path::PathBuf, Installation, Selection, Request) {
+    let (state, installation, mut selection, mut request) = fixture_source(FORE_SOURCE);
+    let parsed = crate::plot_source::parse(FORE_SOURCE).unwrap();
+    let document = parsed.check().unwrap();
+    let plot = parsed
+        .expand_checked_for_authoring(&document, "hello")
+        .unwrap();
+    let ports: Vec<_> = plot.front.inputs().iter().chain(plot.front.outputs()).map(|port| serde_json::json!({
+        "front_port_id":port.port_id,"direction":port.direction,"track":conduit_core::ConnectionTrack::Payload,
+        "value_kind":port.value_kind,"item_capacity":1,"byte_capacity":1024,
+    })).collect();
+    selection.local_fore_adapters = serde_json::from_value(serde_json::json!([{
+        "entry":"hello","host_id":"host/target","configuration_id":configuration_pin('a'),"ports":ports
+    }])).unwrap();
+    let original = serde_json::to_vec_pretty(&selection).unwrap();
+    fs::write(state.join(SELECTION_FILE), &original).unwrap();
+    request.original_policy_sha256 = digest(&original);
+    request.configuration_pin_replacements = vec![ConfigurationPinReplacement {
+        host_id: "host/target".into(),
+        expected_configuration_id: configuration_pin('a'),
+        checked_configuration_id: configuration_pin('b'),
+    }];
+    (state, installation, selection, request)
+}
+#[test]
+fn pin_reselection_preserves_source_ports_hosts_and_every_other_ceiling() {
+    let (state, installation, selection, request) = fixture_pins();
+    let original = fs::read(state.join(SELECTION_FILE)).unwrap();
+    let (new, _) = candidate(&original, &request, &installation, &request.expected).unwrap();
+    verify_capture_and_workset(&new, FORE_SOURCE).unwrap();
+    let mut expected = serde_json::to_value(&selection).unwrap();
+    expected["release_bundle_sha256"] = serde_json::json!(installation.release_bundle_sha256);
+    expected["local_fore_adapters"][0]["configuration_id"] =
+        serde_json::json!(configuration_pin('b'));
+    assert_eq!(serde_json::to_value(new).unwrap(), expected);
+    assert_eq!(fs::read(state.join(SELECTION_FILE)).unwrap(), original);
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+#[test]
+fn same_release_reselection_requires_an_actual_explicit_pin_change() {
+    let (state, installation, mut selection, mut request) = fixture_pins();
+    selection
+        .release_bundle_sha256
+        .clone_from(&installation.release_bundle_sha256);
+    let original = serde_json::to_vec(&selection).unwrap();
+    request.original_policy_sha256 = digest(&original);
+    request
+        .previous_release_bundle_sha256
+        .clone_from(&installation.release_bundle_sha256);
+    let (new, _) = candidate(&original, &request, &installation, &request.expected).unwrap();
+    assert_eq!(
+        new.release_bundle_sha256,
+        installation.release_bundle_sha256
+    );
+    assert_eq!(
+        new.local_fore_adapters[0].configuration_id,
+        configuration_pin('b')
+    );
+    request.configuration_pin_replacements.clear();
+    assert!(candidate(&original, &request, &installation, &request.expected).is_err());
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+#[test]
+fn pin_reselection_refuses_unknown_duplicate_noop_invalid_or_stale_pins_without_mutation() {
+    let (state, installation, _, request) = fixture_pins();
+    let original = fs::read(state.join(SELECTION_FILE)).unwrap();
+    let replace = request.configuration_pin_replacements[0].clone();
+    let cases = vec![
+        vec![ConfigurationPinReplacement {
+            host_id: "host/unknown".into(),
+            ..replace.clone()
+        }],
+        vec![replace.clone(), replace.clone()],
+        vec![ConfigurationPinReplacement {
+            checked_configuration_id: configuration_pin('a'),
+            ..replace.clone()
+        }],
+        vec![ConfigurationPinReplacement {
+            expected_configuration_id: configuration_pin('c'),
+            ..replace.clone()
+        }],
+        vec![ConfigurationPinReplacement {
+            expected_configuration_id: "old".into(),
+            ..replace.clone()
+        }],
+        vec![ConfigurationPinReplacement {
+            checked_configuration_id: "sha256:not-a-digest".into(),
+            ..replace.clone()
+        }],
+        vec![ConfigurationPinReplacement {
+            checked_configuration_id: configuration_pin('B'),
+            ..replace.clone()
+        }],
+        vec![replace; conduit_body::MAX_BODY_PLOTS + 1],
+    ];
+    for replacements in cases {
+        let changed = Request {
+            configuration_pin_replacements: replacements,
+            ..request.clone()
+        };
+        assert!(candidate(&original, &changed, &installation, &request.expected).is_err());
+        assert_eq!(fs::read(state.join(SELECTION_FILE)).unwrap(), original);
+    }
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+#[test]
+fn pin_reselection_cannot_launder_invalid_one_shot_or_change_capture() {
+    let (state, installation, mut selection, mut request) = fixture_pins();
+    // Recorded malformed action must refuse even with explicit retirement.
+    selection.plays.push(serde_json::from_value(serde_json::json!({
+        "port":"relative", "member_basis":"/private/basis.json", "report_output":"/private/report.json",
+        "wait_milliseconds":1000,"maximum_program_bytes":100,"maximum_total_program_bytes":200,
+        "assigned_encoded_bytes":100,"assigned_runtime_state_bytes":100,
+        "assigned_counts":vec![1;conduit_core::ASSIGNED_PLAN_COUNT_KINDS],"maximum_fore_ports":1,"maximum_document_bytes":100,
+        "image":{"maximum_nodes":1,"maximum_cords":1,"maximum_routes":1,"maximum_route_targets":1,
+        "maximum_host_calls":1,"maximum_resources":1,"maximum_sign_expectations":1,"maximum_configuration_entries":1,
+        "maximum_ports_per_node":1,"maximum_remote_endpoints":1,"maximum_cord_value_slots":1,
+        "maximum_cord_value_bytes":100,"maximum_sign_items":1,"maximum_sign_bytes":100}
+    })).unwrap());
+    let malformed = serde_json::to_vec(&selection).unwrap();
+    request.original_policy_sha256 = digest(&malformed);
+    request.retire_actions = true;
+    assert!(candidate(&malformed, &request, &installation, &request.expected).is_err());
+    selection.plays.clear();
+    let original = serde_json::to_vec(&selection).unwrap();
+    request.original_policy_sha256 = digest(&original);
+    let (renewed, _) = candidate(&original, &request, &installation, &request.expected).unwrap();
+    assert!(
+        verify_capture_and_workset(&renewed, &format!("{FORE_SOURCE}\n# changed snapshot"))
+            .is_err()
+    );
+    let mut foreign = request.expected.clone();
+    foreign.friendly_name = "Foreign basis".into();
+    assert!(candidate(&original, &request, &installation, &foreign).is_err());
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+fn offered_host(host: &str, profile: &str) -> conduit_core::HostAdvertisement {
+    conduit_core::HostAdvertisement {
+        declared_name: None,
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: host.into(),
+        boot_id: "boot/current-test".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+        profile: profile.into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    }
+}
+#[test]
+fn renewed_pin_is_only_planning_intent_and_stale_current_offers_still_refuse() {
+    let (state, installation, _, request) = fixture_pins();
+    let original = fs::read(state.join(SELECTION_FILE)).unwrap();
+    let (new, _) = candidate(&original, &request, &installation, &request.expected).unwrap();
+    let source = crate::plot_source::parse(FORE_SOURCE).unwrap();
+    let document = source.check().unwrap();
+    let plots = [source
+        .expand_checked_for_authoring(&document, "hello")
+        .unwrap()];
+    let root = offered_host(&installation.host_id, "profile/root");
+    let old = offered_host("host/target", &configuration_pin('a'));
+    use super::super::local_fore_policy::SelectedLocalForeSet;
+    assert!(
+        SelectedLocalForeSet::prepare(&root, &plots, &[old], &new.local_fore_adapters).is_err()
+    );
+    let fresh = offered_host("host/target", &configuration_pin('b'));
+    let selected = SelectedLocalForeSet::prepare(
+        &root,
+        &plots,
+        std::slice::from_ref(&fresh),
+        &new.local_fore_adapters,
+    )
+    .unwrap();
+    selected
+        .verify(&root, std::slice::from_ref(&fresh))
+        .unwrap();
+    let mut moved = fresh.clone();
+    moved.boot_id = "boot/other-test".into();
+    assert!(selected.verify(&root, &[moved]).is_err());
+    let mut altered = new.local_fore_adapters.clone();
+    altered[0].ports[0].byte_capacity = 16385;
+    assert!(SelectedLocalForeSet::prepare(&root, &plots, &[fresh], &altered).is_err());
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+#[test]
+fn host_pin_compare_exchange_covers_every_selected_entry_before_mutation() {
+    let (state, _, mut selection, request) = fixture_pins();
+    let mut other = selection.local_fore_adapters[0].clone();
+    other.entry = "another-selected-entry".into();
+    other.configuration_id = configuration_pin('c');
+    selection.local_fore_adapters.push(other);
+    let original = serde_json::to_value(&selection).unwrap();
+    assert!(
+        replace_configuration_pins(&mut selection, &request.configuration_pin_replacements)
+            .is_err()
+    );
+    assert_eq!(serde_json::to_value(&selection).unwrap(), original);
+    selection.local_fore_adapters[1].configuration_id = configuration_pin('a');
+    let mut expected = serde_json::to_value(&selection).unwrap();
+    for intent in expected["local_fore_adapters"].as_array_mut().unwrap() {
+        intent["configuration_id"] = serde_json::json!(configuration_pin('b'));
+    }
+    replace_configuration_pins(&mut selection, &request.configuration_pin_replacements).unwrap();
+    assert_eq!(serde_json::to_value(&selection).unwrap(), expected);
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
+#[test]
+fn pin_request_cannot_redefine_fore_ports_or_capacity() {
+    let (state, _, _, request) = fixture_pins();
+    let mut document = serde_json::json!({
+        "original_policy_sha256":request.original_policy_sha256,
+        "previous_release_bundle_sha256":request.previous_release_bundle_sha256,
+        "installed_release_bundle_sha256":request.installed_release_bundle_sha256,
+        "expected":request.expected,"retire_actions":false,
+        "configuration_pin_replacements":[{"host_id":"host/target","expected_configuration_id":configuration_pin('a'),"checked_configuration_id":configuration_pin('b')}],
+    });
+    assert!(serde_json::from_value::<Request>(document.clone()).is_ok());
+    document["configuration_pin_replacements"][0]["ports"] = serde_json::json!([]);
+    assert!(serde_json::from_value::<Request>(document.clone()).is_err());
+    document["configuration_pin_replacements"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("ports");
+    document["configuration_pin_replacements"][0]["byte_capacity"] = serde_json::json!(99999);
+    assert!(serde_json::from_value::<Request>(document).is_err());
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }

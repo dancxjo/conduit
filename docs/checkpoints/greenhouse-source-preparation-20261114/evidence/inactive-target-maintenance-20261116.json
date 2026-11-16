@@ -1,0 +1,31 @@
+{
+  "captured_unix": 1794822572.0884764,
+  "removed": [
+    {
+      "target": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/canonical-source-identity-6447-20261104/target",
+      "allocated_bytes": 266768384,
+      "files": 1209,
+      "latest_artifact_unix": 1793850212.3310206
+    },
+    {
+      "target": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/review-shared-structured-types-20261106/target",
+      "allocated_bytes": 405131264,
+      "files": 1147,
+      "latest_artifact_unix": 1794004621.5114877
+    },
+    {
+      "target": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/bound-operation-backing-6447-20261104/target",
+      "allocated_bytes": 477495296,
+      "files": 1229,
+      "latest_artifact_unix": 1793844031.76438
+    },
+    {
+      "target": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/workset-proposal-info-6448-20261104/target",
+      "allocated_bytes": 232538112,
+      "files": 319,
+      "latest_artifact_unix": 1793834123.6970513
+    }
+  ],
+  "recovered_allocated_bytes": 1381933056,
+  "preserved": "All source worktrees/branches, site evidence, outputs, private history/credentials, current build caches and active runtime releases"
+}

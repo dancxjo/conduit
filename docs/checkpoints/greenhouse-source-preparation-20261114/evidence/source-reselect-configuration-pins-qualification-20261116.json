@@ -1,0 +1,37 @@
+{
+  "assurance": "Focused actual product binary test proof; stopped-service planning-policy renewal only, no live Root/device/membership/Plan/Line authority change",
+  "base_head": "acc5d4e0da90d88f1d6a7beca11a51df35a83e7e",
+  "source_files": {
+    "products/conduit/src/durable_host/source_revision_reselect.rs": "4e2ba30bf573c3fb93fd8b443e2e0051a58267270b467a18c75af4cfb936db14",
+    "products/conduit/src/durable_host/source_revision_reselect_tests.rs": "fcffa2c1616d678fd0db24575e34e49939bbb031d5cbef83e7af6b9d123fedf9"
+  },
+  "patch": "outputs/source-reselect-configuration-pins-20261116.patch",
+  "patch_sha256": "3f7514a6ce0e661f2dff2fb75f6a93563604124d087810a7ff5a2ea06a098f33",
+  "tests": {
+    "command": "cargo +1.98.1 test --locked -p conduit --bin conduit source_revision::reselection::tests -- --nocapture",
+    "exit": 0,
+    "passed": 18,
+    "failed": 0,
+    "ignored": 0,
+    "new_cases": 7,
+    "log": "outputs/source-reselect-configuration-pins-tests-20261116.log",
+    "log_sha256": "152ad224c5e3ae39e7ab79b659a8b37e0f4279f6c62137c178887f3b80235732"
+  },
+  "strict_clippy": "pending combined Root release; CPU cache handed to target worker at parent request",
+  "format": "rustfmt applied to both owned files; git diff --check passed",
+  "request_field": "optional configuration_pin_replacements: [{host_id, expected_configuration_id, checked_configuration_id}]",
+  "constraints": [
+    "Finite replacement count <=MAX_BODY_PLOTS; exact existing localFore Host only",
+    "All matching original pins must equal expected_configuration_id; compare whole set before mutation",
+    "Unknown/duplicate/no-op/stale/invalid canonical sha256 configuration IDs refuse",
+    "Original full policy and recorded one-shot intents validated before retirement or pin changes",
+    "Same-release renewal only with explicit actual pin changes; release-only behavior preserved",
+    "Other Source/snapshot/workset/Hosts/ports/Kinds/tracks/capacities/capture/caller/resource ceilings unchanged",
+    "Fresh independently authenticated actual offers must still satisfy existing selection and lifetime gates",
+    "Existing audit, stopped-owner locks, pending-journal refusal and atomic policy commit retained"
+  ],
+  "source_frozen": true,
+  "committed_by_worker": false,
+  "live_changes": false,
+  "cpu_cache_released": true
+}

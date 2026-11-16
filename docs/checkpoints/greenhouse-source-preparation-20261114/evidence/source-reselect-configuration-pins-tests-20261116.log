@@ -1,0 +1,35 @@
+   Compiling conduit-mcu-source-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/source-build)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/esp32/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/make)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/workspace)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/plots/patchbay/workbench/model)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/std/patchbay-workbench)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/plots/thermostat/runtime)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/products/conduit)
+    Finished `test` profile [unoptimized] target(s) in 1m 08s
+     Running unittests src/main.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit-3329dd4bd6998cb6)
+
+running 18 tests
+test durable_host::source_revision::reselection::tests::selected_runtime_state_ceiling_preserves_high_word_without_widening_assignment_bytes ... ok
+test durable_host::source_revision::reselection::tests::reselection_requires_consent_to_retire_and_does_not_replay_actions ... ok
+test durable_host::source_revision::reselection::tests::reselection_refuses_changed_digest_release_host_configuration_and_body ... ok
+test durable_host::source_revision::reselection::tests::reselection_audit_is_private_exact_and_never_overwritten ... ok
+test durable_host::source_revision::reselection::tests::reselection_refuses_unrecovered_owner_and_admission_journals ... ok
+test durable_host::source_revision::reselection::tests::reselection_commit_preserves_body_keys_compiler_and_failure_keeps_original ... ok
+test durable_host::source_revision::reselection::tests::reselection_refuses_changed_file_snapshot_or_checked_entries ... ok
+test durable_host::source_revision::reselection::tests::reselection_refuses_live_host_and_missing_policy_without_mutation ... ok
+test durable_host::source_revision::reselection::tests::pin_reselection_cannot_launder_invalid_one_shot_or_change_capture ... ok
+test durable_host::source_revision::reselection::tests::pin_reselection_refuses_unknown_duplicate_noop_invalid_or_stale_pins_without_mutation ... ok
+test durable_host::source_revision::reselection::tests::reselection_accepts_pre_adoption_basis_only_when_file_matches_current_workset ... ok
+test durable_host::source_revision::reselection::tests::pin_request_cannot_redefine_fore_ports_or_capacity ... ok
+test durable_host::source_revision::reselection::tests::reselection_refuses_committed_workset_mismatch ... ok
+test durable_host::source_revision::reselection::tests::host_pin_compare_exchange_covers_every_selected_entry_before_mutation ... ok
+test durable_host::source_revision::reselection::tests::reselection_preserves_bounds_file_compiler_policy_and_committed_body ... ok
+test durable_host::source_revision::reselection::tests::same_release_reselection_requires_an_actual_explicit_pin_change ... ok
+test durable_host::source_revision::reselection::tests::pin_reselection_preserves_source_ports_hosts_and_every_other_ceiling ... ok
+test durable_host::source_revision::reselection::tests::renewed_pin_is_only_planning_intent_and_stale_current_offers_still_refuse ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 520 filtered out; finished in 3.51s
+
