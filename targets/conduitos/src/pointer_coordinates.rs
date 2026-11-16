@@ -1,4 +1,5 @@
 //! Coordinate conversion shared by native pointer presentation paths.
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
 pub(crate) fn normalized_local(value: u16, extent: u32) -> Result<i64, &'static str> {
     if extent == 0 || u32::from(value) >= extent {
         return Err("compositor-pointer-local-coordinate-invalid");
