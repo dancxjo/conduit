@@ -1132,3 +1132,6 @@ fn local_selected_file_revision_commits_exact_workset_and_rejects_replay() {
     );
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "image/pool_selection.rs"]
+mod pool_selection;

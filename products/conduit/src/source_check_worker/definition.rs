@@ -79,11 +79,27 @@ pub fn derive_image_definition(
         return Err("IMAGE requires one exact Source-check capability".into());
     }
     let pool = |class: &str| -> Result<ResourceOffer, String> {
+        let minimum = if class == SOURCE_CHECK_RESOURCE {
+            selected.retained_bytes
+        } else {
+            selected.preparation_bytes
+        };
+        // Other initialized owners retain their own smaller pools. Only pools
+        // that can satisfy this compiler's complete original envelope compete
+        // for selection; two eligible pools remain an explicit ambiguity.
         let mut pools = image
             .manifest
             .resource_budgets
             .iter()
-            .filter(|p| p.class == class);
+            .filter(|p| p.class == class && p.bytes >= minimum)
+            .filter(|p| {
+                if class == SOURCE_CHECK_RESOURCE {
+                    p.slots == 1
+                } else {
+                    u64::from(p.slots) >= minimum
+                        && u64::from(p.slots) <= image.manifest.bounds.heap_arena_bytes
+                }
+            });
         let pool = pools.next().ok_or("IMAGE lacks compiler resource pool")?;
         if pools.next().is_some()
             || pool.id.is_empty()
