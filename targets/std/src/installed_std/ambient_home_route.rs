@@ -21,6 +21,7 @@ pub(in crate::installed_std) struct AmbientHomeRoute {
     aspect: conduit_ambient_display::AmbientDisplayAspect,
     node: NodeId,
     label: String,
+    body_subject: String,
     maximum_updates: Option<u32>,
     route: PendingFaceContributionRoute,
     faces: conduit_ambient_display::PreparedAmbientFaces,
@@ -96,6 +97,7 @@ impl AmbientHomeRoute {
         {
             return Err("Home requires its two exact planned operations".into());
         }
+        let body_subject = format!("body/{}", context.play.body_id.as_str());
         let node = context.node;
         let faces = conduit_ambient_display::PreparedAmbientFaces::prepare()
             .map_err(|why| format!("Home model preparation: {why:?}"))?;
@@ -105,6 +107,7 @@ impl AmbientHomeRoute {
             aspect,
             node,
             label: label.to_owned(),
+            body_subject,
             maximum_updates,
             route,
             faces,
@@ -130,7 +133,8 @@ impl AmbientHomeRoute {
         self.route
             .additional_backing_bytes()?
             .checked_add(self.faces.retained_backing_bytes()?)?
-            .checked_add(self.label.capacity())
+            .checked_add(self.label.capacity())?
+            .checked_add(self.body_subject.capacity())
     }
 
     pub(in crate::installed_std) fn additional_backing_bytes(&self) -> Result<usize, String> {
@@ -196,6 +200,26 @@ impl AmbientHomeRoute {
                     .first_mut()
                     .ok_or("Home projection has no root")?
                     .name = self.label.clone();
+                if self.aspect != conduit_ambient_display::AmbientDisplayAspect::Home {
+                    let root = fragment.subjects[0].identity.clone();
+                    fragment
+                        .composition
+                        .push(conduit_face::FaceCompositionRelation {
+                            identity: format!("{root}/body-composition"),
+                            source: root,
+                            target: self.body_subject.clone(),
+                            kind: if self.aspect
+                                == conduit_ambient_display::AmbientDisplayAspect::Wallpaper
+                            {
+                                conduit_face::FaceCompositionKind::Subordinate
+                            } else {
+                                conduit_face::FaceCompositionKind::Associate
+                            },
+                        });
+                    fragment
+                        .validate_bounds()
+                        .map_err(|why| format!("ambient Body composition bounds: {why:?}"))?;
+                }
                 let backing = conduit_ambient_display::ambient_fragment_backing_bytes(&fragment)
                     .ok_or("Home fragment has unsupported backing")?;
                 if backing > conduit_ambient_display::ambient_home_fragment_backing_bound() {

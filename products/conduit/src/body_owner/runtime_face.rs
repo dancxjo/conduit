@@ -2,8 +2,7 @@
 //! transport delivery authorize a contribution, and terminal Plays are historical.
 use super::Owner;
 use conduit_face::{
-    BodyFace, Face, FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceFragment,
-    FaceNames,
+    BodyFace, Face, FaceContribution, FaceContributionRole, FaceFocus, FaceFragment, FaceNames,
 };
 use conduit_std_host::body_execution::{
     BodyFaceContributionObserver, CommittedFaceContribution, FaceContributionRefusal,
@@ -209,7 +208,7 @@ impl Owner {
                 .realization()
                 .map(|realization| &realization.wake),
             revision,
-            FaceContext::Overview,
+            self.owner_navigation.context(),
             FaceFocus::Body,
             vec![FaceContribution::from_face(
                 FaceContributionRole::Inspection,

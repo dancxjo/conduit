@@ -33,11 +33,20 @@ impl PreparedSelectedScene {
     }
     pub(super) fn restore_reading_position(
         &mut self,
-        position: Option<conduitos::native_face_scene::NativeReadingPosition>,
+        positions: Option<super::super::reading::SelectedReadingPositions>,
     ) {
-        if let (Self::Interactive(scene), Some(position)) = (self, position) {
-            // A changed exact document/layout refuses without mutating the fresh Scene.
-            scene.restore_reading_position(position);
+        if let (Self::Interactive(scene), Some(positions)) = (self, positions) {
+            // A passive cookie is only a reading wish. Fresh layout/actions are
+            // resolved before the new Show is prepared and acknowledged.
+            if positions
+                .passive
+                .is_some_and(|position| scene.restore_passive_reading_position(position))
+            {
+                return;
+            }
+            if let Some(position) = positions.exact {
+                scene.restore_reading_position(position);
+            }
         }
     }
     pub(super) fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {

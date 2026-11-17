@@ -1,11 +1,17 @@
 //! Fixed local reading cursor custody, independent of any finite Show or Plan.
 use super::*;
-use conduitos::native_face_scene::NativeReadingPosition;
+use conduitos::native_face_scene::{NativePassiveReadingPosition, NativeReadingPosition};
+#[derive(Clone, Copy)]
+pub(super) struct SelectedReadingPositions {
+    pub(super) exact: Option<NativeReadingPosition>,
+    pub(super) passive: Option<NativePassiveReadingPosition>,
+}
 
 /// Opaque local document position; contains no Show, action or executable route.
 /// Its fixed inline owner and lease backing remain on the original IMAGE counter.
 pub struct SelectedNativeReadingState {
     pub(super) position: Option<NativeReadingPosition>,
+    pub(super) passive: Option<NativePassiveReadingPosition>,
     heap: ImageMemoryLease,
 }
 impl SelectedNativeReadingState {
@@ -25,6 +31,7 @@ impl StdHost {
             .reserve_managed_base_memory(SelectedNativeReadingState::owned_backing_bytes())?;
         Ok(SelectedNativeReadingState {
             position: None,
+            passive: None,
             heap,
         })
     }
@@ -41,6 +48,7 @@ impl StdHost {
         {
             if let Some(scene) = &renderer.scene {
                 state.position = scene.reading_position();
+                state.passive = scene.passive_reading_position();
             }
         }
         Ok(())
@@ -66,7 +74,10 @@ impl StdHost {
             front_subject,
             output,
             Some(()),
-            state.position,
+            Some(SelectedReadingPositions {
+                exact: state.position,
+                passive: state.passive,
+            }),
         )
     }
 }

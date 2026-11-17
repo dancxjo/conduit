@@ -15,7 +15,7 @@ impl BoundReadOnlyMask {
         front_subject: &str,
         output: &mut conduit_linux_display::Scanout<'_>,
         interaction_bytes: Option<()>,
-        reading: Option<conduitos::native_face_scene::NativeReadingPosition>,
+        reading: Option<crate::selected_native_mask::reading::SelectedReadingPositions>,
     ) -> Result<SelectedNativeMaskFrame, String> {
         if self.failed || self.session.is_some() || self.frame.is_some() || self.storage.is_none() {
             return Err(

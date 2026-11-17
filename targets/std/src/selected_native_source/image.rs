@@ -17,6 +17,8 @@ impl Factory<'_> {
     }
 }
 pub(crate) struct InitialNativeSource<'a> {
+    // Refusal/unwind drops the second factory and its captures while the
+    // first owner's original shared metadata charge is still retained.
     pub(super) companion: Option<Box<InitialNativeSource<'a>>>,
     pub definition: NativeSourceDefinition,
     pub budget: ImmediateSourcePreparationBudget,

@@ -41,7 +41,16 @@ impl NativeFaceScene {
         {
             push(
                 &mut scene,
-                GraphicsCommand::image(self.screen, self.screen, image),
+                GraphicsCommand::image(
+                    LayoutRect {
+                        x: self.screen.x,
+                        y: chrome.top as i16,
+                        width: self.screen.width,
+                        height: chrome.bottom - chrome.top,
+                    },
+                    self.screen,
+                    image,
+                ),
             )?;
         }
         let heading = chrome.encounter_heading(

@@ -474,7 +474,7 @@ impl StdHost {
         front_subject: &str,
         output: &mut conduit_linux_display::Scanout<'_>,
         input_bytes: Option<()>,
-        reading: Option<conduitos::native_face_scene::NativeReadingPosition>,
+        reading: Option<crate::selected_native_mask::reading::SelectedReadingPositions>,
     ) -> Result<SelectedNativeMaskFrame, String> {
         let scanout = self
             .ready_selected_scanout()

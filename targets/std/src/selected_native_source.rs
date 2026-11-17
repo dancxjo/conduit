@@ -50,6 +50,8 @@ pub unsafe trait ImmediateNativeSource: Send {
 }
 
 pub(crate) struct InitializedNativeSource {
+    // Rust drops fields in declaration order. Join/drop the second affine
+    // owner before either original metadata/provider lease can be released.
     second: Option<Box<InitializedNativeSource>>,
     definition: NativeSourceDefinition,
     provider: NativeProvider,
@@ -175,14 +177,16 @@ impl PreparedNativeSource<'_> {
         {
             return Err("native Source request differs from selected call".into());
         }
+        // Refuse the nonwrapping sequence boundary before acquiring custody.
+        let next = self
+            .next_request
+            .checked_add(1)
+            .ok_or("native Source request sequence exhausted")?;
         let lease = self
             .operation
             .authorize()
             .map_err(|e| format!("native Source authorization: {e:?}"))?;
-        self.next_request = self
-            .next_request
-            .checked_add(1)
-            .ok_or("native Source request sequence exhausted")?;
+        self.next_request = next;
         match self.provider {
             NativeProvider::Immediate(_) => unreachable!("immediate read dispatched above"),
             NativeProvider::Worker(worker) => match worker.submit(input) {

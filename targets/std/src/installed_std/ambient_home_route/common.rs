@@ -165,6 +165,10 @@ fn planned_source(
     } else {
         BTreeMap::new()
     };
+    let grants = host
+        .native_source_authority_grants()
+        .cloned()
+        .collect::<Vec<_>>();
     let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
         &expanded,
         &hosts,
@@ -175,7 +179,7 @@ fn planned_source(
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 8192,
-            authority_grants: &[],
+            authority_grants: &grants,
             protected_resource_grants: &[],
             line_offers: &[],
         },

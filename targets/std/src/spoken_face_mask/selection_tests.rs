@@ -1,5 +1,101 @@
 use super::*;
 
+#[test]
+fn subordinate_wording_stays_queryable_without_occupying_the_opening() {
+    let (mut base, _) = face_with_action();
+    base.subjects.insert(
+        0,
+        FaceSubject {
+            identity: "home".into(),
+            role: FaceRole::Document,
+            name: "Home".into(),
+        },
+    );
+    base.disclosures.push(FaceDisclosure {
+        subject: "home".into(),
+        level: FaceDisclosureLevel::Primary,
+    });
+    base.subjects.push(FaceSubject {
+        identity: "photo-caption".into(),
+        role: FaceRole::Region,
+        name: "Photograph description".into(),
+    });
+    base.disclosures.push(FaceDisclosure {
+        subject: "photo-caption".into(),
+        level: FaceDisclosureLevel::Primary,
+    });
+    base.relationships.push(FaceRelationship {
+        source: "arrival".into(),
+        target: "photo-caption".into(),
+        kind: FaceRelationshipKind::Contains,
+    });
+    base.text.push(FaceText {
+        subject: "photo-caption".into(),
+        text: "A mountain at dusk.".into(),
+    });
+    let face = Face::new_with_semantics(
+        base.revision,
+        base.basis,
+        base.subjects,
+        base.relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        base.disclosures,
+    )
+    .unwrap()
+    .with_composition(vec![conduit_face::FaceCompositionRelation {
+        identity: "wallpaper-supports-home".into(),
+        source: "arrival".into(),
+        target: "home".into(),
+        kind: conduit_face::FaceCompositionKind::Subordinate,
+    }])
+    .unwrap();
+    let outline = select_spoken_outline(&face).unwrap();
+    assert!(outline.clauses.iter().any(|text| text.contains("Home")));
+    assert!(!outline.clauses.iter().any(|text| text.contains("mountain")));
+    assert!(outline.clauses.iter().any(|text| text.contains("read all")));
+    let plan = FaceReadingCursor::new(&face).unwrap();
+    assert!(
+        plan.plan()
+            .clauses
+            .iter()
+            .any(|clause| clause.text.contains("mountain"))
+    );
+    assert!(
+        face.subjects
+            .iter()
+            .any(|subject| subject.identity == "photo-caption")
+    );
+
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::Summary, 1)
+        .unwrap();
+    let opening = reader.next_segment().unwrap().unwrap();
+    assert!(opening.segment.text.contains("Home"));
+    assert!(!opening.segment.text.contains("mountain"));
+    reader
+        .acknowledge(SpokenDelivery::Completed(receipt(&opening)))
+        .unwrap();
+    assert!(reader.next_segment().unwrap().is_none());
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 2)
+        .unwrap();
+    let mut described = false;
+    while let Some(packet) = reader.next_segment().unwrap() {
+        described |= packet.segment.text.contains("A mountain at dusk");
+        reader
+            .acknowledge(SpokenDelivery::Completed(receipt(&packet)))
+            .unwrap();
+    }
+    assert!(
+        described,
+        "Explicit reading must retain subordinate content"
+    );
+}
+
 fn long_list() -> Face {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
@@ -94,13 +190,15 @@ fn refresh_refuses_an_old_page_until_a_new_selection_is_requested() {
     reader
         .command(&next, &next_show, ReaderCommand::ReadItemPage, 3)
         .unwrap();
-    assert!(reader
-        .take_text_readout()
-        .unwrap()
-        .unwrap()
-        .clauses
-        .join(" ")
-        .contains("Page item 0,"));
+    assert!(
+        reader
+            .take_text_readout()
+            .unwrap()
+            .unwrap()
+            .clauses
+            .join(" ")
+            .contains("Page item 0,")
+    );
 }
 
 #[test]

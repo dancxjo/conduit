@@ -330,3 +330,38 @@ fn invalid_or_oversized_construction_config_refuses_before_provider() {
 
 #[path = "../image_pair/tests.rs"]
 mod pair_tests;
+
+#[test]
+fn operation_envelope_uses_original_owner_configuration_and_never_reissues_possession() {
+    use super::super::selection::operation_limit;
+    let mut d = fixture().definition;
+    assert_eq!(operation_limit(&d, true).unwrap(), 10);
+    assert_eq!(operation_limit(&d, false).unwrap(), 1);
+    let count = d
+        .configuration
+        .iter()
+        .position(|v| v.key == "maximum-updates")
+        .unwrap();
+    for n in [0, 4097, u64::MAX] {
+        d.configuration[count].value = ConfigurationValue::U64(n);
+        assert!(operation_limit(&d, true).is_err());
+    }
+    d.configuration[count].value = ConfigurationValue::U64(4096);
+    assert_eq!(operation_limit(&d, true).unwrap(), 4096);
+    d.configuration.push(d.configuration[count].clone());
+    assert!(operation_limit(&d, true).is_err());
+    d.configuration.pop();
+    d.configuration.remove(count);
+    assert!(operation_limit(&d, true).is_err());
+    d.kind = conduit_semantic_catalog::ambient_resident_observe_kind().unwrap();
+    d.base.capabilities = vec![ambient_resident_source_offer().unwrap()];
+    assert_eq!(operation_limit(&d, true).unwrap(), u32::MAX);
+    d.configuration.push(ConfigurationEntry {
+        key: "maximum-updates".into(),
+        value: ConfigurationValue::U64(1440),
+    });
+    assert!(operation_limit(&d, true).is_err());
+    d.configuration.pop();
+    d.base.capabilities[0].implementation.execution_profile_id = "fixture/wrong-profile".into();
+    assert!(operation_limit(&d, true).is_err());
+}

@@ -227,3 +227,7 @@ mod retention_tests;
 
 mod aspect_tests;
 mod resident_tests;
+
+#[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+#[path = "native_worker_tests.rs"]
+mod native_worker_tests;

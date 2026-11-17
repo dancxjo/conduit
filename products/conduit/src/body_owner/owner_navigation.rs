@@ -63,7 +63,6 @@ impl Owner {
         // custody. They must expose their own BodyFace routing rather than be
         // erased by an empty generic projection. No Play is stopped to navigate.
         if self.has_open_notebook()
-            || self.runtime_face.iter().any(Option::is_some)
             || self.creche_live.is_some()
             || self.thermostat_live.is_some()
             || self.todo_live.is_some()

@@ -128,6 +128,8 @@ impl InitializedNativeSource {
                 "native Source Plan does not possess the independently installed grant".into(),
             );
         }
+        let maximum_operations =
+            operation_limit(d, matches!(self.provider, NativeProvider::Worker(_)))?;
         let envelope: CapabilityEnvelopeId = "std/native-source/exact@1".into();
         let scope = BaseCapabilityScope {
             host_id: host.host_id.clone(),
@@ -157,7 +159,7 @@ impl InitializedNativeSource {
             maximum_result_bytes: d.output_bytes,
             maximum_work_units: 1,
             maximum_in_flight: 1,
-            maximum_operations: 1,
+            maximum_operations,
         };
         let authority = BaseCapabilityAuthority {
             grant: g.clone(),
@@ -171,7 +173,7 @@ impl InitializedNativeSource {
             maximum_result_bytes: d.output_bytes,
             maximum_work_units: 1,
             maximum_in_flight: 1,
-            maximum_operations: 1,
+            maximum_operations,
         };
         let claim = BaseOperationClaim {
             host_id: scope.host_id.clone(),
@@ -252,5 +254,59 @@ impl InitializedNativeSource {
             cancelled: false,
             cancellation_started: None,
         }))
+    }
+}
+
+/// The operation envelope comes from the actual independently initialized
+/// owner, never the received Plan. The later configured-operation binding
+/// checks that the selected Plan preserves that exact original configuration.
+pub(super) fn operation_limit(d: &NativeSourceDefinition, worker: bool) -> Result<u32, String> {
+    if !worker {
+        return Ok(1);
+    }
+    use conduit_std_offers::{
+        AMBIENT_RESIDENT_SOURCE_IMPLEMENTATION, AMBIENT_SOURCE_IMPLEMENTATION,
+    };
+    let (finite, implementation) = match d.kind.kind_id.as_str() {
+        conduit_ambient_display::AMBIENT_OBSERVE_KIND => (true, AMBIENT_SOURCE_IMPLEMENTATION),
+        conduit_ambient_display::AMBIENT_RESIDENT_OBSERVE_KIND => {
+            (false, AMBIENT_RESIDENT_SOURCE_IMPLEMENTATION)
+        }
+        _ => return Ok(1),
+    };
+    let offer = d
+        .base
+        .capabilities
+        .first()
+        .ok_or("ambient owner has no actual offer")?;
+    if offer.implementation.execution_profile_id.as_str() != NATIVE_SOURCE_WORKER_PROFILE
+        || offer.implementation.implementation_id.as_str() != implementation
+    {
+        return Err(
+            "ambient operation envelope requires the exact original native worker realization"
+                .into(),
+        );
+    }
+    let mut values = d
+        .configuration
+        .iter()
+        .filter(|v| v.key == "maximum-updates");
+    if finite {
+        let value = values
+            .next()
+            .ok_or("finite ambient owner lacks its original update envelope")?;
+        if values.next().is_some() {
+            return Err("finite ambient owner repeats its update envelope".into());
+        }
+        match value.value {
+            ConfigurationValue::U64(n @ 1..=4096) => Ok(n as u32),
+            _ => Err("finite ambient owner's update envelope is invalid".into()),
+        }
+    } else if values.next().is_some() {
+        Err("resident ambient owner must not inherit a finite update envelope".into())
+    } else {
+        // Exactly the existing nonwrapping u32 Host Call request sequence.
+        // Exhaustion is terminal; possession is never reset or reissued.
+        Ok(u32::MAX)
     }
 }

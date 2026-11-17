@@ -1,6 +1,9 @@
 //! Heap-free Mask reading state across replacement of the exact same document.
 use super::*;
 use sha2::{Digest, Sha256};
+#[path = "reading_position/passive.rs"]
+mod passive;
+pub use passive::NativePassiveReadingPosition;
 
 /// This is not a Show, action, credential or portable navigation authority.
 /// Its private document key includes the exact Face and both measured row sets.

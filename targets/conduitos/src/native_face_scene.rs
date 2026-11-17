@@ -58,7 +58,7 @@ mod paging;
 pub use paging::NativePageControls;
 #[path = "native_face_scene/reading_position.rs"]
 mod reading_position;
-pub use reading_position::NativeReadingPosition;
+pub use reading_position::{NativePassiveReadingPosition, NativeReadingPosition};
 #[path = "native_face_scene/ports.rs"]
 mod ports;
 #[path = "native_face_scene/semantic_icons.rs"]

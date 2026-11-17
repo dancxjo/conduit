@@ -102,6 +102,33 @@ impl Drop for Compiler {
         self.dropped.fetch_add(1, Ordering::AcqRel);
     }
 }
+// This probe borrows the already existing original observer. It creates no
+// counter, reservation or duplicate charge; Drop observes before the actual
+// second provider's fields are destroyed by the joined worker.
+struct WorkerDropObservation {
+    inner: Provider,
+    counter: Arc<std::sync::OnceLock<Arc<AtomicUsize>>>,
+    bytes_at_drop: Arc<AtomicUsize>,
+}
+// SAFETY: delegates the actual prepared owner's bounded protocol unchanged.
+unsafe impl NativeSourceWorkerProvider for WorkerDropObservation {
+    fn read(
+        &mut self,
+        input: &[u8],
+        output: &mut [u8],
+        context: &NativeReadContext<'_>,
+    ) -> Result<usize, WorkerFailure> {
+        self.inner.read(input, output, context)
+    }
+}
+impl Drop for WorkerDropObservation {
+    fn drop(&mut self) {
+        if let Some(counter) = self.counter.get() {
+            self.bytes_at_drop
+                .store(counter.load(Ordering::Acquire), Ordering::Release);
+        }
+    }
+}
 #[test]
 fn original_compiler_guard_and_worker_survive_together_on_the_same_counter() {
     let mut f = fixture();
@@ -184,6 +211,10 @@ fn original_compiler_guard_and_worker_survive_together_on_the_same_counter() {
     let compiler_probe = compiler_dropped.clone();
     let worker_probe = worker_dropped.clone();
     let config_for_grant = config.clone();
+    let drop_counter = Arc::new(std::sync::OnceLock::new());
+    let worker_counter = drop_counter.clone();
+    let worker_bytes_at_drop = Arc::new(AtomicUsize::new(0));
+    let worker_drop_observation = worker_bytes_at_drop.clone();
     let host = unsafe {
         StdHost::from_selected_timer_and_immediate_and_worker_source_factories_image(
             config,
@@ -259,14 +290,18 @@ fn original_compiler_guard_and_worker_survive_together_on_the_same_counter() {
                     },
                     budget(),
                     move || {
-                        Ok(Box::new(Provider {
-                            inner: PreparedAmbientObservation::prepare(
-                                "America/Los_Angeles",
-                                "127.0.0.1:43210".parse().unwrap(),
-                                offline_deck(),
-                                10,
-                            )?,
-                            dropped: worker_probe,
+                        Ok(Box::new(WorkerDropObservation {
+                            counter: worker_counter,
+                            bytes_at_drop: worker_drop_observation,
+                            inner: Provider {
+                                inner: PreparedAmbientObservation::prepare(
+                                    "America/Los_Angeles",
+                                    "127.0.0.1:43210".parse().unwrap(),
+                                    offline_deck(),
+                                    10,
+                                )?,
+                                dropped: worker_probe,
+                            },
                         })
                             as Box<dyn NativeSourceWorkerProvider>)
                     },
@@ -293,6 +328,7 @@ fn original_compiler_guard_and_worker_survive_together_on_the_same_counter() {
     assert_eq!(worker_dropped.load(Ordering::Acquire), 0);
     let observed = host.kernel_resources.image_memory_observer();
     let retained = observed.load(Ordering::Acquire);
+    drop_counter.set(observed.clone()).unwrap();
     assert!(
         retained
             >= 4 * 1024 * 1024
@@ -302,7 +338,13 @@ fn original_compiler_guard_and_worker_survive_together_on_the_same_counter() {
                 + AMBIENT_SOURCE_WORKER_BACKING_BYTES as usize
     );
     drop(host);
+    // Both original providers, the actual caller guard and shared metadata
+    // remain charged when the second provider begins destruction.
+    assert_eq!(worker_bytes_at_drop.load(Ordering::Acquire), retained);
     assert_eq!(compiler_dropped.load(Ordering::Acquire), 1);
     assert_eq!(worker_dropped.load(Ordering::Acquire), 1);
-    assert_eq!(observed.load(Ordering::Acquire), 0);
+    assert_eq!(
+        observed.load(Ordering::Acquire),
+        crate::kernel_preparation::StagedImageMemory::counter_backing_bytes()
+    );
 }
