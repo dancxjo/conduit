@@ -1,0 +1,140 @@
+{
+  "schema": "conduit.proof/mcu-source-lifetime@1",
+  "source": "27eecd401c82882120bf092ec6a1d2dca95ffab9",
+  "scope": "Existing original three-fragment factory, admission, authenticated Start, continuing Source and same Face/Mask; CPU execution plus actual RP2040 link, not physical admission",
+  "cpu": {
+    "positive": {
+      "samples": 6,
+      "frames": 154,
+      "wire_acks": 1386,
+      "page_changes_without_observation": 148,
+      "face_identity_and_original_freshness_unchanged_scenario": "fixed CPU no external aging/rename",
+      "peak_requested_heap_bytes": 105647,
+      "steady_requested_heap_bytes": 105240,
+      "original_heap_limit": 118784,
+      "transport_timeouts": 1,
+      "peer_incoming_frames": 0,
+      "local_execution_continues": true
+    },
+    "negative": {
+      "source": "same actual complete factory",
+      "observed_pool": "pool/esp32/record-service",
+      "unchanged_authored_demand": 1,
+      "observed_unreserved": 0,
+      "refusal": "Overcommitted",
+      "ledger_unchanged": true,
+      "Start": false,
+      "provider_effects": 0,
+      "not_a_heap_containment_test": true
+    },
+    "trace": {
+      "version": 1,
+      "bytes": 496,
+      "coarse_arena_bytes": 118784,
+      "committed_bitmap": 2359292,
+      "resident_codec_bytes": 488,
+      "target_stack_measurement": false,
+      "lexical_future_drop_returns_coarse_counter": true,
+      "original_admissions_remain": true,
+      "firmware_complete_retirement": false
+    },
+    "owning_tests": {
+      "runtime_library": {
+        "passed": 132,
+        "ignored_existing": 1,
+        "failed": 0
+      },
+      "phase_codec": {
+        "passed": 4
+      }
+    }
+  },
+  "arm": {
+    "status": "ordinary Make ARM compile/link/UF2 PASS; NOT physically installed",
+    "configuration_id": "sha256:370055809c7e53536effe0257fdeb7f2c73a524ca34e734022c4acb8d6086cb1",
+    "image_id": "image:sha256:25e7beda26a8c16c746ed1e945c158513db80c64d8472bdec39d5869793f3afd",
+    "elf_sha256": "169ed4a4e058e2c7d233134fe42d8204c11fe35ec1fa5b808a45f9e39277c247",
+    "uf2_sha256": "ac8195d7edc6b5cec2482303dde0dfec51918281b7c21650fb22041cc2de0919",
+    "physical_layout": {
+      "static_bytes": 210108,
+      "unchanged_static_limit": 229376,
+      "stack_region_bytes": 60228,
+      "unchanged_minimum_stack": 16384,
+      "original_heap_arena_bytes_already_in_static": 110592,
+      "uf2_payload_bytes": 1470208,
+      "firmware_flash_extent": 1470208,
+      "unchanged_firmware_ceiling": 1495040,
+      "all_pages_firmware_only": true,
+      "symbols": {
+        "__sheap": 537081020,
+        "_stack_start": 537141248,
+        "__sbss": 536871632,
+        "__ebss": 537080508,
+        "__sdata": 536870912,
+        "__edata": 536871628,
+        "_stack_end": 537081020,
+        "__euninit": 537081020,
+        "__suninit": 537080508
+      },
+      "largest_static_objects": [
+        {
+          "name": "_RNvNvCsionmlz3CBjb_19conduit_rp2040_host14___embassy_main4POOL",
+          "bytes": 91320
+        },
+        {
+          "name": "_RNvNtCsionmlz3CBjb_19conduit_rp2040_host4heap5BYTES",
+          "bytes": 110592
+        }
+      ]
+    },
+    "compiler_limits": {
+      "memory_bytes": 2147483648,
+      "swap_bytes": 536870912,
+      "jobs": 1,
+      "journal_peak": "2GiB memory /218.4MiB swap",
+      "result": "success"
+    }
+  },
+  "source_logs": {
+    "factory-final/run.log": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/factory-final/run.log",
+      "sha256": "3c963c05d56b02f16305cb354a31ae9e45c56434556aa6efd39c18371d895223"
+    },
+    "factory-final/compile.log": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/factory-final/compile.log",
+      "sha256": "2e4052b2e9379b34dac9d1024b0808fddb4c17edcf63e6e10dc1ff480458f261"
+    },
+    "factory-final/phase-trace.bin": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/factory-final/phase-trace.bin",
+      "sha256": "b38ea6f093b0cddfcc4466521200e8c84f1c0356dba05587a8e00e682447da1b"
+    },
+    "shortage/run.log": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/shortage/run.log",
+      "sha256": "98b99242a85ffc7cb95e115ff9d32577e197eae0cb77f1cd42e78f5d977b94b5"
+    },
+    "shortage/compile.log": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/shortage/compile.log",
+      "sha256": "451e152ba261ae23922c8d4897593a3387f42b236683be13ccc9310af5b42731"
+    },
+    "transport-fixed.log": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/transport-fixed.log",
+      "sha256": "99cd3e50481ac3178fc9ac306b5647baa2b6c089b4fa79d2b3b8ab21b904489b"
+    },
+    "graph-run.log": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/graph-run.log",
+      "sha256": "77e7ee9616eaabdced7ee5f0d8e31d57b4680c08d1b2c86efb4561f0a1404b10"
+    },
+    "graph-refresh.log": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/a422-cpu-whole-factory-20261116/target/mcu-lifetime-proof-20261117/graph-refresh.log",
+      "sha256": "8a646636094b6a3320e013d94ab13b067cbf24515e6fa3a191b3903f1369d00b"
+    }
+  },
+  "admission_ready": false,
+  "remaining": {
+    "same_body_admission": "Existing installed25 sender requires funded complete Return and matching selected checked Source. Ambient-only Source9 cannot issue these MCU fragments. New firmware IMAGE cannot reuse old Seed/continuation pins.",
+    "memory": "Actual physical heap/stack/IRQ timing still unproved; static linker aperture is not a runtime stack bound.",
+    "retirement": "CPU lexical drop returns coarse arena; original admissions remain. No product authenticated aggregate whole-Play stop/retirement entrance yet.",
+    "history": "Exact remote durable history and restart continuity are separate acceptance."
+  },
+  "device_effects": false
+}
