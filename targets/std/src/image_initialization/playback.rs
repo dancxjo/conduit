@@ -16,9 +16,27 @@ pub(super) fn prepare_playback<'a>(
     ),
     String,
 > {
-    use conduit_host_make::ConfigurationValue;
     let memory =
         crate::kernel_preparation::StagedImageMemory::verified(config, image, checked, catalog)?;
+    let owned = prepare_playback_on(config, image, catalog, checked, selected, &memory)?;
+    Ok((owned, memory))
+}
+
+pub(crate) fn prepare_playback_on(
+    config: &StdHostConfig,
+    image: &HostImage,
+    catalog: &MakeCatalog,
+    checked: &conduit_host_make::CheckedHostConfiguration,
+    selected: &crate::hosted_audio::HostedPlaybackSelection,
+    memory: &crate::kernel_preparation::StagedImageMemory<'_>,
+) -> Result<
+    (
+        crate::hosted_audio::HostedPlaybackSelection,
+        crate::kernel_preparation::ImageMemoryLease,
+    ),
+    String,
+> {
+    use conduit_host_make::ConfigurationValue;
     let mut declared = checked
         .configuration()
         .bases
@@ -116,5 +134,5 @@ pub(super) fn prepare_playback<'a>(
     lease.retain_result(
         owned.backing_bytes() + crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
     );
-    Ok(((owned, lease), memory))
+    Ok((owned, lease))
 }

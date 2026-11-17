@@ -7,3 +7,6 @@ use conduit_kernel::HostCallDisposition;
 mod admission;
 mod execution;
 mod fixture;
+
+#[cfg(feature = "linux-display")]
+mod native;
