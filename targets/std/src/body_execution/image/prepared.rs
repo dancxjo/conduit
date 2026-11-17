@@ -1,5 +1,6 @@
 //! One cooperative IMAGE counter owns synchronous Root preparation and result.
 use super::*;
+mod member_return_frame;
 
 /// Affine retained preparation, not Source, adoption, provider or Play authority.
 /// Only borrowed access is exposed; owned data drops before its original charge.

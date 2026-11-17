@@ -4,6 +4,7 @@
 use crate::{kernel_preparation::ImageMemoryLease, StdHost};
 use sha2::{Digest, Sha256};
 use std::io::{ErrorKind, Read};
+mod root_owner;
 
 pub const MEMBER_RETURN_FRAME_BYTES: usize = 2 * 1024 * 1024;
 
@@ -43,21 +44,11 @@ impl StdHost {
             .kernel_resources
             .fund_tick_preparation(backing_bytes()?)
             .map_err(|_| MemberReturnFrameRefusal::Unavailable)?;
-        // The original reservation exists before the first buffer allocation.
-        let mut bytes = Vec::new();
-        bytes
-            .try_reserve_exact(MEMBER_RETURN_FRAME_BYTES + 1)
-            .map_err(|_| MemberReturnFrameRefusal::Allocation)?;
-        bytes.resize(MEMBER_RETURN_FRAME_BYTES + 1, 0);
-        Ok(MemberReturnFrame {
-            bytes,
-            scope,
-            memory,
-        })
+        MemberReturnFrame::allocate(scope, memory)
     }
 }
 
-fn backing_bytes() -> Result<usize, MemberReturnFrameRefusal> {
+pub(super) fn backing_bytes() -> Result<usize, MemberReturnFrameRefusal> {
     core::mem::size_of::<MemberReturnFrame>()
         .checked_add(MEMBER_RETURN_FRAME_BYTES + 1)
         .and_then(|n| n.checked_add(ImageMemoryLease::owned_backing_bytes()))
@@ -91,6 +82,22 @@ fn scope(host: &StdHost) -> Result<[u8; 32], MemberReturnFrameRefusal> {
 }
 
 impl MemberReturnFrame {
+    fn allocate(
+        scope: [u8; 32],
+        memory: ImageMemoryLease,
+    ) -> Result<Self, MemberReturnFrameRefusal> {
+        // Both constructors establish original custody before this allocation.
+        let mut bytes = Vec::new();
+        bytes
+            .try_reserve_exact(MEMBER_RETURN_FRAME_BYTES + 1)
+            .map_err(|_| MemberReturnFrameRefusal::Allocation)?;
+        bytes.resize(MEMBER_RETURN_FRAME_BYTES + 1, 0);
+        Ok(Self {
+            bytes,
+            scope,
+            memory,
+        })
+    }
     pub fn capture<'a>(
         &'a mut self,
         host: &StdHost,
@@ -106,6 +113,13 @@ impl MemberReturnFrame {
         if scope(host)? != self.scope {
             return Err(MemberReturnFrameRefusal::WrongOriginalOwner);
         }
+        self.capture_bounded(reader)
+    }
+
+    fn capture_bounded<'a>(
+        &'a mut self,
+        reader: &mut impl Read,
+    ) -> Result<CapturedMemberReturnFrame<'a>, MemberReturnFrameRefusal> {
         self.bytes.fill(0);
         let mut captured = CapturedMemberReturnFrame {
             frame: self,
@@ -144,5 +158,7 @@ impl Drop for MemberReturnFrame {
     }
 }
 
+#[cfg(test)]
+mod root_owner_tests;
 #[cfg(test)]
 mod tests;
