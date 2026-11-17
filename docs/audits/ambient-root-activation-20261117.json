@@ -1,0 +1,29 @@
+{
+  "observed_at": "2026-11-17T05:49:31.744683+00:00",
+  "source": "1c9d5e4a6f73b0796c753253144f3077183de1a4",
+  "original_counter_prepare": {
+    "returncode": 0,
+    "caller_workspace_bytes": 134217728,
+    "configuration_id": "sha256:d717c1b097158865f9ede24fc09e96800c749c93e4544a20806b406837c4fb2c",
+    "release_bundle": "sha256:32bf7697f283c6fa0915006406305badb5b0e9a7c9759ac4717e4b2822bde1e0",
+    "scope": "prepare-only; no owner, keys or live state copied by qualifier"
+  },
+  "independent_readonly_live_observation": {
+    "host": "victus",
+    "service": "active",
+    "pid": 477763,
+    "host_id": "host/installed/a5df8bd0de854216bdf68abcbbaf40960c0ef52db7eb7d06386882670434742d",
+    "boot_id": "boot/local-source-policy/302c32bb2d622de67143b0ab213b30a2ca90362ab46b91bace29c2b3552f34d9",
+    "offer_generation": 1,
+    "executable_sha256": "3227e0ade2e45613dc3248ce9ec34dcd9dc0b9fc395f023f3db63df10da955e9",
+    "reviewed_face_identity": "cce3f5e108249e82b3a050ab56ec311939759790a811dc386ae5113cd7f2a394",
+    "reviewed_wake": "Available"
+  },
+  "not_proven": [
+    "actual Play/Started on this Boot",
+    "current Pi Show acknowledgment or physical capture",
+    "sound",
+    "complete environmental MCU integration",
+    "independent keys/history continuity audit"
+  ]
+}
