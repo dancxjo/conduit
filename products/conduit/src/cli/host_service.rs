@@ -12,6 +12,9 @@ pub(crate) enum HostServiceCommand {
     Configure {
         #[arg(required_unless_present = "clear", conflicts_with = "clear")]
         configuration: Option<PathBuf>,
+        /// Existing canonical Make IMAGE matching this exact checked configuration.
+        #[arg(long, requires = "configuration", conflicts_with = "clear")]
+        image: Option<PathBuf>,
         /// Explicitly remove retained checked initialization.
         #[arg(long)]
         clear: bool,

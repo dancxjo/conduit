@@ -1599,6 +1599,7 @@ dependencies = [
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
+ "conduit-linux-display",
  "conduit-net",
  "conduit-observatory",
  "conduit-patchbay-workbench",

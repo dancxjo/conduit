@@ -18,6 +18,10 @@ use std::time::Duration;
 use crate::cli::RendezvousCarrier;
 
 mod secure;
+mod startup_member;
+#[cfg(test)]
+pub(crate) use startup_member::wire_fixture_exchange;
+
 pub(crate) use secure::SecureNetworkOptions;
 mod relay;
 #[cfg(test)]
@@ -46,6 +50,9 @@ trait RendezvousLine {
     }
     fn supports_interruptible_exchange(&self) -> bool {
         false
+    }
+    fn startup_authentication_binding(&self) -> Option<[u8; 32]> {
+        None
     }
 }
 
@@ -140,6 +147,10 @@ impl<R: BufRead, W: Write> RendezvousLine for SerialStreamLine<R, W> {
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 enum Ingress {
+    StartupMember {
+        protocol: u16,
+        command: Box<crate::durable_host_control::startup_member::Command>,
+    },
     Hello {
         protocol: u16,
         session_secret: Vec<u8>,
@@ -185,6 +196,10 @@ enum Ingress {
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 enum Egress<'a> {
+    StartupMember {
+        protocol: u16,
+        reply: &'a crate::durable_host_control::startup_member::Reply,
+    },
     Host {
         protocol: u16,
         friendly_label: &'a str,
@@ -382,7 +397,14 @@ fn run_session_with_join(
         },
     )?;
 
-    let (spore_id, image_id, claim, mut secret) = match receive(line)? {
+    let next = receive(line)?;
+    if let Ingress::StartupMember { protocol, command } = next {
+        if protocol != PROTOCOL {
+            return Err("startup protocol mismatch".into());
+        }
+        return startup_member::serve(line, state_dir, *command);
+    }
+    let (spore_id, image_id, claim, mut secret) = match next {
         Ingress::Invite {
             protocol,
             session_secret: mut offered,

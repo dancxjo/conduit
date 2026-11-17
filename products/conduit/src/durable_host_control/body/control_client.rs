@@ -135,6 +135,8 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
+        | Request::StartupMember { token, .. }
+        | Request::BodyMemberCarrierReceiver { token, .. }
         | Request::BodyLull { token, .. }
         | Request::InspectWorkerText { token, .. }
         | Request::CompleteWorkerText { token, .. } => token.fill(0),
@@ -161,6 +163,32 @@ mod tests {
         thread,
         time::{SystemTime, UNIX_EPOCH},
     };
+
+    #[test]
+    fn startup_control_and_explicit_identity_setup_scrub_original_tokens() {
+        let mut requests = [
+            Request::StartupMember {
+                protocol: 1,
+                token: vec![9; 32],
+                command: Box::new(crate::durable_host_control::startup_member::Command::Poll {
+                    session_id: [1; 32],
+                    preparation_id: "prep/test".into(),
+                }),
+            },
+            Request::BodyMemberCarrierReceiver {
+                protocol: 1,
+                token: vec![9; 32],
+            },
+        ];
+        for request in &mut requests {
+            clear_token(request);
+            match request {
+                Request::StartupMember { token, .. }
+                | Request::BodyMemberCarrierReceiver { token, .. } => assert_eq!(token, &[0; 32]),
+                _ => unreachable!(),
+            }
+        }
+    }
 
     #[test]
     fn accepted_request_with_no_reply_has_an_unknown_outcome() {

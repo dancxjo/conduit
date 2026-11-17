@@ -12,6 +12,12 @@ use std::{fs, path::Path};
 
 #[path = "durable_host_membership/continuity_key.rs"]
 mod continuity_key;
+pub(super) use continuity_key::{sign_member_carrier_challenge, MemberCarrierSigningContext};
+#[path = "durable_host_membership/owner_pin.rs"]
+mod owner_pin;
+pub(super) use owner_pin::{
+    export_member_contact, install_member_contact, selected_owner as selected_owner_pin,
+};
 #[path = "durable_host_membership/returned.rs"]
 mod returned;
 pub(super) use returned::{load_joined_credential, retain_returned_membership};
@@ -246,3 +252,9 @@ pub(crate) fn leave_member_from_file(
         .map_err(|_| "invalid selected member credential")?;
     crate::durable_host_control::leave_member(state, credential)
 }
+
+#[cfg(test)]
+pub(crate) use continuity_key::tests::{
+    complete as complete_startup_joined_fixture, fixture as startup_joined_fixture,
+    Fixture as StartupJoinedFixture,
+};

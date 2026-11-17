@@ -198,6 +198,18 @@ impl DurableHostRuntime {
         maximum_millis: u64,
         todo_new_list: Option<String>,
     ) -> Result<(), String> {
+        self.start_owned_body_selected(maximum_millis, todo_new_list, None)
+    }
+
+    pub(super) fn start_owned_body_selected(
+        &mut self,
+        maximum_millis: u64,
+        todo_new_list: Option<String>,
+        startup_member: Option<crate::durable_host::owner::StartupMemberSelection>,
+    ) -> Result<(), String> {
+        if startup_member.is_some() && todo_new_list.is_some() {
+            return Err("member startup cannot mutate the retained workset".into());
+        }
         let next_todo = match &self.host {
             HostSource::Body { owner, root, .. }
                 if todo_new_list.is_none() && owner.has_verified_todo() =>
@@ -231,6 +243,14 @@ impl DurableHostRuntime {
         };
         if running.is_some() {
             return Err("Body Play is already running".into());
+        }
+        if let Some(selection) = startup_member {
+            *running = Some(OwnedRunWorker::General(owner.start_member_service_run(
+                root,
+                maximum_millis,
+                selection,
+            )?));
+            return Ok(());
         }
         let previous_generation = owner.host.advertisement().offer_generation;
         *running = Some(match (todo_new_list, selected, next_todo) {
@@ -302,7 +322,12 @@ pub(crate) fn start_owned_body(
     state_dir: &Path,
     maximum_millis: u64,
     todo_new_list: Option<String>,
+    startup_member: Option<&Path>,
 ) -> Result<(), String> {
+    let startup_member = startup_member
+        .map(crate::durable_host::owner::StartupMemberSelection::read)
+        .transpose()?
+        .map(Box::new);
     match call(
         state_dir,
         Request::BodyStart {
@@ -310,6 +335,7 @@ pub(crate) fn start_owned_body(
             token: token(state_dir)?,
             maximum_millis,
             todo_new_list,
+            startup_member,
         },
     )? {
         Response::BodyRunRequested {
@@ -369,6 +395,7 @@ pub(crate) fn start_owned_body(
     _state_dir: &Path,
     _maximum_millis: u64,
     _todo_new_list: Option<String>,
+    _startup_member: Option<&Path>,
 ) -> Result<(), String> {
     Err("service-owned Body Play requires local Unix control".into())
 }

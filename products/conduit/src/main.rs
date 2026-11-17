@@ -311,9 +311,14 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::SpokenMask { state_dir, command }),
         }) => durable_host_control::direct_spoken::run(&state_dir, command),
+        Some(cli::Command::Body {command:Some(cli::BodyCommand::MemberContactExport {state_dir,member_credential,route_bind,route_url,route_tls_cert,route_tls_key,authorize_route})}) => durable_host::export_member_contact(&state_dir,&member_credential,route_bind,&route_url,&route_tls_cert,&route_tls_key,authorize_route),
+        Some(cli::Command::Body {command:Some(cli::BodyCommand::MemberContact {state_dir,descriptor,authorize_route})}) => durable_host::install_member_contact(&state_dir,&descriptor,authorize_route),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list }),
-        }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list),
+            command: Some(cli::BodyCommand::MemberCarrierReceiver { state_dir }),
+        }) => durable_host_control::startup_member::prepare_owner_identity(&state_dir),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list, startup_member }),
+        }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list, startup_member.as_deref()),
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
