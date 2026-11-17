@@ -105,6 +105,38 @@ impl Wake {
         self.start_play_identity(&play.plan_id, &play.active_play_id, sign_id)
     }
 
+    /// Same lifecycle transition with borrowed canonical Plan validation.
+    pub fn body_plan_ready_borrowed(
+        &self,
+        plan: &BodyPlan,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        self.validate()?;
+        plan.validate_for_borrowed(self)
+            .map_err(|error| match error {
+                BodyPlanError::StaleWorkload
+                | BodyPlanError::WrongBody
+                | BodyPlanError::WrongWake => BodyLifecycleError::StalePlan,
+                _ => BodyLifecycleError::InvalidPlan,
+            })?;
+        self.accept_plan_id(&plan.plan_id, sign_id)
+    }
+    /// Same Started transition; caller retains the original sealed Plan.
+    pub fn body_play_started_borrowed(
+        &self,
+        plan: &BodyPlan,
+        play: &BodyPlayIdentity,
+        sign_id: SignId,
+    ) -> Result<Self, BodyLifecycleError> {
+        self.validate()?;
+        plan.validate_for_borrowed(self)
+            .map_err(|_| BodyLifecycleError::StalePlan)?;
+        if !play.validate_for(plan) {
+            return Err(BodyLifecycleError::StalePlay);
+        }
+        self.start_play_identity(&play.plan_id, &play.active_play_id, sign_id)
+    }
+
     /// Retires the active body-wide Plan after the owning body's exact plot
     /// workset changes. The wake survives and must receive one replacement
     /// body-wide Plan before another play can start.
