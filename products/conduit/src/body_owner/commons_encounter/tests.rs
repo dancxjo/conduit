@@ -309,7 +309,8 @@ fn commons_refuses_replaced_owner_host_stale_show_and_unavailable_actions() {
     );
     // Simulate actual Host offer withdrawal on the owner, not a Mask boolean.
     owner.host =
-        super::super::OwnerHost::new(StdHost::from_advertisement(missing.clone()).unwrap());
+        super::super::OwnerHost::new(StdHost::from_advertisement(missing.clone()).unwrap())
+            .unwrap();
     let unavailable = commons.project(Some(&owner), &missing).unwrap();
     assert!(!change(&unavailable).availability.is_available());
     assert!(commons
@@ -320,7 +321,8 @@ fn commons_refuses_replaced_owner_host_stale_show_and_unavailable_actions() {
         owner.session.evidence().body_id,
         other.session.evidence().body_id
     );
-    owner.host = super::super::OwnerHost::new(StdHost::from_advertisement(host.clone()).unwrap());
+    owner.host =
+        super::super::OwnerHost::new(StdHost::from_advertisement(host.clone()).unwrap()).unwrap();
     assert_eq!(owner.truth(), before);
     commons
         .navigate(Some(&owner), &host, &face, "commons/creche", false)

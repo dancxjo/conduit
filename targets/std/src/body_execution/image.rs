@@ -3,6 +3,11 @@
 use super::*;
 use crate::kernel_preparation::ImageMemoryLease;
 
+mod prepared;
+pub use prepared::{
+    ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation, ImageRootPreparationOwner,
+};
+
 pub struct ImageBodyRunReport {
     report: BodyRunReport,
     _memory: ImageMemoryLease,

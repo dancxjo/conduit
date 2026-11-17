@@ -52,7 +52,10 @@ pub use delegated::{
 };
 mod image;
 mod startup;
-pub use image::ImageBodyRunReport;
+pub use image::{
+    ImageBodyRunReport, ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation,
+    ImageRootPreparationOwner,
+};
 use startup::StartupAcknowledgmentValue;
 pub use startup::{BodyStartedAcknowledgment, CommittedBodyStartup, StartupChimeCallReceipt};
 mod owner_identity;

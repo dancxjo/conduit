@@ -84,7 +84,7 @@ impl Owner {
         Self {
             prepared_admission_route: None,
             member_carrier_identity: None,
-            host: OwnerHost::new(host),
+            host: OwnerHost::new(host)?,
             session: prepared.session,
             resident: prepared.resident,
             resident_name: None,
