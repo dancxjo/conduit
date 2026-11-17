@@ -116,6 +116,7 @@ fn indexed_base_preserves_original_membership_under_permutation_and_mutation() {
             let mut changed = face.clone();
             let mut extra = action.clone();
             extra.identity.push_str("/extra");
+            extra.target = base.subjects[0].identity.clone();
             changed.actions.push(extra);
             assert!(!contains(&changed, &base));
             assert!(!fast(&changed, &base));
