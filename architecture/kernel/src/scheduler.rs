@@ -3019,7 +3019,10 @@ where
                     .filter(|candidate| **candidate == value)
                     .count()
                     + usize::from(consumed_host_value == Some(value));
+                // Reusing the completed call's input transfers its pinned
+                // reference. Only a fresh borrow needs another reference.
                 if consumed_references == 0
+                    && consumed_host_input != Some(value)
                     && retained_values
                         .iter()
                         .flatten()
@@ -3979,3 +3982,5 @@ fn projected_recovery_map<const NODES: usize, const CORDS: usize, const PORTS: u
     }
     Ok(recovery_for_cord)
 }
+#[cfg(test)]
+mod borrowed_call_transfer_tests;

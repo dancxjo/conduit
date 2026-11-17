@@ -51,6 +51,10 @@ pub(crate) mod source_revision;
 #[path = "durable_host/text_file_policy.rs"]
 mod text_file_policy;
 
+#[cfg(target_os = "linux")]
+#[path = "durable_host/ambient_policy.rs"]
+mod ambient_policy;
+
 #[path = "durable_host/linux_direct_display.rs"]
 mod linux_direct_display;
 
@@ -88,9 +92,9 @@ pub(crate) use usb_member_return::return_usb;
 mod membership_receipt_custody;
 pub(crate) use membership::leave_member_from_file;
 pub(crate) use membership::recovery::original_invitation::{
-    run as restore_member_key_from_invitation, Args as MemberInvitationRecoveryArgs,
+    Args as MemberInvitationRecoveryArgs, run as restore_member_key_from_invitation,
 };
-pub(crate) use membership::recovery::{run as restore_member_key, Args as MemberKeyRecoveryArgs};
+pub(crate) use membership::recovery::{Args as MemberKeyRecoveryArgs, run as restore_member_key};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 pub(crate) use routed_join::PreparedAdmissionRoute;
 pub(crate) use routed_join::{
@@ -153,6 +157,17 @@ struct RuntimeStatus {
 
 pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
     match command {
+        HostServiceCommand::SelectAmbient { policy, state_dir } => {
+            #[cfg(target_os = "linux")]
+            {
+                ambient_policy::configure(&state_dir, &policy)
+            }
+            #[cfg(not(target_os = "linux"))]
+            {
+                let _ = (policy, state_dir);
+                Err("ambient native assets require Linux".into())
+            }
+        }
         HostServiceCommand::AdoptSource {
             selection,
             prepare_only,
@@ -566,7 +581,9 @@ fn run(state_dir: &Path) -> Result<(), String> {
                                     // A consumer/media-page key is not a keyboard-page
                                     // HID event. Refuse it without losing this live Show.
                                     if !reported_unsupported_key {
-                                        eprintln!("native input refused: unsupported HID key; further unsupported keys remain refused");
+                                        eprintln!(
+                                            "native input refused: unsupported HID key; further unsupported keys remain refused"
+                                        );
                                         reported_unsupported_key = true;
                                     }
                                     conduit_linux_display::NativeInput::Pending
@@ -574,12 +591,12 @@ fn run(state_dir: &Path) -> Result<(), String> {
                                 Err(error) => {
                                     return Err(format!(
                                         "native input/output lifetime lost:{error:?}"
-                                    ))
+                                    ));
                                 }
                             };
                             match input {
                                 conduit_linux_display::NativeInput::Quit => {
-                                    return Err("native output lifetime ended".into())
+                                    return Err("native output lifetime ended".into());
                                 }
                                 conduit_linux_display::NativeInput::Idle
                                 | conduit_linux_display::NativeInput::Pending => (),
@@ -1246,12 +1263,12 @@ fn make_executable(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) use routed_join::{MemberEncounter, return_installed_member, return_on_actual_host};
 pub(crate) use routed_join::{install_member_contact, serve_body_member_contact};
-pub(crate) use routed_join::{return_installed_member, return_on_actual_host, MemberEncounter};
 
 #[cfg(test)]
 mod tests {
-    use super::invitation::{PortableInvitation, INVITATION_SCHEMA};
+    use super::invitation::{INVITATION_SCHEMA, PortableInvitation};
     use super::*;
     use conduit_body::{AdmissionManager, SpawnInvitationSecret};
     use std::path::PathBuf;
@@ -1350,9 +1367,11 @@ mod tests {
         assert_eq!(first.host_id, second.host_id);
         assert_eq!(first.selected_speech, second.selected_speech);
         assert!(second.selected_speech.is_some());
-        assert!(start_runtime(&state)
-            .unwrap_err()
-            .contains("configured speaker"));
+        assert!(
+            start_runtime(&state)
+                .unwrap_err()
+                .contains("configured speaker")
+        );
         assert!(!state.join("runtime.json").exists());
 
         let third = install_configured(
@@ -1413,9 +1432,11 @@ mod tests {
         });
         fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
 
-        assert!(install(&manifest_path, &state)
-            .unwrap_err()
-            .contains("collide in the installed product layout"));
+        assert!(
+            install(&manifest_path, &state)
+                .unwrap_err()
+                .contains("collide in the installed product layout")
+        );
         assert!(!state.join("installation.json").exists());
         assert!(!state.join("releases").exists());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
@@ -1455,7 +1476,9 @@ mod tests {
         assert!(plist.contains("<key>Umask</key><integer>63</integer>"));
         assert!(plist.contains("state &amp; &lt;private&gt;"));
         assert!(!plist.contains("state & <private>"));
-        assert!(plist.contains("<string>host</string><string>service</string><string>run</string>"));
+        assert!(
+            plist.contains("<string>host</string><string>service</string><string>run</string>")
+        );
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
@@ -1467,9 +1490,11 @@ mod tests {
             b"tampered",
         )
         .unwrap();
-        assert!(install(&manifest, &state)
-            .unwrap_err()
-            .contains("failed exact verification"));
+        assert!(
+            install(&manifest, &state)
+                .unwrap_err()
+                .contains("failed exact verification")
+        );
         assert!(!state.join("installation.json").exists());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
@@ -1492,9 +1517,11 @@ mod tests {
         let installation = install(&manifest, &state).unwrap();
         start_runtime(&state).unwrap();
         assert!(state.join("runtime.json").is_file());
-        assert!(observe_current_runtime(&state, &installation)
-            .unwrap()
-            .is_none());
+        assert!(
+            observe_current_runtime(&state, &installation)
+                .unwrap()
+                .is_none()
+        );
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
@@ -1508,13 +1535,17 @@ mod tests {
             br#"{"schema":"conduit.body/biography-evidence@2"}"#,
         )
         .unwrap();
-        assert!(own_body(&evidence, &state)
-            .unwrap_err()
-            .contains("Body biography evidence"));
-        assert!(read_installation(&state.join("installation.json"))
-            .unwrap()
-            .body_state
-            .is_none());
+        assert!(
+            own_body(&evidence, &state)
+                .unwrap_err()
+                .contains("Body biography evidence")
+        );
+        assert!(
+            read_installation(&state.join("installation.json"))
+                .unwrap()
+                .body_state
+                .is_none()
+        );
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
@@ -1604,10 +1635,12 @@ mod tests {
             serde_json::to_vec(&first).unwrap(),
             serde_json::to_vec(&second).unwrap()
         );
-        assert!(!serde_json::to_vec(&second)
-            .unwrap()
-            .windows(32)
-            .any(|window| window == [0_u8; 32]));
+        assert!(
+            !serde_json::to_vec(&second)
+                .unwrap()
+                .windows(32)
+                .any(|window| window == [0_u8; 32])
+        );
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
@@ -1684,9 +1717,11 @@ mod tests {
         assert_eq!(pending["request"]["membership_admitted"], false);
         assert_eq!(pending["request"]["plan_created"], false);
         assert_eq!(pending["request"]["play_created"], false);
-        assert!(pending["request"]["host_advertisement"]["capabilities"]
-            .as_array()
-            .is_some_and(|offers| !offers.is_empty()));
+        assert!(
+            pending["request"]["host_advertisement"]["capabilities"]
+                .as_array()
+                .is_some_and(|offers| !offers.is_empty())
+        );
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 

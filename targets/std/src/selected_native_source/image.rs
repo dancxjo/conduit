@@ -4,13 +4,25 @@ use super::*;
 use crate::{StdHost, StdHostConfig};
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 
-type Factory<'a> = Box<dyn FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a>;
+pub(super) enum Factory<'a> {
+    Immediate(Box<dyn FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a>),
+    Worker(super::image_worker::WorkerFactory<'a>),
+}
+impl Factory<'_> {
+    fn prepare(self, input: u32, output: u32) -> Result<NativeProvider, String> {
+        match self {
+            Self::Immediate(prepare) => prepare().map(NativeProvider::Immediate),
+            Self::Worker(factory) => factory.prepare(input, output).map(NativeProvider::Worker),
+        }
+    }
+}
 pub(crate) struct InitialNativeSource<'a> {
+    pub(super) companion: Option<Box<InitialNativeSource<'a>>>,
     pub definition: NativeSourceDefinition,
     pub budget: ImmediateSourcePreparationBudget,
     // Drop the factory's owned captures before releasing their metadata charge.
-    prepare: Factory<'a>,
-    metadata_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
+    pub(super) prepare: Factory<'a>,
+    pub(super) metadata_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
 }
 impl InitialNativeSource<'_> {
     pub(crate) fn validate_image(&self, image: &HostImage) -> Result<(), String> {
@@ -69,7 +81,30 @@ impl InitialNativeSource<'_> {
             .iter()
             .any(|r| r.pool_id.as_str() == id)
     }
-    pub(crate) fn initialize(self, host: &mut StdHost) -> Result<(), String> {
+    pub(crate) fn initialize(mut self, host: &mut StdHost) -> Result<(), String> {
+        // Refuse either independent grant before invoking either native factory.
+        for owner in self.owners() {
+            validate_definition(
+                &owner.definition,
+                &host.advertisement,
+                Some(owner.budget.preparation_bytes),
+            )?;
+        }
+        let companion = self.companion.take();
+        self.initialize_one(host)?;
+        if let Some(companion) = companion {
+            companion.initialize_one(host)?;
+        }
+        Ok(())
+    }
+    fn initialize_one(self, host: &mut StdHost) -> Result<(), String> {
+        if host
+            .native_source
+            .as_ref()
+            .is_some_and(|s| s.second.is_some())
+        {
+            return Err("initial native Source cannot replace an existing owner".into());
+        }
         // The provisional Host and Ready entry are private until this succeeds.
         // Existing native correspondence validation still checks exact grant,
         // Host/Boot, Type, Host Call, resource and provider identities.
@@ -96,7 +131,10 @@ impl InitialNativeSource<'_> {
             &self.definition.base.resources[1].pool_id,
             self.budget.preparation_bytes,
         )?;
-        let provider = match (self.prepare)() {
+        let provider = match self
+            .prepare
+            .prepare(self.definition.input_bytes, self.definition.output_bytes)
+        {
             Ok(provider) => provider,
             Err(error) => {
                 host.kernel_resources
@@ -116,13 +154,19 @@ impl InitialNativeSource<'_> {
             return Err(error);
         }
         heap.retain_result(retained);
-        host.native_source = Some(InitializedNativeSource {
+        let source = InitializedNativeSource {
+            second: None,
             definition: self.definition,
-            provider: NativeProvider::Immediate(provider),
+            provider,
             backing: Some(backing),
             _image_memory: Some(heap),
             _metadata_memory: self.metadata_memory,
-        });
+        };
+        if let Some(first) = host.native_source.as_mut() {
+            first.second = Some(Box::new(source));
+        } else {
+            host.native_source = Some(source);
+        }
         Ok(())
     }
 }
@@ -177,10 +221,11 @@ impl StdHost {
     ) -> Result<Self, String> {
         conduit_host_make::verify_configuration_image(checked, image, catalog)?;
         let source = InitialNativeSource {
+            companion: None,
             definition,
             budget,
             metadata_memory: None,
-            prepare: Box::new(prepare),
+            prepare: Factory::Immediate(Box::new(prepare)),
         };
         source.validate_image(image)?;
         let cpu =
@@ -268,10 +313,11 @@ impl StdHost {
         let ((final_config, (definition, budget, prepare)), metadata_memory) =
             prepared.into_parts();
         let source = InitialNativeSource {
+            companion: None,
             definition,
             budget,
             metadata_memory: Some(metadata_memory),
-            prepare: Box::new(prepare),
+            prepare: Factory::Immediate(Box::new(prepare)),
         };
         source.validate_image(image)?;
         let cpu = crate::image_initialization::prepare_cpu_from_configuration(

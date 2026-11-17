@@ -83,6 +83,7 @@ impl NativeFaceScene {
             } else {
                 None
             },
+            image: image::prepare(&face)?,
             face,
             screen,
             text_scale_percent: 100,
@@ -405,6 +406,7 @@ impl NativeFaceScene {
             primary,
             details,
             graph_reading: graph_reading::GraphReading::prepare(face)?,
+            image: image::prepare(face)?,
             face: face.clone(),
             screen,
             text_scale_percent: scale,

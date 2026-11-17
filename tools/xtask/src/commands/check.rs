@@ -2,6 +2,8 @@
 mod acoustic_control;
 #[path = "../suites/acoustic_flow.rs"]
 mod acoustic_flow;
+#[path = "../suites/ambient_home_back.rs"]
+mod ambient_home_back;
 #[path = "../suites/angle_reference.rs"]
 mod angle_reference;
 #[path = "../suites/asr_common_language.rs"]
@@ -134,6 +136,10 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
+        CheckSuite::AmbientHomeBack => run_suite(ambient_home_back::STEPS, &root, opts),
+        CheckSuite::AmbientHomeWeatherLive => {
+            run_suite(ambient_home_back::LIVE_WEATHER_STEPS, &root, opts)
+        }
         CheckSuite::AcousticControl => run_suite(acoustic_control::STEPS, &root, opts),
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::CanonicalExport => run_suite(canonical_export::STEPS, &root, opts),

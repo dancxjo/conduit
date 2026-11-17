@@ -1,0 +1,35 @@
+# One observation is explicitly and atomically fanned out to two ordinary
+# presentation Plots. Neither presentation acquires resources or starts a Body.
+plot ambient-observed-aspects {
+    cadence: time/tick(count = 1440, period-ms = 60000)
+    observe: ambient/home-observation("America/Los_Angeles", 1440)
+    wallpaper: ambient-wallpaper-display
+    clock_weather: ambient-clock-weather-display
+    cadence.tick >> observe.tick
+    observe.observation >> wallpaper.observations
+    observe.observation >> clock_weather.observations
+}
+
+plot ambient-wallpaper-display (
+    >> observations: AmbientHomeObservation...| <= 8192B
+) {
+    image: face/ambient-wallpaper("Wallpaper", 1440)
+    observations >> image.observation
+}
+
+plot ambient-clock-weather-display (
+    >> observations: AmbientHomeObservation...| <= 8192B
+) {
+    clock: face/ambient-clock-weather("Clock and weather", 1440)
+    observations >> clock.observation
+}
+
+# The same two reusable Plots also accept caller-supplied checked observations.
+plot ambient-aspects (
+    >> observations: AmbientHomeObservation...| <= 8192B
+) {
+    wallpaper: ambient-wallpaper-display
+    clock_weather: ambient-clock-weather-display
+    observations >> wallpaper.observations
+    observations >> clock_weather.observations
+}

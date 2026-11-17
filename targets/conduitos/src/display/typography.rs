@@ -26,6 +26,7 @@ pub use layout::{PositionedGlyph, TextLayout};
 mod scene;
 pub use scene::{
     render_scene, render_scene_configured, render_scene_scaled, render_scene_selected,
+    render_scene_selected_with_images,
 };
 
 /// Text purpose selects a fixed made profile, never an ambient font.

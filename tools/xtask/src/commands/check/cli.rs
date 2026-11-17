@@ -62,6 +62,10 @@ pub enum CheckSuite {
     QuantityMapping,
     /// Check exact acoustic control conversions and installed Source projections.
     AcousticControl,
+    /// Check native Home admission and providers deterministically.
+    AmbientHomeBack,
+    /// Explicitly acquire and decode live Seattle conditions (network diagnostic only).
+    AmbientHomeWeatherLive,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
     /// Prove selected Todo checkpoint persistence and same-Body Host continuity.

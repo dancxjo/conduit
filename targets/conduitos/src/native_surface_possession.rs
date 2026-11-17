@@ -180,6 +180,12 @@ impl ActiveNativeSurfacePossession {
         })
     }
 
+    /// Borrow the exact claim only while this holder retains its authorized lease.
+    /// Descriptive IDs cannot construct this borrow or replace the accepted cord.
+    pub fn authorized_claim(&self) -> Option<&BaseOperationClaim> {
+        self.lease.as_ref().map(|_| &self.claim)
+    }
+
     pub fn authorize(&mut self) -> Result<(), ResourceCordRefusal> {
         self.lease = Some(self.cord.authorize(&mut self.table, &self.claim)?);
         Ok(())

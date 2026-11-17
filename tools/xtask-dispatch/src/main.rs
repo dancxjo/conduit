@@ -141,6 +141,7 @@ mod standalone_locks;
 #[path = "../../xtask/src/workspace.rs"]
 mod workspace;
 
+mod ambient_photos;
 mod ci_dispatch;
 #[path = "../../xtask/src/commands/dht11_probe.rs"]
 mod dht11_probe;
@@ -154,6 +155,14 @@ mod tool_setup;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.starts_with(&["make".into(), "host".into(), "ambient-photos".into()]) {
+        if let Err(error) = ambient_photos::run(&arguments[3..]) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+
     if arguments.starts_with(&[
         "make".into(),
         "host".into(),
@@ -315,7 +324,7 @@ fn run_host_release_catalog(options: &[String]) -> Result<(), Box<dyn std::error
                 );
             }
             other => {
-                return Err(format!("unsupported host release-catalog argument: {other}").into())
+                return Err(format!("unsupported host release-catalog argument: {other}").into());
             }
         }
     }

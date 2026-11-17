@@ -1,4 +1,4 @@
-// Proof reader for the shared Rust graphics-scene@2 contract. Not an owner,
+// Proof reader for the shared Rust graphics-scene@3 contract. Not an owner,
 // planner, or production rendering authority. Binary geometry stays binary.
 const roles = [undefined, "body", "title", "heading", "label", "code", "status", "warning", "action", "muted", "value"];
 const icons = new Set([
@@ -28,16 +28,16 @@ function points(payload, maximum, bounds, orthogonal) {
   return result;
 }
 export function decodeGraphics(encoded) {
-  if (!(encoded instanceof Uint8Array) || encoded.length < 2 || encoded.length > 10226 || ![2, 3].includes(encoded[0]) || encoded[1] > 48) refuse();
+  if (!(encoded instanceof Uint8Array) || encoded.length < 2 || encoded.length > 10226 || ![2, 3, 4].includes(encoded[0]) || encoded[1] > 48) refuse();
   const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
   const decoder = new TextDecoder("utf-8", {fatal:true});
   const commands = [];
-  let offset = 2, hasMetrics = false;
+  let offset = 2, hasMetrics = false, hasImage = false;
   for (let index = 0; index < encoded[1]; index++) {
     if (encoded.length - offset < 21) refuse();
     const kind = encoded[offset], paint = encoded[offset + 1], style = encoded[offset + 2];
     const length = encoded[offset + 19], role = encoded[offset + 20], end = offset + 21 + length;
-    if (kind < 1 || kind > 5 || paint < 1 || paint > 13 || style < 1 || style > 4 || length > 192 || !roles[role] || (kind !== 2 && role !== 1) || end > encoded.length) refuse();
+    if (kind < 1 || kind > 6 || paint < 1 || paint > 13 || style < 1 || style > 4 || length > 192 || !roles[role] || (kind !== 2 && role !== 1) || end > encoded.length) refuse();
     const bounds = rectangle(view, offset + 3), clip = rectangle(view, offset + 11);
     const raw = encoded.slice(offset + 21, end);
     const command = {kind,paint,style,textRole:roles[role],bounds,clip,payload:""};
@@ -46,6 +46,9 @@ export function decodeGraphics(encoded) {
         if (length !== 2 || raw[0] > 32 || raw[1] < 1 || raw[1] > 8 || style < 3) refuse();
         command.rectMetrics = {radius:raw[0],stroke:raw[1]}; hasMetrics = true;
       }
+    } else if (kind === 6) {
+      if (length !== 64 || paint !== 2 || style !== 1 || !raw.slice(0,32).some(Boolean) || !raw.slice(32).some(Boolean)) refuse();
+      command.image = { identity: raw.slice(0,32), version: raw.slice(32) }; hasImage = true;
     } else if (kind === 4 || kind === 5) {
       if (style !== 2) refuse();
       command.points = points(raw, kind === 4 ? 8 : 16, bounds, kind === 4);
@@ -56,6 +59,6 @@ export function decodeGraphics(encoded) {
     }
     commands.push(command); offset = end;
   }
-  if (offset !== encoded.length || (encoded[0] === 3) !== hasMetrics) refuse();
+  if (offset !== encoded.length || encoded[0] !== (hasImage ? 4 : hasMetrics ? 3 : 2)) refuse();
   return commands;
 }

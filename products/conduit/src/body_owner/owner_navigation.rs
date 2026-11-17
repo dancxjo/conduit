@@ -1,6 +1,6 @@
 //! Ordinary BodyFace context selection for the current single owner view.
 //! This is private presentation state, never Body biography, Source or Play.
-use super::{debug, Owner};
+use super::{Owner, debug};
 use conduit_face::{FaceContext, FaceInteraction, FaceOperatorActionKind, MaskShow};
 
 #[derive(Default)]
@@ -9,6 +9,17 @@ pub(super) struct OwnerNavigation {
     revision: u64,
 }
 impl OwnerNavigation {
+    /// The same finite presentation sequence orders context and retained
+    /// contribution changes. Snapshot reads never advance this sequence.
+    pub(super) fn advance_revision(&mut self, basis: u64) -> Result<(), String> {
+        let next = self
+            .revision
+            .checked_add(1)
+            .filter(|next| basis.checked_add(*next).is_some())
+            .ok_or("owner presentation Face revision exhausted")?;
+        self.revision = next;
+        Ok(())
+    }
     pub(super) fn context(&self) -> FaceContext {
         if self.library {
             FaceContext::Library
@@ -52,7 +63,7 @@ impl Owner {
         // custody. They must expose their own BodyFace routing rather than be
         // erased by an empty generic projection. No Play is stopped to navigate.
         if self.has_open_notebook()
-            || self.runtime_face.is_some()
+            || self.runtime_face.iter().any(Option::is_some)
             || self.creche_live.is_some()
             || self.thermostat_live.is_some()
             || self.todo_live.is_some()

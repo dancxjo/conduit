@@ -6,6 +6,8 @@
 #![no_std]
 
 extern crate alloc;
+mod ambient_display;
+pub use ambient_display::*;
 
 use alloc::vec;
 use alloc::vec::Vec;

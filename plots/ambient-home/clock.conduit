@@ -1,0 +1,9 @@
+# The selected realization reports absent weather/photos explicitly. Cadence
+# updates the same contribution; exhaustion never authorizes another Wake.
+plot ambient-clock-home {
+    cadence: time/tick(count = 1440, period-ms = 60000)
+    observe: ambient/home-observation("America/Los_Angeles", 1440)
+    encounter: face/ambient-home("Home", 1440)
+    cadence.tick >> observe.tick
+    observe.observation >> encounter.observation
+}

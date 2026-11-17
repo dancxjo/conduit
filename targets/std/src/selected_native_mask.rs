@@ -2,7 +2,12 @@
 //! forwarding Plot, fabricated publication, membership or Show acknowledgment.
 #[cfg(test)]
 mod encounter_fixture;
+mod images;
 mod initialization;
+pub use images::{
+    NATIVE_MASK_IMAGE_PREPARATION_BYTES, NATIVE_MASK_IMAGE_RETAINED_BYTES,
+    NativeMaskImageBackingReceipt, NativeMaskImageData, NativeMaskImageInitialization,
+};
 mod input;
 mod outer_bound;
 mod reading;
@@ -12,10 +17,10 @@ mod retirement;
 #[cfg(test)]
 mod tests;
 use crate::{
+    StdHost,
     kernel_preparation::{
         BaseBackingReservation, BodyMemoryReceipt, ImageMemoryLease, KernelResourceReservation,
     },
-    StdHost,
 };
 use conduit_conduitos_mask_offer::{NativeMaskStorageProfile, READ_ONLY_INTERACTION_PROFILE};
 use conduit_core::*;
@@ -108,10 +113,14 @@ pub struct SelectedNativeMaskBase {
     receipt: NativeMaskFixedBackingReceipt,
     input: Option<conduit_linux_display::NativeInputHostClaim>,
     pointer: input::NativePointerState,
+    images: Option<std::sync::Arc<images::NativeMaskImages>>,
 }
 impl SelectedNativeMaskBase {
     pub fn fixed_backing(&self) -> NativeMaskFixedBackingReceipt {
         self.receipt
+    }
+    pub fn private_image_backing(&self) -> Option<NativeMaskImageBackingReceipt> {
+        self.images.as_ref().map(|images| images.receipt())
     }
     pub fn entry(&self) -> &BaseProviderEntry {
         &self.provider.entry
@@ -147,6 +156,7 @@ impl SelectedNativeMaskBase {
         height: u32,
         scanout_cpu_bytes: usize,
         input: Option<conduit_linux_display::NativeInputHostClaim>,
+        images: Option<NativeMaskImageInitialization>,
     ) -> Result<Self, String> {
         let (kernel_bytes, raster_bytes) = Self::required_bytes(width, height)?;
         let input_owner_bytes = input.as_ref().map_or(0, |_| {
@@ -195,7 +205,14 @@ impl SelectedNativeMaskBase {
         {
             return Err("actual selected stores differ from reserved fixed backing".into());
         }
+        let images = images
+            .map(|initialization| {
+                images::NativeMaskImages::initialize(host, &provider, initialization)
+                    .map(std::sync::Arc::new)
+            })
+            .transpose()?;
         Ok(Self {
+            images,
             stores: Stores::Unbound { kernel, raster },
             provider,
             backing,
@@ -212,7 +229,11 @@ impl SelectedNativeMaskBase {
         })
     }
     fn validate_binding(&self, host: &StdHost) -> Result<(), String> {
-        if !self.healthy()
+        if self
+            .images
+            .as_ref()
+            .is_some_and(|images| !images.valid(host))
+            || !self.healthy()
             || self.input.as_ref().is_some_and(|claim| !claim.is_live())
             || !self.backing.matches_ledger(&host.kernel_resources)
             || !host.base_registry.entries().contains(&self.provider.entry)
@@ -301,7 +322,12 @@ impl SelectedNativeMaskBase {
                 return Err("selected Mask is not unbound".into());
             }
         };
-        let prepared = PreparedReadOnlyBinding::prepare(planned.clone(), &self.provider, raster)?;
+        let prepared = PreparedReadOnlyBinding::prepare(
+            planned.clone(),
+            &self.provider,
+            raster,
+            self.images.clone(),
+        )?;
         let metadata_bytes = prepared
             .metadata_bytes(self.receipt.compositor_bytes)?
             .checked_add(ImageMemoryLease::owned_backing_bytes())

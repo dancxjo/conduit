@@ -233,19 +233,41 @@ impl BoundReadOnlyMask {
             .ok_or("native input scene absent")?
             .frame()
             .map_err(|error| format!("native local frame:{error:?}"))?;
-        let receipt = self
-            .compositor
-            .repaint_mask_surface(
-                self.scene
-                    .as_ref()
-                    .ok_or("native input scene absent")?
-                    .face(),
+        let face = self
+            .scene
+            .as_ref()
+            .ok_or("native input scene absent")?
+            .face();
+        let views = self
+            .images
+            .as_ref()
+            .map(|images| {
+                images
+                    .views(
+                        face,
+                        &self
+                            .frame
+                            .as_ref()
+                            .ok_or("native input possession absent")?
+                            .possession,
+                    )
+                    .map_err(|error| format!("native image repaint possession:{error:?}"))
+            })
+            .transpose()?;
+        let receipt = if let Some(views) = views.as_ref() {
+            self.compositor.repaint_mask_surface_with_images(
+                face,
                 show,
                 &self.base,
                 &frame.scene,
+                views,
             )
-            .map_err(|error| format!("native local raster:{error:?}"))?
-            .clone();
+        } else {
+            self.compositor
+                .repaint_mask_surface(face, show, &self.base, &frame.scene)
+        }
+        .map_err(|error| format!("native local raster:{error:?}"))?
+        .clone();
         self.commit_input(output)?;
         if self
             .compositor

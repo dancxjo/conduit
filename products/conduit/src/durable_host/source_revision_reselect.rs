@@ -287,7 +287,8 @@ pub(crate) fn reselect(state_dir: &Path, request_path: &Path) -> Result<(), Stri
         .as_ref()
         .ok_or("missing selected IMAGE")?;
     let creche = selected.prepare_creche()?;
-    let prepared = prepare(
+    let ambient = super::super::ambient_policy::retained(state_dir, &installation)?;
+    let prepared = prepare_with_ambient(
         &selection,
         &installation,
         conduit_std_host::StdHostConfig {
@@ -298,6 +299,7 @@ pub(crate) fn reselect(state_dir: &Path, request_path: &Path) -> Result<(), Stri
             offer_generation: conduit_core::OfferGeneration(1),
         },
         creche.as_ref().map(|f| f.resource_offer()),
+        ambient.as_ref(),
     )?;
     if prepared.source.value().request().snapshot != selection.snapshot {
         return Err("reselected File lost its original capture".into());

@@ -4,6 +4,8 @@ use crate::{process::Step, workspace::workspace_root};
 mod acoustic_control;
 #[path = "../../xtask/src/suites/acoustic_flow.rs"]
 mod acoustic_flow;
+#[path = "../../xtask/src/suites/ambient_home_back.rs"]
+mod ambient_home_back;
 #[path = "../../xtask/src/suites/angle_reference.rs"]
 mod angle_reference;
 #[path = "../../xtask/src/suites/dsp_shared_compositions.rs"]
@@ -43,6 +45,16 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "ambient-home-weather-live" => Some(Suite {
+            steps: ambient_home_back::LIVE_WEATHER_STEPS,
+            path: "tools/xtask/src/suites/ambient_home_back.rs",
+            source: include_bytes!("../../xtask/src/suites/ambient_home_back.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "ambient-home-back" => Some(Suite {
+            steps: ambient_home_back::STEPS,
+            path: "tools/xtask/src/suites/ambient_home_back.rs",
+            source: include_bytes!("../../xtask/src/suites/ambient_home_back.rs"),
+        }),
         [check, suite] if check == "check" && suite == "action-prompt-i1" => Some(Suite {
             steps: action_prompt_i1::STEPS,
             path: "tools/xtask/src/suites/action_prompt_i1.rs",
@@ -186,6 +198,7 @@ mod tests {
             ("resource-snapshot", resource_snapshot::STEPS),
             ("linux-snapshot", linux_snapshot::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
+            ("ambient-home-back", ambient_home_back::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),
             ("dsp-shared-compositions", dsp_shared_compositions::STEPS),

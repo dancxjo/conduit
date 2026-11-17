@@ -127,6 +127,7 @@ impl crate::StdHost {
         self.advertisement = advertisement;
         self.kernel_resources = ledger;
         self.native_source = Some(InitializedNativeSource {
+            second: None,
             definition,
             provider: NativeProvider::Worker(worker),
             backing: Some(backing),
@@ -138,9 +139,13 @@ impl crate::StdHost {
 }
 impl crate::StdHost {
     pub fn native_source_worker_inspection(&self) -> Option<NativeWorkerInspection> {
-        let source = self.native_source.as_ref()?;
+        let source = self
+            .native_source
+            .as_ref()?
+            .owners()
+            .find(|s| matches!(s.provider, NativeProvider::Worker(_)))?;
         let NativeProvider::Worker(worker) = &source.provider else {
-            return None;
+            unreachable!("selected worker owner");
         };
         let backing = source.backing.as_ref()?;
         Some(NativeWorkerInspection {
@@ -153,6 +158,15 @@ impl crate::StdHost {
     /// Request shutdown; Busy retains the actual thread, provider and memory
     /// reservation. Only a joined exit can return the owner and free backing.
     pub fn retire_native_source_worker(&mut self) -> Result<RetiredNativeSource, String> {
+        if self
+            .native_source
+            .as_ref()
+            .is_some_and(|s| s.second.is_some())
+        {
+            return Err(
+                "composed original native Sources require fresh checked construction".into(),
+            );
+        }
         let source = self
             .native_source
             .as_mut()

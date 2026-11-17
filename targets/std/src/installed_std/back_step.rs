@@ -239,6 +239,8 @@ installed_step_dispatch!(
     MeasurementWindow,
     FlowSingleton,
     MeasurementChartConstructor,
+    AmbientObserve,
+    AmbientHome,
     MeasurementChartFace,
     MeasurementChartFlowFace,
     DistanceFrequency,

@@ -1,5 +1,5 @@
 use super::*;
-use crate::{selected_scanout::SelectedScanoutBase, StdHostConfig};
+use crate::{StdHostConfig, selected_scanout::SelectedScanoutBase};
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_linear_framebuffer_make::CheckedNativeMaskInitialization;
 
@@ -9,6 +9,7 @@ pub(crate) struct InitialNativeMask {
     pub height: u32,
     pub scanout_cpu_bytes: usize,
     pub input: Option<conduit_linux_display::NativeInputHostClaim>,
+    pub images: Option<NativeMaskImageInitialization>,
 }
 impl InitialNativeMask {
     pub(crate) fn offers(&self, config: &StdHostConfig) -> HostAdvertisement {
@@ -61,6 +62,7 @@ impl InitialNativeMask {
             self.height,
             self.scanout_cpu_bytes,
             self.input,
+            self.images,
         )
     }
 }
@@ -76,7 +78,7 @@ impl StdHost {
         output: &mut conduit_linux_display::Scanout<'_>,
     ) -> Result<Self, String> {
         Self::from_native_mask_backend(
-            config, image, catalog, checked, parameters, output, false, None, None,
+            config, image, catalog, checked, parameters, output, false, None, None, None,
         )
     }
     /// Retain the actual preinitialized clip recognizer in this initial IMAGE.
@@ -100,6 +102,7 @@ impl StdHost {
             false,
             Some(recognizer),
             None,
+            None,
         )
     }
     /// Actual prepared SDL input and recognizer are supplied before the single
@@ -116,7 +119,7 @@ impl StdHost {
         input: Option<conduit_linux_display::PreparedNativeInput>,
     ) -> Result<Self, String> {
         Self::from_native_mask_backend(
-            config, image, catalog, checked, parameters, output, false, recognizer, input,
+            config, image, catalog, checked, parameters, output, false, recognizer, input, None,
         )
     }
     #[cfg(test)]
@@ -129,7 +132,7 @@ impl StdHost {
         output: &mut conduit_linux_display::Scanout<'_>,
     ) -> Result<Self, String> {
         Self::from_native_mask_backend(
-            config, image, catalog, checked, parameters, output, true, None, None,
+            config, image, catalog, checked, parameters, output, true, None, None, None,
         )
     }
     #[cfg(test)]
@@ -154,6 +157,34 @@ impl StdHost {
             true,
             None,
             Some(input),
+            None,
+        )
+    }
+    /// Root-authorized private image data is initialized once, under the same
+    /// original IMAGE counter and native Mask runtime-memory pool.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_selected_timer_native_mask_with_equipment_and_images_image(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &CheckedHostConfiguration,
+        parameters: CheckedNativeMaskInitialization,
+        output: &mut conduit_linux_display::Scanout<'_>,
+        recognizer: Option<crate::hosted_speech_recognition::WhisperSpeechAdapter>,
+        input: Option<conduit_linux_display::PreparedNativeInput>,
+        images: NativeMaskImageInitialization,
+    ) -> Result<Self, String> {
+        Self::from_native_mask_backend(
+            config,
+            image,
+            catalog,
+            checked,
+            parameters,
+            output,
+            false,
+            recognizer,
+            input,
+            Some(images),
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -167,6 +198,7 @@ impl StdHost {
         diagnostic: bool,
         recognizer: Option<crate::hosted_speech_recognition::WhisperSpeechAdapter>,
         input: Option<conduit_linux_display::PreparedNativeInput>,
+        images: Option<NativeMaskImageInitialization>,
     ) -> Result<Self, String> {
         conduit_host_make::verify_configuration_image(checked, image, catalog)?;
         if checked.configuration_id() != parameters.configuration_id() {
@@ -193,10 +225,14 @@ impl StdHost {
             .checked_add(raster)
             .and_then(|bytes| bytes.checked_add(input_owner_bytes))
             .ok_or("selected native fixed store overflow")?;
-        if fixed > parameters.memory().slots as usize {
+        let image_preparation = images.as_ref().map_or(0, |images| images.preparation_bytes);
+        let peak_fixed = fixed
+            .checked_add(image_preparation)
+            .ok_or("native image pool bound overflow")?;
+        if peak_fixed > parameters.memory().slots as usize {
             return Err("selected native Mask fixed stores exceed declared runtime pool".into());
         }
-        let heap = fixed
+        let heap = peak_fixed
             .checked_add(output.cpu_backing_bytes())
             .and_then(|bytes| bytes.checked_add(ImageMemoryLease::owned_backing_bytes()))
             .ok_or("selected native fixed IMAGE heap overflow")?;
@@ -328,6 +364,7 @@ impl StdHost {
             height,
             scanout_cpu_bytes: output.cpu_backing_bytes(),
             input,
+            images,
         };
         Self::from_selected_native_initial_bases(
             config,

@@ -34,6 +34,16 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
+        if self.page == 0
+            && !self.showing_details
+            && !self.showing_diagram
+            && let Some(image) = self.image
+        {
+            push(
+                &mut scene,
+                GraphicsCommand::image(self.screen, self.screen, image),
+            )?;
+        }
         let heading = chrome.encounter_heading(
             &self.face,
             self.showing_details,

@@ -1,11 +1,11 @@
 //! Local multi-partition composition of the existing kernel and Host effects.
 use super::{
-    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_face_host,
     InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
+    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_face_host,
 };
 use crate::{
-    body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
     BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
+    body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
 };
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
@@ -13,19 +13,20 @@ use conduit_core::{
     CancellationReason, FailureReason, Plan, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::{
-    scheduler::{HostCallRequest, SchedulerStatus},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome, HostedValueStore,
     KernelEvent,
+    scheduler::{HostCallRequest, SchedulerStatus},
 };
 use conduit_plan_lowering::{
-    activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
-    fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
-    lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
+    activation_fragment::{LoweredFragmentActivations, lower_fragment_activations},
+    fragment_set::{FragmentSetBounds, lower_local_fragment_set_from_plans},
+    lowering::{FIXED_KERNEL_STORAGE_PROFILE, KernelIdentityMap, LoweredHostCall},
 };
 use std::io::Write;
 
 mod chart_face_route;
 mod creche_route;
+mod home_face_route;
 use creche_route::CrecheRoute;
 mod clock_observation;
 mod data_text;
@@ -53,6 +54,7 @@ pub(crate) struct BodyKernel<'a> {
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
     creche: Option<CrecheRoute>,
     chart_face: Option<chart_face_route::ChartFaceRoute>,
+    home_face: [Option<super::ambient_home_route::AmbientHomeRoute>; 2],
     native_source: Option<native_source::NativeSourceRoute<'a>>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
@@ -429,6 +431,14 @@ impl<'a> BodyKernel<'a> {
         {
             return Err("planned chart Face has no exact scoped committed observer route".into());
         }
+        if self
+            .operations
+            .iter()
+            .any(|op| conduit_std_offers::ambient_aspect_call(op.contract_id.as_str()))
+            && self.home_face.iter().all(Option::is_none)
+        {
+            return Err("planned Home has no exact scoped observer route".into());
+        }
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
         }) && self.todo_checkpoint.is_none()
@@ -493,9 +503,11 @@ impl<'a> BodyKernel<'a> {
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
+                self.poll_native_source()?;
                 if !cancelling && !control.stop_requested() {
                     self.poll_creche(creche.as_deref_mut())?;
                     self.poll_chart_face(&mut face_observer)?;
+                    self.poll_home_face(&mut face_observer)?;
                 }
                 self.fore.drain(
                     &mut self.scheduler,
@@ -560,6 +572,7 @@ impl<'a> BodyKernel<'a> {
                 }
                 if !cancelling && !control.stop_requested() {
                     self.poll_chart_face(&mut face_observer)?;
+                    self.poll_home_face(&mut face_observer)?;
                 }
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
@@ -680,6 +693,9 @@ impl<'a> BodyKernel<'a> {
                         }
                         self.requests.push(request);
                     }
+                    if self.home_face_call(request)? {
+                        continue;
+                    }
                     if self.chart_face_call(request)? {
                         continue;
                     }
@@ -709,10 +725,21 @@ impl<'a> BodyKernel<'a> {
                     )? {
                         continue;
                     }
-                    if super::measurement_window_back::complete(operation, request, &mut self.scheduler)? {
+                    if super::measurement_window_back::complete(
+                        operation,
+                        request,
+                        &mut self.scheduler,
+                    )? {
                         continue;
                     }
                     if super::measurement_plot_back::complete(
+                        operation,
+                        request,
+                        &mut self.scheduler,
+                    )? {
+                        continue;
+                    }
+                    if super::ambient_observe_back::complete(
                         operation,
                         request,
                         &mut self.scheduler,
@@ -1162,7 +1189,7 @@ impl<'a> BodyKernel<'a> {
                 keys.set_input_view_epoch(input_view_epoch);
                 match status {
                     SchedulerStatus::Drained => {
-                        if self.chart_face_pending() {
+                        if self.semantic_face_pending() || self.native_source_pending() {
                             std::thread::park_timeout(std::time::Duration::from_millis(1));
                             continue;
                         }
@@ -1197,7 +1224,8 @@ impl<'a> BodyKernel<'a> {
                         // when no command has reached the live Fore queue yet.
                         if !keys.is_pending()
                             && !self.creche_pending()
-                            && !self.chart_face_pending()
+                            && !self.native_source_pending()
+                            && !self.semantic_face_pending()
                         {
                             if let Some(observed) = live_observed {
                                 if self.fore.wait_for_activity(observed)? {
@@ -1208,7 +1236,8 @@ impl<'a> BodyKernel<'a> {
                         if !keys.is_pending()
                             && deadlines.is_empty()
                             && !self.creche_pending()
-                            && !self.chart_face_pending()
+                            && !self.native_source_pending()
+                            && !self.semantic_face_pending()
                         {
                             return Err(diagnostic::error(
                                 &mut self.error_diagnostic,
@@ -1222,7 +1251,7 @@ impl<'a> BodyKernel<'a> {
                                 );
                             }
                         }
-                        if self.chart_face_pending() {
+                        if self.semantic_face_pending() || self.native_source_pending() {
                             std::thread::park_timeout(std::time::Duration::from_millis(1));
                         }
                         std::thread::yield_now();

@@ -5,11 +5,16 @@ use conduit_host_make::{
 };
 use std::collections::BTreeMap;
 
+mod ambient;
+pub use ambient::{
+    AmbientObservationLifetime, CheckedAmbientInitialization, ambient_initialization_contract,
+    ambient_resident_initialization_contract,
+};
 mod builder;
 mod cpu_initialization;
 mod creche_initialization;
 pub use cpu_initialization::{
-    cpu_initialization_contract, CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION,
+    CPU_BASE_KIND, CPU_IMPLEMENTATION, CheckedCpuInitialization, cpu_initialization_contract,
 };
 #[cfg(target_os = "linux")]
 mod linux_builder;
@@ -21,24 +26,24 @@ mod text_file_initialization;
 mod tls_listener_initialization;
 pub use builder::*;
 pub use creche_initialization::{
-    creche_encounter_initialization_contract, CRECHE_ENCOUNTER_BASE_KIND,
+    CRECHE_ENCOUNTER_BASE_KIND, creche_encounter_initialization_contract,
 };
 #[cfg(target_os = "linux")]
 pub use linux_builder::*;
 pub use microphone_initialization::{
-    alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
+    ALSA_MICROPHONE_BASE_KIND, alsa_microphone_initialization_contract,
 };
 pub use tls_listener_initialization::{
-    tls_listener_initialization_contract, CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND,
-    TLS_LISTENER_IMPLEMENTATION,
+    CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND, TLS_LISTENER_IMPLEMENTATION,
+    tls_listener_initialization_contract,
 };
 
 pub use source_check_initialization::{
-    source_check_initialization_contract, CheckedSourceCheckInitialization,
+    CheckedSourceCheckInitialization, source_check_initialization_contract,
 };
 
 pub use text_file_initialization::{
-    text_file_initialization_contract, CheckedTextFileInitialization,
+    CheckedTextFileInitialization, text_file_initialization_contract,
 };
 
 pub struct HostedMakePackage;
@@ -72,8 +77,7 @@ pub const HOSTED_PLATFORM_VARIANTS: [HostedPlatformVariant; 4] = [
         os: "linux",
         architecture: "aarch64",
         support: HostedPlatformSupport::Planned,
-        reason:
-            "cross-built artifacts exist, but the hosted package has no reviewed launch adapter",
+        reason: "cross-built artifacts exist, but the hosted package has no reviewed launch adapter",
     },
     HostedPlatformVariant {
         os: "windows",
@@ -122,6 +126,14 @@ fn package_catalog() -> PackageCatalogContribution {
         creche_initialization::metadata(),
     );
     implementations.insert(
+        conduit_std_offers::AMBIENT_SOURCE_IMPLEMENTATION.into(),
+        ambient::metadata(),
+    );
+    implementations.insert(
+        conduit_std_offers::AMBIENT_RESIDENT_SOURCE_IMPLEMENTATION.into(),
+        ambient::resident_metadata(),
+    );
+    implementations.insert(
         conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
         source_check_initialization::metadata(),
     );
@@ -146,9 +158,52 @@ fn package_catalog() -> PackageCatalogContribution {
             cpu_initialization::operation_metadata(&offer),
         );
     }
+    let observe =
+        conduit_std_offers::ambient_observe_cpu_offer().expect("finite clock CPU inventory");
+    implementations.insert(
+        observe.implementation.implementation_id.as_str().into(),
+        cpu_initialization::operation_metadata(&observe),
+    );
+    let resident = conduit_std_offers::ambient_resident_observe_cpu_offer()
+        .expect("resident clock CPU inventory");
+    implementations.insert(
+        resident.implementation.implementation_id.as_str().into(),
+        cpu_initialization::operation_metadata(&resident),
+    );
+    for aspect in [
+        conduit_std_offers::AmbientDisplayAspect::Wallpaper,
+        conduit_std_offers::AmbientDisplayAspect::ClockWeather,
+    ] {
+        let offer = conduit_std_offers::ambient_resident_aspect_cpu_offer(aspect)
+            .expect("resident contribution CPU inventory");
+        implementations.insert(
+            offer.implementation.implementation_id.as_str().into(),
+            cpu_initialization::operation_metadata(&offer),
+        );
+    }
+    for aspect in [
+        conduit_std_offers::AmbientDisplayAspect::Home,
+        conduit_std_offers::AmbientDisplayAspect::Wallpaper,
+        conduit_std_offers::AmbientDisplayAspect::ClockWeather,
+    ] {
+        let home = conduit_std_offers::ambient_aspect_cpu_offer(aspect)
+            .expect("finite ambient contribution CPU inventory");
+        implementations.insert(
+            home.implementation.implementation_id.as_str().into(),
+            cpu_initialization::operation_metadata(&home),
+        );
+    }
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
             (CPU_IMPLEMENTATION.into(), cpu_initialization_contract()),
+            (
+                conduit_std_offers::AMBIENT_SOURCE_IMPLEMENTATION.into(),
+                ambient_initialization_contract(),
+            ),
+            (
+                conduit_std_offers::AMBIENT_RESIDENT_SOURCE_IMPLEMENTATION.into(),
+                ambient_resident_initialization_contract(),
+            ),
             (
                 conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION.into(),
                 text_file_initialization_contract(),
@@ -190,6 +245,8 @@ fn package_catalog() -> PackageCatalogContribution {
         dependencies: BTreeMap::from([
             creche_initialization::resource_dependency(),
             source_check_initialization::resource_dependency(),
+            ambient::resource_dependency(),
+            ambient::resident_resource_dependency(),
             text_file_initialization::resource_dependency(),
             (
                 PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
@@ -285,6 +342,8 @@ impl HostMakePackage for HostedMakePackage {
             .into_iter()
             .chain(vec![
                 cpu_initialization::offer(),
+                ambient::offer(),
+                ambient::resident_offer(),
                 creche_initialization::offer(),
                 source_check_initialization::offer(),
                 tls_listener_initialization::offer(),

@@ -4,8 +4,8 @@ use super::{
     write_json_atomic,
 };
 use conduit_host_make::{
-    canonical_host_configuration_conduit, check_host_configuration,
-    parse_host_configuration_conduit, CheckedHostConfiguration,
+    CheckedHostConfiguration, canonical_host_configuration_conduit, check_host_configuration,
+    parse_host_configuration_conduit,
 };
 use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};
@@ -70,6 +70,12 @@ impl Selection {
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
                 && base.kind != conduit_std_offers::DURABLE_TEXT_BASE_KIND
+                && !(source_prepared
+                    && matches!(
+                        base.kind.as_str(),
+                        conduit_std_offers::AMBIENT_SOURCE_BASE_KIND
+                            | conduit_std_offers::AMBIENT_RESIDENT_SOURCE_BASE_KIND
+                    ))
                 && base.kind != conduit_workspace_make::CPU_BASE_KIND
             {
                 return Err(
@@ -327,6 +333,14 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 }
                 Some(conduit_workspace_make::CPU_IMPLEMENTATION) => {
                     conduit_workspace_make::CheckedCpuInitialization::from_configuration(&checked)?;
+                }
+                Some(
+                    conduit_std_offers::AMBIENT_SOURCE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_RESIDENT_SOURCE_IMPLEMENTATION,
+                ) => {
+                    conduit_workspace_make::CheckedAmbientInitialization::from_configuration(
+                        &checked,
+                    )?;
                 }
                 #[cfg(target_os = "linux")]
                 Some(

@@ -3,7 +3,10 @@ use conduit_host_browser_make::BrowserMakePackage;
 use conduit_host_conduitos_make::ConduitOsMakePackage;
 use conduit_host_esp32_make::Esp32MakePackage;
 use conduit_host_hosted::HostedMakePackage;
-pub use conduit_host_hosted::{CheckedSourceCheckInitialization, CheckedTextFileInitialization};
+pub use conduit_host_hosted::{
+    AmbientObservationLifetime, CheckedAmbientInitialization, CheckedSourceCheckInitialization,
+    CheckedTextFileInitialization,
+};
 use conduit_host_make::{MakeCatalog, MakePackageSet};
 use conduit_host_orange_pi::OrangePiMakePackage;
 use conduit_host_raspberry_pi::RaspberryPiMakePackage;
@@ -42,4 +45,4 @@ pub fn catalog() -> MakeCatalog {
 #[cfg(test)]
 mod graphical_host_tests;
 
-pub use conduit_host_hosted::{CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION};
+pub use conduit_host_hosted::{CPU_BASE_KIND, CPU_IMPLEMENTATION, CheckedCpuInitialization};
