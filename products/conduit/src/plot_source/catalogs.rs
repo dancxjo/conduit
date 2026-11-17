@@ -9,7 +9,8 @@ pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), St
 // The executable owns these immutable definitions once. Borrowing them supplies
 // no Ready offer, Source permission or workspace grant; Root must separately
 // retain and fund this shared backing for every dependent operation.
-pub(super) fn shared_standard_catalogs() -> Result<&'static (StartupCatalog, ProfileCatalog), String> {
+pub(super) fn shared_standard_catalogs() -> Result<&'static (StartupCatalog, ProfileCatalog), String>
+{
     static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
         std::sync::OnceLock::new();
     CATALOGS
@@ -55,6 +56,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_data::install_measurement_window_catalog(&mut startup, &mut profiles)?;
+    conduit_data::install_measurement_plot_catalog(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;

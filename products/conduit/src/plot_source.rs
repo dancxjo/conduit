@@ -180,7 +180,6 @@ fn dsp_source_backs_for(
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,3 +399,7 @@ mod tests {
 #[cfg(test)]
 #[path = "plot_source/creche_tests.rs"]
 mod creche_tests;
+
+#[cfg(test)]
+#[path = "plot_source/measurement_catalog_tests.rs"]
+mod measurement_catalog_tests;

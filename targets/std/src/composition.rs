@@ -316,6 +316,7 @@ pub(super) fn build_advertisement(
         );
     }
     if composition.data {
+        capabilities.push(conduit_std_offers::measurement_plot_std_offer());
         capabilities.extend([
             conduit_std_offers::data_save_text_std_offer(),
             conduit_std_offers::data_load_text_std_offer(),

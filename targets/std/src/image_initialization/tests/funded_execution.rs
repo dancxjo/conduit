@@ -6,6 +6,7 @@ use std::{cell::Cell, rc::Rc, sync::atomic::Ordering};
 mod admission;
 mod custody;
 mod execution;
+mod measurement_refusal;
 
 fn fixture(count: u64, heap: u64) -> (StdHost, Wake, BodyPlan, Clock) {
     // Reuse this constructor suite's canonical checked configuration and Make
