@@ -76,11 +76,11 @@ mod member_return;
 mod owner_navigation;
 #[path = "planning.rs"]
 mod planning;
+#[path = "recovered_source_claim.rs"]
+pub(super) mod recovered_source_claim;
 #[cfg(target_os = "linux")]
 #[path = "retained_local_fore.rs"]
 mod retained_local_fore;
-#[path = "recovered_source_claim.rs"]
-pub(super) mod recovered_source_claim;
 #[path = "wake_readiness.rs"]
 mod wake_readiness;
 #[cfg(target_os = "linux")]
