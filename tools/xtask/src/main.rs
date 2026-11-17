@@ -9,6 +9,8 @@ mod commands;
 mod evidence;
 mod obligation;
 mod output;
+#[cfg(test)]
+mod pico_dispatch_tests;
 mod process;
 mod proof;
 mod site;
@@ -162,8 +164,7 @@ fn run_make(target: MakeTarget, opts: &GlobalOpts) -> Result<(), Box<dyn std::er
         MakeTarget::Body(args) => commands::body::run(args, opts),
         MakeTarget::Esp32Firmware(args) => commands::esp32_firmware::run(args, opts),
         MakeTarget::Host(args) => commands::host::run(args, opts),
-        MakeTarget::Pico(mut args) => run_pico(opts, &mut args, false),
-        MakeTarget::PicoLocal(mut args) => run_pico(opts, &mut args, true),
+        MakeTarget::Pico(args) | MakeTarget::PicoLocal(args) => run_pico(opts, args),
         MakeTarget::Conduitos(args) => commands::conduitos::run(args, opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         MakeTarget::Handbook(args) => commands::handbook::run_handbook(args),
@@ -176,18 +177,12 @@ fn run_make(target: MakeTarget, opts: &GlobalOpts) -> Result<(), Box<dyn std::er
 
 fn run_pico(
     opts: &GlobalOpts,
-    args: &mut commands::pico::PicoArgs,
-    local_alias: bool,
+    mut args: commands::pico::PicoArgs,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if !commands::pico::prepare_output(opts, args)? {
+    if !commands::pico::prepare_output(opts, &args)? {
         return Ok(());
     }
     args.dry_run = opts.dry_run;
-    let owned = args.clone();
-    if local_alias {
-        commands::pico::run_local(owned)?;
-    } else {
-        commands::pico::run(owned)?;
-    }
+    commands::pico::run(args)?;
     Ok(())
 }

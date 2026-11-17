@@ -13,6 +13,7 @@ mod refusal;
 use refusal::Refusal;
 mod browser_spore;
 mod requests;
+pub(crate) mod womb_provision;
 use requests::Request;
 #[path = "workspace_patchbay_planning.rs"]
 pub(crate) mod patchbay_planning;
@@ -28,6 +29,7 @@ thread_local! {
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
     static BODY: RefCell<Option<BodyLifecycleSession>> = const { RefCell::new(None) };
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
+    static BIRTH_ISSUER: RefCell<Option<crate::creche::WorkspaceIssuerCustody>> = const { RefCell::new(None) };
     static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
     static BROWSER_MASK: RefCell<Option<crate::workspace_mask::BrowserMaskRuntime>> = const { RefCell::new(None) };
     static MASK_JOURNEY_SHOWS: RefCell<Option<Vec<crate::workspace_mask::BrowserMaskObservation>>> = const { RefCell::new(None) };
@@ -118,10 +120,14 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .observe(body.evidence(), advertisement)
                     .map_err(host_offer_refusal)?;
                 validate_offer_bytes(&offers)?;
-                let admissions = AdmissionManager::new(body.evidence().body_id.clone())
-                    .map_err(|error| Refusal::new("Admission.Initialize", format!("{error:?}")))?;
                 let bytes = snapshot_with_offers(&body, offers.hosts())?;
-                crate::creche::handoff_workspace();
+                let (admissions, issuer) = crate::creche::handoff_workspace(body.evidence())?;
+                let issuer = issuer.filter(|custody| {
+                    offers.hosts().iter().any(|host| {
+                        custody.matches(body.evidence(), &host.host_id, &host.boot_id)
+                    })
+                });
+                BIRTH_ISSUER.with(|state| *state.borrow_mut() = issuer);
                 *slot = Some(body);
                 ADMISSIONS.with(|state| *state.borrow_mut() = Some(admissions));
                 HOST_OFFERS.with(|state| *state.borrow_mut() = offers);
@@ -159,6 +165,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     ));
                 }
                 let bytes = snapshot_with_offers(&body, offers.hosts())?;
+                BIRTH_ISSUER.with(|state| *state.borrow_mut() = None);
                 *slot = Some(body);
                 ADMISSIONS.with(|state| *state.borrow_mut() = Some(admissions));
                 HOST_OFFERS.with(|state| *state.borrow_mut() = offers);
@@ -176,6 +183,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .map_err(host_offer_refusal)?;
                 validate_offer_bytes(&offers)?;
                 let bytes = snapshot_with_offers(&body, offers.hosts())?;
+                BIRTH_ISSUER.with(|state| *state.borrow_mut() = None);
                 *slot = Some(body);
                 ADMISSIONS.with(|state| *state.borrow_mut() = Some(admission));
                 HOST_OFFERS.with(|state| *state.borrow_mut() = offers);
@@ -192,6 +200,18 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         let mut candidate = current.clone();
         match request {
             Request::Current => return snapshot(current),
+            Request::ReleaseWombAfterAdmission {host_id,boot_id,reservation_id} => return womb_provision::release_after_admission(current,&host_id,&boot_id,reservation_id),
+            Request::BeginWombDelivery {host_id,boot_id,reservation_id,now_millis} => return womb_provision::begin_delivery(current,&host_id,&boot_id,reservation_id,now_millis),
+            Request::StageWombRelease { stage } => return womb_provision::stage(current, stage),
+            Request::ObserveWombResource {host_id,boot_id,reservation_id,placement} => return womb_provision::observe(current,&host_id,&boot_id,reservation_id,*placement),
+            Request::BeginWombHostJob {call} => return womb_provision::begin_job(current,call),
+            Request::CompleteWombHostJob {call,manifest,image} => return womb_provision::complete_job(current,call,manifest,image),
+            Request::FailWombHostJob {call,cancelled} => return womb_provision::fail_job(current,call,cancelled),
+            Request::RunWombProvider { call } => return womb_provision::run(current, call),
+            Request::WombResult { host_id, boot_id, reservation_id } => return womb_provision::result(current, &host_id, &boot_id, reservation_id),
+            Request::WombInput { host_id, boot_id, reservation_id } => return womb_provision::request_for_started(current, &host_id, &boot_id, reservation_id),
+            Request::ReserveWomb { reservation } => return womb_provision::reserve(current, reservation),
+            Request::CancelWombReservation { host_id, boot_id, reservation_id } => return womb_provision::cancel(current, &host_id, &boot_id, reservation_id),
             Request::ConversationContext => return encode(&conversation_context(current)?),
             Request::Durable => return ADMISSIONS.with(|admissions| {
                 let admissions = admissions.borrow();
@@ -546,6 +566,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .started(&host_id, &boot_id, play, wake_at_start)
                     .map_err(debug)?;
                 let bytes = snapshot(&candidate)?;
+                womb_provision::confirm_started(&candidate)?;
                 *slot = Some(candidate);
                 crate::plot_runner::workspace::acknowledge_start();
                 return Ok(bytes);

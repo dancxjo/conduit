@@ -20,6 +20,11 @@ pub(super) mod resource_effect;
 #[path = "engine_transforms.rs"]
 pub(super) mod transforms;
 use preparation::{prepare_scheduler, validate_envelope};
+#[path = "engine_timer.rs"]
+mod timer;
+use timer::decode_timer_duration;
+#[path = "engine_womb.rs"]
+mod womb;
 
 #[cfg(test)]
 #[path = "quantity_tests.rs"]
@@ -90,6 +95,7 @@ pub(super) struct TourScheduler {
     applications: Vec<Option<Box<super::application_state::PreparedApplication>>>,
     thermostat: Option<thermostat::ThermostatFore>,
     patchbay_fore: Vec<patchbay_fore::PatchbayFore>,
+    womb_fore: Option<womb::WombFore>,
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -106,27 +112,9 @@ impl core::ops::DerefMut for TourScheduler {
     }
 }
 
-pub(super) struct PendingHostEffect {
-    pub request: HostCallRequest,
-    pub effect: BrowserHostEffect,
-}
-
-pub(super) enum BrowserHostEffect {
-    AudioCue,
-    AudioCapture,
-    PcmPlayback { frame: Option<Vec<u8>> },
-    PitchTone { hertz: u32 },
-    ClockObservation,
-    Timer { duration_millis: u64 },
-    Snapshot { publish: bool },
-    KeyEvent,
-    PointerEvent,
-    ButtonTransition,
-    ApplicationEvent,
-    TextEditor(crate::installed_browser::text_editor::EditorDocument),
-    TutorialPresenterRequest,
-    Manifestation(BrowserManifestation),
-}
+#[path = "engine_effect.rs"]
+mod effect;
+pub(super) use effect::{BrowserHostEffect, PendingHostEffect};
 
 pub(super) enum DriveStatus {
     Effect(PendingHostEffect),
@@ -214,6 +202,7 @@ fn drive_with_boundary<'a>(
     remote_egress: &[(conduit_kernel::RemoteEndpointId, CordId)],
 ) -> Result<DriveStatus, String> {
     loop {
+        womb::capture(scheduler)?;
         thermostat::capture_output(scheduler)?;
         for &(endpoint, cord) in remote_egress {
             if scheduler
@@ -245,6 +234,14 @@ fn drive_with_boundary<'a>(
                 .host_calls
                 .get(usize::from(request.call.0))
                 .ok_or_else(|| "browser request has no planned Host Call".to_string())?;
+            if operation.contract_id.as_str()
+                == conduit_body_make::womb_runtime_catalog::WOMB_HOST_CALL
+            {
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::WombPrepare,
+                }));
+            }
             if resource_effect::matches(operation.contract_id.as_str()) {
                 if let Some(pending) = resource_effect::begin(scheduler, placement, request)? {
                     return Ok(DriveStatus::Effect(pending));
@@ -424,31 +421,6 @@ fn drive_with_boundary<'a>(
 #[cfg(test)]
 #[path = "body_partition_tests.rs"]
 mod body_partition_tests;
-
-fn decode_timer_duration(
-    operation: &conduit_core::HostCallRequirement,
-    input: &[u8],
-) -> Result<u64, String> {
-    let expected_target =
-        if operation.contract_id.as_str() == conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT {
-            Some(conduit_semantic_catalog::TIMED_BUTTON_ATTEMPT_KIND.into())
-        } else {
-            None
-        };
-    if operation.target_kind != expected_target
-        || operation.maximum_in_flight != 1
-        || operation.maximum_input_bytes != conduit_time::TICK_ENCODED_LEN
-        || operation.maximum_output_bytes != 0
-    {
-        return Err("planned browser timer operation has the wrong exact contract".into());
-    }
-    let duration_millis = conduit_core::decode_monotonic_duration(input)
-        .map_err(|error| format!("decode browser timer duration: {error:?}"))?;
-    if duration_millis > crate::installed_browser::BROWSER_TIMER_MAXIMUM_MILLIS {
-        return Err("browser timer duration exceeds its admitted implementation bound".into());
-    }
-    Ok(duration_millis)
-}
 
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")

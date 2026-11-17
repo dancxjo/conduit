@@ -483,3 +483,7 @@ fn host_mismatch_refuses_while_leave_rejoin_revoke_and_forget_remain_distinct() 
     assert!(session::current().is_none());
     assert_eq!(durable_evidence.receipt.body_id, born.body_id);
 }
+
+#[cfg(feature = "plot-runner")]
+#[path = "tests/workspace_handoff.rs"]
+mod workspace_handoff;

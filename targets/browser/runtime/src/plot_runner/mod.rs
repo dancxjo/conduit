@@ -29,6 +29,7 @@ mod session_projection;
 mod session_signs;
 mod shared_pool_abi;
 mod thermostat_face;
+pub(crate) mod womb_provider;
 #[cfg(feature = "creche-surface")]
 pub(crate) mod workspace;
 

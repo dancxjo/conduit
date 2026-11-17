@@ -9,9 +9,13 @@ use conduit_face::{
 };
 use std::io::Write;
 
+mod button_sequence;
 #[path = "terminal_face_mask/document.rs"]
 mod document;
 mod footer;
+pub use button_sequence::{
+    TerminalButtonSequence, TerminalButtonSequenceOutcome, TerminalButtonSequenceRefusal,
+};
 #[path = "terminal_face_mask/input.rs"]
 mod input;
 #[path = "terminal_face_mask/keyboard.rs"]

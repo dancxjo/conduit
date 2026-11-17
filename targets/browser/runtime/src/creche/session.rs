@@ -16,6 +16,8 @@ pub(super) struct BodySession {
     pub(super) receipt: BirthReceipt,
     pub(super) biography: BodyBiographyEvidence,
     pub(super) admission: AdmissionManager,
+    // Runtime custody from actual Birth; never restored from public biography.
+    pub(super) birth_issuer_custody: bool,
     pub(super) pending_spore: Option<super::spore::PendingSpore>,
 }
 
@@ -119,6 +121,7 @@ pub(super) fn birth(
             receipt: receipt.clone(),
             biography,
             admission,
+            birth_issuer_custody: true,
             pending_spore: None,
         })
     });
@@ -424,10 +427,27 @@ pub(super) fn restore_durable(snapshot: DurableBodySession) -> Result<BirthRecei
             receipt: receipt.clone(),
             biography: snapshot.biography,
             admission,
+            birth_issuer_custody: false,
             pending_spore: None,
         });
     });
     Ok(receipt)
+}
+
+pub(super) fn take_for_workspace(expected: &BodyBiographyEvidence) -> Result<BodySession, String> {
+    BODY.with(|slot| {
+        let mut slot = slot.borrow_mut();
+        let current = slot
+            .as_ref()
+            .ok_or("Birth session has already been handed off")?;
+        if &current.biography != expected || current.admission.body_id != expected.body_id {
+            return Err("Workspace handoff differs from the actual Birth session".into());
+        }
+        if current.pending_spore.is_some() {
+            return Err("Retire pending preparation before handing off the Birth session".into());
+        }
+        Ok(slot.take().expect("checked occupied Birth session"))
+    })
 }
 
 pub(super) fn forget_local() {

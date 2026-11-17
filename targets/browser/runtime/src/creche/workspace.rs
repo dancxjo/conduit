@@ -1,7 +1,10 @@
-//! Crèche-to-workspace handoff and shared exact inventory planning.
+//! Crib-to-workspace handoff and shared exact inventory planning.
+#[path = "workspace_handoff.rs"]
+mod handoff;
 use super::{JoinedLineObservation, PlanningAuthority};
 use conduit_body::{BodyBiographyEvidence, BodyPlotPlan};
 use conduit_core::{BootId, HostAdvertisement, HostId};
+pub(crate) use handoff::{handoff_workspace, WorkspaceIssuerCustody};
 use sha2::{Digest, Sha256};
 use std::{cell::RefCell, collections::BTreeMap};
 
@@ -60,10 +63,6 @@ struct CatalogFallback {
 
 pub(crate) fn workspace_evidence() -> Result<BodyBiographyEvidence, String> {
     super::session::biography().ok_or_else(|| "Birth a body before arriving".into())
-}
-
-pub(crate) fn handoff_workspace() {
-    super::session::forget_local();
 }
 
 pub(crate) fn require_workspace_plot(
@@ -277,7 +276,7 @@ fn catalog_plot_plan(
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
-            &crate::installed_browser::patchbay_owner_installation::fore_bounds(&authoring),
+            &super::review::resident_fore::fore_bounds(&authoring),
         )
         .map_err(|error| error.to_string())?;
         return Ok(());
@@ -371,6 +370,14 @@ pub(crate) fn plan_workspace_plots(
                 document, &plot.name, &profile, &backs,
             )
             .map_err(|error| format!("Workspace resident Fore expansion refused: {error:?}"))?;
+            if authoring
+                .expanded
+                .gears
+                .iter()
+                .any(|gear| gear.kind_id.as_str() == conduit_body_make::womb_runtime::WOMB_KIND)
+            {
+                super::review::resident_fore::require_resident_fore(&authoring)?;
+            }
             let placements =
                 conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
                     .map_err(|error| error.to_string())?;
@@ -391,7 +398,7 @@ pub(crate) fn plan_workspace_plots(
                     protected_resource_grants: &[],
                     line_offers: &[],
                 },
-                &crate::installed_browser::patchbay_owner_installation::fore_bounds(&authoring),
+                &super::review::resident_fore::fore_bounds(&authoring),
             )
             .map_err(|error| format!("Workspace resident Fore Plan refused: {error:?}"))?;
             plans.push(BodyPlotPlan {

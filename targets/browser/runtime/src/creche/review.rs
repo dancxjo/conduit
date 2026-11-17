@@ -3,6 +3,7 @@ mod patchbay;
 #[cfg(test)]
 mod patchbay_tests;
 pub(super) mod queue_plan;
+pub(super) mod resident_fore;
 
 use super::initial_plots::InitialPlotSelection;
 use conduit_core::{
@@ -122,7 +123,7 @@ pub(super) fn review_from_inventory(
                 checked, &plot.name, &profile, &backs,
             )
             .map_err(|error| format!("expand reviewed resident {:?}: {error:?}", plot.name))?;
-            patchbay::require_resident_fore(&authored)?;
+            resident_fore::require_resident_fore(&authored)?;
             Some(authored)
         } else {
             None
@@ -167,7 +168,7 @@ pub(super) fn review_from_inventory(
                     protected_resource_grants: &[],
                     line_offers: &[],
                 },
-                &crate::installed_browser::patchbay_owner_installation::fore_bounds(authored),
+                &resident_fore::fore_bounds(authored),
             )
             .map_err(|error| error.to_string()),
             None => queue_plan::plan(
@@ -186,7 +187,7 @@ pub(super) fn review_from_inventory(
             )
         })?;
         if authoring.is_some() {
-            patchbay::require_planned_fore(&admitted)?;
+            resident_fore::require_planned_fore(&admitted)?;
         }
         accumulate_requirements(
             hosts,

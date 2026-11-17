@@ -23,6 +23,59 @@ pub(super) enum Request {
         advertisement: HostAdvertisement,
     },
     Durable,
+    ReserveWomb {
+        reservation: super::womb_provision::Reservation,
+    },
+    CancelWombReservation {
+        host_id: HostId,
+        boot_id: BootId,
+        reservation_id: [u8; 32],
+    },
+    ReleaseWombAfterAdmission {
+        host_id: HostId,
+        boot_id: BootId,
+        reservation_id: [u8; 32],
+    },
+    BeginWombDelivery {
+        host_id: HostId,
+        boot_id: BootId,
+        reservation_id: [u8; 32],
+        now_millis: u64,
+    },
+    StageWombRelease {
+        stage: super::womb_provision::Stage,
+    },
+    ObserveWombResource {
+        host_id: HostId,
+        boot_id: BootId,
+        reservation_id: [u8; 32],
+        placement: Box<conduit_core::PlannedGear>,
+    },
+    BeginWombHostJob {
+        call: super::womb_provision::ProviderCall,
+    },
+    CompleteWombHostJob {
+        call: super::womb_provision::ProviderCall,
+        manifest: Vec<u8>,
+        image: Vec<u8>,
+    },
+    FailWombHostJob {
+        call: super::womb_provision::ProviderCall,
+        cancelled: bool,
+    },
+    RunWombProvider {
+        call: super::womb_provision::ProviderCall,
+    },
+    WombResult {
+        host_id: HostId,
+        boot_id: BootId,
+        reservation_id: [u8; 32],
+    },
+    WombInput {
+        host_id: HostId,
+        boot_id: BootId,
+        reservation_id: [u8; 32],
+    },
     AcknowledgeArchives {
         head_digest: [u8; 32],
     },

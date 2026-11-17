@@ -80,6 +80,7 @@ pub(crate) mod timing;
 pub(crate) mod tutorial_presenter;
 pub(crate) mod typed_record;
 mod values;
+pub(crate) mod womb;
 
 #[cfg(test)]
 mod secret_knock_trigger_plan;
