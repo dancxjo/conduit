@@ -158,7 +158,7 @@ pub(crate) use body::{
 };
 pub(crate) use body_birth::BirthTransition;
 pub(crate) use body_birth::{face as birth_face, interact as submit_birth_interaction};
-pub(crate) use body_run::{lull_owned_body, start_owned_body};
+pub(crate) use body_run::{lull_owned_body, start_owned_body, wake_owned_body};
 #[cfg(unix)]
 pub(crate) use terminal_attach::attached_wardrobe;
 
@@ -1483,6 +1483,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
+        | Request::BodyWake { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::BodyExportSeed { token, .. }
@@ -1541,6 +1542,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserCancel { .. }
                 | Request::BodyBrowserLeave { .. }
                 | Request::BodyMemberLeave { .. }
+                | Request::BodyMemberCarrierReceiver { .. }
+                | Request::BodyMemberCarrierBegin { .. }
+                | Request::BodyMemberCarrierComplete { .. }
                 | Request::BodyMemberCarrierMaskRoute { .. }
                 | Request::BodyMemberCarrierShow { .. }
                 | Request::BodyMemberCarrierInteraction { .. }
@@ -2215,6 +2219,16 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|truth| Response::BodyTruth {
                 protocol: PROTOCOL,
                 truth,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyWake { protocol, .. } if protocol == PROTOCOL => runtime
+            .start_owned_body_from_wake()
+            .map(|()| Response::BodyTruth {
+                protocol: PROTOCOL,
+                truth: serde_json::json!({
+                    "schema":"conduit.body/service-wake-requested@1",
+                    "play_state":"preparing"
+                }),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyStart {

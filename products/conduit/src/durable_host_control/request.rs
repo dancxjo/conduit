@@ -332,6 +332,10 @@ pub(super) enum Request {
         token: Vec<u8>,
         command: crate::cli::NotebookCommand,
     },
+    BodyWake {
+        protocol: u16,
+        token: Vec<u8>,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,

@@ -400,3 +400,30 @@ pub(crate) fn start_owned_body(
 pub(crate) fn lull_owned_body(_state_dir: &Path) -> Result<(), String> {
     Err("service-owned Body Play requires local Unix control".into())
 }
+
+/// Explicit local operator intent. Uses the ordinary Face Wake worker policy;
+/// a lost reply stays outcome-unknown and is never automatically resubmitted.
+#[cfg(unix)]
+pub(crate) fn wake_owned_body(state_dir: &Path) -> Result<(), String> {
+    match call(
+        state_dir,
+        Request::BodyWake {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+        },
+    )? {
+        Response::BodyTruth {
+            protocol: PROTOCOL,
+            truth,
+        } if truth["schema"] == "conduit.body/service-wake-requested@1" => {
+            println!("{truth}");
+            Ok(())
+        }
+        Response::Refused { code, .. } => Err(format!("Body owner refused Wake: {code}")),
+        _ => Err("Body owner returned the wrong Wake response".into()),
+    }
+}
+#[cfg(not(unix))]
+pub(crate) fn wake_owned_body(_state_dir: &Path) -> Result<(), String> {
+    Err("service-owned Body Wake requires local Unix control".into())
+}

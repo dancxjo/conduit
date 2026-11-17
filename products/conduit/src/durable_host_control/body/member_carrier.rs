@@ -9,10 +9,17 @@ impl DurableHostRuntime {
     pub(in crate::durable_host_control) fn owned_body_member_carrier_receiver(
         &mut self,
     ) -> Result<conduit_body::FederationPeer, String> {
+        let running = self.host.body_is_running();
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
-        let peer = owner.prepare_current_member_carrier_receiver()?;
+        let peer = if running {
+            // An active Play may re-read its existing issuer; it cannot create
+            // or reconstruct key custody while the Host is held by the worker.
+            owner.member_carrier_peer()?
+        } else {
+            owner.prepare_current_member_carrier_receiver()?
+        };
         owner.capture_native_issuer_reply();
         Ok(peer)
     }
@@ -25,9 +32,13 @@ impl DurableHostRuntime {
         expires_at_millis: u64,
         maximum_frames: u32,
     ) -> Result<(FederationChallenge, [u8; 64]), String> {
+        let running = self.host.body_is_running();
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
+        if running && !owner.host.has_image_custody() {
+            return Err("active member carrier requires original IMAGE custody".into());
+        }
         let result = owner.begin_current_member_carrier(
             credential,
             advertisement,
@@ -44,9 +55,13 @@ impl DurableHostRuntime {
         challenge: &FederationChallenge,
         signature: Vec<u8>,
     ) -> Result<FederationInspection, String> {
+        let running = self.host.body_is_running();
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member carrier requires the live installed owner".into());
         };
+        if running && !owner.host.has_image_custody() {
+            return Err("active member carrier requires original IMAGE custody".into());
+        }
         let result = owner.complete_current_member_carrier(
             challenge,
             signature

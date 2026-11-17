@@ -388,6 +388,11 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Wake the retained workset using the same admitted service policy as its Face.
+    Wake {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Start the retained Plot on the installed owner's current Host Boot.
     Start {
         #[arg(long)]
@@ -1126,3 +1131,7 @@ mod browser_window_tests;
 #[cfg(test)]
 #[path = "cli/seed_accept_tests.rs"]
 mod seed_accept_tests;
+
+#[cfg(test)]
+#[path = "cli/body_wake_tests.rs"]
+mod body_wake_tests;

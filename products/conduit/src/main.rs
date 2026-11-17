@@ -329,6 +329,9 @@ fn main() {
             command: Some(cli::BodyCommand::SpokenMask { state_dir, command }),
         }) => durable_host_control::direct_spoken::run(&state_dir, command),
         Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::Wake { state_dir }),
+        }) => durable_host_control::wake_owned_body(&state_dir),
+        Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list }),
         }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list),
         Some(cli::Command::Body {
