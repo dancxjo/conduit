@@ -1,7 +1,7 @@
 // Compensation adapted from Bosch BME280_SensorAPI c90d419492e26dd95586598a794e65eb2760753a.
 // Copyright (c) 2020 Bosch Sensortec GmbH. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause; full terms in ../LICENSE-BOSCH.
-use crate::{Chip, DataRefusal, Humidity, HumidityUnavailable, Reading};
+use crate::{Chip, DataRefusal, ExactReading, Humidity, HumidityUnavailable};
 #[derive(Clone, Copy)]
 pub(super) struct Calibration {
     t1: u16,
@@ -58,7 +58,20 @@ impl Calibration {
             h6,
         })
     }
-    pub(super) fn compensate(&self, chip: Chip, raw: &[u8; 8]) -> Result<Reading, DataRefusal> {
+    #[cfg(test)]
+    pub(super) fn compensate(
+        &self,
+        chip: Chip,
+        raw: &[u8; 8],
+    ) -> Result<crate::Reading, DataRefusal> {
+        self.compensate_exact(chip, raw)
+            .map(ExactReading::into_reading)
+    }
+    pub(super) fn compensate_exact(
+        &self,
+        chip: Chip,
+        raw: &[u8; 8],
+    ) -> Result<ExactReading, DataRefusal> {
         let adc = |i| {
             (i128::from(raw[i]) << 12)
                 | (i128::from(raw[i + 1]) << 4)
@@ -119,9 +132,11 @@ impl Calibration {
         } else {
             Humidity::Unavailable(HumidityUnavailable::UnsupportedChip)
         };
-        Ok(Reading {
+        Ok(ExactReading {
             temperature_centi_celsius: centi as i32,
-            pressure_centi_pascal: pascal_centi as u32,
+            // The unchanged centipascal range check above bounds this positive
+            // Q24.8 intermediate well within u32; no pressure bits are dropped.
+            pressure_q24_8_pascal: value as u32,
             humidity,
         })
     }

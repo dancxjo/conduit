@@ -343,3 +343,21 @@ fn transport_loans_preserve_calibration_and_explicit_invalidation_requires_reini
         assert!(steps.borrow().is_empty());
     }
 }
+
+#[test]
+fn exact_measurement_uses_the_existing_acquisition_without_allocating() {
+    let mut script = initialize(Chip::Bme280);
+    script.extend(measure(Chip::Bme280));
+    let (bus, steps, _) = make_bus(script, Address::Primary as u8);
+    let mut sensor = Sensor::new(bus, Address::Primary);
+    let mut delay = Delay::default();
+    assert_eq!(run(sensor.initialize(&mut delay)), Ok(Chip::Bme280));
+    let (result, costs) = allocation_probe::observe(|| run(sensor.measure_exact(&mut delay)));
+    let exact = result.unwrap();
+    assert_eq!(exact.into_reading().pressure_centi_pascal, 10065328);
+    assert_eq!(exact.temperature_centi_celsius, 2508);
+    assert!(steps.borrow().is_empty());
+    assert_eq!((costs.allocations, costs.reallocations), (0, 0));
+    assert_eq!(&delay.calls[..delay.len], &[2_000_000, 10_000_000]);
+    assert_eq!(sensor.chip(), Some(Chip::Bme280));
+}

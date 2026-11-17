@@ -24,6 +24,9 @@ Outputs name their units explicitly:
 - `temperature_centi_celsius`: hundredths of one degree Celsius.
 - `pressure_centi_pascal`: hundredths of one Pascal.
 - `Humidity::PercentQ10`: 1024ths of one percent relative humidity, 0..=102400.
+- `measure_exact` returns `ExactReading::pressure_q24_8_pascal` in 1/256 Pa,
+  before centipascal conversion. `ExactReading::into_reading` preserves the
+  existing two truncations; `measure` uses that conversion on the same acquisition.
 - BMP280 yields `Humidity::Unavailable(UnsupportedChip)` and never reads/writes
   the BME humidity registers. It cannot supply an RH reading.
 
@@ -38,7 +41,9 @@ Rust overflow; the host test covers 20,000 arbitrary register sets.
 The normalized pressure unit follows the **current** Bosch integer64 SensorAPI
 (hundredths Pa), rather than the older datasheet example's Q24.8 Pa. CPU tests
 check the datasheet example within 0.05Pa and compare all three normalized outputs
-exactly against 2,048 trajectories through pinned official C routines. The C
+exactly against 2,048 trajectories through pinned official C routines. The same
+oracle exposes its existing pre-conversion pressure intermediate for exact-value
+comparison; its arithmetic and normalized outputs remain unchanged. The C
 oracle is host-test-only and is never linked into firmware; `cargo test` needs a
 host C compiler named `cc` for that differential test. Protocol tests also prove
 IDs/register order, repeated-start burst lengths, finite busy refusal,
@@ -54,3 +59,7 @@ Compensation formulas and the differential oracle are adapted/copied from Bosch
 Sensortec's BSD-3-Clause SensorAPI. The original copyright, conditions and
 disclaimer are retained in `LICENSE-BOSCH` and the oracle. This CPU proof is not a
 claim that a particular module is wired, powered, detected or operating.
+
+The exact API preserves this driver's current protocol and refusal policy. It is
+not a claim of correspondence with Conduit Source BME contracts, an admitted
+provider, or completed sampling/Mask integration.

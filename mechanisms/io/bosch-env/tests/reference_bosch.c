@@ -65,8 +65,11 @@ static int32_t compensate_temperature(const struct bme280_uncomp_data *uncomp_da
 
     return temperature;
 }
+/* Test-only out parameter observes the pinned routine's existing Q24.8
+ * intermediate; the arithmetic and public centipascal result are unchanged. */
 static uint32_t compensate_pressure(const struct bme280_uncomp_data *uncomp_data,
-                                    const struct bme280_calib_data *calib_data)
+                                    const struct bme280_calib_data *calib_data,
+                                    int64_t *exact_pressure_q24_8)
 {
     int64_t var1;
     int64_t var2;
@@ -84,6 +87,7 @@ static uint32_t compensate_pressure(const struct bme280_uncomp_data *uncomp_data
     var3 = ((int64_t)1) * 140737488355328;
     var1 = (var3 + var1) * ((int64_t)calib_data->dig_p1) / 8589934592;
 
+    *exact_pressure_q24_8 = 0;
     /* To avoid divide by zero exception */
     if (var1 != 0)
     {
@@ -92,6 +96,7 @@ static uint32_t compensate_pressure(const struct bme280_uncomp_data *uncomp_data
         var1 = (((int64_t)calib_data->dig_p9) * (var4 / 8192) * (var4 / 8192)) / 33554432;
         var2 = (((int64_t)calib_data->dig_p8) * var4) / 524288;
         var4 = ((var4 + var1 + var2) / 256) + (((int64_t)calib_data->dig_p7) * 16);
+        *exact_pressure_q24_8 = var4;
         pressure = (uint32_t)(((var4 / 2) * 100) / 128);
 
         if (pressure < pressure_min)
@@ -144,4 +149,4 @@ static uint32_t compensate_humidity(const struct bme280_uncomp_data *uncomp_data
 
     return humidity;
 }
-int main(void){int64_t v[21];while(scanf("%"SCNd64,&v[0])==1){for(int i=1;i<21;i++){if(scanf("%"SCNd64,&v[i])!=1)return 2;}struct bme280_uncomp_data u={.pressure=v[0],.temperature=v[1],.humidity=v[2]};struct bme280_calib_data c={.dig_t1=v[3],.dig_t2=v[4],.dig_t3=v[5],.dig_p1=v[6],.dig_p2=v[7],.dig_p3=v[8],.dig_p4=v[9],.dig_p5=v[10],.dig_p6=v[11],.dig_p7=v[12],.dig_p8=v[13],.dig_p9=v[14],.dig_h1=v[15],.dig_h2=v[16],.dig_h3=v[17],.dig_h4=v[18],.dig_h5=v[19],.dig_h6=v[20]};int32_t t=compensate_temperature(&u,&c);uint32_t p=compensate_pressure(&u,&c);uint32_t h=compensate_humidity(&u,&c);printf("%"PRId32" %"PRIu32" %"PRIu32"\n",t,p,h);}return 0;}
+int main(void){int64_t v[21];while(scanf("%"SCNd64,&v[0])==1){for(int i=1;i<21;i++){if(scanf("%"SCNd64,&v[i])!=1)return 2;}struct bme280_uncomp_data u={.pressure=v[0],.temperature=v[1],.humidity=v[2]};struct bme280_calib_data c={.dig_t1=v[3],.dig_t2=v[4],.dig_t3=v[5],.dig_p1=v[6],.dig_p2=v[7],.dig_p3=v[8],.dig_p4=v[9],.dig_p5=v[10],.dig_p6=v[11],.dig_p7=v[12],.dig_p8=v[13],.dig_p9=v[14],.dig_h1=v[15],.dig_h2=v[16],.dig_h3=v[17],.dig_h4=v[18],.dig_h5=v[19],.dig_h6=v[20]};int32_t t=compensate_temperature(&u,&c);int64_t exact;uint32_t p=compensate_pressure(&u,&c,&exact);uint32_t h=compensate_humidity(&u,&c);printf("%"PRId32" %"PRIu32" %"PRIu32" %"PRId64"\n",t,p,h,exact);}return 0;}

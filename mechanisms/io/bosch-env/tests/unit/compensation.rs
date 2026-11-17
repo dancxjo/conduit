@@ -173,7 +173,9 @@ fn matches_pinned_official_bosch_integer_routines_for_calibration_trajectories()
         );
         let t = if t == 0x80000 { t + 1 } else { t };
         let hraw = if hraw == 0x8000 { hraw + 1 } else { hraw };
-        let result = cal.compensate(Chip::Bme280, &raw(p, t, hraw)).unwrap();
+        let result = cal
+            .compensate_exact(Chip::Bme280, &raw(p, t, hraw))
+            .unwrap();
         expected.push(result);
         write!(
             &mut input,
@@ -212,12 +214,62 @@ fn matches_pinned_official_bosch_integer_routines_for_calibration_trajectories()
             v,
             [
                 i64::from(reading.temperature_centi_celsius),
-                i64::from(reading.pressure_centi_pascal),
+                i64::from(reading.into_reading().pressure_centi_pascal),
                 match reading.humidity {
                     Humidity::PercentQ10(v) => i64::from(v),
                     _ => panic!("BME humidity missing"),
-                }
+                },
+                i64::from(reading.pressure_q24_8_pascal)
             ]
         );
     }
+}
+
+#[test]
+fn exact_pressure_retains_bits_across_legacy_conversion_boundaries() {
+    let reading = |pressure_q24_8_pascal| ExactReading {
+        temperature_centi_celsius: -1234,
+        pressure_q24_8_pascal,
+        humidity: Humidity::PercentQ10(51200),
+    };
+    // The previous conversion intentionally truncates the low Q24.8 bit first.
+    // A single multiply/divide would produce10000001 for the odd boundary.
+    let below = reading(25_600_003);
+    let above = reading(25_600_004);
+    assert_eq!(below.pressure_q24_8_pascal, 25_600_003);
+    assert_eq!(below.into_reading().pressure_centi_pascal, 10_000_000);
+    assert_eq!(above.into_reading().pressure_centi_pascal, 10_000_001);
+    assert_eq!(below.into_reading().temperature_centi_celsius, -1234);
+    assert_eq!(below.into_reading().humidity, below.humidity);
+    // Public data construction must not cause multiplication overflow.
+    assert_eq!(
+        reading(u32::MAX).into_reading().pressure_centi_pascal,
+        1_677_721_599
+    );
+}
+
+#[test]
+fn exact_and_legacy_compensation_keep_existing_refusals() {
+    let (tp, h) = registers();
+    let cal = Calibration::parse(Chip::Bme280, &tp, &h).unwrap();
+    for (sample, expected) in [
+        (raw(0x80000, 519888, 30000), DataRefusal::SkippedData),
+        (raw(415148, 0x80000, 30000), DataRefusal::SkippedData),
+        (raw(415148, 519888, 0x8000), DataRefusal::SkippedData),
+        (raw(0, 519888, 30000), DataRefusal::OutOfRange),
+        (raw(415148, 0, 30000), DataRefusal::OutOfRange),
+    ] {
+        assert_eq!(cal.compensate_exact(Chip::Bme280, &sample), Err(expected));
+        assert_eq!(cal.compensate(Chip::Bme280, &sample), Err(expected));
+    }
+    let mut invalid = cal;
+    invalid.p1 = 0;
+    assert_eq!(
+        invalid.compensate_exact(Chip::Bme280, &raw(415148, 519888, 30000)),
+        Err(DataRefusal::Calibration)
+    );
+    assert_eq!(
+        invalid.compensate(Chip::Bme280, &raw(415148, 519888, 30000)),
+        Err(DataRefusal::Calibration)
+    );
 }

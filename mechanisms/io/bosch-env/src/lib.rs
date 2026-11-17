@@ -37,6 +37,27 @@ pub struct Reading {
     pub pressure_centi_pascal: u32,
     pub humidity: Humidity,
 }
+/// Compensated driver coordinates before the existing pressure conversion.
+/// This retains the driver's current range/refusal policy, not a Source or
+/// capability/admission contract. One pressure unit is 1/256 Pascal.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ExactReading {
+    pub temperature_centi_celsius: i32,
+    pub pressure_q24_8_pascal: u32,
+    pub humidity: Humidity,
+}
+impl ExactReading {
+    /// Preserve the existing two integer truncations, including the discarded
+    /// low pressure bit. Widen first so conversion is safe for any public value.
+    pub fn into_reading(self) -> Reading {
+        Reading {
+            temperature_centi_celsius: self.temperature_centi_celsius,
+            pressure_centi_pascal: (((u64::from(self.pressure_q24_8_pascal) / 2) * 100) / 128)
+                as u32,
+            humidity: self.humidity,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DataRefusal {
     Calibration,
@@ -133,6 +154,16 @@ impl<I: I2c> Sensor<I> {
         Ok(chip)
     }
     pub async fn measure(&mut self, delay: &mut impl DelayNs) -> Result<Reading, Error<I::Error>> {
+        self.measure_exact(delay)
+            .await
+            .map(ExactReading::into_reading)
+    }
+    /// The same acquisition, readiness and refusal behavior as `measure`, with
+    /// the compensated pressure retained before centipascal conversion.
+    pub async fn measure_exact(
+        &mut self,
+        delay: &mut impl DelayNs,
+    ) -> Result<ExactReading, Error<I::Error>> {
         // Taking readiness before the first await makes cancellation fail closed.
         let (chip, calibration) = self.state.ready.take().ok_or(Error::NotInitialized)?;
         if chip == Chip::Bme280 {
@@ -144,7 +175,9 @@ impl<I: I2c> Sensor<I> {
         let mut raw = [0; 8];
         let len = if chip == Chip::Bme280 { 8 } else { 6 };
         self.read(0xf7, &mut raw[..len]).await?;
-        let reading = calibration.compensate(chip, &raw).map_err(Error::Data)?;
+        let reading = calibration
+            .compensate_exact(chip, &raw)
+            .map_err(Error::Data)?;
         self.state.ready = Some((chip, calibration));
         Ok(reading)
     }
