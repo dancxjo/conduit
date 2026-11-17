@@ -9,7 +9,7 @@ pub struct HeapLayout {
     pub primary: u64,
 }
 pub fn checked(total: u64) -> Option<HeapLayout> {
-    if total == 0 || total > SECONDARY_BYTES + PRIMARY_BYTES || total % 16 != 0 {
+    if total == 0 || total > SECONDARY_BYTES + PRIMARY_BYTES || !total.is_multiple_of(16) {
         return None;
     }
     let secondary = total.min(SECONDARY_BYTES);
