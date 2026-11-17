@@ -62,6 +62,10 @@ pub(super) enum HostCommand {
         /// Native platform to compile on this runner.
         #[arg(long, value_enum, default_value_t = host_release::ReleasePlatform::Linux)]
         platform: host_release::ReleasePlatform,
+        /// Include the actual SDL native display for linux-x86-64 or linux-aarch64.
+        /// The selected target's SDL runtime SDK must already be available.
+        #[arg(long)]
+        native_display: bool,
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
@@ -304,5 +308,50 @@ mod tests {
         assert!(Cli::try_parse_from(&args).is_err());
         args.extend(["--speech-language-coverage", "/coverage.cov"]);
         assert!(Cli::try_parse_from(&args).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod release_tests {
+    use super::*;
+    use clap::Parser;
+    #[derive(Parser)]
+    struct Cli {
+        #[command(flatten)]
+        host: HostArgs,
+    }
+    #[test]
+    fn typed_release_selector_matches_dispatch_contract_and_retains_defaults() {
+        let native = Cli::try_parse_from([
+            "xtask-host",
+            "release",
+            "--platform",
+            "linux-x86-64",
+            "--native-display",
+            "--output",
+            "target/fixture",
+        ])
+        .unwrap();
+        let Some(HostCommand::Release {
+            platform,
+            native_display,
+            ..
+        }) = native.host.command
+        else {
+            panic!("expected release");
+        };
+        assert_eq!(platform, host_release::ReleasePlatform::LinuxX86_64);
+        assert!(native_display);
+        let defaults = Cli::try_parse_from(["xtask-host", "release"]).unwrap();
+        let Some(HostCommand::Release {
+            platform,
+            native_display,
+            ..
+        }) = defaults.host.command
+        else {
+            panic!("expected release");
+        };
+        assert_eq!(platform, host_release::ReleasePlatform::Linux);
+        assert!(!native_display);
     }
 }
