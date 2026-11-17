@@ -100,3 +100,36 @@ fn explicit_link_reset_retires_only_an_interrupted_frame() {
     link.reset();
     assert_eq!(ready(link.receive(&mut output)).unwrap(), b"fresh");
 }
+
+#[test]
+fn zero_ready_read_refuses_without_repolling_the_carrier() {
+    let mut link = Link::new(Packets {
+        input: vec![vec![]].into(),
+        ..Default::default()
+    });
+    let mut output = [0xa5; 32];
+    assert_eq!(ready(link.receive(&mut output)), Err(Refusal::NoProgress));
+    assert_eq!(link.carrier.reads, [READ_TIMEOUT_MILLIS]);
+    assert_eq!(output, [0xa5; 32]);
+    // Refusal does not consume a subsequent frame; the composition explicitly
+    // resets interrupted framing before beginning a new exchange.
+    link.carrier.input.push_back(frame(b"fresh"));
+    link.reset();
+    assert_eq!(ready(link.receive(&mut output)).unwrap(), b"fresh");
+}
+#[test]
+fn zero_ready_document_read_refuses_without_repolling_or_completing_custody() {
+    let mut link = Link::new(Packets {
+        input: vec![vec![]].into(),
+        ..Default::default()
+    });
+    let mut backing = [0xa5; 128];
+    let mut document = conduit_wire::BorrowedBoundedDocumentAssembly::new(&mut backing, 4);
+    assert_eq!(
+        ready(link.receive_document(&mut document)),
+        Err(Refusal::NoProgress)
+    );
+    assert_eq!(link.carrier.reads, [READ_TIMEOUT_MILLIS]);
+    assert!(document.completed().is_none());
+    assert_eq!(backing, [0xa5; 128]);
+}
