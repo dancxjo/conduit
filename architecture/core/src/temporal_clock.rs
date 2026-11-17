@@ -101,6 +101,16 @@ impl MonotonicClockIdentity {
         Ok(())
     }
 
+    /// Owned String payload capacities only; the inline identity is excluded.
+    /// This is a storage receipt, not clock qualification or effect authority.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.host_id
+            .0
+            .capacity()
+            .checked_add(self.boot_id.0.capacity())?
+            .checked_add(self.basis_id.capacity())
+    }
+
     pub fn host_id(&self) -> &HostId {
         &self.host_id
     }
@@ -269,5 +279,34 @@ fn validate_identity(value: &str) -> Result<(), MonotonicTimeRefusal> {
         Err(MonotonicTimeRefusal::IdentityTooLarge)
     } else {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod retained_clock_backing_tests {
+    use super::*;
+    #[test]
+    fn identity_receipt_counts_capacities_without_inline_double_count() {
+        let mut basis = alloc::string::String::with_capacity(128);
+        basis.push_str("basis");
+        let identity = MonotonicClockIdentity::new(
+            "host/a".into(),
+            "boot/a".into(),
+            basis,
+            TemporalScale::Microseconds,
+            1,
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            identity.retained_backing_bytes(),
+            Some(
+                identity.host_id.0.capacity()
+                    + identity.boot_id.0.capacity()
+                    + identity.basis_id.capacity()
+            )
+        );
+        assert!(identity.retained_backing_bytes().unwrap() >= 128);
+        assert!(identity.validate().is_ok());
     }
 }
