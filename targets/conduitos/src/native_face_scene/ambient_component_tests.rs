@@ -392,3 +392,85 @@ fn explicit_source_bindings_are_escaped_once_and_cannot_rebind_other_slots() {
         Err(AmbientClockComponentRefusal::SubjectBound)
     );
 }
+
+#[test]
+fn tile_and_fullscreen_context_choose_distinct_compositions_over_the_same_face() {
+    let face = fixture();
+    let identity = face.identity.clone();
+    let basis = face.basis.clone();
+    let mut recipes = BTreeSet::new();
+    for (context, width, height) in [("tile", 320, 320), ("fullscreen", 1024, 600)] {
+        let encounter = AmbientClockEncounter::try_from(context).unwrap();
+        let configuration = configuration(encounter.root());
+        let structure = structure(&configuration, &face).unwrap();
+        recipes.insert(structure.recipe().recipe.identity().clone());
+        let selected = look(&configuration, 100);
+        let mut scene =
+            NativeFaceScene::prepare_structured_look(&structure, width, height, true, &selected)
+                .unwrap();
+        assert_eq!(scene.face().identity, identity);
+        assert_eq!(scene.face().basis, basis);
+        assert_eq!(scene.face(), &face);
+        let first_page = scene
+            .primary
+            .iter()
+            .filter(|row| row.page == 0)
+            .map(|row| row.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert!(first_page.contains("19:45:12"), "{context}: {first_page}");
+        let reading = scene
+            .primary
+            .iter()
+            .chain(&scene.details)
+            .map(|row| row.text.as_str())
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert!(reading.contains("Seattle: 8.4"));
+        assert!(reading.contains("unfamiliar meaning"));
+        for page in 0..scene.pages() {
+            scene.page = page;
+            assert!(scene.frame().unwrap().scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+        }
+    }
+    assert_eq!(recipes.len(), 2);
+    for unsupported in ["", "inspector", "spoken", "tile fullscreen", "Tile"] {
+        assert_eq!(
+            AmbientClockEncounter::try_from(unsupported),
+            Err(AmbientClockComponentRefusal::UnsupportedEncounter)
+        );
+    }
+}
+
+#[test]
+fn authored_clock_components_check_before_host_planning() {
+    let face = fixture();
+    let source = ambient_clock_mask_source(CLOCK, WEATHER, IMAGE).unwrap();
+    for component in ["ambient-clock-component", "ambient-clock-tile-component"] {
+        let prepared = super::structured_source_tests::structure(&source, component, &face);
+        assert_eq!(prepared.face(), &face);
+    }
+}
+
+#[test]
+fn short_tile_keeps_clock_content_together_or_refuses_geometry() {
+    let face = fixture();
+    let configuration = configuration(AmbientClockEncounter::Tile.root());
+    let structure = structure(&configuration, &face).unwrap();
+    let selected = look(&configuration, 100);
+    match NativeFaceScene::prepare_structured_look(&structure, 320, 240, true, &selected) {
+        Ok(scene) => {
+            let first_page = scene
+                .primary
+                .iter()
+                .filter(|row| row.page == 0)
+                .map(|row| row.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" ");
+            assert!(first_page.contains("19:45:12"), "{first_page}");
+            assert_eq!(scene.face(), &face);
+        }
+        Err(FaceSceneError::InvalidExtent) => {}
+        Err(error) => panic!("unexpected tile refusal: {error:?}"),
+    }
+}

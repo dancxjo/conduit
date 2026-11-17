@@ -11,6 +11,39 @@ pub enum AmbientClockComponentRefusal {
     SubjectBound,
     DuplicateSubject,
     Encoding,
+    UnsupportedEncounter,
+}
+
+/// Explicit encounter policy, not a Host offer or permission to realize it.
+/// The first contextual profile has two disjoint candidates, so declaration
+/// order, predicate counts and viewport guesses cannot resolve selection.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AmbientClockEncounter {
+    Tile,
+    Fullscreen,
+}
+
+impl TryFrom<&str> for AmbientClockEncounter {
+    type Error = AmbientClockComponentRefusal;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "tile" => Ok(Self::Tile),
+            "fullscreen" => Ok(Self::Fullscreen),
+            _ => Err(AmbientClockComponentRefusal::UnsupportedEncounter),
+        }
+    }
+}
+
+impl AmbientClockEncounter {
+    /// Exact reviewed Source root. The caller must independently use current
+    /// observed Host offers, user constraints and ordinary Plan admission.
+    pub const fn root(self) -> &'static str {
+        match self {
+            Self::Tile => "ambient-clock-tile",
+            Self::Fullscreen => "ambient-clock-mask",
+        }
+    }
 }
 
 /// Bind explicit original Face references into the reviewed literal recipe.
@@ -43,7 +76,8 @@ pub fn ambient_clock_mask_source(
     ];
     if slots
         .iter()
-        .any(|slot| AMBIENT_CLOCK_MASK_SOURCE.matches(slot).count() != 1)
+        .zip([2, 1, 1])
+        .any(|(slot, count)| AMBIENT_CLOCK_MASK_SOURCE.matches(slot).count() != count)
     {
         return Err(AmbientClockComponentRefusal::Encoding);
     }
