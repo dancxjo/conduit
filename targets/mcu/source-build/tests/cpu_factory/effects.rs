@@ -155,6 +155,10 @@ pub fn ack() -> bool {
 pub fn frame_count() -> usize {
     WIRE.lock().unwrap().total_frames
 }
+pub fn frame_observation() -> (usize, [u8; 4]) {
+    let trace = WIRE.lock().unwrap();
+    (trace.total_frames, trace.digits)
+}
 pub fn last_frame_ms() -> u64 {
     WIRE.lock().unwrap().last_frame_ms
 }

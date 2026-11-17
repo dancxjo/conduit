@@ -10,6 +10,7 @@ use embassy_usb::{
     Builder, UsbDevice,
 };
 mod panic_capture;
+mod phase_trace;
 mod stack_probe;
 use static_cell::StaticCell;
 mod bootsel;

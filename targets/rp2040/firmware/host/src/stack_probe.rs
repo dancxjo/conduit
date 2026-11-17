@@ -1,5 +1,8 @@
 //! Read-only recovery evidence for physical stack headroom; never a grant.
+use core::cell::RefCell;
 use core::sync::atomic::{AtomicUsize, Ordering};
+static TRACE: critical_section::Mutex<RefCell<crate::phase_trace::Trace>> =
+    critical_section::Mutex::new(RefCell::new(crate::phase_trace::Trace::new()));
 const MARK: u32 = 0x9ac6e517;
 static START: AtomicUsize = AtomicUsize::new(0);
 static END: AtomicUsize = AtomicUsize::new(0);
@@ -39,16 +42,41 @@ pub fn checkpoint(phase: usize) {
     if !first {
         return;
     }
+    let (used, peak) = crate::heap::usage();
     // Keep interrupts enabled during the scan: the first sample can already
     // own an in-flight timed GPIO capture. An IRQ can lower the watermark while
     // this aligned volatile read proceeds, so attribution is conservative.
     let spare = scan_spare();
+    critical_section::with(|cs| {
+        TRACE.borrow(cs).borrow_mut().record(
+            phase,
+            used,
+            peak,
+            LAST_MSP.load(Ordering::Relaxed),
+            spare,
+        );
+    });
     if let Some(spare) = spare {
         LAST_SPARE.store(spare, Ordering::Relaxed);
         if spare == 0 && FIRST_ZERO.load(Ordering::Relaxed) == 0 {
             FIRST_ZERO.store(phase, Ordering::Relaxed);
         }
     }
+}
+
+/// Observe the actual Root lease once, before Root initialization. This is
+/// coarse custody of the complete arena, not actual occupancy or retirement.
+pub fn retain_arena(bytes: usize) {
+    critical_section::with(|cs| {
+        let accepted = TRACE.borrow(cs).borrow_mut().retain_arena(bytes);
+        debug_assert!(accepted);
+    });
+}
+
+/// Copy completed first-phase observations into existing inspection storage.
+/// No heap allocation, scan, grant, or change to any owner lifetime occurs here.
+pub fn encode_trace(output: &mut [u8]) -> Option<usize> {
+    critical_section::with(|cs| TRACE.borrow(cs).borrow().encode_into(output))
 }
 
 pub fn startup_checkpoint() -> (usize, usize, usize, usize) {

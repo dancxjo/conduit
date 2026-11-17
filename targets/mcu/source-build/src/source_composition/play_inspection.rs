@@ -4,6 +4,11 @@ pub(super) fn encode(
     request: &[u8],
     output: &mut [u8],
 ) -> Result<Option<usize>, ()> {
+    if request == b"T" {
+        return crate::runtime::encode_memory_trace(output)
+            .map(Some)
+            .ok_or(());
+    }
     if request == b"H" {
         #[derive(serde::Serialize)]
         struct HeapReport {

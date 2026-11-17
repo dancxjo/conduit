@@ -10,6 +10,8 @@ mod execution;
 mod factory;
 mod full_residence;
 mod payload;
+#[path = "../../../../rp2040/firmware/host/src/phase_trace.rs"]
+mod phase_trace;
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
     pub use EXECUTION as EXECUTION_DELEGATION;
@@ -17,6 +19,8 @@ mod config {
     pub use WORK_POOL as RESIDENT_WORK_POOL;
 }
 mod runtime {
+    static TRACE: std::sync::Mutex<crate::phase_trace::Trace> =
+        std::sync::Mutex::new(crate::phase_trace::Trace::new());
     pub struct MonotonicTimer {
         pub slot: usize,
     }
@@ -41,7 +45,21 @@ mod runtime {
     pub fn now_ms() -> u64 {
         crate::cpu_time::now_ms()
     }
-    pub fn stack_checkpoint(_: u32) {}
+    pub fn stack_checkpoint(phase: u32) {
+        TRACE.lock().unwrap().record(
+            phase as usize,
+            crate::accounting::used(),
+            crate::accounting::peak(),
+            u32::MAX as usize,
+            None,
+        );
+    }
+    pub fn retain_trace_arena(bytes: usize) {
+        assert!(TRACE.lock().unwrap().retain_arena(bytes));
+    }
+    pub fn encode_memory_trace(output: &mut [u8]) -> Option<usize> {
+        TRACE.lock().unwrap().encode_into(output)
+    }
     pub fn observe_receipt(_: Option<[u8; 32]>) {
         panic!("absent owner cannot return a receipt")
     }

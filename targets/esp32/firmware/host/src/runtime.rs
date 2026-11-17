@@ -155,3 +155,8 @@ pub fn allocator_peak() -> Option<usize> {
 pub fn stack_checkpoint(phase: usize) {
     let _ = phase;
 }
+
+pub fn encode_memory_trace(_output: &mut [u8]) -> Option<usize> {
+    // This platform has no measured stack/allocator-peak trace provider yet.
+    None
+}

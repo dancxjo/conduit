@@ -31,6 +31,7 @@ pub fn probe(
     }
     .unwrap();
     let mut arena = Some(memory.reserve_remaining().unwrap());
+    crate::runtime::retain_trace_arena(arena.as_ref().unwrap().bytes());
     let mut append_output = [0u8; crate::play::RECORDING_OUTPUT_BYTES];
     let mut residents = crate::resident::inventory().unwrap();
     let mut routing = initialization::routing();
@@ -209,6 +210,7 @@ pub fn probe(
     .unwrap();
     let original_input = parts.workspace.payload_digest().unwrap();
     {
+        crate::runtime::stack_checkpoint(3);
         let result = crate::play::prepare(
             &*parts.workspace,
             context.into(),
@@ -253,6 +255,7 @@ pub fn probe(
                 .map(Some)
             },
         );
+        crate::runtime::stack_checkpoint(4);
         println!("CPU_PHASE factory_peak={}", crate::accounting::phase_peak());
         println!(
             "CPU_FACTORY_RETURN original_complete_factory_called=true error={:?} detail={}",
@@ -283,6 +286,7 @@ pub fn probe(
                     "baseline unexpectedly prepared; explicitly qualify corrected case"
                 );
                 crate::accounting::begin_phase();
+                crate::runtime::stack_checkpoint(5);
                 let presentation = crate::play_service::prepare_presentation(
                     &prepared,
                     context.into(),
@@ -294,6 +298,7 @@ pub fn probe(
                     &face,
                 )
                 .expect("original renderer preparation");
+                crate::runtime::stack_checkpoint(6);
                 println!(
                     "CPU_PHASE renderer_peak={}",
                     crate::accounting::phase_peak()
@@ -301,6 +306,7 @@ pub fn probe(
                 crate::accounting::begin_phase();
                 let mut started = None;
                 let mut scopes = None;
+                crate::runtime::stack_checkpoint(7);
                 crate::play_service::start_prepared_into(
                     prepared,
                     &*parts.workspace,
@@ -322,6 +328,7 @@ pub fn probe(
                     &mut scopes,
                 )
                 .expect("original complete admission and Start");
+                crate::runtime::stack_checkpoint(8);
                 println!(
                     "CPU_PHASE admission_Start_peak={}",
                     crate::accounting::phase_peak()
@@ -357,6 +364,23 @@ pub fn probe(
                     );
                     crate::accounting::begin_phase();
                     let display_fresh = crate::execution::drive(future, &face);
+                    // drive's pinned future has actually dropped here. This
+                    // is CPU lexical quiescence, not firmware Lull or complete
+                    // resource retirement: original admissions remain retained.
+                    assert_eq!(memory.remaining_bytes(), crate::config::HEAP_BYTES);
+                    crate::runtime::stack_checkpoint(22);
+                    let mut trace = [0; crate::phase_trace::ENCODED_BYTES];
+                    assert_eq!(
+                        crate::runtime::encode_memory_trace(&mut trace),
+                        Some(trace.len())
+                    );
+                    let output = std::env::var_os("CPU_PROOF_OUTPUT").unwrap();
+                    std::fs::write(
+                        std::path::PathBuf::from(output).join("phase-trace.bin"),
+                        trace,
+                    )
+                    .unwrap();
+                    println!("CPU_LEXICAL_QUIESCENCE original_arena_remaining={} original_admissions_retained=true firmware_retirement=false",memory.remaining_bytes());
                     println!(
                         "CPU_PHASE Source_run_peak={}",
                         crate::accounting::phase_peak()

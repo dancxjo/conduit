@@ -24,6 +24,7 @@ pub async fn run(
     let arena = image_memory
         .reserve_remaining()
         .expect("whole original IMAGE arena");
+    crate::stack_probe::retain_arena(arena.bytes());
     let prefix = if crate::config::EXECUTION_DELEGATION
         .and_then(|p| p.continuation)
         .is_some()
@@ -135,4 +136,8 @@ pub fn allocator_peak() -> Option<usize> {
 #[inline(always)]
 pub fn stack_checkpoint(phase: usize) {
     crate::stack_probe::checkpoint(phase);
+}
+
+pub fn encode_memory_trace(output: &mut [u8]) -> Option<usize> {
+    crate::stack_probe::encode_trace(output)
 }

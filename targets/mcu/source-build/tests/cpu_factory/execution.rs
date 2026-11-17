@@ -1,10 +1,50 @@
 //! Finite poll driver for the ORIGINAL Source actor future, never a scheduler.
 use conduit_environment_runtime::publication_face_custody::LocalPublicationFace;
+use sha2::{Digest, Sha256};
 use std::{
     future::Future,
     sync::atomic::Ordering::SeqCst,
     task::{Context, Poll, Waker},
 };
+
+// CPU observation only. Fixed scratch is stack, not measured MCU stack proof.
+struct PageProvenance {
+    frames: usize,
+    previous: Option<(usize, u64, [u8; 32], [u8; 4])>,
+    changes_without_observation: usize,
+}
+impl PageProvenance {
+    fn observe(&mut self, face: &LocalPublicationFace) {
+        let (frames, digits) = crate::effects::frame_observation();
+        if frames == self.frames {
+            return;
+        }
+        self.frames = frames;
+        let mut bytes = [0; crate::workset::renderer::RENDERER_FACE_BYTES as usize];
+        let (sequence, digest) = face
+            .with_retained(|current, status| {
+                let bytes = conduit_face::postcard_wire::encode_face(current, &mut bytes).unwrap();
+                (
+                    status.source_sequence,
+                    <[u8; 32]>::from(Sha256::digest(bytes)),
+                )
+            })
+            .unwrap();
+        let captures = crate::effects::CAPTURES.load(SeqCst);
+        if let Some((old_captures, old_sequence, old_digest, old_digits)) = self.previous {
+            if captures == old_captures && sequence == old_sequence {
+                assert_eq!(
+                    digest, old_digest,
+                    "timed display changed the retained observation Face"
+                );
+                if digits != old_digits {
+                    self.changes_without_observation += 1;
+                }
+            }
+        }
+        self.previous = Some((captures, sequence, digest, digits));
+    }
+}
 fn target_samples() -> u64 {
     let samples = std::env::var("CPU_TARGET_SAMPLES")
         .ok()
@@ -22,6 +62,11 @@ pub fn drive<F: Future>(future: F, face: &LocalPublicationFace) -> bool {
     let mut settled = None;
     let target = target_samples();
     let mut plateau = [false; 10];
+    let mut pages = PageProvenance {
+        frames: 0,
+        previous: None,
+        changes_without_observation: 0,
+    };
     let period = crate::workset::sampling::CLOCKS[0].1;
     let poll_budget = ((period * (target + 1) + 5000) / 10) as usize;
     for polls in 0..poll_budget {
@@ -30,6 +75,7 @@ pub fn drive<F: Future>(future: F, face: &LocalPublicationFace) -> bool {
             "continuing Source terminated"
         );
         crate::cpu_time::advance(10);
+        pages.observe(face);
         let status = face.with_retained(|_, status| status).unwrap();
         for (slot, sequence) in [2, 4, 8, 16, 32, 64, 128, 256, 512, target]
             .iter()
@@ -64,6 +110,11 @@ pub fn drive<F: Future>(future: F, face: &LocalPublicationFace) -> bool {
         }
     }
     assert!(completed,"bounded Source did not keep measuring/displaying: captures={} waits={} programs={} frames={}",crate::effects::CAPTURES.load(SeqCst),crate::effects::WAITS.load(SeqCst),crate::effects::PROGRAMS.load(SeqCst),crate::effects::frame_count());
+    assert!(
+        pages.changes_without_observation > 0,
+        "no actual page change observed between samples"
+    );
+    println!("CPU_PAGE_PROVENANCE page_changes_without_new_observation={} complete_Face_bytes_unchanged=true includes_original_freshness=true", pages.changes_without_observation);
     assert!(crate::effects::RECEIVES.load(SeqCst) > 0);
     println!("CPU_PEER_ABSENT transport_sends={} receives_pending={} incoming_frames=0 durable_acknowledgments=0",crate::effects::TRANSPORT_SENDS.load(SeqCst),crate::effects::RECEIVES.load(SeqCst));
     if std::env::var_os("CPU_FAIL_FORE_READ").is_some() {
