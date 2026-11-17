@@ -1,6 +1,6 @@
 //! The native two-slot ledger must admit queued + newly completed observations.
 use super::*;
-use conduit_kernel::{HostedValueStore, ValueStorage};
+use conduit_kernel::{HostedValueStore, StorageError, ValueStorage};
 fn definition(resident: bool) -> NativeSourceDefinition {
     use conduit_std_offers::*;
     let kind = if resident {
@@ -92,6 +92,17 @@ fn compiler_and_other_native_profiles_keep_original_input_plus_output_ledger() {
     d.input_bytes = 16384;
     d.output_bytes = 65536;
     assert_eq!(value_byte_budget(&d), 81920);
+    let mut compiler =
+        HostedValueStore::new_with_slot_capacities(&[65536, 65536], value_byte_budget(&d)).unwrap();
+    let output = compiler.store(&[0u8; 65536]).unwrap();
+    assert_eq!(
+        compiler.store(&[0u8; 65536]),
+        Err(StorageError::ByteCapacityExceeded),
+        "compiler retains its one-input/one-output byte envelope"
+    );
+    let input = compiler.store(&[0u8; 16384]).unwrap();
+    compiler.release(input).unwrap();
+    compiler.release(output).unwrap();
     d.input_bytes = 8;
     d.output_bytes = 8192;
     assert_eq!(
