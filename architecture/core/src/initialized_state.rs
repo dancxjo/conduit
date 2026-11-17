@@ -21,7 +21,15 @@ pub fn initialized_state_boundary<'a>(
     outputs: &[PortDescriptor],
     semantic: &'a KindSemanticContract,
 ) -> Result<Option<&'a InitializedStateLaw>, &'static str> {
-    let mut laws = semantic.laws.iter().filter_map(|law| match law {
+    initialized_state_boundary_laws(inputs, outputs, &semantic.laws)
+}
+
+fn initialized_state_boundary_laws<'a>(
+    inputs: &[PortDescriptor],
+    outputs: &[PortDescriptor],
+    semantic_laws: &'a [KindSemanticLaw],
+) -> Result<Option<&'a InitializedStateLaw>, &'static str> {
+    let mut laws = semantic_laws.iter().filter_map(|law| match law {
         KindSemanticLaw::InitializedState(value) => Some(value),
         _ => None,
     });
@@ -31,8 +39,7 @@ pub fn initialized_state_boundary<'a>(
     if laws.next().is_some() || inputs.len() != 1 || outputs.len() != 1 {
         return Err("initialized state requires one exact update/current boundary");
     }
-    let mut state = semantic
-        .laws
+    let mut state = semantic_laws
         .iter()
         .filter(|law| matches!(law, KindSemanticLaw::TemporalState(_)));
     if state.next()
@@ -66,11 +73,14 @@ pub fn initialized_state_boundary<'a>(
     Ok(Some(law))
 }
 
-pub(crate) fn validate_kind(kind: &crate::Kind) -> Result<(), crate::KindValidationError> {
+pub(crate) fn validate_kind(
+    inputs: &[PortDescriptor],
+    outputs: &[PortDescriptor],
+    semantic_laws: &[KindSemanticLaw],
+) -> Result<(), crate::KindValidationError> {
     // Ordinary Kinds may carry large structured configuration. Do not clone
     // their entire semantic contract merely to discover this law is absent.
-    if !kind
-        .semantic_laws
+    if !semantic_laws
         .iter()
         .any(|law| matches!(law, KindSemanticLaw::InitializedState(_)))
     {
@@ -78,7 +88,7 @@ pub(crate) fn validate_kind(kind: &crate::Kind) -> Result<(), crate::KindValidat
     }
     // Checker projections carry placeholder realization limits. Check meaning
     // here; the planner separately checks the selected Back's finite storage.
-    initialized_state_boundary(&kind.inputs, &kind.outputs, &kind.semantic_contract())
+    initialized_state_boundary_laws(inputs, outputs, semantic_laws)
         .map(|_| ())
         .map_err(|_| crate::KindValidationError::InvalidInitializedState)
 }
