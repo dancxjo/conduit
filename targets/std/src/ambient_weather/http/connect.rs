@@ -82,7 +82,7 @@ pub(super) fn connect(
             let mut address: libc::sockaddr_in6 = unsafe { std::mem::zeroed() };
             address.sin6_family = libc::AF_INET6 as libc::sa_family_t;
             address.sin6_port = peer.port().to_be();
-            address.sin6_flowinfo = peer.flowinfo();
+            address.sin6_flowinfo = peer.flowinfo().to_be();
             address.sin6_scope_id = peer.scope_id();
             address.sin6_addr.s6_addr = peer.ip().octets();
             #[cfg(any(

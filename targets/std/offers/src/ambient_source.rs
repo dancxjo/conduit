@@ -63,6 +63,7 @@ fn source_offer(resident: bool) -> Result<CapabilityOffer, String> {
             include_str!("../../src/ambient_weather/current_wire.rs"),
             include_str!("../../src/ambient_weather/current_wire/json.rs"),
             include_str!("../../src/ambient_weather/http.rs"),
+            include_str!("../../src/ambient_weather/http/connect.rs"),
             include_str!("../../src/ambient_weather/wire.rs"),
             include_str!("../../src/ambient_weather/decimal.rs"),
             include_str!("../../src/selected_native_source/worker.rs"),
