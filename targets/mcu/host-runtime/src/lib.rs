@@ -2,12 +2,12 @@
 //! Shared native membership and bounded signed-input custody.
 //! These mechanisms create no execution authority or alternate Root/kernel.
 pub mod ingress;
-pub mod preparation_trace;
 #[cfg(feature = "member-return")]
 pub mod member_return;
 #[cfg(all(test, feature = "member-return"))]
 mod member_return_tests;
 pub mod membership;
+pub mod preparation_trace;
 #[cfg(feature = "return-receiver")]
 pub mod return_receiver;
 pub mod transport;
