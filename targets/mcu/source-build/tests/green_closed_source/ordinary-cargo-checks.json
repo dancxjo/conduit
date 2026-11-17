@@ -1,0 +1,57 @@
+{
+  "observed_at": "2026-11-17T07:01:15.752227+00:00",
+  "proof_class": "ordinary host Cargo library/test compilation; no test execution",
+  "checked_source_commit": "998c58e58e001e36158928e18f92135ae94d04ec",
+  "checked_tree": "4acb067c4915232b578544cc8fd55e6127d9b43b",
+  "cargo_lock_sha256": "2825e29915c1ef065600711e91e5598900898cfae7e9a740ba971917f756dc64",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--offline",
+        "-p",
+        "conduit-mcu-source-build",
+        "--features",
+        "execution-workspace",
+        "--tests"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed": "0.87s",
+      "raw_log_sha256": "91fe8f1dbf9ae937f8515e1c508f3d725f6ff4eb2971e3471dba531b31b41198",
+      "raw_log_location": "ignored target/green-delivery-cargo-feature-check.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--locked",
+        "--offline",
+        "-p",
+        "conduit-mcu-source-build",
+        "--tests"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0"
+      },
+      "exit_code": 0,
+      "elapsed": "0.84s",
+      "raw_log_sha256": "094fd643b2cf94cd004933f15453880bcf031907b9b497a8021e33002a521ef8",
+      "raw_log_location": "ignored target/green-delivery-cargo-default-check.log"
+    }
+  ],
+  "limits": [
+    "No Make/recipe or RP2040 forwarding/target/link qualification",
+    "No complete Cord/Mask/HT16 kernel admission or Started",
+    "No physical I2C, power-cycle, firmware heap/stack or whole static-memory proof",
+    "Original cooperative work refusal 17282/5000 remains unchanged",
+    "Resolved supporting features are not globally software-storage neutral; see WORKSPACE-REDUCTION.md"
+  ]
+}

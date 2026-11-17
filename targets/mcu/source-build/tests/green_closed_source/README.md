@@ -15,6 +15,7 @@ new grant or autonomous restart is fabricated.
 
 The bounded component evidence proves real resident backing reduction using
 existing immutable-image/shared-workspace APIs. The17282/5000 work refusal remains.
-Regular Cargo/Make/target, whole-workset admission, full Cord geometry and actual
-sampling/display qualification are pending. Ambient's complete Body workset is
+Ordinary host Cargo check, including test compilation, passes with support on and
+off; see [the compact receipt](ordinary-cargo-checks.json). Make/target, whole-workset
+admission, full Cord geometry and actual sampling/display qualification are pending. Ambient's complete Body workset is
 unchanged. No hardware/deployment effects occurred.
