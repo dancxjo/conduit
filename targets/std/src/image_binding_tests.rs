@@ -12,7 +12,7 @@ use conduit_plot::{
 
 use crate::{StdHost, TimerAdapter};
 
-fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, HostImage) {
+pub(crate) fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, HostImage) {
     // Construction includes a display, but this fixture initializes only its
     // timer. Resolve the complete finite Mask prerequisites through the same
     // checked Source entrance as ordinary Host construction.
