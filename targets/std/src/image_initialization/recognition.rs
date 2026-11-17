@@ -7,7 +7,7 @@ pub(crate) struct InitialWhisper {
     pub(super) adapter: WhisperSpeechAdapter,
 }
 impl InitialWhisper {
-    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    #[cfg(any(test, all(target_os = "linux", feature = "linux-display")))]
     pub(crate) fn prepare(
         config: &StdHostConfig,
         image: &HostImage,
