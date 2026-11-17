@@ -3,6 +3,27 @@ use crate::{DeadlineReactor, DeadlineWake, TimerAdapter};
 use conduit_kernel::scheduler::{HostCallCancellation, HostCallRequest};
 use conduit_kernel::{HostCallDisposition, HostCallOutcome};
 
+#[derive(Debug)]
+pub(super) enum InstalledDeadlineError {
+    Message(&'static str),
+    Reactor(&'static str, crate::DeadlineReactorError),
+    Scheduler(&'static str, conduit_kernel::scheduler::SchedulerError),
+}
+impl core::fmt::Display for InstalledDeadlineError {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Message(message) => formatter.write_str(message),
+            Self::Reactor(message, error) => write!(formatter, "{message}: {error:?}"),
+            Self::Scheduler(message, error) => write!(formatter, "{message}: {error:?}"),
+        }
+    }
+}
+impl From<InstalledDeadlineError> for String {
+    fn from(error: InstalledDeadlineError) -> Self {
+        error.to_string()
+    }
+}
+
 pub(super) struct InstalledDeadlineHost<const SLOTS: usize> {
     reactor: DeadlineReactor<SLOTS>,
     last_now_ms: Option<u64>,
@@ -21,21 +42,21 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
         request: HostCallRequest,
         duration_ms: u64,
         now_ms: u64,
-    ) -> Result<(), String> {
+    ) -> Result<(), InstalledDeadlineError> {
         self.observe_now(now_ms)?;
         self.reactor
             .arm(request.into(), duration_ms, now_ms)
-            .map_err(|error| format!("arm admitted deadline: {error:?}"))
+            .map_err(|error| InstalledDeadlineError::Reactor("arm admitted deadline", error))
     }
 
     pub(super) fn cancel(
         &mut self,
         cancellation: HostCallCancellation,
         scheduler: &mut InstalledScheduler,
-    ) -> Result<(), String> {
+    ) -> Result<(), InstalledDeadlineError> {
         self.reactor
             .cancel(cancellation.into())
-            .map_err(|error| format!("cancel admitted deadline: {error:?}"))?;
+            .map_err(|error| InstalledDeadlineError::Reactor("cancel admitted deadline", error))?;
         scheduler
             .complete_host_call(
                 cancellation.node,
@@ -46,28 +67,34 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
                     failure: None,
                 },
             )
-            .map_err(|error| format!("complete cancelled deadline: {error:?}"))
+            .map_err(|error| {
+                InstalledDeadlineError::Scheduler("complete cancelled deadline", error)
+            })
     }
 
     pub(super) fn complete_next<T: TimerAdapter>(
         &mut self,
         scheduler: &mut InstalledScheduler,
         timer: &mut T,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, InstalledDeadlineError> {
         if self.reactor.is_empty() {
             return Ok(false);
         }
-        let now_ms = timer
-            .monotonic_now_ms()
-            .ok_or_else(|| "admitted monotonic deadline Base became unavailable".to_string())?;
+        let now_ms = timer.monotonic_now_ms().ok_or({
+            InstalledDeadlineError::Message("admitted monotonic deadline Base became unavailable")
+        })?;
         self.observe_now(now_ms)?;
         let wake = match self.reactor.poll(now_ms) {
             DeadlineWake::Pending { deadline_ms } => {
                 if !timer.wait_until_monotonic_ms(deadline_ms) {
-                    return Err("admitted monotonic deadline wait became unavailable".to_string());
+                    return Err(InstalledDeadlineError::Message(
+                        "admitted monotonic deadline wait became unavailable",
+                    ));
                 }
-                let after_wait = timer.monotonic_now_ms().ok_or_else(|| {
-                    "admitted monotonic deadline clock became unavailable after wait".to_string()
+                let after_wait = timer.monotonic_now_ms().ok_or({
+                    InstalledDeadlineError::Message(
+                        "admitted monotonic deadline clock became unavailable after wait",
+                    )
                 })?;
                 self.observe_now(after_wait)?;
                 self.reactor.poll(after_wait)
@@ -82,13 +109,13 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
         &mut self,
         scheduler: &mut InstalledScheduler,
         timer: &mut T,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, InstalledDeadlineError> {
         if self.reactor.is_empty() {
             return Ok(false);
         }
-        let now_ms = timer
-            .monotonic_now_ms()
-            .ok_or_else(|| "admitted monotonic deadline Base became unavailable".to_string())?;
+        let now_ms = timer.monotonic_now_ms().ok_or({
+            InstalledDeadlineError::Message("admitted monotonic deadline Base became unavailable")
+        })?;
         self.observe_now(now_ms)?;
         Self::complete_wake(scheduler, self.reactor.poll(now_ms))
     }
@@ -96,7 +123,7 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
     fn complete_wake(
         scheduler: &mut InstalledScheduler,
         wake: DeadlineWake,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, InstalledDeadlineError> {
         let DeadlineWake::Fired(key) = wake else {
             return match wake {
                 DeadlineWake::Empty => Ok(false),
@@ -114,7 +141,7 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
                     failure: None,
                 },
             )
-            .map_err(|error| format!("complete fired deadline: {error:?}"))?;
+            .map_err(|error| InstalledDeadlineError::Scheduler("complete fired deadline", error))?;
         Ok(true)
     }
 
@@ -126,9 +153,11 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
         self.reactor.is_empty()
     }
 
-    fn observe_now(&mut self, now_ms: u64) -> Result<(), String> {
+    fn observe_now(&mut self, now_ms: u64) -> Result<(), InstalledDeadlineError> {
         if self.last_now_ms.is_some_and(|previous| now_ms < previous) {
-            return Err("admitted monotonic deadline Base regressed or became stale".to_string());
+            return Err(InstalledDeadlineError::Message(
+                "admitted monotonic deadline Base regressed or became stale",
+            ));
         }
         self.last_now_ms = Some(now_ms);
         Ok(())

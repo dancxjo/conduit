@@ -21,16 +21,16 @@ pub(super) fn prepare<'a>(
     if fragments.len() != lowered.len() {
         return Err("Body file Text partition mismatch".into());
     }
-    fragments
-        .iter()
-        .zip(lowered)
-        .map(|(fragment, partition)| {
-            DataTextGenerationHosts::prepare_for_body(
-                fragment,
-                &partition.identity,
-                #[cfg(target_os = "linux")]
-                selected_file,
-            )
-        })
-        .collect()
+    let mut hosts = Vec::with_capacity(fragments.len());
+    for host in fragments.iter().zip(lowered).map(|(fragment, partition)| {
+        DataTextGenerationHosts::prepare_for_body(
+            fragment,
+            &partition.identity,
+            #[cfg(target_os = "linux")]
+            selected_file,
+        )
+    }) {
+        hosts.push(host?);
+    }
+    Ok(hosts)
 }

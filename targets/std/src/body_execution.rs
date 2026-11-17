@@ -42,6 +42,8 @@ mod creche;
 #[cfg(test)]
 mod creche_tests;
 mod execution;
+mod image;
+pub use image::ImageBodyRunReport;
 mod fore;
 mod fore_custody;
 pub use fore_custody::{

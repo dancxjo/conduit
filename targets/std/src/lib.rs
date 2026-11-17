@@ -257,86 +257,7 @@ pub mod usb_cdc;
 pub mod websocket;
 
 #[cfg(test)]
-mod allocation_probe {
-    use std::alloc::{GlobalAlloc, Layout, System};
-    use std::cell::Cell;
-
-    pub struct TrackingAllocator;
-
-    thread_local! {
-        static TRACKING: Cell<bool> = const { Cell::new(false) };
-        static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
-    }
-
-    fn record() {
-        let _ = TRACKING.try_with(|tracking| {
-            if tracking.get() {
-                let _ = ALLOCATIONS.try_with(|allocations| {
-                    allocations.set(allocations.get().saturating_add(1));
-                });
-            }
-        });
-    }
-
-    unsafe impl GlobalAlloc for TrackingAllocator {
-        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-            let pointer = unsafe { System.alloc(layout) };
-            if !pointer.is_null() {
-                record();
-            }
-            pointer
-        }
-
-        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-            let pointer = unsafe { System.alloc_zeroed(layout) };
-            if !pointer.is_null() {
-                record();
-            }
-            pointer
-        }
-
-        unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
-            unsafe { System.dealloc(pointer, layout) };
-        }
-
-        unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-            let pointer = unsafe { System.realloc(pointer, layout, new_size) };
-            if !pointer.is_null() {
-                record();
-            }
-            pointer
-        }
-    }
-
-    #[global_allocator]
-    static ALLOCATOR: TrackingAllocator = TrackingAllocator;
-
-    pub struct Guard {
-        finished: bool,
-    }
-
-    impl Guard {
-        pub fn finish(mut self) -> usize {
-            self.finished = true;
-            TRACKING.with(|tracking| tracking.set(false));
-            ALLOCATIONS.with(Cell::get)
-        }
-    }
-
-    impl Drop for Guard {
-        fn drop(&mut self) {
-            if !self.finished {
-                TRACKING.with(|tracking| tracking.set(false));
-            }
-        }
-    }
-
-    pub fn begin() -> Guard {
-        ALLOCATIONS.with(|allocations| allocations.set(0));
-        TRACKING.with(|tracking| tracking.set(true));
-        Guard { finished: false }
-    }
-}
+mod allocation_probe;
 
 #[derive(Debug, Clone)]
 pub struct StdHostConfig {
@@ -439,6 +360,21 @@ pub trait TimerAdapter {
 
     /// Returns the current host/boot-scoped monotonic millisecond reading when
     /// this adapter offers the admitted deadline contract.
+    /// Maximum owned String payload of this adapter's prepared clock identity.
+    /// Selected IMAGE preparation refuses adapters without a finite bound.
+    fn monotonic_identity_backing_bound(
+        &self,
+        _host: &conduit_core::HostId,
+        _boot: &conduit_core::BootId,
+    ) -> Option<usize> {
+        None
+    }
+
+    /// Allocation-free sample of the exact previously prepared basis.
+    fn monotonic_ticks_on(&mut self, _basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        None
+    }
+
     fn monotonic_now_ms(&mut self) -> Option<u64> {
         None
     }
@@ -459,67 +395,8 @@ pub trait TimerAdapter {
     }
 }
 
-pub struct ThreadTimer;
-
-static THREAD_TIMER_EPOCH: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
-static THREAD_TIMER_BASIS: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
-
-impl TimerAdapter for ThreadTimer {
-    fn wait(&mut self, duration: Duration) {
-        thread::sleep(duration);
-    }
-
-    fn monotonic_now_ms(&mut self) -> Option<u64> {
-        u64::try_from(
-            THREAD_TIMER_EPOCH
-                .get_or_init(Instant::now)
-                .elapsed()
-                .as_millis(),
-        )
-        .ok()
-    }
-
-    fn monotonic_now_micros(&mut self) -> Option<u64> {
-        u64::try_from(
-            THREAD_TIMER_EPOCH
-                .get_or_init(Instant::now)
-                .elapsed()
-                .as_micros(),
-        )
-        .ok()
-    }
-
-    fn monotonic_observation(
-        &mut self,
-        host_id: &conduit_core::HostId,
-        boot_id: &conduit_core::BootId,
-    ) -> Option<conduit_core::MonotonicInstant> {
-        let basis = THREAD_TIMER_BASIS
-            .get_or_init(|| {
-                let mut nonce = [0u8; 16];
-                getrandom::fill(&mut nonce).ok()?;
-                Some(format!(
-                    "std/thread-timer/process-epoch/{:08x}{}",
-                    std::process::id(),
-                    nonce
-                        .iter()
-                        .map(|byte| format!("{byte:02x}"))
-                        .collect::<String>()
-                ))
-            })
-            .as_ref()?;
-        let identity = conduit_core::MonotonicClockIdentity::new(
-            host_id.clone(),
-            boot_id.clone(),
-            basis.clone(),
-            conduit_core::TemporalScale::Microseconds,
-            1,
-            1,
-        )
-        .ok()?;
-        conduit_core::MonotonicInstant::new(self.monotonic_now_micros()?, identity).ok()
-    }
-}
+mod thread_timer;
+pub use thread_timer::ThreadTimer;
 
 pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
     path: &str,
@@ -2351,3 +2228,5 @@ pub mod worker_text_result;
 
 mod creche_host;
 pub mod hosted_creche;
+
+mod image_initialization;

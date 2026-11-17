@@ -9,6 +9,8 @@ pub enum LoweringError {
     StateStorageExceeded,
     EmptyFragment,
     CapacityOverflow,
+    AllocationFailed,
+    UnsupportedOwnedLayout,
     ProfileCapacityExceeded {
         placement_id: PlacementId,
         direction: PortDirection,

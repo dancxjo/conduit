@@ -2,6 +2,7 @@
 //! Initialized-offer and accounting fixtures, not installed Play/overlap evidence.
 use conduit_core::*;
 use conduit_plan_lowering::execution_regions::*;
+use conduit_std_host::kernel_multivalue;
 #[allow(dead_code)]
 #[path = "support/region_accounting.rs"]
 mod accounting;

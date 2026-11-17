@@ -12,6 +12,7 @@ impl crate::StdHost {
     }
 
     pub fn attach_microphone(&mut self, adapter: AlsaMicrophoneAdapter) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("microphone cannot replace active Host reservations".into());
         }
@@ -65,8 +66,7 @@ impl crate::StdHost {
                 .as_str()
                 .cmp(right.capability_id.as_str())
         });
-        let kernel_resources =
-            crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let kernel_resources = self.kernel_resources.replacement_for(&advertisement)?;
         self.advance_retained_spoken_offer_generation(advertisement.offer_generation)?;
         self.advertisement = advertisement;
         self.microphone = Some(adapter);

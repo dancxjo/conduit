@@ -12,7 +12,7 @@ pub(super) struct KeyboardInputHost<'a> {
     button_source: bool,
     pending_keyboard: Option<HostCallRequest>,
     pending_button: Option<HostCallRequest>,
-    button_encoder: conduit_semantic_catalog::PreparedButtonTransitionEncoder,
+    button_encoder: Option<conduit_semantic_catalog::PreparedButtonTransitionEncoder>,
     button_held: bool,
     button_sequence: u64,
     terminal: bool,
@@ -53,10 +53,10 @@ impl<'a> KeyboardInputHost<'a> {
             button_source,
             pending_keyboard: None,
             pending_button: None,
-            button_encoder: conduit_semantic_catalog::PreparedButtonTransitionEncoder::new(
-                "button/primary",
-            )
-            .expect("reviewed button transition encoder"),
+            button_encoder: button_source.then(|| {
+                conduit_semantic_catalog::PreparedButtonTransitionEncoder::new("button/primary")
+                    .expect("reviewed button transition encoder")
+            }),
             button_held: false,
             button_sequence: 0,
             terminal: false,
@@ -306,12 +306,14 @@ impl<'a> KeyboardInputHost<'a> {
                         };
                         self.button_held = pressed;
                         self.button_sequence = next;
-                        let encoded =
-                            self.button_encoder
-                                .encode(pressed, sequence)
-                                .map_err(|error| {
-                                    format!("encode portable button transition: {error:?}")
-                                })?;
+                        let encoded = self
+                            .button_encoder
+                            .as_mut()
+                            .expect("selected button source has prepared encoder")
+                            .encode(pressed, sequence)
+                            .map_err(|error| {
+                                format!("encode portable button transition: {error:?}")
+                            })?;
                         let value = scheduler.store_host_value(encoded).map_err(|error| {
                             format!("store portable button transition: {error:?}")
                         })?;

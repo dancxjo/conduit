@@ -24,6 +24,15 @@ pub(super) struct SingleInput<'a> {
 }
 
 impl<'a> PreparedForeInputs<'a> {
+    pub(super) fn empty_backing_bytes(&self) -> Option<usize> {
+        match self {
+            Self::Single(entries) if entries.is_empty() => entries
+                .capacity()
+                .checked_mul(core::mem::size_of::<SingleInput<'_>>()),
+            _ => None,
+        }
+    }
+
     pub(super) fn prepare_stream(
         planned: &[&LoweredForePort],
         supplied: &'a [ExternalForeInput],

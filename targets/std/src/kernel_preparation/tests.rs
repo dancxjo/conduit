@@ -216,3 +216,9 @@ fn pool_member_reservation_is_atomic_and_releases_exact_capacity() {
         .release(replacement)
         .expect("replacement release restores capacity");
 }
+
+#[path = "tests/selected_image_boot.rs"]
+mod selected_image_boot;
+
+#[path = "tests/image_workset.rs"]
+mod image_workset;
