@@ -210,10 +210,9 @@ impl Owner {
             .admissions
             .clone()
             .ok_or("member return admission custody absent")?;
-        let mut next = self.session.clone();
         let challenge = manager
             .begin_return(
-                &next.evidence().membership,
+                &self.session.evidence().membership,
                 &pending.challenge.part_id,
                 &pending.advertisement,
                 pending.challenge.nonce,
@@ -225,16 +224,15 @@ impl Owner {
             return Err("member return challenge changed".into());
         }
         let authority = self.host.advertisement();
-        let result = next.admit_returning_host(
-            &mut manager,
+        let result = self.session.stage_returning_host(
+            manager,
             &pending.advertisement,
             proof,
             at,
-            &authority.host_id,
-            &authority.boot_id,
+            (&authority.host_id, &authority.boot_id),
         );
-        let credential = match result {
-            Ok(credential) => credential,
+        let (mut next, manager, credential) = match result {
+            Ok(staged) => staged.into_parts(),
             Err(error) => {
                 // Policy, capacity and lifecycle refusals do not attribute a
                 // bad proof. Keep its original finite challenge and deadline.
