@@ -37,6 +37,14 @@ pub fn set_ap_ready() {
             .ap_ready = true
     });
 }
+/// Retire service readiness without changing the retained measurement or Face.
+pub fn set_ap_unavailable() {
+    critical_section::with(|cs| {
+        if let Some(publication) = PUBLICATION.borrow(cs).borrow_mut().as_deref_mut() {
+            publication.ap_ready = false;
+        }
+    });
+}
 pub fn ap_ready() -> bool {
     critical_section::with(|cs| {
         PUBLICATION

@@ -64,6 +64,20 @@ fn http_mask_consumes_exact_face_revisions_without_allocating() {
     assert_eq!(failed_json["sampled_at_boot_ms"], 1000);
     assert_eq!(failed_json["temperature_f"], 66.2);
     assert!(body(&response(32000, false)).contains("Last known reading"));
+    let before_retirement: serde_json::Value =
+        serde_json::from_str(body(&response(32000, true))).unwrap();
+    let (retired, memory) = allocation_probe::observe(|| {
+        set_ap_unavailable();
+        assert!(!ap_ready());
+        response(32000, true)
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let mut expected = before_retirement;
+    expected["ap_ready"] = false.into();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(body(&retired)).unwrap(),
+        expected
+    );
     let length: usize = current
         .split("Content-Length: ")
         .nth(1)
