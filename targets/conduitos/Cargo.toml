@@ -292,6 +292,10 @@ conduitos-compositor-core = { path = "compositor-core" }
 conduitos-creche-core = { path = "creche-core" }
 
 [dev-dependencies]
+# Synthetic history Face through the production native Mask and CPU scanout.
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11" }
+conduit-environment-history = { path = "../../bodies/environment/history" }
+conduit-environment-runtime = { path = "../../bodies/environment/runtime" }
 conduitos-creche-core = { path = "creche-core" }
 conduitos-compositor-core = { path = "compositor-core" }
 conduit-std-host = { path = "../std" }
