@@ -45,6 +45,9 @@ impl BodyKernel<'_> {
         if scalar_math::complete(operation, request, &mut self.scheduler)? {
             return Ok(());
         }
+        if super::super::measurement_plot_back::complete(operation, request, &mut self.scheduler)? {
+            return Ok(());
+        }
         let input = self
             .scheduler
             .host_value(request.input.value)

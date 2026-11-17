@@ -19,6 +19,8 @@ mod durable_text;
 pub use durable_text::*;
 mod data_text;
 pub use data_text::*;
+mod measurement_plot;
+pub use measurement_plot::*;
 mod quantity_mapping;
 pub use quantity_mapping::*;
 mod quantity_info;

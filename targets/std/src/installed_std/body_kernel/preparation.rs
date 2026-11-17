@@ -93,7 +93,8 @@ impl<'a> BodyKernel<'a> {
                 if !has_keyboard {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
-            } else if !scalar_math::supports(operation)
+            } else if !super::super::measurement_plot_back::supports(operation)
+                && !scalar_math::supports(operation)
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
