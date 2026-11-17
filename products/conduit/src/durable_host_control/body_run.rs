@@ -198,6 +198,25 @@ impl DurableHostRuntime {
         maximum_millis: u64,
         todo_new_list: Option<String>,
     ) -> Result<(), String> {
+        self.start_owned_body_with_lifetime(maximum_millis, todo_new_list, false)
+    }
+
+    pub(in crate::durable_host_control) fn start_owned_body_from_wake(
+        &mut self,
+    ) -> Result<(), String> {
+        self.start_owned_body_with_lifetime(
+            crate::durable_host::owner::CLOCK_RUN_MAXIMUM_MILLIS,
+            None,
+            true,
+        )
+    }
+
+    fn start_owned_body_with_lifetime(
+        &mut self,
+        maximum_millis: u64,
+        todo_new_list: Option<String>,
+        from_wake: bool,
+    ) -> Result<(), String> {
         let next_todo = match &self.host {
             HostSource::Body { owner, root, .. }
                 if todo_new_list.is_none() && owner.has_verified_todo() =>
@@ -256,7 +275,11 @@ impl DurableHostRuntime {
                         owner.start_thermostat_run(root, maximum_millis)?,
                     ))
                 } else {
-                    OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?)
+                    OwnedRunWorker::General(if from_wake {
+                        owner.start_service_run_from_wake(root, maximum_millis)?
+                    } else {
+                        owner.start_service_run(root, maximum_millis)?
+                    })
                 }
             }
             _ => return Err("selected Todo list and Host residence differ".into()),

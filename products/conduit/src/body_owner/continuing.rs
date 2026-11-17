@@ -157,6 +157,26 @@ impl Owner {
         maximum_millis: u64,
         ingress: Option<ImageIngress>,
     ) -> Result<RunWorker, String> {
+        self.start_service_run_with_lifetime(root, maximum_millis, ingress, false)
+    }
+
+    /// Wake may retain one explicitly resident admitted workset until Lull.
+    /// Explicit duration-limited runs continue through the existing entrance.
+    pub(crate) fn start_service_run_from_wake(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+    ) -> Result<RunWorker, String> {
+        self.start_service_run_with_lifetime(root, maximum_millis, None, true)
+    }
+
+    fn start_service_run_with_lifetime(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        ingress: Option<ImageIngress>,
+        until_lull: bool,
+    ) -> Result<RunWorker, String> {
         if let Some(ingress) = &ingress {
             self.host.verify_selected_image_fore_input(&ingress.input)?;
         }
@@ -211,7 +231,17 @@ impl Owner {
         self.session
             .propose(partitions, &ad.host_id, &ad.boot_id)
             .map_err(debug)?;
-        self.spawn_prepared_worker(root, maximum_millis, has_fore, creche_binding, ingress)
+        if until_lull {
+            self.spawn_prepared_worker_until_lull(
+                root,
+                maximum_millis,
+                has_fore,
+                creche_binding,
+                ingress,
+            )
+        } else {
+            self.spawn_prepared_worker(root, maximum_millis, has_fore, creche_binding, ingress)
+        }
     }
 
     fn retain_started(

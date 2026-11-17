@@ -152,14 +152,13 @@ impl DurableHostRuntime {
                 owner.apply_clock_interval_interaction(root, show, interaction)
             }
             crate::durable_host::owner::ClockAction::Start => {
-                self.start_owned_body(crate::durable_host::owner::CLOCK_RUN_MAXIMUM_MILLIS, None)?;
+                self.start_owned_body_from_wake()?;
                 Ok(serde_json::json!({
                     "schema":"conduit.body/clock-start-requested@1",
                     "body_id":show.show.body_id,
                     "prior_face_id":interaction.face_id,
                     "prior_show_id":interaction.show_id,
                     "interaction_id":interaction.identity.as_str(),
-                    "maximum_millis":crate::durable_host::owner::CLOCK_RUN_MAXIMUM_MILLIS,
                     "play_state":"preparing"
                 }))
             }

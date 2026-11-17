@@ -1,10 +1,58 @@
 //! The single bounded installed Body worker and its admitted return routes.
 use super::*;
+#[path = "service_run_lifetime.rs"]
+mod lifetime;
 impl Owner {
     pub(super) fn spawn_prepared_worker(
         &mut self,
         root: &Path,
         maximum_millis: u64,
+        has_fore: bool,
+        creche_binding: Option<conduit::creche_encounter::CrecheBodyBinding>,
+        ingress: Option<ImageIngress>,
+    ) -> Result<RunWorker, String> {
+        self.spawn_worker_lifetime(
+            root,
+            Some(Duration::from_millis(maximum_millis)),
+            has_fore,
+            creche_binding,
+            ingress,
+        )
+    }
+    pub(super) fn spawn_prepared_worker_until_lull(
+        &mut self,
+        root: &Path,
+        fallback_millis: u64,
+        has_fore: bool,
+        creche_binding: Option<conduit::creche_encounter::CrecheBodyBinding>,
+        ingress: Option<ImageIngress>,
+    ) -> Result<RunWorker, String> {
+        let proposed = self
+            .session
+            .realization()
+            .ok_or("Wake lacks its proposed Plan")?;
+        let resident = lifetime::resident_until_lull(&proposed.plan, &proposed.wake, &self.host)?;
+        if resident && (has_fore || creche_binding.is_some() || ingress.is_some()) {
+            return Err(
+                "resident ambient Wake cannot admit an unrelated ingress or Crèche route".into(),
+            );
+        }
+        self.spawn_worker_lifetime(
+            root,
+            if resident {
+                None
+            } else {
+                Some(Duration::from_millis(fallback_millis))
+            },
+            has_fore,
+            creche_binding,
+            ingress,
+        )
+    }
+    fn spawn_worker_lifetime(
+        &mut self,
+        root: &Path,
+        deadline: Option<Duration>,
         has_fore: bool,
         creche_binding: Option<conduit::creche_encounter::CrecheBodyBinding>,
         ingress: Option<ImageIngress>,
@@ -16,18 +64,7 @@ impl Owner {
             .realization()
             .expect("Plan just committed")
             .clone();
-        let has_runtime_face =
-            proposed
-                .plan
-                .plots
-                .iter()
-                .flat_map(|plot| &plot.plan.fragments)
-                .flat_map(|fragment| &fragment.placements)
-                .any(|placement| {
-                    matches!(placement.implementation_id.as_str(),
-                    conduit_std_host::measurement_chart_offer::MEASUREMENT_CHART_FACE_IMPLEMENTATION
-                    | conduit_std_offers::MEASUREMENT_CHART_FLOW_FACE_IMPLEMENTATION)
-                });
+        let has_runtime_face = lifetime::has_runtime_face(&proposed.plan);
         let (mut face_sender, face_receiver) = super::super::runtime_face::channel();
         let mut creche = self.take_creche_execution(creche_binding);
         let creche_custody = creche.as_ref().map(|run| run.custody.clone());
@@ -44,16 +81,14 @@ impl Owner {
                 let mut host = host;
                 let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
                 let mut fore = ReceiptFore::new();
-                let mut timer = DeadlineTimer {
-                    until: Instant::now() + Duration::from_millis(maximum_millis),
-                    control: worker_control.clone(),
-                };
+                let mut timer=lifetime::ServiceTimer::new(deadline,worker_control.clone());
                 let result = thread::scope(|scope| {
                     let (finished, receiver) = mpsc::sync_channel::<()>(1);
                     let deadline_control = worker_control.clone();
+                    if let Some(deadline)=deadline {
                     scope.spawn(move || {
                         if receiver
-                            .recv_timeout(Duration::from_millis(maximum_millis))
+                            .recv_timeout(deadline)
                             .is_err()
                         {
                             let _ = deadline_control.request_stop(
@@ -62,6 +97,7 @@ impl Owner {
                             );
                         }
                     });
+                    }
                     let request = BodyRunRequest {
                         wake: &proposed.wake,
                         plan: &proposed.plan,
