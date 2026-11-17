@@ -53,9 +53,12 @@ impl StructuredConfigurationValue {
         &self.canonical_value
     }
 
-    /// Owned payload capacities, excluding inline Self and allocator overhead.
-    /// Immutable linked bytes remain independently owned and add no heap charge.
-    /// This observation confers neither memory admission nor Source authority.
+    /// Heap backing: profile String capacity plus canonical Cow::Owned Vec
+    /// capacity. Borrowed/static canonical bytes contribute zero; their profile
+    /// String remains charged. Includes spare capacity, excluding inline Self,
+    /// allocator overhead, decoded schema copies and preparation scratch.
+    /// This allocation-free observation changes no identity or validation and
+    /// supplies neither whole-value/factory funding nor Source authority.
     pub fn owned_backing_bytes(&self) -> Option<usize> {
         self.profile
             .0
