@@ -118,7 +118,8 @@ impl StdHost {
             .ok_or("IMAGE retention size overflow")?;
         let mut memory = self
             .kernel_resources
-            .reserve_managed_base_memory(admitted)?;
+            .image_preparation_counter()?
+            .reserve(admitted)?;
         let value = prepare(self)?;
         memory.retain_result(retained);
         Ok(ImagePreparedValue { value, memory })
