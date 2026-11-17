@@ -7,7 +7,9 @@ use std::{
     task::{Context, Poll, Waker},
 };
 
-// CPU observation only. Fixed scratch is stack, not measured MCU stack proof.
+// CPU observation only, in this fixed no-age/no-rename scenario. Other Face
+// consumers may legitimately advance freshness or metadata without a sample.
+// Fixed scratch is stack, not measured MCU stack proof.
 struct PageProvenance {
     frames: usize,
     previous: Option<(usize, u64, [u8; 32], [u8; 4])>,
@@ -114,7 +116,7 @@ pub fn drive<F: Future>(future: F, face: &LocalPublicationFace) -> bool {
         pages.changes_without_observation > 0,
         "no actual page change observed between samples"
     );
-    println!("CPU_PAGE_PROVENANCE page_changes_without_new_observation={} complete_Face_bytes_unchanged=true includes_original_freshness=true", pages.changes_without_observation);
+    println!("CPU_PAGE_PROVENANCE page_changes_without_new_observation={} complete_Face_bytes_unchanged=true includes_original_freshness=true scenario=no_external_face_revision", pages.changes_without_observation);
     assert!(crate::effects::RECEIVES.load(SeqCst) > 0);
     println!("CPU_PEER_ABSENT transport_sends={} receives_pending={} incoming_frames=0 durable_acknowledgments=0",crate::effects::TRANSPORT_SENDS.load(SeqCst),crate::effects::RECEIVES.load(SeqCst));
     if std::env::var_os("CPU_FAIL_FORE_READ").is_some() {

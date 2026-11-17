@@ -79,6 +79,37 @@ pub fn encode_trace(output: &mut [u8]) -> Option<usize> {
     critical_section::with(|cs| TRACE.borrow(cs).borrow().encode_into(output))
 }
 
+pub const MEMORY_REPORT_BYTES: usize = 40 + crate::phase_trace::ENCODED_BYTES;
+
+/// Existing build-bound maintenance observation, available beside either
+/// carriage. Static IMAGE storage already includes the retained phase trace.
+/// The caller's fixed reply buffer must also fit the linked static/stack budget.
+pub fn encode_memory_report(output: &mut [u8]) -> Option<usize> {
+    if output.len() < MEMORY_REPORT_BYTES {
+        return None;
+    }
+    let (used, peak) = crate::heap::usage();
+    let words = [
+        u32::try_from(crate::config::HEAP_BYTES).ok()?,
+        u32::try_from(used).ok()?,
+        u32::try_from(peak).ok()?,
+        cortex_m::register::msp::read(),
+        match spare_bytes() {
+            Some(bytes) => u32::try_from(bytes).ok()?,
+            None => u32::MAX,
+        },
+        crate::phase_trace::ENCODED_BYTES as u32,
+    ];
+    encode_trace(&mut output[40..MEMORY_REPORT_BYTES])?;
+    output[..4].copy_from_slice(b"CMEM");
+    output[4..8].copy_from_slice(&1u32.to_le_bytes());
+    output[8..16].copy_from_slice(&embassy_time::Instant::now().as_millis().to_le_bytes());
+    for (slot, word) in output[16..40].chunks_exact_mut(4).zip(words) {
+        slot.copy_from_slice(&word.to_le_bytes());
+    }
+    Some(MEMORY_REPORT_BYTES)
+}
+
 pub fn startup_checkpoint() -> (usize, usize, usize, usize) {
     (
         LAST_PHASE.load(Ordering::Relaxed),
