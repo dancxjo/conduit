@@ -99,6 +99,8 @@ fn remaining(deadline: Instant) -> Result<Duration, String> {
 
 fn clear_token(request: &mut Request) {
     match request {
+        #[cfg(all(test, feature = "member-return-prototype"))]
+        Request::BodyMemberImageReturn { token, .. } => token.fill(0),
         #[cfg(target_os = "linux")]
         Request::Notebook { token, .. } => token.fill(0),
         Request::BodyInspect { token, .. }
