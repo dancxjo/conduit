@@ -61,6 +61,10 @@ mod identity;
 mod legacy;
 mod lifecycle;
 mod lifecycle_session;
+#[cfg(feature = "authenticated-admission")]
+mod member_bootstrap;
+#[cfg(feature = "authenticated-admission")]
+pub use member_bootstrap::*;
 mod membership;
 mod offers;
 #[cfg(feature = "authenticated-admission")]
