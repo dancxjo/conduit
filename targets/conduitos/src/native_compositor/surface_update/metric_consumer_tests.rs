@@ -8,7 +8,7 @@ use conduit_face::{
     GraphicsCommand, GraphicsPaintRole, GraphicsShapeStyle, MaskShow, VisualUserConstraints,
 };
 
-fn setup(
+pub(super) fn setup(
     body: u16,
 ) -> (
     Face,
@@ -81,7 +81,7 @@ fn setup(
     .unwrap();
     (face, show, admitted, compositor)
 }
-fn extent() -> LayoutRect {
+pub(super) fn extent() -> LayoutRect {
     LayoutRect {
         x: 0,
         y: 0,

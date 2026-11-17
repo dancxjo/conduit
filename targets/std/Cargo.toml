@@ -20,6 +20,8 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+image = { version = "=0.25.10", default-features = false, features = ["jpeg", "png"] }
+conduit-ambient-display = { path = "../../plots/ambient-display/model" }
 ed25519-dalek = "2.2"
 conduitos = { path = "../conduitos", features = ["native-compositor-core"], optional = true }
 conduit-conduitos-mask-offer = { path = "../conduitos/mask-offer", optional = true }
@@ -74,6 +76,8 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rustls-pemfile = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+chrono = { version = "0.4.45", default-features = false }
+chrono-tz = { version = "0.10.4", default-features = false }
 getrandom = "0.3"
 sha2 = "0.10"
 instant-distance = "=0.6.1"

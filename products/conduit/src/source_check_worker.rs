@@ -1,6 +1,6 @@
 //! Selected product compiler context, retained privately inside a bounded child.
 mod definition;
-pub use definition::{derive_image_definition, SourceCheckProviderIdentity};
+pub use definition::{SourceCheckProviderIdentity, derive_image_definition};
 /// Actual product catalogue construction. Revision labels describe this selected
 /// artifact's context; they are never a catalogue lookup or an execution grant.
 pub fn standard_context() -> Result<conduit_plot::SourceCheckContext, String> {
@@ -80,7 +80,7 @@ pub fn from_configuration(
 mod installation;
 #[cfg(target_os = "linux")]
 pub use installation::{
-    initialize_image, initialize_image_with_caller_workspace,
-    initialize_image_with_prepared_creche, InitializedSourceCheckImage,
-    SourceCheckImageInstallation,
+    AmbientImageInstallation, InitializedSourceCheckImage, SourceCheckImageInstallation,
+    initialize_image, initialize_image_with_ambient, initialize_image_with_caller_workspace,
+    initialize_image_with_prepared_creche,
 };

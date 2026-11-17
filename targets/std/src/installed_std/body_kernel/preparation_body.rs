@@ -92,6 +92,7 @@ impl<'a> BodyKernel<'a> {
             } else if !native_source
                 .as_ref()
                 .is_some_and(|source| source.matches_call(operation.node, operation.call))
+                && !super::super::ambient_observe_back::supports(operation)
                 && !scalar_math::supports(operation)
                 && !super::super::measurement_plot_back::supports(operation)
                 && !super::super::measurement_window_back::supports(operation)
@@ -111,6 +112,7 @@ impl<'a> BodyKernel<'a> {
                     != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_HOST_CALL
                 && operation.contract_id.as_str()
                     != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_OBSERVER_CUSTODY_CALL
+                && !conduit_std_offers::ambient_aspect_call(operation.contract_id.as_str())
                 && operation.contract_id.as_str()
                     != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
@@ -120,6 +122,15 @@ impl<'a> BodyKernel<'a> {
                 ));
             }
         }
+        // Home combines tiny timer values with bounded structured observations.
+        // Preserve each admitted Back/Fore slot bound instead of multiplying
+        // every Tick slot by the largest Home payload. Other profiles retain
+        // their existing construction path; the store already uses best fit.
+        let exact_home_slots = fragments.iter().flat_map(|f| &f.placements).any(|p| {
+            conduit_std_offers::ambient_aspect_for_implementation(p.implementation_id.as_str())
+                .is_some()
+        });
+        let mut slot_capacities = exact_home_slots.then(Vec::new);
         let mut items = 0_u16;
         let mut bytes = 0_u32;
         let mut maximum = 1_u32;
@@ -157,6 +168,12 @@ impl<'a> BodyKernel<'a> {
                     .filter(|bytes| *bytes <= 16 * 1024 * 1024)
                     .ok_or("Body value byte capacity exceeded")?;
                 maximum = maximum.max(budget.maximum_value_bytes);
+                if let Some(capacities) = &mut slot_capacities {
+                    capacities.extend(core::iter::repeat_n(
+                        budget.maximum_value_bytes,
+                        usize::from(budget.value_items),
+                    ));
+                }
                 sign_items = sign_items
                     .checked_add(budget.sign_items)
                     .ok_or("Body Sign overflow")?;
@@ -174,12 +191,26 @@ impl<'a> BodyKernel<'a> {
                 .filter(|bytes| *bytes <= 16 * 1024 * 1024)
                 .ok_or("Body Fore value byte capacity exceeded")?;
             maximum = maximum.max(port.byte_capacity);
+            if let Some(capacities) = &mut slot_capacities {
+                capacities.extend(core::iter::repeat_n(
+                    port.byte_capacity,
+                    usize::from(port.item_capacity),
+                ));
+            }
         }
         sign_items = sign_items
             .checked_add(fore.sign_items()?)
             .ok_or("Body Fore Sign overflow")?;
-        let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
-            .map_err(|error| format!("Body value store: {error:?}"))?;
+        let mut values = match slot_capacities {
+            Some(mut capacities) => {
+                if capacities.is_empty() {
+                    capacities.push(maximum);
+                }
+                HostedValueStore::new_with_slot_capacities(&capacities, bytes.max(1))
+            }
+            None => HostedValueStore::new(items.max(1), maximum, bytes.max(1)),
+        }
+        .map_err(|error| format!("Body value store: {error:?}"))?;
         let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
         for (partition_index, (fragment, part)) in
             fragments.iter().zip(&lowered.partitions).enumerate()
@@ -265,6 +296,7 @@ impl<'a> BodyKernel<'a> {
                     && placement.implementation_id.as_str()
                         != crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_IMPLEMENTATION
                     && placement.implementation_id.as_str() != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_IMPLEMENTATION
+                    && conduit_std_offers::ambient_aspect_for_implementation(placement.implementation_id.as_str()).is_none()
                 {
                     let node = partition
                         .identity
@@ -299,6 +331,7 @@ impl<'a> BodyKernel<'a> {
             cleanup_diagnostic: None,
             creche: None,
             chart_face: None,
+            home_face: core::array::from_fn(|_| None),
             native_source,
             scheduler,
             face_labels,

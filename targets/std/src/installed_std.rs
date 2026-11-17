@@ -1,6 +1,9 @@
 mod address_detect_back;
 mod alife_backs;
 mod alife_host;
+mod ambient_home_back;
+mod ambient_home_factory;
+mod ambient_observe_back;
 mod audio_pitch_analysis_back;
 mod audio_play_back;
 mod audio_spectral_analysis_back;
@@ -69,8 +72,8 @@ mod pcm_clip_frames_back;
 mod temporal_evidence_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{
-    admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
-    IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION,
+    IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION, admitted as prepare_near_value,
+    offers as near_offers, owns_offer as owns_near_offer,
 };
 mod committed_fore;
 mod native_source_dispatch;
@@ -82,6 +85,7 @@ pub(crate) mod parsec_instruction_source_admission;
 pub(crate) mod parsec_instruction_source_back;
 mod quantity_conversion_back;
 pub(super) use quantity_conversion_back::offers as quantity_conversion_offers;
+mod flow_singleton_back;
 mod fusion;
 mod json_backs;
 mod json_summary_back;
@@ -101,7 +105,6 @@ mod measurement_chart_constructor_back;
 pub(crate) mod measurement_chart_face_back;
 mod measurement_plot_back;
 mod measurement_window_back;
-mod flow_singleton_back;
 mod microphone_clip_back;
 mod microphone_host;
 mod midi_input_back;
@@ -123,9 +126,9 @@ pub(super) use preparation::{
 };
 mod lifecycle;
 mod retained_run;
+pub(crate) use retained_run::DurableStateRun;
 #[cfg(test)]
 pub(super) use retained_run::run_fragment;
-pub(crate) use retained_run::DurableStateRun;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod combine_latest_back;
 mod current_sample_back;
@@ -242,7 +245,7 @@ use self::back::InstalledBack;
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
-use self::contract::{decode_tick, TICK_ENCODED_LEN};
+use self::contract::{TICK_ENCODED_LEN, decode_tick};
 pub use self::remote_fragment_kernel::{
     InstalledRemoteFragment, RemoteHostWork, RemoteHostWorkRef, RemoteSignRetention,
     RemoteValueIdentity, RemoteValueTransfer,
@@ -256,8 +259,8 @@ use super::{
 #[cfg(test)]
 use conduit_core::present_host_call_requirement;
 use conduit_core::{
-    bind_active_play, bind_sign, kind_id, wait_host_call_requirement, CancellationReason,
-    Observation, ObservationKind, PlanFragment, TerminalDisposition,
+    CancellationReason, Observation, ObservationKind, PlanFragment, TerminalDisposition,
+    bind_active_play, bind_sign, kind_id, wait_host_call_requirement,
 };
 use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
@@ -378,7 +381,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         let budget = if let Some(source) = native_source
             .as_ref()
             .map(|(_, source)| &**source)
-            .filter(|source| source.matches(placement))
+            .and_then(|source| source.matching(placement))
         {
             source.budget()
         } else if let Some(frame) = hosted_frame.filter(|frame| frame.matches(placement)) {
@@ -3868,3 +3871,5 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .count();
     retained_run::finish(report, scheduler, graceful_state_count)
 }
+
+mod ambient_home_route;

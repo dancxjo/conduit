@@ -56,7 +56,25 @@ pub(crate) fn prepare(
     }
     let mut capabilities = Vec::new();
     let mut workspace = 0u32;
-    for offer in conduit_std_offers::measurement_chart_cpu_offers()? {
+    let mut candidates = conduit_std_offers::measurement_chart_cpu_offers()?;
+    candidates.push(conduit_std_offers::ambient_home_cpu_offer()?);
+    for aspect in [
+        conduit_std_offers::AmbientDisplayAspect::Wallpaper,
+        conduit_std_offers::AmbientDisplayAspect::ClockWeather,
+    ] {
+        candidates.push(conduit_std_offers::ambient_aspect_cpu_offer(aspect)?);
+    }
+    candidates.push(conduit_std_offers::ambient_observe_cpu_offer()?);
+    candidates.push(conduit_std_offers::ambient_resident_observe_cpu_offer()?);
+    for aspect in [
+        conduit_std_offers::AmbientDisplayAspect::Wallpaper,
+        conduit_std_offers::AmbientDisplayAspect::ClockWeather,
+    ] {
+        candidates.push(conduit_std_offers::ambient_resident_aspect_cpu_offer(
+            aspect,
+        )?);
+    }
+    for offer in candidates {
         let selected = checked.profile().capabilities.iter().any(|selection| {
             selection.kind == offer.kind_id.as_str()
                 && selection.contract_revision == offer.kind_contract_revision.as_str()

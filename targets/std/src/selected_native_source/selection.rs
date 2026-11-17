@@ -12,6 +12,9 @@ enum PlayScope<'a> {
 }
 impl InitializedNativeSource {
     pub(crate) fn matches(&self, gear: &PlannedGear) -> bool {
+        self.matching(gear).is_some()
+    }
+    pub(super) fn matches_own(&self, gear: &PlannedGear) -> bool {
         let d = &self.definition;
         let offer = &d.base.capabilities[0];
         gear.capability_id == offer.capability_id
@@ -37,7 +40,7 @@ impl InitializedNativeSource {
         lowered: &LoweredPlanFragment,
         active: &ActivePlayIdentity,
     ) -> Result<Option<PreparedNativeSource<'a>>, String> {
-        self.prepare_scoped(
+        self.select_fragment_mut(fragment)?.prepare_scoped(
             registry,
             host,
             fragment,
@@ -53,7 +56,7 @@ impl InitializedNativeSource {
         lowered: &LoweredPlanFragment,
         context: (&Wake, &BodyPlan, &BodyPlayIdentity),
     ) -> Result<Option<PreparedNativeSource<'a>>, String> {
-        self.prepare_scoped(
+        self.select_fragment_mut(fragment)?.prepare_scoped(
             registry,
             host,
             fragment,
@@ -68,9 +71,6 @@ impl InitializedNativeSource {
     pub(crate) fn has_image_backing(&self) -> bool {
         self._image_memory.is_some() && self.backing.is_some()
     }
-    pub(crate) fn is_immediate(&self) -> bool {
-        matches!(self.provider, NativeProvider::Immediate(_))
-    }
     fn prepare_scoped<'a>(
         &'a mut self,
         registry: &BaseRegistry,
@@ -80,7 +80,10 @@ impl InitializedNativeSource {
         play: PlayScope<'_>,
     ) -> Result<Option<PreparedNativeSource<'a>>, String> {
         let d = &self.definition;
-        let mut gears = fragment.placements.iter().filter(|gear| self.matches(gear));
+        let mut gears = fragment
+            .placements
+            .iter()
+            .filter(|gear| self.matches_own(gear));
         let Some(gear) = gears.next() else {
             return Ok(None);
         };

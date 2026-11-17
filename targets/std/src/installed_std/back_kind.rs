@@ -126,6 +126,8 @@ pub(super) enum InstalledBack {
     MeasurementPlot(Box<super::measurement_plot_back::MeasurementPlotBack>),
     MeasurementWindow(Box<super::measurement_window_back::MeasurementWindowBack>),
     FlowSingleton(conduit_data::FlowSingletonStep),
+    AmbientObserve(Box<super::ambient_observe_back::AmbientObserveBack>),
+    AmbientHome(super::ambient_home_back::AmbientHomeBack),
     MeasurementChartFace(super::measurement_chart_face_back::MeasurementChartFaceBack),
     MeasurementChartFlowFace(
         super::measurement_chart_face_back::flow::MeasurementChartFlowFaceBack,

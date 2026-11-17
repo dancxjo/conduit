@@ -67,6 +67,7 @@ impl crate::StdHost {
         self.advertisement = advertisement;
         self.kernel_resources = ledger;
         self.native_source = Some(InitializedNativeSource {
+            second: None,
             definition,
             provider: NativeProvider::Immediate(provider),
             backing: Some(backing),
@@ -84,6 +85,15 @@ impl crate::StdHost {
     /// contract given at initialization; dropping it cannot start background work
     /// or unwind. No received descriptor or observation supplies that proof.
     pub unsafe fn retire_immediate_native_source(&mut self) -> Result<(), String> {
+        if self
+            .native_source
+            .as_ref()
+            .is_some_and(|s| s.second.is_some())
+        {
+            return Err(
+                "composed original native Sources require fresh checked construction".into(),
+            );
+        }
         self.kernel_resources.require_reference_reconfiguration()?;
         let source = self
             .native_source

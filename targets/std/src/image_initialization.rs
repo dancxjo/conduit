@@ -5,7 +5,7 @@ use crate::{StdHost, StdHostConfig};
 use conduit_body_make::deployment_runtime_catalog::{CRECHE_IMPLEMENTATION, CRECHE_RESOURCE};
 use conduit_core::*;
 use conduit_host_make::{
-    bind_runtime_offer, HostImage, MakeCatalog, RuntimeFacts, RuntimeOfferInputs,
+    HostImage, MakeCatalog, RuntimeFacts, RuntimeOfferInputs, bind_runtime_offer,
 };
 use std::{collections::BTreeSet, io::Write};
 
@@ -14,7 +14,7 @@ mod creche;
 mod recognition;
 #[cfg(all(test, target_os = "linux", target_pointer_width = "64"))]
 pub(crate) use cpu::test_fixture as cpu_image_test_fixture;
-pub(crate) use cpu::{prepare as prepare_cpu_from_configuration, InitialCpu};
+pub(crate) use cpu::{InitialCpu, prepare as prepare_cpu_from_configuration};
 pub(crate) use recognition::InitialWhisper;
 #[cfg(target_os = "linux")]
 mod text_file;
@@ -246,6 +246,9 @@ impl StdHost {
         catalog: &MakeCatalog,
         initial: InitialBases<'_>,
     ) -> Result<Self, String> {
+        if let Some(source) = &initial.source {
+            source.validate_composition(image)?;
+        }
         let manifest = &image.manifest;
         macro_rules! same {
             ($($field:ident),+ $(,)?) => { $(if manifest.$field != image.payload.$field {
@@ -280,8 +283,25 @@ impl StdHost {
             .map(|resource| prepare_creche_entry(&config, image, resource))
             .transpose()?;
         #[allow(unused_mut)]
-        let mut expected_implementations =
-            BTreeSet::from([conduit_std_offers::TICK_IMPLEMENTATION.to_owned()]);
+        let timer_offers = [
+            conduit_std_offers::tick_capability_offer(),
+            conduit_std_offers::time_every_offer(),
+        ]
+        .into_iter()
+        .filter(|offer| {
+            manifest
+                .implementations
+                .iter()
+                .any(|id| id == offer.implementation.implementation_id.as_str())
+        })
+        .collect::<Vec<_>>();
+        if timer_offers.is_empty() {
+            return Err("selected IMAGE requires an exact initialized timer operation".into());
+        }
+        let mut expected_implementations = timer_offers
+            .iter()
+            .map(|offer| offer.implementation.implementation_id.as_str().to_owned())
+            .collect::<BTreeSet<_>>();
         if let Some(cpu) = &initial.cpu {
             expected_implementations.extend(
                 cpu.entry
@@ -296,7 +316,7 @@ impl StdHost {
         if initial.creche.is_some() {
             expected_implementations.insert(CRECHE_IMPLEMENTATION.into());
         }
-        if let Some(source) = &initial.source {
+        for source in initial.source.iter().flat_map(|s| s.owners()) {
             expected_implementations.insert(
                 source.definition.base.capabilities[0]
                     .implementation
@@ -360,11 +380,16 @@ impl StdHost {
                     entry.base_id.as_str() == base.id
                         && entry.mechanism_family.as_str() == base.kind
                         && entry.implementation_id.as_str() == base.driver
-                }) && !initial.source.as_ref().is_some_and(|source| {
-                    source.definition.base.base_id.as_str() == base.id
-                        && source.definition.base.mechanism_family.as_str() == base.kind
-                        && source.definition.base.implementation_id.as_str() == base.driver
-                }) && !initial.matches_text_file_base(&base.id, &base.kind, &base.driver)
+                }) && !initial
+                    .source
+                    .iter()
+                    .flat_map(|s| s.owners())
+                    .any(|source| {
+                        source.definition.base.base_id.as_str() == base.id
+                            && source.definition.base.mechanism_family.as_str() == base.kind
+                            && source.definition.base.implementation_id.as_str() == base.driver
+                    })
+                    && !initial.matches_text_file_base(&base.id, &base.kind, &base.driver)
                     && !(initial.has_scanout()
                         && base.kind == "display/scanout"
                         && base.driver == "display/linear-framebuffer@1")
@@ -394,10 +419,9 @@ impl StdHost {
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
                     + usize::from(initial.has_native_input())
-                    + initial
-                        .source
-                        .as_ref()
-                        .map_or(0, |s| s.definition.base.resources.len())
+                    + initial.source.as_ref().map_or(0, |s| {
+                        s.owners().map(|s| s.definition.base.resources.len()).sum()
+                    })
         {
             return Err("selected timer requires 1..16 explicit timer pools".into());
         }
@@ -431,7 +455,7 @@ impl StdHost {
             if initial
                 .source
                 .as_ref()
-                .is_some_and(|source| source.owns_pool(&budget.id))
+                .is_some_and(|source| source.owners().any(|s| s.owns_pool(&budget.id)))
             {
                 continue;
             }
@@ -482,7 +506,7 @@ impl StdHost {
             mechanism_family: "timer/monotonic".into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
             lifecycle: BaseLifecycle::Ready,
-            capabilities: vec![conduit_std_offers::tick_capability_offer()],
+            capabilities: timer_offers,
             resources,
         };
         let mut registry = crate::empty_base_registry();
@@ -542,7 +566,7 @@ impl StdHost {
             initialized_base_kinds.insert(entry.mechanism_family.as_str().into());
             initialized_driver_kinds.insert(entry.implementation_id.as_str().into());
         }
-        if let Some(source) = &initial.source {
+        for source in initial.source.iter().flat_map(|s| s.owners()) {
             let entry = &source.definition.base;
             registry
                 .register(entry.clone())
@@ -602,10 +626,11 @@ impl StdHost {
             + usize::from(initial.creche.is_some())
             + usize::from(initial.has_text_file())
             + mask_capabilities.len()
-            + initial
-                .source
-                .as_ref()
-                .map_or(0, |s| s.definition.base.capabilities.len());
+            + initial.source.as_ref().map_or(0, |s| {
+                s.owners()
+                    .map(|s| s.definition.base.capabilities.len())
+                    .sum()
+            });
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         if let Some(mask) = &initial.native_mask {
             expected_capabilities += mask.provider.entry.capabilities.len();

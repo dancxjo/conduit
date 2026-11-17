@@ -10,6 +10,8 @@
 //! do not define the Face boundary.
 
 extern crate alloc;
+mod image_resource_source;
+pub use image_resource_source::image_resource_source_catalog;
 #[cfg(feature = "std")]
 extern crate std;
 #[cfg(feature = "std")]

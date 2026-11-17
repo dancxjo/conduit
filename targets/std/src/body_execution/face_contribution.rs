@@ -1,16 +1,19 @@
 //! One bounded, kernel-committed semantic contribution. Observation grants no
 //! current Show, input authority, durable recording, or producer authentication.
+mod gate;
+mod retention;
+
 use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
 use conduit_core as c;
 use conduit_face::{FaceContributionBasis, FaceFragment};
 use conduit_kernel::{
-    scheduler::{FixedScheduler, HostCallRequest, StepBack, StepIo},
     HostCallDisposition, HostCallId, NodeId, RequestId, SignSink, ValueStorage,
+    scheduler::{FixedScheduler, HostCallRequest, StepBack, StepIo},
 };
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc,
+    atomic::{AtomicBool, AtomicU64, Ordering},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -123,81 +126,9 @@ pub(crate) struct FaceCommitGate {
     state: Arc<CommitState>,
     candidate: Option<RequestId>,
     commits: u32,
-    maximum_commits: u32,
+    maximum_commits: Option<u32>,
 }
 pub(crate) struct FaceCommitObservation(Arc<CommitState>);
-impl FaceCommitGate {
-    pub(crate) fn prepare(
-        placement: c::PlacementId,
-        call: HostCallId,
-        maximum_commits: u32,
-    ) -> Result<Self, FaceContributionRefusal> {
-        if placement.as_str().is_empty() || maximum_commits == 0 {
-            return Err(FaceContributionRefusal::Bounds);
-        }
-        Ok(Self {
-            state: Arc::new(CommitState {
-                placement,
-                call,
-                committed: AtomicU64::new(0),
-                attached: AtomicBool::new(false),
-                revoked: AtomicBool::new(false),
-            }),
-            candidate: None,
-            commits: 0,
-            maximum_commits,
-        })
-    }
-    pub(crate) fn prepared_backing_bytes(&self) -> Option<usize> {
-        core::mem::size_of::<CommitState>()
-            .checked_add(2 * core::mem::size_of::<usize>())?
-            .checked_add(self.state.placement.0.capacity())
-    }
-    pub(crate) fn observation(&self) -> FaceCommitObservation {
-        FaceCommitObservation(self.state.clone())
-    }
-    pub(crate) fn begin_step(&mut self) {
-        self.candidate = None;
-    }
-    pub(crate) fn consume_completion<const PORTS: usize>(
-        &mut self,
-        io: &mut StepIo<PORTS>,
-        expected: RequestId,
-    ) -> Result<(), FaceContributionRefusal> {
-        if self.state.revoked.load(Ordering::Acquire) {
-            return Err(FaceContributionRefusal::Revoked);
-        }
-        if self.commits == self.maximum_commits {
-            return Err(FaceContributionRefusal::Bounds);
-        }
-        let (request, outcome) = io
-            .host_completion()
-            .ok_or(FaceContributionRefusal::Completion)?;
-        if request != expected
-            || outcome.disposition != HostCallDisposition::Completed
-            || outcome.output.is_some()
-            || outcome.failure.is_some()
-        {
-            return Err(FaceContributionRefusal::Completion);
-        }
-        io.consume_host_completion()
-            .map_err(|_| FaceContributionRefusal::Completion)?;
-        self.candidate = Some(request);
-        Ok(())
-    }
-    pub(crate) fn step_committed(&mut self) {
-        if let Some(request) = self.candidate.take() {
-            self.commits += 1;
-            self.state
-                .committed
-                .store(u64::from(request.0) + 1, Ordering::Release);
-        }
-    }
-    pub(crate) fn cancel(&mut self) {
-        self.candidate = None;
-        self.state.revoked.store(true, Ordering::Release);
-    }
-}
 
 pub(crate) struct FaceContributionContext<'a> {
     pub wake: &'a Wake,
@@ -310,16 +241,10 @@ impl PendingFaceContributionRoute {
             last_request: None,
         })
     }
-    pub(crate) fn is_retired(&self) -> bool {
-        self.scope.is_retired()
-    }
     pub(crate) fn escaped_gate_backing_bytes(&self) -> Option<usize> {
         core::mem::size_of::<CommitState>()
             .checked_add(2 * core::mem::size_of::<usize>())?
             .checked_add(self.state.placement.0.capacity())
-    }
-    pub(crate) fn is_pending(&self) -> bool {
-        self.pending.is_some()
     }
     pub(crate) fn attach_image_memory(
         &mut self,
@@ -460,33 +385,33 @@ pub(crate) trait FaceContributionKernel: sealed::Kernel {
 macro_rules! kernel_impl {
     () => {
         impl<
-                D: StepBack<P>,
-                S: ValueStorage,
-                E: SignSink,
-                const N: usize,
-                const C: usize,
-                const P: usize,
-                const Q: usize,
-                const R: usize,
-                const T: usize,
-                const H: usize,
-                const A: usize,
-            > sealed::Kernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
+            D: StepBack<P>,
+            S: ValueStorage,
+            E: SignSink,
+            const N: usize,
+            const C: usize,
+            const P: usize,
+            const Q: usize,
+            const R: usize,
+            const T: usize,
+            const H: usize,
+            const A: usize,
+        > sealed::Kernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
         {
         }
         impl<
-                D: StepBack<P>,
-                S: ValueStorage,
-                E: SignSink,
-                const N: usize,
-                const C: usize,
-                const P: usize,
-                const Q: usize,
-                const R: usize,
-                const T: usize,
-                const H: usize,
-                const A: usize,
-            > FaceContributionKernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
+            D: StepBack<P>,
+            S: ValueStorage,
+            E: SignSink,
+            const N: usize,
+            const C: usize,
+            const P: usize,
+            const Q: usize,
+            const R: usize,
+            const T: usize,
+            const H: usize,
+            const A: usize,
+        > FaceContributionKernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
         {
             fn pending_face_request(&self, request: HostCallRequest) -> bool {
                 self.host_call_is_pending(request)

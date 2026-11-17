@@ -96,6 +96,10 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
             .retained_backing_bytes()
             .checked_add(crate::hosted_measurement::measurement_plot_workspace_bytes() as usize)
             .ok_or_else(|| "measurement projection prepared workspace overflow".into()),
+        InstalledBack::AmbientObserve(back) => Ok(back.retained_backing_bytes()),
+        InstalledBack::AmbientHome(back) => back
+            .retained_backing_bytes()
+            .ok_or_else(|| "Home gate backing overflow".into()),
         InstalledBack::MeasurementChartFace(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::MeasurementChartFlowFace(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
@@ -114,14 +118,29 @@ impl BodyKernel<'_> {
         lease: &crate::kernel_preparation::ImageMemoryLease,
     ) {
         self.fore.attach_image_memory(lease);
+        for route in self.home_face.iter_mut().flatten() {
+            route.attach_image_memory(lease);
+        }
         if let Some(route) = &mut self.chart_face {
             route.attach_image_memory(lease);
         }
     }
     pub(crate) fn escaped_face_backing_bytes(&self) -> Result<usize, String> {
-        self.chart_face
+        let chart = self
+            .chart_face
             .as_ref()
-            .map_or(Ok(0), |route| route.escaped_backing_bytes())
+            .map_or(Ok(0), |route| route.escaped_backing_bytes())?;
+        let home = self
+            .home_face
+            .iter()
+            .flatten()
+            .try_fold(0usize, |sum, route| {
+                sum.checked_add(route.escaped_backing_bytes()?)
+                    .ok_or_else(|| "Face escaped backing overflow".to_string())
+            })?;
+        chart
+            .checked_add(home)
+            .ok_or_else(|| "Face escaped backing overflow".into())
     }
     pub(crate) fn prepare_memory<T: TimerAdapter>(
         &mut self,
@@ -161,8 +180,16 @@ impl BodyKernel<'_> {
         let mut sources = 0;
         let mut creches = 0;
         let mut chart_faces = 0;
+        let mut home_faces = 0;
+        let mut ambient_clocks = 0;
         let mut files = 0;
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
+            if matches!(driver, InstalledBack::AmbientObserve(_)) {
+                ambient_clocks += 1;
+            }
+            if matches!(driver, InstalledBack::AmbientHome(_)) {
+                home_faces += 1;
+            }
             if matches!(driver, InstalledBack::SelectedNativeSource(_)) {
                 let route = self
                     .native_source
@@ -224,6 +251,61 @@ impl BodyKernel<'_> {
             }
             add(&mut bytes, back_bytes(driver)?)?;
         }
+        // A retained native ambient worker is the same observation role as
+        // the CPU fixture, with its own already-accounted exact IO owner.
+        let ambient_native = self.native_source.as_ref().is_some_and(|source| {
+            self.operations.iter().any(|op| {
+                op.node == source.node()
+                    && op.call == conduit_kernel::HostCallId(0)
+                    && ((op.contract_id.as_str() == conduit_std_offers::AMBIENT_SOURCE_CALL
+                        && op.target_kind.as_ref().is_some_and(|k| {
+                            k.as_str() == conduit_ambient_display::AMBIENT_OBSERVE_KIND
+                        }))
+                        || (op.contract_id.as_str()
+                            == conduit_std_offers::AMBIENT_RESIDENT_SOURCE_CALL
+                            && op.target_kind.as_ref().is_some_and(|k| {
+                                k.as_str() == conduit_ambient_display::AMBIENT_RESIDENT_OBSERVE_KIND
+                            })))
+            })
+        });
+        if home_faces > 0
+            && sources > 0
+            && !(sources == 1 && ambient_native && ticks == 1 && ambient_clocks == 0)
+        {
+            return Err(
+                "ambient native IMAGE requires its exact timer/observation/Face workset".into(),
+            );
+        }
+        if ambient_clocks > 1
+            || (ambient_clocks == 1
+                && (!(1..=2).contains(&home_faces)
+                    || ticks != 1
+                    || sources != 0
+                    || chart_faces != 0
+                    || creches != 0
+                    || files != 0
+                    || measurements != 0
+                    || windows != 0))
+        {
+            return Err(
+                "Home clock IMAGE receipt requires its exact timer/observation/Face workset".into(),
+            );
+        }
+        // Tick storage and operation metadata are independently counted above
+        // and below; a Home contribution may share their admitted workset.
+        // Other provider combinations retain their existing closed profiles.
+        if home_faces > 2
+            || self.home_face.iter().flatten().count() != home_faces
+            || (home_faces > 0
+                && (chart_faces != 0
+                    || (sources != 0 && !ambient_native)
+                    || creches != 0
+                    || files != 0
+                    || measurements != 0
+                    || windows != 0))
+        {
+            return Err("Home IMAGE receipt requires its exact single prepared provider".into());
+        }
         if chart_faces > 1
             || (self.chart_face.is_some() != (chart_faces == 1))
             || (chart_faces == 1 && (creches != 0 || sources != 0 || ticks != 0))
@@ -247,6 +329,7 @@ impl BodyKernel<'_> {
                 && windows == 0
                 && measurements == 0
                 && chart_faces == 0
+                && home_faces == 0
                 && files == 0)
             || (self.creche.is_some() != (creches == 1))
             || (self.native_source.is_some() != (sources == 1))
@@ -262,6 +345,7 @@ impl BodyKernel<'_> {
                 || windows == 1
                 || measurements == 1
                 || chart_faces == 1
+                || home_faces > 0
                 || files == 1
             {
                 self.fore
@@ -274,6 +358,10 @@ impl BodyKernel<'_> {
             .ok_or("IMAGE memory receipt does not support this Fore/input/live contract")?,
         )?;
         if let Some(route) = &self.chart_face {
+            add(&mut bytes, route.additional_backing_bytes()?)?;
+            add(&mut bytes, route.escaped_backing_bytes()?)?;
+        }
+        for route in self.home_face.iter().flatten() {
             add(&mut bytes, route.additional_backing_bytes()?)?;
             add(&mut bytes, route.escaped_backing_bytes()?)?;
         }

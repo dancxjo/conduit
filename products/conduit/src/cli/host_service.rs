@@ -8,6 +8,12 @@ use std::path::PathBuf;
 // for Clap's flattened arguments; the enum is not retained in a running Play.
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum HostServiceCommand {
+    /// Select exact immutable ambient assets while the installed service is stopped.
+    SelectAmbient {
+        policy: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Retain checked Host initialization for the next Boot; requires a stopped service.
     Configure {
         #[arg(required_unless_present = "clear", conflicts_with = "clear")]

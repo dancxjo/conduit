@@ -53,7 +53,7 @@ use super::house_prompt_back::FACTORY as HOUSE_PROMPT_FACTORY;
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::image_text_back::FACTORY as IMAGE_TEXT_FACTORY;
 use super::image_text_record_back::FACTORY as IMAGE_TEXT_RECORD_FACTORY;
-use super::input_semantic_backs::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
+use super::input_semantic_backs::{CHORDS_FACTORY, KEY_EVENT_TEE_FACTORY, KEYMAP_FACTORY};
 use super::instrument_map_back::FACTORY as INSTRUMENT_MAP_FACTORY;
 use super::json_backs::{JSON_COLLECTION_STEP_FACTORY, JSON_DECODE_FACTORY, JSON_ENCODE_FACTORY};
 use super::json_summary_back::JSON_BOOLEAN_SUMMARY_FACTORY;
@@ -213,6 +213,13 @@ use super::whisper_speech_back::{
 use conduit_core::ImplementationId;
 
 const FACTORIES: &[&BackFactory] = &[
+    &super::ambient_observe_back::FACTORY,
+    &super::ambient_observe_back::RESIDENT_FACTORY,
+    &super::ambient_home_factory::FACTORY,
+    &super::ambient_home_factory::WALLPAPER_FACTORY,
+    &super::ambient_home_factory::CLOCK_WEATHER_FACTORY,
+    &super::ambient_home_factory::RESIDENT_WALLPAPER_FACTORY,
+    &super::ambient_home_factory::RESIDENT_CLOCK_WEATHER_FACTORY,
     &super::measurement_chart_constructor_back::FACTORY,
     &super::measurement_plot_back::FACTORY,
     &super::measurement_window_back::FACTORY,

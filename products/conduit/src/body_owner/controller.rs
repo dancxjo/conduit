@@ -8,8 +8,8 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::bind_sign;
 use conduit_core::HostAdvertisement;
+use conduit_core::bind_sign;
 use conduit_face::{Face, OwnerFaceSnapshotRequest};
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -76,13 +76,13 @@ mod member_return;
 mod owner_navigation;
 #[path = "planning.rs"]
 mod planning;
-#[path = "wake_readiness.rs"]
-mod wake_readiness;
 #[cfg(target_os = "linux")]
 #[path = "retained_local_fore.rs"]
 mod retained_local_fore;
 #[path = "recovered_source_claim.rs"]
 pub(super) mod recovered_source_claim;
+#[path = "wake_readiness.rs"]
+mod wake_readiness;
 #[cfg(target_os = "linux")]
 pub(crate) use fore_line_planning::OwnedForeLineSelection;
 #[path = "remote_preparation.rs"]
@@ -111,7 +111,7 @@ mod remote_spoken_route;
 mod remote_terminal_route;
 #[path = "wardrobe_face.rs"]
 mod wardrobe_face;
-pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
+pub(crate) use clock_interval::{CLOCK_RUN_MAXIMUM_MILLIS, ClockAction, is_clock_control_intent};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
@@ -364,8 +364,8 @@ pub(crate) struct Owner {
     /// Bounded projection cache from the configured initial Form and the exact
     /// current Thermostat scan Fore. The kernel owns its retained accumulator.
     thermostat_live: Option<thermostat_face::ThermostatLive>,
-    /// Latest opaque kernel-committed contribution for the exact current Play.
-    runtime_face: Option<conduit_std_host::body_execution::CommittedFaceContribution>,
+    /// Latest opaque kernel-committed frame per exact route in the current Play.
+    runtime_face: [Option<conduit_std_host::body_execution::CommittedFaceContribution>; 2],
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
@@ -491,7 +491,7 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
-            runtime_face: None,
+            runtime_face: [None, None],
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -538,7 +538,7 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
-            runtime_face: None,
+            runtime_face: [None, None],
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -659,7 +659,7 @@ impl Owner {
         self.project_creche_products(face)
     }
     pub(crate) fn lull(&mut self) -> Result<(), String> {
-        self.runtime_face = None;
+        self.runtime_face = [None, None];
         if let Some(realization) = self.session.realization() {
             let play = realization.play.clone();
             let host = self.host.advertisement();

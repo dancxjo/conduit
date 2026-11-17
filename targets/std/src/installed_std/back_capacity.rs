@@ -5,6 +5,7 @@ use super::back::InstalledBack;
 impl InstalledBack {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
+            Self::AmbientHome(back) => back.retained_backing_bytes().expect("finite Home gate"),
             Self::MeasurementChartConstructor(back) => back.retained_backing_bytes(),
             Self::MeasurementPlot(back) => back.retained_backing_bytes(),
             Self::MeasurementWindow(back) => back.retained_backing_bytes(),

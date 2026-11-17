@@ -1,0 +1,25 @@
+# Standing operation in one Play. Storage is bounded independently of elapsed
+# observations. Explicit cancellation or provider/identity failure ends it.
+plot ambient-resident {
+    cadence: time/every(60000ms)
+    observe: ambient/resident-observation("America/Los_Angeles")
+    wallpaper: resident-wallpaper-display
+    clock_weather: resident-clock-weather-display
+    cadence.tick >> observe.tick
+    observe.observation >> wallpaper.observations
+    observe.observation >> clock_weather.observations
+}
+
+plot resident-wallpaper-display (
+    >> observations: AmbientHomeObservation... <= 8192B
+) {
+    image: face/resident-ambient-wallpaper("Wallpaper")
+    observations >> image.observation
+}
+
+plot resident-clock-weather-display (
+    >> observations: AmbientHomeObservation... <= 8192B
+) {
+    clock: face/resident-ambient-clock-weather("Clock and weather")
+    observations >> clock.observation
+}

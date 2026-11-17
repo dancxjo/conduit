@@ -276,6 +276,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_plot::quantity_conversion::install(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_ambient_home_contributor(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_ambient_observe(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;
@@ -530,3 +532,7 @@ mod tests {
 #[cfg(test)]
 #[path = "plot_source/creche_tests.rs"]
 mod creche_tests;
+
+#[cfg(test)]
+#[path = "plot_source/ambient_tests.rs"]
+mod ambient_tests;

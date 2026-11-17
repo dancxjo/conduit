@@ -1,0 +1,91 @@
+# Finite observation contracts for reusable ambient displays. These values
+# report acquired observations; they neither acquire them nor grant effects.
+# All timestamp fields use Unix UTC milliseconds. Rotation uses elapsed seconds.
+type AmbientRotationSeconds = U64 in 30..=3600
+
+type AmbientWallpaperImage = {
+    image: ImageResource
+    title: Text <= 160B not in [""]
+    caption: Text <= 512B
+    attribution: Text <= 256B not in [""]
+    license: Text <= 160B not in [""]
+    source: Text <= 80B not in [""]
+}
+
+type AmbientWallpaperSelection = {
+    image: AmbientWallpaperImage
+    selected_at_unix_ms: U64
+    next_rotation_unix_ms: U64
+    rotation_seconds: AmbientRotationSeconds
+    where .selected_at_unix_ms < .next_rotation_unix_ms
+    where .next_rotation_unix_ms - .selected_at_unix_ms == .rotation_seconds * 1000
+}
+
+# A failed acquisition does not erase the wallpaper subject. A retained image
+# is explicitly stale; an unavailable image carries no invented resource.
+type AmbientStaleWallpaper = {
+    selection: AmbientWallpaperSelection
+    reason: Text <= 160B not in [""]
+}
+
+type AmbientWallpaperObservation =
+    available AmbientWallpaperSelection
+    | stale AmbientStaleWallpaper
+    | unavailable Text <= 160B not in [""]
+
+# An exact four-photo deck has finite storage and one explicit next choice.
+# A transition rearranges existing references; it does not acquire or retain
+# image bytes, consult a clock, or decide when a transition should execute.
+type AmbientWallpaperDeckFour = {
+    current: AmbientWallpaperImage
+    next: AmbientWallpaperImage
+    after: AmbientWallpaperImage
+    last: AmbientWallpaperImage
+}
+
+type AmbientWeatherReading = {
+    location: Text <= 80B not in [""]
+    attribution: Text <= 80B not in [""]
+    conditions: Text <= 80B not in [""]
+    temperature_celsius_milli: I64 in -100000..=100000
+    observed_at_unix_ms: U64
+    usable_until_unix_ms: U64
+    where .observed_at_unix_ms <= .usable_until_unix_ms
+}
+
+type AmbientFreshWeather = {
+    reading: AmbientWeatherReading
+    reference_at_unix_ms: U64
+    where .reading.observed_at_unix_ms <= .reference_at_unix_ms
+    where .reference_at_unix_ms <= .reading.usable_until_unix_ms
+}
+
+type AmbientStaleWeather = {
+    reading: AmbientWeatherReading
+    reference_at_unix_ms: U64
+    where .reading.usable_until_unix_ms < .reference_at_unix_ms
+}
+
+type AmbientWeather =
+    fresh AmbientFreshWeather
+    | stale AmbientStaleWeather
+    | unavailable Text <= 160B not in [""]
+
+# Local civil strings are supplied by the selected clock projection. Keeping
+# the timezone and offset visible makes a date/time observation interpretable.
+type AmbientClockWeather = {
+    local_date: Text <= 10B not in [""]
+    local_time: Text <= 8B not in [""]
+    timezone: Text <= 64B not in [""]
+    timezone_rule_set: Text <= 80B not in [""]
+    utc_offset_minutes: I64 in -840..=840
+    observed_at_unix_ms: U64
+    weather: AmbientWeather
+    where (.weather is fresh ? .weather.fresh.reference_at_unix_ms == .observed_at_unix_ms : (.weather is stale ? .weather.stale.reference_at_unix_ms == .observed_at_unix_ms : true))
+}
+
+# One complete ambient encounter, never two competing foreground contributions.
+type AmbientHomeObservation = {
+    wallpaper: AmbientWallpaperObservation
+    clock_weather: AmbientClockWeather
+}

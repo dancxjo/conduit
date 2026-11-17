@@ -5,9 +5,12 @@
 //! issued only for the current registry entry and the actual installed Play.
 mod definition;
 mod image;
+mod image_pair;
+mod image_worker;
 mod immediate;
 mod installation;
 mod preparation;
+mod registry;
 mod selection;
 use definition::validate_definition;
 pub(crate) use image::InitialNativeSource;
@@ -16,8 +19,8 @@ mod worker;
 use conduit_core::*;
 use conduit_kernel::NodeId;
 pub use worker::{
-    NativeReadContext, NativeSourceWorkerProvider, NativeWorkerBudget, WorkerBackingObservation,
-    WorkerFailure, NATIVE_SOURCE_WORKER_PROFILE,
+    NATIVE_SOURCE_WORKER_PROFILE, NativeReadContext, NativeSourceWorkerProvider,
+    NativeWorkerBudget, WorkerBackingObservation, WorkerFailure,
 };
 
 /// Independently retained definition of a single-call native Source.
@@ -47,6 +50,7 @@ pub unsafe trait ImmediateNativeSource: Send {
 }
 
 pub(crate) struct InitializedNativeSource {
+    second: Option<Box<InitializedNativeSource>>,
     definition: NativeSourceDefinition,
     provider: NativeProvider,
     _image_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
@@ -101,6 +105,7 @@ impl crate::StdHost {
                 self.advertisement = advertisement;
                 self.kernel_resources = ledger;
                 self.native_source = Some(InitializedNativeSource {
+                    second: None,
                     definition,
                     provider: NativeProvider::Immediate(provider),
                     backing: None,

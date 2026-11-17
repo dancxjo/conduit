@@ -1,7 +1,7 @@
 //! One service-owned Body Play on the installed Host's existing kernel.
 //! The service retains the biography; only the Host and finite kernel run move
 //! to the worker. Start is acknowledged after durable lifecycle publication.
-use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
+use super::{BoundedOutput, DeadlineTimer, Owner, debug, state};
 use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_std_host::body_execution::BodyRunRequest;
 #[path = "continuing/report.rs"]
@@ -14,7 +14,9 @@ mod fore;
 mod spawn;
 pub(crate) use fore::ImageIngress;
 use fore::ReceiptFore;
-pub(super) use fore::{boundaries_for_plots, boundaries_for_plots_with_local, requires_selected_input_adapter};
+pub(super) use fore::{
+    boundaries_for_plots, boundaries_for_plots_with_local, requires_selected_input_adapter,
+};
 use std::{
     path::Path,
     sync::mpsc::{self, Receiver, SyncSender, TryRecvError},
@@ -231,7 +233,7 @@ impl Owner {
             None,
         )?;
         self.session = next;
-        self.runtime_face = None;
+        self.runtime_face = [None, None];
         Ok(())
     }
 
@@ -340,7 +342,7 @@ impl RunWorker {
                 owner.creche_products = Some(products);
             }
         }
-        owner.runtime_face = None;
+        owner.runtime_face = [None, None];
         owner.retain_finished(root, result, output, fore)?;
         Ok(true)
     }

@@ -1,9 +1,9 @@
 //! Construct the actual installed Host and explicitly selected equipment before Boot publication.
 use super::startup_trace::{Phase, Trace};
 use super::{
-    bounded_file_digest, current_body_id, fresh_identity, owner, read_installation,
-    restrict_directory, running_target_id, write_json_atomic, RuntimeStatus,
-    MAXIMUM_RELEASE_FILE_BYTES, RUNTIME_SCHEMA,
+    MAXIMUM_RELEASE_FILE_BYTES, RUNTIME_SCHEMA, RuntimeStatus, bounded_file_digest,
+    current_body_id, fresh_identity, owner, read_installation, restrict_directory,
+    running_target_id, write_json_atomic,
 };
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
@@ -173,6 +173,8 @@ fn prepare_runtime_with_composition(
         read_installation(&state_dir.join("installation.json"))
     })?;
     let pending_seed = super::has_pending_seed(state_dir)?;
+    #[cfg(target_os = "linux")]
+    let ambient_policy = super::ambient_policy::retained(state_dir, &installation)?;
     let selected_image = installation
         .selected_host_configuration
         .as_ref()
@@ -282,13 +284,14 @@ fn prepare_runtime_with_composition(
                             .into(),
                     );
                 }
-                let prepared = super::source_revision::prepare(
+                let prepared = super::source_revision::prepare_with_ambient(
                     source_selection,
                     &installation,
                     config,
                     creche_factory
                         .as_ref()
                         .map(|factory| factory.resource_offer()),
+                    ambient_policy.as_ref(),
                 )?;
                 let (host, custody) = prepared.retain_for_restart(source_selection)?;
                 source_custody = Some(custody);
@@ -314,6 +317,13 @@ fn prepare_runtime_with_composition(
                             .map_err(|error| format!("selected SDL input not prepared:{error:?}"))
                     })
                     .transpose()?;
+                if let Some(policy) = ambient_policy.as_ref() {
+                    return StdHost::from_selected_timer_native_mask_with_equipment_and_images_image(
+                        config, image, &conduit_workspace_make::catalog(), &checked,
+                        parameters, output, image_recognizer.take(), input,
+                        policy.mask_initialization()?,
+                    );
+                }
                 return StdHost::from_selected_timer_native_mask_with_equipment_image(
                     config,
                     image,

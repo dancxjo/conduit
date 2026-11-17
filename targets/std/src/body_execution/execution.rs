@@ -212,6 +212,14 @@ impl StdHost {
             )?
         };
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
+        kernel.attach_home_face(
+            request.wake,
+            request.plan,
+            &prospective_play,
+            &self.advertisement,
+            face_observer.is_some(),
+            selected_memory,
+        )?;
         kernel.attach_chart_face(
             request.wake,
             request.plan,
