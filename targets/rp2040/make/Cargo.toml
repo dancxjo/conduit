@@ -48,6 +48,9 @@ name = "source-schema-generate"
 path = "../../mcu/source-build/tests/i2c_clock_factory/schema_generate.rs"
 
 [features]
+# Match the firmware support flag when its builder is compiled by host tests.
+# Captured Source still selects storage; enabling support is not selection.
+execution-workspace = ["conduit-mcu-host-runtime/execution-workspace", "conduit-semantic-catalog/execution-workspace", "conduit-mcu-source-build/execution-workspace"]
 schema-storage-measurement = ["conduit-mcu-host-runtime/schema-value-storage", "conduit-plan-lowering/schema-value-storage"]
 
 [[example]]
