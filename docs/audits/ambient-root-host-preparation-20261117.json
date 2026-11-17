@@ -1,0 +1,33 @@
+{
+  "schema": "conduit.preparation/checked-ambient-host@1",
+  "scope": "Offline checked Host intent and default IMAGE model only; no executable binding, runtime grant, admission, Started or live effects",
+  "configuration_id": "sha256:ed90e5ed3b280219ee779f1e821da6dfcc8ca8a9b53928126f380f7dc59e757a",
+  "source_baseline": "b341d1c6191d4e5bdafe593fb75b4efd5ec4313c",
+  "construction_source": "33a911b7de",
+  "original_declarations_preserved": true,
+  "original_limits_preserved": true,
+  "heap_arena_bytes": 1073741824,
+  "added_pools": {
+    "ambient/source": {
+      "slots": 1,
+      "bytes": 8192
+    },
+    "ambient/memory": {
+      "slots": 67108864,
+      "bytes": 67108864
+    },
+    "ambient/cpu-memory": {
+      "slots": 67108864,
+      "bytes": 67108864
+    }
+  },
+  "resource_pool_count": 7,
+  "provider_preparation_bytes": 58720256,
+  "provider_retained_bytes": 16777216,
+  "lifetime": "Resident",
+  "digests": {
+    "root.PROPOSED.host.conduit": "930d6bbf549d9fd4b72e39d4b4c3c79d36865b4a3225042cf4b6ea6371a2c9a0",
+    "check.rs": "1c1abf412995ec454feb88414af1a4e391c19b0a88778dc691c2e810c27195c6",
+    "checked-result.log": "5e0b02a40eea1d4787020a5459bfa6ccc7d78e80c645e6fe49c82c51ecbad90c"
+  }
+}
