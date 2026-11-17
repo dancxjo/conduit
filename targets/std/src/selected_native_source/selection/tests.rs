@@ -36,7 +36,7 @@ fn definition(resident: bool) -> NativeSourceDefinition {
             base_id: "base/ambient".into(),
             provider_instance_id: "fixture/ambient".into(),
             provider_generation: 1,
-            implementation_id: offer.implementation.implementation_id.clone(),
+            implementation_id: offer.implementation.implementation_id.as_str().into(),
             mechanism_family: if resident {
                 AMBIENT_RESIDENT_SOURCE_BASE_KIND
             } else {
