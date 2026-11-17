@@ -202,3 +202,153 @@ fn sequence_forms_and_tag_types_match_legacy_framing() {
         assert_eq!(inspect(frame, &bounds()).is_ok(), legacy(frame), "{frame}");
     }
 }
+
+#[test]
+fn rejection_diagnostics_never_copy_untrusted_strings() {
+    let huge = "sensitive-peer-text-".repeat(8192);
+    let quoted = serde_json::to_string(&huge).unwrap();
+    let ordinary = begin("[[1]]");
+    let cases = [
+        quoted.clone(),
+        ordinary.replace(
+            "\"kind\":\"body-member-image-return\"",
+            &format!("\"kind\":{quoted}"),
+        ),
+        ordinary.replace("\"protocol\":1", &format!("\"protocol\":{quoted}")),
+        ordinary.replace("\"token\":[7]", &format!("\"token\":{quoted}")),
+        ordinary.replace("\"token\":[7]", &format!("\"token\":[{quoted}]")),
+        ordinary.replace("\"command\":{", &format!("\"{huge}\":0,\"command\":{{")),
+        ordinary.replace(
+            "\"operation\":\"begin\"",
+            &format!("\"operation\":{quoted}"),
+        ),
+        ordinary.replace("\"presentation\":{}", &format!("\"{huge}\":{{}}")),
+        ordinary.replace(
+            "\"command\":{\"operation\":\"begin\",\"presentation\":{},\"images\":[[1]]}",
+            &format!("\"command\":{quoted}"),
+        ),
+        begin(&quoted),
+        begin(&format!("[{quoted}]")),
+        begin(&format!("[[{quoted}]]")),
+        begin(&format!("[[{}]]", "9".repeat(131072))),
+    ];
+    for frame in cases {
+        let error = match inspect(&frame, &bounds()) {
+            Ok(_) => panic!("invalid fixture accepted"),
+            Err(error) => error.to_string(),
+        };
+        assert!(
+            error.len() < 256,
+            "unbounded diagnostic: {} bytes",
+            error.len()
+        );
+        assert!(!error.contains("sensitive-peer-text"));
+        assert!(!legacy(&frame), "legacy acceptance changed");
+    }
+}
+
+#[test]
+fn unsigned_raw_leaf_acceptance_matches_native_without_float_conversion() {
+    let huge_integer = "9".repeat(131072);
+    let huge_mantissa = format!("0.{}1", "0".repeat(131072));
+    let huge_exponent = format!("1e{}", "9".repeat(131072));
+    for input in [
+        "0",
+        "255",
+        "256",
+        "65535",
+        "65536",
+        "18446744073709551615",
+        "18446744073709551616",
+        "-0",
+        "-1",
+        "0.0",
+        "1.0",
+        "1e0",
+        "0e999999",
+        " 255 ",
+        "\n65535\t",
+        "01",
+        "00",
+        "+1",
+        "1true",
+        "1 2",
+        "1e+",
+        "1.",
+        "null",
+        "true",
+        "\"1\"",
+        "[]",
+        "{}",
+        "[1]",
+        "",
+        " ",
+        &huge_integer,
+        &huge_mantissa,
+        &huge_exponent,
+    ] {
+        assert_eq!(
+            serde_json::from_str::<Unsigned<255>>(input).is_ok(),
+            serde_json::from_str::<u8>(input).is_ok(),
+            "u8 {input:.80}"
+        );
+        assert_eq!(
+            serde_json::from_str::<Unsigned<65535>>(input).is_ok(),
+            serde_json::from_str::<u16>(input).is_ok(),
+            "u16 {input:.80}"
+        );
+        let image_frame = begin(&format!("[[{input}]]"));
+        assert_eq!(
+            inspect(&image_frame, &bounds()).is_ok(),
+            legacy(&image_frame),
+            "image leaf {input:.80}"
+        );
+        let protocol_frame =
+            begin("[[1]]").replace("\"protocol\":1", &format!("\"protocol\":{input}"));
+        assert_eq!(
+            inspect(&protocol_frame, &bounds()).is_ok(),
+            legacy(&protocol_frame),
+            "protocol leaf {input:.80}"
+        );
+    }
+}
+
+#[test]
+fn invalid_numeric_roots_and_tags_are_refused_before_float_conversion() {
+    let ordinary = begin("[[1]]");
+    let mantissa = format!("1.{}e-1", "1234567890".repeat(8192));
+    let exponent = format!("1e{}", "9".repeat(131072));
+    let integer = "9".repeat(131072);
+    for number in [&mantissa, &exponent, &integer] {
+        let cases = [
+            number.clone(),
+            ordinary.replace(
+                "\"kind\":\"body-member-image-return\"",
+                &format!("\"kind\":{number}"),
+            ),
+            ordinary.replace(
+                "\"command\":{\"operation\":\"begin\",\"presentation\":{},\"images\":[[1]]}",
+                &format!("\"command\":{number}"),
+            ),
+            ordinary.replace(
+                "\"operation\":\"begin\"",
+                &format!("\"operation\":{number}"),
+            ),
+            ordinary.replace("\"token\":[7]", &format!("\"token\":{number}")),
+            begin(number),
+            begin(&format!("[{number}]")),
+        ];
+        for frame in cases {
+            let error = match inspect(&frame, &bounds()) {
+                Ok(_) => panic!("numeric shape accepted"),
+                Err(error) => error.to_string(),
+            };
+            assert!(
+                error.starts_with("unexpected image-return JSON shape"),
+                "{error}"
+            );
+            assert!(error.len() < 256);
+            assert!(!legacy(&frame));
+        }
+    }
+}
