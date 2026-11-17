@@ -143,11 +143,19 @@ fn empty_document_read_yields_and_preserves_the_next_document_frame() {
     assert_eq!(document.completed().unwrap().0, payload);
 }
 
-struct AlwaysEmpty;
+#[derive(Default)]
+struct AlwaysEmpty {
+    reads: usize,
+}
 impl Carrier for AlwaysEmpty {
     type Error = ();
     async fn connected(&mut self) {}
     async fn read(&mut self, _: &mut [u8], _: u32) -> Result<usize, ()> {
+        self.reads += 1;
+        assert!(
+            self.reads <= 3,
+            "empty reads did not yield within the poll budget"
+        );
         Ok(0)
     }
     async fn write(&mut self, _: &[u8], _: u32) -> Result<(), ()> {
@@ -156,7 +164,7 @@ impl Carrier for AlwaysEmpty {
 }
 #[test]
 fn repeated_empty_reads_remain_cancellable_at_each_poll_in_both_paths() {
-    let mut link = Link::new(AlwaysEmpty);
+    let mut link = Link::new(AlwaysEmpty::default());
     let mut output = [0xa5; 32];
     {
         let mut receive = core::pin::pin!(link.receive(&mut output));
@@ -167,7 +175,9 @@ fn repeated_empty_reads_remain_cancellable_at_each_poll_in_both_paths() {
                 .is_pending());
         }
     }
+    assert_eq!(link.carrier.reads, 3);
     assert_eq!(output, [0xa5; 32]);
+    link.carrier.reads = 0;
     let mut document = conduit_wire::BorrowedBoundedDocumentAssembly::new(&mut output, 2);
     {
         let mut receive = core::pin::pin!(link.receive_document(&mut document));
@@ -178,6 +188,7 @@ fn repeated_empty_reads_remain_cancellable_at_each_poll_in_both_paths() {
                 .is_pending());
         }
     }
+    assert_eq!(link.carrier.reads, 3);
     assert!(document.completed().is_none());
     assert_eq!(output, [0xa5; 32]);
 }
