@@ -7,6 +7,9 @@ edition = "2021"
 default = ["authenticated-admission"]
 authenticated-admission = ["dep:ed25519-dalek", "dep:miniz_oxide", "dep:serde_json"]
 
+# Opt-in preparation/protocol prototype; no execution or IMAGE admission.
+member-return-images = ["authenticated-admission", "dep:serde-json-core"]
+
 [dependencies]
 conduit-core = { path = "../core" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"], optional = true }
@@ -20,6 +23,8 @@ serde_json = { version = "1", default-features = false, features = ["alloc"], op
 
 # Immutable snapshot clones share their backing on every portable Host.
 portable-atomic-util = { version = "0.2.8", default-features = false, features = ["alloc"] }
+
+serde-json-core = { version = "0.6", optional = true }
 
 [target.'cfg(not(target_has_atomic = "ptr"))'.dependencies]
 portable-atomic = { version = "1", default-features = false, features = ["critical-section"] }
