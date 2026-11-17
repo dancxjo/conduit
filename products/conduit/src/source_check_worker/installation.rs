@@ -1,14 +1,14 @@
 //! Selected compiler installation, with Source acquisition inside funded preparation.
-use super::{SourceCheckProviderIdentity, derive_image_definition};
+use super::{derive_image_definition, SourceCheckProviderIdentity};
 use conduit_core::AuthorityGrant;
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_plot::{CheckContextRevision, SourceCheckNativeSchema, SourceSnapshotRevision};
 use conduit_std_host::{
-    ExternalForeInput, ImmediateSourcePreparationBudget, RunControl, StdHost, StdHostConfig,
     body_execution::{ImageForeInput, ImagePreparedValue},
     source_check::{
-        PreparedSourceChecker, SourceCheckPreparationBounds, process::OwnedSourceCheckInput,
+        process::OwnedSourceCheckInput, PreparedSourceChecker, SourceCheckPreparationBounds,
     },
+    ExternalForeInput, ImmediateSourcePreparationBudget, RunControl, StdHost, StdHostConfig,
 };
 use std::fs::File;
 

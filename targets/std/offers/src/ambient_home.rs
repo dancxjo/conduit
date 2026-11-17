@@ -225,12 +225,10 @@ mod tests {
         for offer in [wallpaper, clock] {
             assert_eq!(offer.host_calls.len(), 2);
             assert!(offer.host_calls[0].contract_id < offer.host_calls[1].contract_id);
-            assert!(
-                offer
-                    .host_calls
-                    .iter()
-                    .all(|call| call.target_kind.as_ref() == Some(&offer.kind_id))
-            );
+            assert!(offer
+                .host_calls
+                .iter()
+                .all(|call| call.target_kind.as_ref() == Some(&offer.kind_id)));
             assert!(offer.outputs.is_empty());
         }
     }

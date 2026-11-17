@@ -1,8 +1,8 @@
 //! Prepared canonical encoder for clock reads; no growing typed-value tree.
 use super::{AmbientClockReading, AmbientClockRefusal, PreparedAmbientClock};
 use conduit_core::{
-    PreparedStructuredComposer, StructuredInfoTypeShape, ValidatedCanonicalStructuredValue,
-    validate_canonical_structured_value as validate,
+    validate_canonical_structured_value as validate, PreparedStructuredComposer,
+    StructuredInfoTypeShape, ValidatedCanonicalStructuredValue,
 };
 
 const MAXIMUM_BYTES: usize = 4096;
@@ -352,13 +352,11 @@ mod tests {
         }
         // A same-shaped arbitrary value is not accepted as a checked reading.
         let unavailable = provider.unavailable("No reading").unwrap();
-        assert!(
-            PreparedAmbientClockWire::prepare_with_weather_reading(
-                "America/Los_Angeles",
-                &unavailable
-            )
-            .is_err()
-        );
+        assert!(PreparedAmbientClockWire::prepare_with_weather_reading(
+            "America/Los_Angeles",
+            &unavailable
+        )
+        .is_err());
     }
 
     #[test]

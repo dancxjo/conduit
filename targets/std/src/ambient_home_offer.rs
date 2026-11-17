@@ -2,7 +2,7 @@
 #[cfg(test)]
 pub(crate) use conduit_std_offers::ambient_home_std_offer as offer;
 pub(crate) use conduit_std_offers::{
-    AMBIENT_HOME_IMPLEMENTATION as IMPLEMENTATION, ambient_home_workspace_bytes as workspace_bytes,
+    ambient_home_workspace_bytes as workspace_bytes, AMBIENT_HOME_IMPLEMENTATION as IMPLEMENTATION,
 };
 #[cfg(test)]
 mod tests {
@@ -21,14 +21,12 @@ mod tests {
             offered.host_calls[0].contract_id,
             offered.host_calls[1].contract_id
         );
-        assert!(
-            offered
-                .host_calls
-                .iter()
-                .all(|call| call.maximum_input_bytes == 8192
-                    && call.maximum_output_bytes == 0
-                    && call.maximum_in_flight == 1)
-        );
+        assert!(offered
+            .host_calls
+            .iter()
+            .all(|call| call.maximum_input_bytes == 8192
+                && call.maximum_output_bytes == 0
+                && call.maximum_in_flight == 1));
         assert_eq!(offered.inputs.len(), 1);
         assert!(offered.outputs.is_empty());
     }

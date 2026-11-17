@@ -1,6 +1,6 @@
 //! Ordinary BodyFace context selection for the current single owner view.
 //! This is private presentation state, never Body biography, Source or Play.
-use super::{Owner, debug};
+use super::{debug, Owner};
 use conduit_face::{FaceContext, FaceInteraction, FaceOperatorActionKind, MaskShow};
 
 #[derive(Default)]

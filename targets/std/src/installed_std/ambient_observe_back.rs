@@ -1,12 +1,12 @@
 //! Actual wall-clock sampling through the selected CPU Host Call, one kernel.
 use super::{
-    InstalledScheduler,
     back::{BackBudget, BackFactory, InstalledBack},
+    InstalledScheduler,
 };
 use conduit_core::*;
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, PortId,
     scheduler::{HostCallBack, HostCallRequest, StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, PortId,
 };
 use conduit_plan_lowering::lowering::LoweredHostCall;
 use conduit_std_offers::{

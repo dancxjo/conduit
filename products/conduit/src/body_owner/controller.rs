@@ -8,8 +8,8 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::HostAdvertisement;
 use conduit_core::bind_sign;
+use conduit_core::HostAdvertisement;
 use conduit_face::{Face, OwnerFaceSnapshotRequest};
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -111,7 +111,7 @@ mod remote_spoken_route;
 mod remote_terminal_route;
 #[path = "wardrobe_face.rs"]
 mod wardrobe_face;
-pub(crate) use clock_interval::{CLOCK_RUN_MAXIMUM_MILLIS, ClockAction, is_clock_control_intent};
+pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;

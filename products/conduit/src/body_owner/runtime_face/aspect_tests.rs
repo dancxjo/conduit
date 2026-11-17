@@ -146,20 +146,16 @@ impl ObserveAspects<'_> {
                         1,
                     )
                     .unwrap();
-                    assert!(
-                        owner
-                            .navigate_owner_context(&show, &interaction)
-                            .unwrap()
-                            .is_some()
-                    );
+                    assert!(owner
+                        .navigate_owner_context(&show, &interaction)
+                        .unwrap()
+                        .is_some());
                     let updated = owner.local_face_snapshot().unwrap();
                     assert!(updated.subjects.iter().any(|s| s.name == "Wallpaper"));
-                    assert!(
-                        updated
-                            .subjects
-                            .iter()
-                            .any(|s| s.name == "Clock and weather")
-                    );
+                    assert!(updated
+                        .subjects
+                        .iter()
+                        .any(|s| s.name == "Clock and weather"));
                     assert_eq!(
                         owner
                             .runtime_face
@@ -184,11 +180,10 @@ impl ObserveAspects<'_> {
                 ),
             ] {
                 let subject = face.subjects.iter().find(|s| s.name == name).unwrap();
-                assert!(
-                    face.composition.iter().any(|r| r.source == subject.identity
-                        && r.target == body
-                        && r.kind == kind)
-                );
+                assert!(face
+                    .composition
+                    .iter()
+                    .any(|r| r.source == subject.identity && r.target == body && r.kind == kind));
             }
             if let Some(credit)=face.properties.iter().find(|p|p.name=="attribution" && matches!(&p.value,conduit_face::FacePropertyValue::Text(text) if text=="Fixture photographer credit")) {
                 let outline=conduit_std_host::spoken_face_mask::select_spoken_outline(&face).unwrap();

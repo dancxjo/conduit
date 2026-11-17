@@ -8,9 +8,9 @@ pub use conduit_face::native_mask_plan_backing_bytes;
 pub mod selected_native_mask;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub use selected_native_mask::{
-    NATIVE_MASK_IMAGE_PREPARATION_BYTES, NATIVE_MASK_IMAGE_RETAINED_BYTES, NativeMaskEncounter,
-    NativeMaskImageBackingReceipt, NativeMaskImageData, NativeMaskImageInitialization,
-    SelectedNativeInteraction, SelectedNativeMaskInput,
+    NativeMaskEncounter, NativeMaskImageBackingReceipt, NativeMaskImageData,
+    NativeMaskImageInitialization, SelectedNativeInteraction, SelectedNativeMaskInput,
+    NATIVE_MASK_IMAGE_PREPARATION_BYTES, NATIVE_MASK_IMAGE_RETAINED_BYTES,
 };
 #[cfg(target_os = "linux")]
 mod selected_text_file;
@@ -25,13 +25,13 @@ use conduit_core::{
     BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
     PlanFragment, PlanId,
 };
-use conduit_planner::{PlacementChoices, default_placements, parse_placements, plan};
+use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
 use conduit_plot::CheckedPlot;
 use conduit_signal::{PULSE_KIND, SHOW_KIND};
 pub use selected_native_source::{
-    ImmediateNativeSource, ImmediateSourcePreparationBudget, NATIVE_SOURCE_WORKER_PROFILE,
-    NativeReadContext, NativeSourceDefinition, NativeSourceWorkerProvider, NativeWorkerBudget,
-    NativeWorkerInspection, RetiredNativeSource, WorkerBackingObservation, WorkerFailure,
+    ImmediateNativeSource, ImmediateSourcePreparationBudget, NativeReadContext,
+    NativeSourceDefinition, NativeSourceWorkerProvider, NativeWorkerBudget, NativeWorkerInspection,
+    RetiredNativeSource, WorkerBackingObservation, WorkerFailure, NATIVE_SOURCE_WORKER_PROFILE,
 };
 use std::fs;
 use std::io::Write;
@@ -81,13 +81,13 @@ pub mod text_lab_live;
 pub mod text_lab_split;
 #[cfg(feature = "local-model-proof")]
 pub mod whisper_clip_proof;
-pub use composition::{StdHostComposition, reference_advertisement, supported_nucleus_offers};
+pub use composition::{reference_advertisement, supported_nucleus_offers, StdHostComposition};
 pub use conduit_std_offers::hosted_keyboard_offer;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub use copy_task::prepare_isolated_copy_task;
 pub use copy_task::{
-    CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, PreparedCopyTask,
-    ProtectedFileAvailability, ProtectedFileRegistry, prepare_copy_task,
+    prepare_copy_task, CopyRequestId, CopyResult, CopyRunReceipt, CopyStopToken, PreparedCopyTask,
+    ProtectedFileAvailability, ProtectedFileRegistry,
 };
 pub use deadline_reactor::{
     DeadlineClock, DeadlineClockError, DeadlineHostAdapter, DeadlineHostError, DeadlineKey,
@@ -102,8 +102,8 @@ pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeS
 mod host_execution;
 mod reluctant_replan;
 pub use reluctant_replan::{
-    STD_REPLAN_PREVIOUS_EVIDENCE_CAPACITY, StdReluctantReplanError, StdReluctantReplanOutcome,
-    StdReluctantReplanRefusal, StdReluctantReplanRequest,
+    StdReluctantReplanError, StdReluctantReplanOutcome, StdReluctantReplanRefusal,
+    StdReluctantReplanRequest, STD_REPLAN_PREVIOUS_EVIDENCE_CAPACITY,
 };
 pub mod hosted_audio;
 mod hosted_body_conversation_context;
@@ -215,8 +215,8 @@ pub use installed_std::{
     RemoteHostWorkRef, RemoteSignRetention, RemoteValueIdentity, RemoteValueTransfer,
 };
 pub use vision_ocr::{
-    MAXIMUM_OCR_ITEMS, OcrCandidate, OcrProviderRefusal, TesseractOcrProvider, encode_graymap,
-    visit_tesseract_tsv,
+    encode_graymap, visit_tesseract_tsv, OcrCandidate, OcrProviderRefusal, TesseractOcrProvider,
+    MAXIMUM_OCR_ITEMS,
 };
 mod remote_host_fragment;
 pub use remote_host_fragment::{AdmittedRemoteFragment, RemoteBodyTimeStepRefusal};
@@ -1931,8 +1931,8 @@ fn write_operator_report<W: Write>(
 mod tests {
     use super::{StdHost, StdHostConfig, TimerAdapter};
     use conduit_core::{
-        BootId, ConnectionId, HostId, OfferGeneration, PlotIdentity, PortDirection, PortId,
-        seal_plan,
+        seal_plan, BootId, ConnectionId, HostId, OfferGeneration, PlotIdentity, PortDirection,
+        PortId,
     };
     use conduit_plot::parse_with_startup;
     use conduit_signal::signal_profile_catalog;
@@ -2051,27 +2051,21 @@ mod tests {
                 Some(*operation)
             );
         }
-        assert!(
-            lowered
-                .identity
-                .ports
-                .iter()
-                .any(|port| port.direction == PortDirection::Input)
-        );
-        assert!(
-            lowered
-                .identity
-                .ports
-                .iter()
-                .any(|port| port.direction == PortDirection::Output)
-        );
+        assert!(lowered
+            .identity
+            .ports
+            .iter()
+            .any(|port| port.direction == PortDirection::Input));
+        assert!(lowered
+            .identity
+            .ports
+            .iter()
+            .any(|port| port.direction == PortDirection::Output));
         assert_eq!(lowered.signs.len(), fragment.expected_sign.len());
-        assert!(
-            lowered
-                .host_calls
-                .iter()
-                .any(|operation| operation.binding.maximum_output_bytes == 0)
-        );
+        assert!(lowered
+            .host_calls
+            .iter()
+            .any(|operation| operation.binding.maximum_output_bytes == 0));
         assert_eq!(
             lowered.node_specs[1].input_cords[0],
             Some(lowered.cords[0].spec.cord)
@@ -2230,18 +2224,14 @@ mod tests {
         assert!(output.lines().any(|line| line == "signal 0 off"));
         assert!(output.lines().any(|line| line == "signal 1 on"));
         assert!(output.lines().any(|line| line == "signal 2 off"));
-        assert!(
-            output
-                .lines()
-                .any(|line| line.starts_with("receipt signal placement=")
-                    && line.ends_with(" sequence=0 level=false"))
-        );
-        assert!(
-            output
-                .lines()
-                .any(|line| line.starts_with("receipt signal placement=")
-                    && line.ends_with(" sequence=2 level=false"))
-        );
+        assert!(output
+            .lines()
+            .any(|line| line.starts_with("receipt signal placement=")
+                && line.ends_with(" sequence=0 level=false")));
+        assert!(output
+            .lines()
+            .any(|line| line.starts_with("receipt signal placement=")
+                && line.ends_with(" sequence=2 level=false")));
         assert!(output.contains("receipts 3 first=(0, false) last=(2, false)"));
         assert_eq!(report.receipts.len(), 3);
         assert_eq!(report.receipts[0].sequence, 0);
@@ -2288,12 +2278,10 @@ mod tests {
                     .identity
                     .request(face.node, face.request)
                     .expect("face request reverses to its Host Call contract");
-                assert!(
-                    kernel
-                        .identity
-                        .request_for_contract(face.node, &request.contract_id)
-                        .any(|candidate| candidate == request)
-                );
+                assert!(kernel
+                    .identity
+                    .request_for_contract(face.node, &request.contract_id)
+                    .any(|candidate| candidate == request));
                 assert_eq!(
                     kernel
                         .identity

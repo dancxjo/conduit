@@ -19,8 +19,8 @@ mod worker;
 use conduit_core::*;
 use conduit_kernel::NodeId;
 pub use worker::{
-    NATIVE_SOURCE_WORKER_PROFILE, NativeReadContext, NativeSourceWorkerProvider,
-    NativeWorkerBudget, WorkerBackingObservation, WorkerFailure,
+    NativeReadContext, NativeSourceWorkerProvider, NativeWorkerBudget, WorkerBackingObservation,
+    WorkerFailure, NATIVE_SOURCE_WORKER_PROFILE,
 };
 
 /// Independently retained definition of a single-call native Source.

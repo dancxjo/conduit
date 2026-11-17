@@ -1,7 +1,7 @@
 //! Home dispatch uses the same installed kernel, original IMAGE and observer.
 use super::*;
 use crate::body_execution::{
-    BodyFaceContributionObserver, face_contribution::FaceContributionContext,
+    face_contribution::FaceContributionContext, BodyFaceContributionObserver,
 };
 use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
 use conduit_core::HostAdvertisement;

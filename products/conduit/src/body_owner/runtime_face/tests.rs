@@ -7,8 +7,8 @@ use conduit_data::{
     LabelledMeasurementSeries, MeasurementChart, MeasurementPlotPoint, MeasurementPlotSeries,
 };
 use conduit_std_host::{
-    ExternalForeInput, RunControl, StdHost, StdHostComposition, StdHostConfig, ThreadTimer,
-    body_execution::BodyRunRequest,
+    body_execution::BodyRunRequest, ExternalForeInput, RunControl, StdHost, StdHostComposition,
+    StdHostConfig, ThreadTimer,
 };
 use std::{cell::RefCell, collections::BTreeMap};
 const SOURCE: &str = concat!(
@@ -31,9 +31,11 @@ fn input(value: i64) -> ExternalForeInput {
         0,
     )
     .unwrap();
-    let chart = MeasurementChart::new(vec![
-        LabelledMeasurementSeries::new("North room".into(), series).unwrap(),
-    ])
+    let chart = MeasurementChart::new(vec![LabelledMeasurementSeries::new(
+        "North room".into(),
+        series,
+    )
+    .unwrap()])
     .unwrap();
     ExternalForeInput {
         front_port_id: "chart".into(),

@@ -15,11 +15,9 @@ fn assert_aspects(frames: &[CommittedFaceContribution]) {
             matching[0].fragment().subjects,
             matching[1].fragment().subjects
         );
-        assert!(
-            matching
-                .iter()
-                .all(|f| !f.fragment().subjects.iter().any(|s| s.name == "Home"))
-        );
+        assert!(matching
+            .iter()
+            .all(|f| !f.fragment().subjects.iter().any(|s| s.name == "Home")));
         let forbidden = if label == "Wallpaper" {
             "clock-weather"
         } else {
@@ -32,11 +30,9 @@ fn assert_aspects(frames: &[CommittedFaceContribution]) {
                 .any(|s| s.identity.ends_with(forbidden))
         }));
     }
-    assert!(
-        frames
-            .iter()
-            .all(|f| f.fragment().basis == frames[0].fragment().basis)
-    );
+    assert!(frames
+        .iter()
+        .all(|f| f.fragment().basis == frames[0].fragment().basis));
     assert_ne!(
         frames
             .iter()

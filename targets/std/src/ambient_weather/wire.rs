@@ -1,6 +1,6 @@
 //! Prepared freshness projection of one checked, retained provider reading.
 use super::*;
-use conduit_core::{PreparedStructuredComposer, validate_canonical_structured_value as canonical};
+use conduit_core::{validate_canonical_structured_value as canonical, PreparedStructuredComposer};
 
 const MAXIMUM_BYTES: usize = 4096;
 

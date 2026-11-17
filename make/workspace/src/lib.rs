@@ -45,4 +45,4 @@ pub fn catalog() -> MakeCatalog {
 #[cfg(test)]
 mod graphical_host_tests;
 
-pub use conduit_host_hosted::{CPU_BASE_KIND, CPU_IMPLEMENTATION, CheckedCpuInitialization};
+pub use conduit_host_hosted::{CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION};

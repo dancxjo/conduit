@@ -1,6 +1,6 @@
 use super::*;
-use crate::ambient_wallpaper::{MAXIMUM_APOD_RESPONSE_BYTES, acquisition::*};
-use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
+use crate::ambient_wallpaper::{acquisition::*, MAXIMUM_APOD_RESPONSE_BYTES};
+use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
 fn deck() -> PreparedDeck {
     let admission = PreparationAdmission::admit(
         chrono::NaiveDate::from_ymd_opt(2026, 11, 16).unwrap(),

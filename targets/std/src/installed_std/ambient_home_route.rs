@@ -3,14 +3,14 @@
 //! by the integration handoff. This module adds no scheduler or acquisition.
 use super::InstalledScheduler;
 use crate::body_execution::{
-    BodyFaceContributionObserver,
     face_contribution::{
         FaceCommitObservation, FaceContributionContext, FaceContributionRefusal,
         PendingFaceContributionRoute,
     },
+    BodyFaceContributionObserver,
 };
 use conduit_kernel::{
-    HostCallDisposition, HostCallId, HostCallOutcome, NodeId, scheduler::HostCallRequest,
+    scheduler::HostCallRequest, HostCallDisposition, HostCallId, HostCallOutcome, NodeId,
 };
 
 // One accepted current frame and one replacement. A receiver retaining both

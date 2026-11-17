@@ -2,7 +2,7 @@
 //! Preparation allocates; refresh and projection use only admitted storage.
 use super::*;
 use conduit_core::{
-    PreparedStructuredComposer as Composer, validate_canonical_structured_value as canonical,
+    validate_canonical_structured_value as canonical, PreparedStructuredComposer as Composer,
 };
 
 use super::wire::Payload;

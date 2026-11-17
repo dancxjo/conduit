@@ -1,6 +1,6 @@
 //! Explicit, finite preparation; never call from a Mask, Step, or runtime read.
 //! Returned bytes are prepared photographs, not installed or authorized resources.
-use super::{ApodImageCandidate, MAXIMUM_APOD_RESPONSE_BYTES, decode_apod_candidate};
+use super::{decode_apod_candidate, ApodImageCandidate, MAXIMUM_APOD_RESPONSE_BYTES};
 use chrono::NaiveDate;
 use image::{ImageDecoder, ImageFormat, ImageReader};
 use sha2::{Digest, Sha256};
@@ -278,8 +278,8 @@ pub fn prepare_deck_https(
 ) -> Result<PreparedDeck, PreparationError> {
     prepare_deck(admission, bounded_https_transport())
 }
-pub(super) fn bounded_https_transport()
--> impl FnMut(&str, usize) -> Result<Vec<u8>, PreparationError> {
+pub(super) fn bounded_https_transport(
+) -> impl FnMut(&str, usize) -> Result<Vec<u8>, PreparationError> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .max_redirects(0)
         .timeout_global(Some(Duration::from_secs(20)))

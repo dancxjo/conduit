@@ -1,10 +1,10 @@
 //! Real authored Home Plan refusal before Start; no display/IMAGE success claim.
 use crate::{
-    ExternalForeDelivery, ExternalForeInput, RunControl, ThreadTimer,
     body_execution::{
         BodyFaceContributionObserver, BodyForeOutputAdapter, BodyRunRequest,
         CommittedFaceContribution, ReturnedFaceContribution,
     },
+    ExternalForeDelivery, ExternalForeInput, RunControl, ThreadTimer,
 };
 use conduit_ambient_display::PreparedAmbientFaces;
 use conduit_core::{ConnectionTrack, PortDirection, StructuredInfoValue};

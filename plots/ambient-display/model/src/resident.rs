@@ -96,18 +96,14 @@ mod tests {
     fn resident_profiles_have_open_flows_and_no_cumulative_update_promise() {
         let observer = ambient_resident_observe_kind().unwrap();
         for ports in [&observer.inputs, &observer.outputs] {
-            assert!(
-                ports
-                    .iter()
-                    .all(|p| p.temporal == PortTemporal::Flow { closes: false })
-            );
-        }
-        assert!(
-            observer
-                .configuration
+            assert!(ports
                 .iter()
-                .all(|c| c.key != "maximum-updates")
-        );
+                .all(|p| p.temporal == PortTemporal::Flow { closes: false }));
+        }
+        assert!(observer
+            .configuration
+            .iter()
+            .all(|c| c.key != "maximum-updates"));
         for aspect in [
             AmbientDisplayAspect::Wallpaper,
             AmbientDisplayAspect::ClockWeather,
@@ -119,11 +115,10 @@ mod tests {
             );
             assert_eq!(kind.configuration.len(), 1);
             assert_eq!(kind.configuration[0].key, "label");
-            assert!(
-                kind.startup_parameters
-                    .iter()
-                    .all(|p| p.name != "maximum-updates")
-            );
+            assert!(kind
+                .startup_parameters
+                .iter()
+                .all(|p| p.name != "maximum-updates"));
             assert_ne!(
                 kind.kind_id,
                 crate::ambient_aspect_contributor_kind(aspect)
@@ -131,12 +126,10 @@ mod tests {
                     .kind_id
             );
         }
-        assert!(
-            crate::ambient_observe_kind()
-                .unwrap()
-                .configuration
-                .iter()
-                .any(|c| c.key == "maximum-updates")
-        );
+        assert!(crate::ambient_observe_kind()
+            .unwrap()
+            .configuration
+            .iter()
+            .any(|c| c.key == "maximum-updates"));
     }
 }

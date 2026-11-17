@@ -4,8 +4,8 @@ use super::{
     write_json_atomic,
 };
 use conduit_host_make::{
-    CheckedHostConfiguration, canonical_host_configuration_conduit, check_host_configuration,
-    parse_host_configuration_conduit,
+    canonical_host_configuration_conduit, check_host_configuration,
+    parse_host_configuration_conduit, CheckedHostConfiguration,
 };
 use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};

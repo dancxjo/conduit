@@ -56,17 +56,15 @@ fn subordinate_wording_stays_queryable_without_occupying_the_opening() {
     assert!(!outline.clauses.iter().any(|text| text.contains("mountain")));
     assert!(outline.clauses.iter().any(|text| text.contains("read all")));
     let plan = FaceReadingCursor::new(&face).unwrap();
-    assert!(
-        plan.plan()
-            .clauses
-            .iter()
-            .any(|clause| clause.text.contains("mountain"))
-    );
-    assert!(
-        face.subjects
-            .iter()
-            .any(|subject| subject.identity == "photo-caption")
-    );
+    assert!(plan
+        .plan()
+        .clauses
+        .iter()
+        .any(|clause| clause.text.contains("mountain")));
+    assert!(face
+        .subjects
+        .iter()
+        .any(|subject| subject.identity == "photo-caption"));
 
     let show = common::available_mask_show(&face);
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
@@ -190,15 +188,13 @@ fn refresh_refuses_an_old_page_until_a_new_selection_is_requested() {
     reader
         .command(&next, &next_show, ReaderCommand::ReadItemPage, 3)
         .unwrap();
-    assert!(
-        reader
-            .take_text_readout()
-            .unwrap()
-            .unwrap()
-            .clauses
-            .join(" ")
-            .contains("Page item 0,")
-    );
+    assert!(reader
+        .take_text_readout()
+        .unwrap()
+        .unwrap()
+        .clauses
+        .join(" ")
+        .contains("Page item 0,"));
 }
 
 #[test]

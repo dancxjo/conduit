@@ -5,7 +5,7 @@ use crate::{StdHost, StdHostConfig};
 use conduit_body_make::deployment_runtime_catalog::{CRECHE_IMPLEMENTATION, CRECHE_RESOURCE};
 use conduit_core::*;
 use conduit_host_make::{
-    HostImage, MakeCatalog, RuntimeFacts, RuntimeOfferInputs, bind_runtime_offer,
+    bind_runtime_offer, HostImage, MakeCatalog, RuntimeFacts, RuntimeOfferInputs,
 };
 use std::{collections::BTreeSet, io::Write};
 
@@ -14,7 +14,7 @@ mod creche;
 mod recognition;
 #[cfg(all(test, target_os = "linux", target_pointer_width = "64"))]
 pub(crate) use cpu::test_fixture as cpu_image_test_fixture;
-pub(crate) use cpu::{InitialCpu, prepare as prepare_cpu_from_configuration};
+pub(crate) use cpu::{prepare as prepare_cpu_from_configuration, InitialCpu};
 pub(crate) use recognition::InitialWhisper;
 #[cfg(target_os = "linux")]
 mod text_file;

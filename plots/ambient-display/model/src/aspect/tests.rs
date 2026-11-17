@@ -38,11 +38,9 @@ fn independent_aspects_project_only_their_subjects_from_one_checked_observation(
     })
     .canonical_bytes()
     .unwrap();
-    assert!(
-        faces
-            .aspect_canonical_observation(AmbientDisplayAspect::Wallpaper, basis(), &invalid)
-            .is_err()
-    );
+    assert!(faces
+        .aspect_canonical_observation(AmbientDisplayAspect::Wallpaper, basis(), &invalid)
+        .is_err());
 }
 
 #[test]

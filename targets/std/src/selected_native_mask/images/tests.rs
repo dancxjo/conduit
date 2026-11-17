@@ -160,17 +160,15 @@ fn refuses_transparency_wrong_version_oversize_and_duplicate_generations() {
     assert!(photo([1; 32], [1; 32], 1, 1, vec![0, 0, 0, 255].into()).is_err());
     assert!(photo([1; 32], [1; 32], 1025, 1, vec![0; 4100].into()).is_err());
     assert!(NativeMaskImageData::finish(vec![]).is_err());
-    assert!(
-        NativeMaskImageData::finish(
-            (0..4)
-                .map(|_| {
-                    let rgba = vec![1, 2, 3, 255].into_boxed_slice();
-                    photo([1; 32], version(&[1; 32], 1, 1, &rgba), 1, 1, rgba).unwrap()
-                })
-                .collect()
-        )
-        .is_err()
-    );
+    assert!(NativeMaskImageData::finish(
+        (0..4)
+            .map(|_| {
+                let rgba = vec![1, 2, 3, 255].into_boxed_slice();
+                photo([1; 32], version(&[1; 32], 1, 1, &rgba), 1, 1, rgba).unwrap()
+            })
+            .collect()
+    )
+    .is_err());
 }
 fn cache() -> (tempfile::TempDir, std::path::PathBuf, [u8; 32]) {
     let directory = tempfile::tempdir().unwrap();
@@ -222,8 +220,8 @@ fn factory_bounds_refuse_without_running_factory() {
 
 #[test]
 fn explicit_operator_export_round_trips_actual_prepared_deck_and_refuses_replacement() {
-    use crate::ambient_wallpaper::{MAXIMUM_APOD_RESPONSE_BYTES, acquisition::*};
-    use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
+    use crate::ambient_wallpaper::{acquisition::*, MAXIMUM_APOD_RESPONSE_BYTES};
+    use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
     let admission = PreparationAdmission::admit(
         chrono::NaiveDate::from_ymd_opt(2026, 11, 16).unwrap(),
         MAXIMUM_RETAINED_BYTES,

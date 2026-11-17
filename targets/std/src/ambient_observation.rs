@@ -1,16 +1,16 @@
 //! Prepared ambient observation provider for an independently admitted IO worker.
 //! Acquisition and actual grant/IMAGE construction belong to its caller.
 use crate::{
-    NativeReadContext, NativeSourceWorkerProvider, WorkerFailure,
     ambient_clock::PreparedAmbientClockWire,
     ambient_wallpaper::{
         acquisition::PreparedDeck, selection_wire::PreparedWallpaperSelectionWire,
     },
     ambient_weather::{OpenMeteoHttp, OpenMeteoHttpRefusal, PreparedCurrentWeatherWire},
+    NativeReadContext, NativeSourceWorkerProvider, WorkerFailure,
 };
 use conduit_core::{
-    PreparedStructuredComposer, StructuredInfoTypeShape,
-    validate_canonical_structured_value as canonical,
+    validate_canonical_structured_value as canonical, PreparedStructuredComposer,
+    StructuredInfoTypeShape,
 };
 use std::{
     net::SocketAddr,

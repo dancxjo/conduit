@@ -12,11 +12,11 @@ extern crate alloc;
 
 mod resident;
 pub use resident::{
-    AMBIENT_RESIDENT_OBSERVE_KIND, AMBIENT_RESIDENT_OBSERVE_REVISION, AmbientUpdatePolicy,
     ambient_resident_aspect_name, ambient_resident_contributor_kind, ambient_resident_observe_kind,
+    AmbientUpdatePolicy, AMBIENT_RESIDENT_OBSERVE_KIND, AMBIENT_RESIDENT_OBSERVE_REVISION,
 };
 mod aspect;
-pub use aspect::{AmbientDisplayAspect, ambient_aspect_contributor_kind};
+pub use aspect::{ambient_aspect_contributor_kind, AmbientDisplayAspect};
 mod availability;
 mod civil;
 mod contributor;
@@ -29,7 +29,7 @@ mod types;
 
 pub use face::{AmbientFaceRefusal, PreparedAmbientFaces};
 pub use types::{
-    AMBIENT_DISPLAY_TYPES_SOURCE, install_ambient_display_types, prepare_ambient_display_types,
+    install_ambient_display_types, prepare_ambient_display_types, AMBIENT_DISPLAY_TYPES_SOURCE,
 };
 
 #[cfg(test)]

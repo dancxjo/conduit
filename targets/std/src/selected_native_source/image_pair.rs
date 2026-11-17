@@ -94,8 +94,8 @@ impl StdHost {
                             metadata(&config, &scope)?,
                             worker_metadata(&config, &scope)?,
                         );
-                        image_worker::bound_definition(&pair.0.0)?;
-                        image_worker::bound_definition(&pair.1.0)?;
+                        image_worker::bound_definition(&pair.0 .0)?;
+                        image_worker::bound_definition(&pair.1 .0)?;
                         Ok((config.clone(), pair))
                     },
                 )

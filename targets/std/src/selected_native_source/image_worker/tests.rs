@@ -1,7 +1,7 @@
 use super::*;
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, Ordering},
+    Arc,
 };
 use std::time::{Duration, Instant};
 

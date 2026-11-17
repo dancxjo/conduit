@@ -1,11 +1,11 @@
 //! Local multi-partition composition of the existing kernel and Host effects.
 use super::{
-    InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
     fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_face_host,
+    InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
 };
 use crate::{
-    BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
     body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
+    BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
 };
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
@@ -13,14 +13,14 @@ use conduit_core::{
     CancellationReason, FailureReason, Plan, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::{
+    scheduler::{HostCallRequest, SchedulerStatus},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome, HostedValueStore,
     KernelEvent,
-    scheduler::{HostCallRequest, SchedulerStatus},
 };
 use conduit_plan_lowering::{
-    activation_fragment::{LoweredFragmentActivations, lower_fragment_activations},
-    fragment_set::{FragmentSetBounds, lower_local_fragment_set_from_plans},
-    lowering::{FIXED_KERNEL_STORAGE_PROFILE, KernelIdentityMap, LoweredHostCall},
+    activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
+    fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
+    lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
 };
 use std::io::Write;
 

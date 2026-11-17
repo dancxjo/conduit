@@ -3,7 +3,7 @@ use super::*;
 #[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod common;
 
-use conduit_core::{CheckedValueContract, ValueConstraint, kind_id};
+use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
 use conduit_face::{
     FaceAction, FaceActionArgument, FaceDisclosure, FaceDisclosureLevel, FaceProperty,
     FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
@@ -94,11 +94,9 @@ fn mechanical_projection_matches_interactive_wording_before_any_show() {
     let projected = mechanical_face_clauses(&face).unwrap();
     let reader = SpokenFaceSession::new(face, show).unwrap();
     assert_eq!(projected, reader.voiced);
-    assert!(
-        projected
-            .iter()
-            .any(|clause| clause.contains("Create Body"))
-    );
+    assert!(projected
+        .iter()
+        .any(|clause| clause.contains("Create Body")));
 }
 
 #[test]
@@ -203,16 +201,12 @@ fn direct_opening_offers_content_action_without_generic_context_navigation() {
     let generic = base.actions[1].clone();
     let content = base.actions[0].clone();
     let opening = primary_face_clauses(&make_face(vec![generic.clone(), content])).unwrap();
-    assert!(
-        opening
-            .iter()
-            .any(|clause| clause == "You can Set Body name.")
-    );
-    assert!(
-        !opening
-            .iter()
-            .any(|clause| clause == "You can Create Body.")
-    );
+    assert!(opening
+        .iter()
+        .any(|clause| clause == "You can Set Body name."));
+    assert!(!opening
+        .iter()
+        .any(|clause| clause == "You can Create Body."));
 
     let opening = primary_face_clauses(&make_face(vec![generic])).unwrap();
     assert!(!opening.iter().any(|clause| clause.starts_with("You can ")));
@@ -306,12 +300,10 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     let direct = std::str::from_utf8(direct.front().unwrap()).unwrap();
     assert!(direct.contains("Open item 2."));
     assert!(!direct.contains("Completed item"));
-    assert!(
-        mechanical_face_clauses(&face)
-            .unwrap()
-            .join(" ")
-            .contains("Completed item 17.")
-    );
+    assert!(mechanical_face_clauses(&face)
+        .unwrap()
+        .join(" ")
+        .contains("Completed item 17."));
 }
 
 #[test]
@@ -522,21 +514,15 @@ fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
     assert!(clauses.iter().any(|clause| clause == "Item 79, item."));
     assert!(clauses.iter().any(|clause| clause == "Welcome, main."));
     assert!(clauses.iter().any(|clause| clause == "Body name, article."));
-    assert!(
-        clauses
-            .iter()
-            .any(|clause| clause == "Welcome contains Body name.")
-    );
-    assert!(
-        clauses
-            .iter()
-            .any(|clause| clause.contains("current name: New Body"))
-    );
-    assert!(
-        clauses
-            .iter()
-            .any(|clause| clause.contains("Unavailable: Give the Body a name first."))
-    );
+    assert!(clauses
+        .iter()
+        .any(|clause| clause == "Welcome contains Body name."));
+    assert!(clauses
+        .iter()
+        .any(|clause| clause.contains("current name: New Body")));
+    assert!(clauses
+        .iter()
+        .any(|clause| clause.contains("Unavailable: Give the Body a name first.")));
 
     reader
         .command(
@@ -688,16 +674,12 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         .command(&crowded, &crowded_show, ReaderCommand::ReadAll, 1)
         .unwrap();
     let generic = crowded_reader.take_text_readout().unwrap().unwrap().clauses;
-    assert!(
-        generic
-            .iter()
-            .any(|clause| clause.contains("canonical values"))
-    );
-    assert!(
-        !generic
-            .iter()
-            .any(|clause| clause.contains("Choose one of:"))
-    );
+    assert!(generic
+        .iter()
+        .any(|clause| clause.contains("canonical values")));
+    assert!(!generic
+        .iter()
+        .any(|clause| clause.contains("Choose one of:")));
 
     let mut disguised = crowded.actions.clone();
     disguised[0].arguments[0].contract = CheckedValueContract::new(
@@ -731,16 +713,12 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         .unwrap()
         .unwrap()
         .clauses;
-    assert!(
-        generic
-            .iter()
-            .any(|clause| clause.contains("canonical values"))
-    );
-    assert!(
-        !generic
-            .iter()
-            .any(|clause| clause.contains("Choose one of:"))
-    );
+    assert!(generic
+        .iter()
+        .any(|clause| clause.contains("canonical values")));
+    assert!(!generic
+        .iter()
+        .any(|clause| clause.contains("Choose one of:")));
 }
 
 fn receipt(packet: &SpokenSegment) -> SpokenAudioReceipt {
@@ -809,12 +787,10 @@ fn requested_items_close_before_later_non_item_face_clauses() {
     let batch = reader.next_batch_with_limits(4, 64).unwrap().unwrap();
     assert_eq!(batch.segments.len(), 3);
     for (number, segment) in (18..=20).zip(&batch.segments) {
-        assert!(
-            segment
-                .segment
-                .text
-                .contains(&format!("Long-list item {number}"))
-        );
+        assert!(segment
+            .segment
+            .text
+            .contains(&format!("Long-list item {number}")));
     }
     assert_eq!(
         batch.segments.last().unwrap().segment.reason,
@@ -884,14 +860,12 @@ fn smaller_closing_flows_preserve_all_face_text_and_cancel_between_batches() {
         .command(&face, &show, ReaderCommand::ReadAll, 2)
         .unwrap();
     let first = reader.next_batch_with_limits(2, 64).unwrap().unwrap();
-    assert!(
-        reader
-            .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
-                &first
-            )))
-            .unwrap()
-            .is_none()
-    );
+    assert!(reader
+        .acknowledge_batch(SpokenBatchDelivery::Completed(fixture_batch_receipt(
+            &first
+        )))
+        .unwrap()
+        .is_none());
     let stopped = reader
         .command(&face, &show, ReaderCommand::Stop, 3)
         .unwrap();
@@ -1055,15 +1029,13 @@ fn host_owned_text_readout_and_focus_claim_no_audio() {
             2,
         )
         .unwrap();
-    assert!(
-        reader
-            .take_text_readout()
-            .unwrap()
-            .unwrap()
-            .clauses
-            .join(" ")
-            .contains("Create Body")
-    );
+    assert!(reader
+        .take_text_readout()
+        .unwrap()
+        .unwrap()
+        .clauses
+        .join(" ")
+        .contains("Create Body"));
     assert_eq!(
         reader.command(
             &face,

@@ -8,9 +8,9 @@ use conduitos::{
     product_bases::ActiveNativeSurfacePossession,
 };
 mod cache_export;
+use crate::ambient_wallpaper::cache::version;
 #[cfg(test)]
 use crate::ambient_wallpaper::cache::MAXIMUM_MANIFEST_BYTES;
-use crate::ambient_wallpaper::cache::version;
 #[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::path::Path;

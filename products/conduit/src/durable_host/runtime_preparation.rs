@@ -1,9 +1,9 @@
 //! Construct the actual installed Host and explicitly selected equipment before Boot publication.
 use super::startup_trace::{Phase, Trace};
 use super::{
-    MAXIMUM_RELEASE_FILE_BYTES, RUNTIME_SCHEMA, RuntimeStatus, bounded_file_digest,
-    current_body_id, fresh_identity, owner, read_installation, restrict_directory,
-    running_target_id, write_json_atomic,
+    bounded_file_digest, current_body_id, fresh_identity, owner, read_installation,
+    restrict_directory, running_target_id, write_json_atomic, RuntimeStatus,
+    MAXIMUM_RELEASE_FILE_BYTES, RUNTIME_SCHEMA,
 };
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};

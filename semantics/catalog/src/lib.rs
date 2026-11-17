@@ -47,7 +47,7 @@ pub use json::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod prepared_canonical_selector;
-pub use prepared_canonical_selector::{PreparedCanonicalSelector,PreparedLinkedWorkspaceSelector};
+pub use prepared_canonical_selector::{PreparedCanonicalSelector, PreparedLinkedWorkspaceSelector};
 mod structured_values;
 pub use structured_values::*;
 mod installed_value;
@@ -538,7 +538,8 @@ pub use prepared_expression_back::{
 };
 #[cfg(feature = "execution-workspace")]
 pub use prepared_expression_back::{
-    BorrowedWorkspaceStructuredExpressionBack, WorkspaceStructuredEvaluator, WorkspaceStructuredExpressionBack,
+    BorrowedWorkspaceStructuredExpressionBack, WorkspaceStructuredEvaluator,
+    WorkspaceStructuredExpressionBack,
 };
 #[cfg(feature = "prepared-expression-session")]
 mod prepared_expression_offer;

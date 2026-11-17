@@ -46,26 +46,22 @@ mod tests {
     }
     #[test]
     fn source_profiles_are_explicit_and_never_silent_fallbacks() {
-        assert!(
-            options::parse(&args(&[
-                "--date",
-                "2024-01-05",
-                "--output",
-                "target/photos"
-            ]))
-            .is_ok()
-        );
-        assert!(
-            options::parse(&args(&[
-                "--date",
-                "2024-01-05",
-                "--output",
-                "target/photos",
-                "--source",
-                "candidate-manifest"
-            ]))
-            .is_err()
-        );
+        assert!(options::parse(&args(&[
+            "--date",
+            "2024-01-05",
+            "--output",
+            "target/photos"
+        ]))
+        .is_ok());
+        assert!(options::parse(&args(&[
+            "--date",
+            "2024-01-05",
+            "--output",
+            "target/photos",
+            "--source",
+            "candidate-manifest"
+        ]))
+        .is_err());
         let checksum = "a".repeat(64);
         let manifest = args(&[
             "--date",

@@ -2,16 +2,16 @@
 use super::*;
 use crate::{
     ambient_observation::PreparedAmbientObservation,
-    ambient_wallpaper::{MAXIMUM_APOD_RESPONSE_BYTES, acquisition::*},
+    ambient_wallpaper::{acquisition::*, MAXIMUM_APOD_RESPONSE_BYTES},
     *,
 };
-use ::image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
+use ::image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
 use conduit_core::*;
 use conduit_host_make::*;
 use conduit_std_offers::*;
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, AtomicUsize, Ordering},
+    Arc,
 };
 const RETAINED: u32 = 16 * 1024 * 1024;
 fn budget() -> NativeWorkerBudget {
@@ -280,12 +280,11 @@ fn actual_ambient_original_image_retains_shared_counter_and_affine_owner() {
     );
     assert_eq!(dropped.load(Ordering::Acquire), 0);
     // IMAGE retirement cannot become a reference reconfiguration bypass.
-    assert!(
-        host.retire_native_source_worker()
-            .err()
-            .unwrap()
-            .contains("fresh checked construction")
-    );
+    assert!(host
+        .retire_native_source_worker()
+        .err()
+        .unwrap()
+        .contains("fresh checked construction"));
     assert!(host.native_source_worker_inspection().is_some());
     assert_eq!(observed.load(Ordering::Acquire), baseline);
     drop(host);

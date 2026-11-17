@@ -12,11 +12,11 @@ use conduit_face::{
     FaceRelationshipKind, FaceRole, FaceUtteranceClause, FaceUtterancePlan,
     FaceUtteranceProvenance, MaskShow, UTF8_TEXT_VALUE_KIND,
 };
-use conduit_tongues::{MAXIMUM_SPEAKABLE_SEGMENT_BYTES, SpeakableSegment, SpeechCommitReason};
+use conduit_tongues::{SpeakableSegment, SpeechCommitReason, MAXIMUM_SPEAKABLE_SEGMENT_BYTES};
 use sha2::{Digest, Sha256};
 
 mod selection;
-pub use selection::{SpokenItemCursor, SpokenItemPage, SpokenOutline, select_spoken_outline};
+pub use selection::{select_spoken_outline, SpokenItemCursor, SpokenItemPage, SpokenOutline};
 mod speech;
 pub use speech::*;
 mod batch;
@@ -27,8 +27,8 @@ pub use voice::{mechanical_face_clauses, primary_face_clauses};
 mod command_validation;
 mod commands;
 mod reader_contract;
+use reader_contract::{check_show, reading_refusal, Reading};
 pub use reader_contract::{ReaderCommand, ReaderResult, SpokenFaceRefusal, SpokenTextReadout};
-use reader_contract::{Reading, check_show, reading_refusal};
 #[cfg(test)]
 mod tests;
 

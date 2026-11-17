@@ -1,5 +1,5 @@
 use super::*;
-use crate::{StdHostConfig, selected_scanout::SelectedScanoutBase};
+use crate::{selected_scanout::SelectedScanoutBase, StdHostConfig};
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_linear_framebuffer_make::CheckedNativeMaskInitialization;
 

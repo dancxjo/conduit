@@ -9,7 +9,7 @@ use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredInfoValueShape,
 };
-use conduit_plot::{CheckedNativeType, rust_binding};
+use conduit_plot::{rust_binding, CheckedNativeType};
 use serde::Deserialize;
 
 mod current_wire;
@@ -18,7 +18,7 @@ mod decimal;
 mod wire;
 pub use wire::PreparedAmbientWeatherWire;
 mod http;
-pub use http::{MAXIMUM_CURRENT_BODY_BYTES, OpenMeteoHttp, OpenMeteoHttpRefusal};
+pub use http::{OpenMeteoHttp, OpenMeteoHttpRefusal, MAXIMUM_CURRENT_BODY_BYTES};
 
 pub const MAXIMUM_OPEN_METEO_RESPONSE_BYTES: usize = 64 * 1024;
 pub const MAXIMUM_WEATHER_AGE_MS: u64 = 3_600_000;

@@ -197,13 +197,11 @@ mod tests {
             "state",
             "--no-start",
         ];
-        assert!(
-            Cli::try_parse_from(
-                base.into_iter()
-                    .chain(["--configuration", "new.host.conduit"])
-            )
-            .is_err()
-        );
+        assert!(Cli::try_parse_from(
+            base.into_iter()
+                .chain(["--configuration", "new.host.conduit"])
+        )
+        .is_err());
         assert!(matches!(
             Cli::try_parse_from(base.into_iter().chain([
                 "--configuration",

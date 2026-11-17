@@ -1,7 +1,7 @@
 //! One service-owned Body Play on the installed Host's existing kernel.
 //! The service retains the biography; only the Host and finite kernel run move
 //! to the worker. Start is acknowledged after durable lifecycle publication.
-use super::{BoundedOutput, DeadlineTimer, Owner, debug, state};
+use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_std_host::body_execution::BodyRunRequest;
 #[path = "continuing/report.rs"]

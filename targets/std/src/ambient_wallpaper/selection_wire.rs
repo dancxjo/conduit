@@ -1,9 +1,10 @@
 //! Finite projection of a prepared deck; no acquisition, clock or authority.
-use super::acquisition::{DECK_LEN, PreparedDeck, PreparedPhoto};
+use super::acquisition::{PreparedDeck, PreparedPhoto, DECK_LEN};
 use conduit_core::{
-    BoundedResourceRef, PreparedStructuredComposer as Composer, ResourceExtent, ResourceLifetime,
+    validate_canonical_structured_value as canonical, BoundedResourceRef,
+    PreparedStructuredComposer as Composer, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, validate_canonical_structured_value as canonical,
+    StructuredInfoTypeShape, StructuredInfoValue,
 };
 use conduit_face::{ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource};
 use conduit_plot::{rust_binding, rust_binding::NativeRustBinding};

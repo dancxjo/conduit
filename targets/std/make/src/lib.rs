@@ -7,14 +7,14 @@ use std::collections::BTreeMap;
 
 mod ambient;
 pub use ambient::{
-    AmbientObservationLifetime, CheckedAmbientInitialization, ambient_initialization_contract,
-    ambient_resident_initialization_contract,
+    ambient_initialization_contract, ambient_resident_initialization_contract,
+    AmbientObservationLifetime, CheckedAmbientInitialization,
 };
 mod builder;
 mod cpu_initialization;
 mod creche_initialization;
 pub use cpu_initialization::{
-    CPU_BASE_KIND, CPU_IMPLEMENTATION, CheckedCpuInitialization, cpu_initialization_contract,
+    cpu_initialization_contract, CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION,
 };
 #[cfg(target_os = "linux")]
 mod linux_builder;
@@ -26,24 +26,24 @@ mod text_file_initialization;
 mod tls_listener_initialization;
 pub use builder::*;
 pub use creche_initialization::{
-    CRECHE_ENCOUNTER_BASE_KIND, creche_encounter_initialization_contract,
+    creche_encounter_initialization_contract, CRECHE_ENCOUNTER_BASE_KIND,
 };
 #[cfg(target_os = "linux")]
 pub use linux_builder::*;
 pub use microphone_initialization::{
-    ALSA_MICROPHONE_BASE_KIND, alsa_microphone_initialization_contract,
+    alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
 };
 pub use tls_listener_initialization::{
-    CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND, TLS_LISTENER_IMPLEMENTATION,
-    tls_listener_initialization_contract,
+    tls_listener_initialization_contract, CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND,
+    TLS_LISTENER_IMPLEMENTATION,
 };
 
 pub use source_check_initialization::{
-    CheckedSourceCheckInitialization, source_check_initialization_contract,
+    source_check_initialization_contract, CheckedSourceCheckInitialization,
 };
 
 pub use text_file_initialization::{
-    CheckedTextFileInitialization, text_file_initialization_contract,
+    text_file_initialization_contract, CheckedTextFileInitialization,
 };
 
 pub struct HostedMakePackage;
@@ -77,7 +77,8 @@ pub const HOSTED_PLATFORM_VARIANTS: [HostedPlatformVariant; 4] = [
         os: "linux",
         architecture: "aarch64",
         support: HostedPlatformSupport::Planned,
-        reason: "cross-built artifacts exist, but the hosted package has no reviewed launch adapter",
+        reason:
+            "cross-built artifacts exist, but the hosted package has no reviewed launch adapter",
     },
     HostedPlatformVariant {
         os: "windows",

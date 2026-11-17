@@ -1,7 +1,7 @@
 use super::*;
 use image::{
-    ExtendedColorType, ImageEncoder,
     codecs::{jpeg::JpegEncoder, png::PngEncoder},
+    ExtendedColorType, ImageEncoder,
 };
 
 fn candidate() -> ApodImageCandidate {

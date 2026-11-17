@@ -5,9 +5,9 @@
 use crate::body_execution::face_contribution::{FaceCommitGate, FaceCommitObservation};
 use conduit_core::PlacementId;
 use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
-    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
 };
 
 const INPUT: PortId = PortId(0);

@@ -7,13 +7,13 @@ use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
 use conduit_core as c;
 use conduit_face::{FaceContributionBasis, FaceFragment};
 use conduit_kernel::{
-    HostCallDisposition, HostCallId, NodeId, RequestId, SignSink, ValueStorage,
     scheduler::{FixedScheduler, HostCallRequest, StepBack, StepIo},
+    HostCallDisposition, HostCallId, NodeId, RequestId, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, AtomicU64, Ordering},
+    Arc,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -385,33 +385,33 @@ pub(crate) trait FaceContributionKernel: sealed::Kernel {
 macro_rules! kernel_impl {
     () => {
         impl<
-            D: StepBack<P>,
-            S: ValueStorage,
-            E: SignSink,
-            const N: usize,
-            const C: usize,
-            const P: usize,
-            const Q: usize,
-            const R: usize,
-            const T: usize,
-            const H: usize,
-            const A: usize,
-        > sealed::Kernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
+                D: StepBack<P>,
+                S: ValueStorage,
+                E: SignSink,
+                const N: usize,
+                const C: usize,
+                const P: usize,
+                const Q: usize,
+                const R: usize,
+                const T: usize,
+                const H: usize,
+                const A: usize,
+            > sealed::Kernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
         {
         }
         impl<
-            D: StepBack<P>,
-            S: ValueStorage,
-            E: SignSink,
-            const N: usize,
-            const C: usize,
-            const P: usize,
-            const Q: usize,
-            const R: usize,
-            const T: usize,
-            const H: usize,
-            const A: usize,
-        > FaceContributionKernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
+                D: StepBack<P>,
+                S: ValueStorage,
+                E: SignSink,
+                const N: usize,
+                const C: usize,
+                const P: usize,
+                const Q: usize,
+                const R: usize,
+                const T: usize,
+                const H: usize,
+                const A: usize,
+            > FaceContributionKernel for FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
         {
             fn pending_face_request(&self, request: HostCallRequest) -> bool {
                 self.host_call_is_pending(request)

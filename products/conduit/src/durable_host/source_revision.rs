@@ -279,12 +279,12 @@ pub(crate) struct AuthorizedFileRevision {
 #[cfg(target_os = "linux")]
 #[path = "source_revision_retained.rs"]
 mod retained_planning;
-#[cfg(target_os = "linux")]
-pub(crate) use retained_planning::RetainedSourcePreparation;
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) use retained_planning::tests::real_owner_custody;
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) use retained_planning::tests::real_owner_state;
+#[cfg(target_os = "linux")]
+pub(crate) use retained_planning::RetainedSourcePreparation;
 
 /// Actual original captures and the checked workset move together. This is
 /// retained planning custody after admission, never fresh Source authority.
@@ -493,9 +493,9 @@ pub(crate) fn retained(state_dir: &Path) -> Result<Option<Selection>, String> {
 #[path = "source_revision_initialization.rs"]
 mod initialization;
 #[cfg(target_os = "linux")]
-pub(crate) use initialization::PreparedFileSource;
-#[cfg(target_os = "linux")]
 pub(super) use initialization::prepare_with_ambient;
+#[cfg(target_os = "linux")]
+pub(crate) use initialization::PreparedFileSource;
 
 #[cfg(target_os = "linux")]
 pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Result<(), String> {

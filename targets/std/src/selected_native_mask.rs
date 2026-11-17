@@ -5,8 +5,8 @@ mod encounter_fixture;
 mod images;
 mod initialization;
 pub use images::{
-    NATIVE_MASK_IMAGE_PREPARATION_BYTES, NATIVE_MASK_IMAGE_RETAINED_BYTES,
     NativeMaskImageBackingReceipt, NativeMaskImageData, NativeMaskImageInitialization,
+    NATIVE_MASK_IMAGE_PREPARATION_BYTES, NATIVE_MASK_IMAGE_RETAINED_BYTES,
 };
 mod input;
 mod outer_bound;
@@ -17,10 +17,10 @@ mod retirement;
 #[cfg(test)]
 mod tests;
 use crate::{
-    StdHost,
     kernel_preparation::{
         BaseBackingReservation, BodyMemoryReceipt, ImageMemoryLease, KernelResourceReservation,
     },
+    StdHost,
 };
 use conduit_conduitos_mask_offer::{NativeMaskStorageProfile, READ_ONLY_INTERACTION_PROFILE};
 use conduit_core::*;

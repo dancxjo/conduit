@@ -1,8 +1,8 @@
 //! Checksummed immutable photo cache. Read/write are explicit operator or Root
 //! preparation effects; cached IDs, provenance and pixels mint no authority.
 use super::{
-    ApodImageCandidate,
     acquisition::{PreparedDeck, PreparedPhoto},
+    ApodImageCandidate,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

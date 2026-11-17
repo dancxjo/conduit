@@ -1,8 +1,8 @@
 use super::*;
-use crate::ambient_wallpaper::{MAXIMUM_APOD_RESPONSE_BYTES, acquisition::*};
+use crate::ambient_wallpaper::{acquisition::*, MAXIMUM_APOD_RESPONSE_BYTES};
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
 use conduit_plot::rust_binding;
-use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
+use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
 use std::{
     cell::Cell,
     io::{Read, Write},

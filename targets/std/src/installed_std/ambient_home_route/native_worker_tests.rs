@@ -2,20 +2,20 @@
 use super::*;
 use crate::{
     ambient_observation::PreparedAmbientObservation,
-    ambient_wallpaper::{MAXIMUM_APOD_RESPONSE_BYTES, acquisition::*},
+    ambient_wallpaper::{acquisition::*, MAXIMUM_APOD_RESPONSE_BYTES},
     *,
 };
 use conduit_core::*;
 use conduit_host_make::*;
 use conduit_std_offers::*;
-use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
+use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
 use std::{
     io::{Read, Write},
     net::{SocketAddr, TcpListener},
     sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
-        mpsc::{SyncSender, sync_channel},
+        mpsc::{sync_channel, SyncSender},
+        Arc,
     },
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
@@ -350,13 +350,11 @@ fn original_worker_http_observations_commit_two_facets_in_one_cancellable_body_p
     assert_eq!(reference.extent.bytes, 4);
     assert!(clock.properties.iter().any(|p| p.name == "availability"
         && p.value == conduit_face::FacePropertyValue::Text("fresh".into())));
-    assert!(
-        clock
-            .properties
-            .iter()
-            .any(|p| p.name == "temperature-celsius-milli"
-                && p.value == conduit_face::FacePropertyValue::Signed(12500))
-    );
+    assert!(clock
+        .properties
+        .iter()
+        .any(|p| p.name == "temperature-celsius-milli"
+            && p.value == conduit_face::FacePropertyValue::Signed(12500)));
     server.join().unwrap();
     assert_eq!(calls.load(Ordering::Acquire), 1);
     drop(result);
