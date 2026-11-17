@@ -26,7 +26,7 @@ impl InitializedNativeSource {
         let d = &self.definition;
         crate::installed_std::factory::BackBudget {
             value_items: 2,
-            value_bytes: d.input_bytes.saturating_add(d.output_bytes),
+            value_bytes: value_byte_budget(d),
             host_requests: 1,
             sign_items: 16,
             maximum_value_bytes: d.input_bytes.max(d.output_bytes),
@@ -256,6 +256,38 @@ impl InitializedNativeSource {
         }))
     }
 }
+
+// Ambient input is an upstream-owned Tick. The two already reserved native
+// slots must each admit a full observation: one queued under facet pressure,
+// one newly completed native output. Other native profiles retain their sum.
+fn value_byte_budget(d: &NativeSourceDefinition) -> u32 {
+    use conduit_std_offers::*;
+    let ambient = d.base.capabilities.first().is_some_and(|offer| {
+        offer.implementation.execution_profile_id.as_str() == NATIVE_SOURCE_WORKER_PROFILE
+            && matches!(
+                (
+                    d.kind.kind_id.as_str(),
+                    offer.implementation.implementation_id.as_str()
+                ),
+                (
+                    conduit_ambient_display::AMBIENT_OBSERVE_KIND,
+                    AMBIENT_SOURCE_IMPLEMENTATION
+                ) | (
+                    conduit_ambient_display::AMBIENT_RESIDENT_OBSERVE_KIND,
+                    AMBIENT_RESIDENT_SOURCE_IMPLEMENTATION
+                )
+            )
+    }) && d.input_bytes == conduit_time::TICK_ENCODED_LEN
+        && d.output_bytes == conduit_semantic_catalog::AMBIENT_HOME_MAXIMUM_BYTES;
+    if ambient {
+        d.output_bytes * 2
+    } else {
+        d.input_bytes.saturating_add(d.output_bytes)
+    }
+}
+#[cfg(test)]
+#[path = "selection/tests.rs"]
+mod tests;
 
 /// The operation envelope comes from the actual independently initialized
 /// owner, never the received Plan. The later configured-operation binding
