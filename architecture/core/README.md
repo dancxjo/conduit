@@ -10,6 +10,8 @@ depends on semantic, application, target, or proof packages.
 | Module | Classification | Core responsibility |
 |---|---|---|
 | `lib.rs` | universal architecture | Exact identity types and the generic plot/host/boot/plan/play/line/sign records shared by the architecture. It is the crate facade, not a domain attic. |
+| `plan_verification.rs` | universal architecture | Existing sealed Plan and fragment verification with a bounded local preparation scratch descriptor; no selection or execution authority. |
+| `sign_identity.rs` | universal architecture | Streaming canonical Sign identity transcript, preserving existing identity bytes without a retained encoding buffer. |
 | `base_registry.rs` | universal architecture | Bounded thin-host truth for exact base provider identity, generation, lifecycle, enforcement class, and ordinary capability/resource offer aggregation; no planning, authority issuance, or effects. |
 | `base_capability.rs` | universal architecture | Opaque issuer-private base capability possession, exact per-play scope narrowing, finite operation leases, revocation, and non-secret lifecycle inspection. |
 | `capability_offer.rs` | universal architecture | Generic bounded host capability offers, realization limits, and exact implementation, operation, resource, and authority requirements. |
