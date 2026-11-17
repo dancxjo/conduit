@@ -1,5 +1,7 @@
 //! Bounded borrowed indexes accelerate comparisons, never validate a Face.
 //! Indices retain exact equality within a key range, including repeated keys.
+#[cfg(test)]
+extern crate std;
 use conduit_face::{Face, FaceFragmentError, FaceProperty, FaceRelationship, FaceSubject};
 
 pub(super) struct ContentIndex<'a> {
@@ -63,8 +65,25 @@ impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
             .iter()
             .take_while(|&&entry| entry >> 16 == fingerprint)
             .map(|&entry| &self.values[usize::from(entry as u16)])
-            .any(|candidate| (self.key)(candidate) == key && candidate == value)
+            .any(|candidate| {
+                #[cfg(test)]
+                VALUE_COMPARISONS.with(|count| count.set(count.get() + 1));
+                (self.key)(candidate) == key && candidate == value
+            })
     }
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static VALUE_COMPARISONS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+#[cfg(test)]
+pub(super) fn reset_comparisons() {
+    VALUE_COMPARISONS.with(|count| count.set(0));
+}
+#[cfg(test)]
+pub(super) fn comparisons() -> usize {
+    VALUE_COMPARISONS.with(core::cell::Cell::get)
 }
 
 /// FNV state after the complete first key and its original separator. Reuse
