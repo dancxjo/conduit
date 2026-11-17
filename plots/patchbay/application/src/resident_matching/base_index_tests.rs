@@ -2,7 +2,7 @@
 extern crate std;
 use super::*;
 use conduit_core::{ActivePlayId, CheckedPlotId, PlanId};
-use conduit_face::{FaceBasis, FaceInteractionContext};
+use conduit_face::FaceBasis;
 
 fn fixture(actions: bool) -> (Face, FaceFragment) {
     let plans = conduit_patchbay_workbench_conformance::patchbay_mask_plans().unwrap();
@@ -24,6 +24,27 @@ fn fixture(actions: bool) -> (Face, FaceFragment) {
         .face_fragment_with_graph(basis.clone(), &body, actions, false)
         .unwrap();
     let full = port.face_fragment(basis, &body, actions).unwrap();
+    let interaction_context = Face::new_with_semantics(
+        1,
+        FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: Vec::new(),
+        },
+        alloc::vec![full.subjects[0].clone()],
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+        Vec::new(),
+    )
+    .unwrap()
+    .interaction_context;
     let face = Face {
         identity: serde_json::from_str("\"face/base-index\"").unwrap(),
         revision: 1,
@@ -37,7 +58,7 @@ fn fixture(actions: bool) -> (Face, FaceFragment) {
             active_play_id: None,
             sign_ids: Vec::new(),
         },
-        interaction_context: FaceInteractionContext::general(),
+        interaction_context,
         subjects: full.subjects,
         relationships: full.relationships,
         composition: full.composition,
