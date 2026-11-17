@@ -41,6 +41,13 @@ pub(super) fn offers(
         ));
     }
     if composition.data {
+        // One simultaneous projection in this reference composition. This
+        // declared pool does not supply original IMAGE preparation custody.
+        resources.push(resource_offer(
+            "std/hosted-preparation",
+            conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,
+            conduit_std_offers::measurement_plot_workspace_bytes(),
+        ));
         resources.push(resource_offer(
             "std/text-data-generations",
             conduit_std_offers::DATA_TEXT_GENERATION_RESOURCE_CLASS,

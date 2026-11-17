@@ -99,6 +99,9 @@ mod local_model_pending;
 mod local_vision_back;
 mod logic_backs;
 mod math_backs;
+mod measurement_plot_back;
+#[cfg(test)]
+pub(crate) use measurement_plot_back::tests::plan as measurement_plan_fixture;
 mod math_host;
 mod microphone_clip_back;
 mod microphone_host;
@@ -1095,6 +1098,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     &mut host_calls,
                     maximum_output_bytes,
                 )?;
+                continue;
+            }
+            let operation = host_calls
+                .get(request.node, request.call)
+                .ok_or("measurement request has no lowered contract identity")?;
+            if measurement_plot_back::complete(operation, request, &mut scheduler)? {
+                host_calls.record(request)?;
                 continue;
             }
             let input = scheduler

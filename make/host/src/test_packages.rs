@@ -312,6 +312,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
         .chain([
             conduit_std_offers::body_wake_offer(),
             conduit_std_offers::startup_chime_offer(),
+            conduit_std_offers::measurement_plot_std_offer(),
         ])
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();

@@ -124,6 +124,7 @@ pub mod direct_spoken_template_mask;
 pub mod hosted_burn_work;
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
+pub mod hosted_measurement;
 pub mod hosted_messaging;
 pub mod hosted_microphone;
 pub mod hosted_midi;
