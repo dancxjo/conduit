@@ -9,19 +9,50 @@ pub struct ExternalForeIdentity {
     pub value_kind: KindId,
 }
 
+/// Qualified Arc<[u8]> allocation: two word-sized counts, then a byte slice,
+/// including final DST tail padding. This is requested backing, not RSS.
+pub(crate) fn payload_backing_bytes(capacity: usize) -> Option<usize> {
+    let header = core::alloc::Layout::new::<[usize; 2]>();
+    let payload = core::alloc::Layout::array::<u8>(capacity).ok()?;
+    Some(header.extend(payload).ok()?.0.pad_to_align().size())
+}
+
 /// Read-only shared payload. Internal prepared storage requires unique custody to fill.
 #[derive(Clone)]
 pub struct ExternalForeBytes {
     storage: Arc<[u8]>,
+    image_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
     len: usize,
 }
 impl ExternalForeBytes {
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        payload_backing_bytes(self.storage.len())
+    }
+    pub(crate) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        self.image_memory = Some(lease.clone());
+    }
     pub fn as_slice(&self) -> &[u8] {
         self
+    }
+    fn try_prepared(capacity: usize) -> Result<Self, String> {
+        let mut storage = Vec::new();
+        storage
+            .try_reserve_exact(capacity)
+            .map_err(|_| "Fore payload backing allocation failed")?;
+        storage.resize(capacity, 0);
+        Ok(Self {
+            storage: storage.into(),
+            image_memory: None,
+            len: 0,
+        })
     }
     fn prepared(capacity: usize) -> Self {
         Self {
             storage: vec![0; capacity].into(),
+            image_memory: None,
             len: 0,
         }
     }
@@ -40,6 +71,7 @@ impl From<&[u8]> for ExternalForeBytes {
     fn from(bytes: &[u8]) -> Self {
         Self {
             storage: bytes.into(),
+            image_memory: None,
             len: bytes.len(),
         }
     }
@@ -49,6 +81,7 @@ impl From<Vec<u8>> for ExternalForeBytes {
         let len = bytes.len();
         Self {
             storage: bytes.into(),
+            image_memory: None,
             len,
         }
     }
@@ -125,8 +158,30 @@ impl ExternalForeDelivery {
             bytes,
         }
     }
+    pub(crate) fn try_prepared(
+        identity: Arc<ExternalForeIdentity>,
+        capacity: usize,
+    ) -> Result<Self, String> {
+        Ok(Self::with_identity(
+            identity,
+            0,
+            ExternalForeBytes::try_prepared(capacity)?,
+        ))
+    }
     pub(crate) fn prepared(identity: Arc<ExternalForeIdentity>, capacity: usize) -> Self {
         Self::with_identity(identity, 0, ExternalForeBytes::prepared(capacity))
+    }
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        (core::mem::size_of::<ExternalForeIdentity>() + 2 * core::mem::size_of::<usize>())
+            .checked_add(self.identity.front_port_id.0.capacity())?
+            .checked_add(self.identity.value_kind.0.capacity())?
+            .checked_add(self.bytes.retained_backing_bytes()?)
+    }
+    pub(crate) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        self.bytes.attach_image_memory(lease);
     }
     pub(crate) fn fill_prepared(&mut self, sequence: u64, bytes: &[u8]) -> Result<(), String> {
         self.bytes.fill(bytes)?;
@@ -217,5 +272,18 @@ mod tests {
         assert_eq!(report.bytes, []);
         assert!(report.fill_prepared(1, &[1]).is_err());
         assert_eq!(report.sequence, 0);
+    }
+    #[test]
+    fn nonaligned_payload_receipt_matches_actual_requested_arc_allocation() {
+        let identity = identity();
+        let probe = crate::allocation_probe::begin();
+        let delivery = ExternalForeDelivery::try_prepared(identity, 9).unwrap();
+        let allocated = probe.finish_bytes();
+        // The source Vec and resulting Arc coexist during publication. The
+        // retained receipt must account for the Arc's actual padded extent.
+        assert_eq!(
+            allocated,
+            9 + delivery.bytes.retained_backing_bytes().unwrap()
+        );
     }
 }

@@ -1,7 +1,7 @@
 //! Exact finite State identities and storage carried into Host installation.
 use super::LoweringError;
-use alloc::{collections::BTreeMap, vec::Vec};
-use conduit_core::{PlacementId, PlanFragment, PlannedStateBoundary};
+use alloc::vec::Vec;
+use conduit_core::{PlanFragment, PlannedStateBoundary};
 use conduit_kernel::{NodeId, PortId};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,7 +17,7 @@ pub struct LoweredState {
 /// contract and exact selected implementation, and consume every State entry.
 pub(super) fn lower_states(
     fragment: &PlanFragment,
-    nodes: &BTreeMap<PlacementId, NodeId>,
+    nodes: &super::PlacementNodes<'_>,
 ) -> Result<Vec<LoweredState>, LoweringError> {
     fragment
         .states
@@ -35,7 +35,7 @@ pub(super) fn lower_states(
             }
             Ok(LoweredState {
                 slot: u16::try_from(index).map_err(|_| LoweringError::StateStorageExceeded)?,
-                node: *nodes
+                node: nodes
                     .get(&placement.placement_id)
                     .ok_or(LoweringError::InvalidFragment)?,
                 next: PortId(0),

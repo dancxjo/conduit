@@ -10,6 +10,7 @@ use super::super::keyboard_input_completion::{CompletedInputEvent, MAX_COMPLETED
 use std::collections::VecDeque;
 
 mod custody;
+mod memory;
 use crate::body_execution::BodyForePendingOutput;
 
 use super::super::{
@@ -32,7 +33,7 @@ pub(super) struct AcknowledgedInput {
     delivery_index: usize,
 }
 
-struct OutputSlots {
+pub(super) struct OutputSlots {
     port: LoweredForePort,
     source_node: Option<conduit_kernel::NodeId>,
     available: Vec<ExternalForeDelivery>,
@@ -81,7 +82,8 @@ impl<'a> BodyForeRoute<'a> {
         };
         // An external Fore input or delivery has no Plot discriminator. Refuse
         // names shared by distinct resident Plots instead of inventing fan-out.
-        let mut seen = Vec::new();
+        let port_count = partitions.iter().map(|part| part.fore_ports.len()).sum();
+        let mut seen = prepare_vec(port_count)?;
         for (index, part) in partitions.iter().enumerate() {
             for port in &part.fore_ports {
                 if seen
@@ -98,11 +100,8 @@ impl<'a> BodyForeRoute<'a> {
                 seen.push((index, port));
             }
         }
-        let ports = partitions
-            .iter()
-            .flat_map(|part| &part.fore_ports)
-            .cloned()
-            .collect::<Vec<_>>();
+        let mut ports = prepare_vec(port_count)?;
+        ports.extend(partitions.iter().flat_map(|part| &part.fore_ports).cloned());
         if !has_output
             && ports
                 .iter()
@@ -112,7 +111,12 @@ impl<'a> BodyForeRoute<'a> {
         }
         let mut delivery_capacity = 0_usize;
         let mut output_bytes = 0_usize;
-        let mut output_slots = Vec::new();
+        let mut output_slots = prepare_vec(
+            ports
+                .iter()
+                .filter(|port| port.direction == PortDirection::Output)
+                .count(),
+        )?;
         for port in ports
             .iter()
             .filter(|port| port.direction == PortDirection::Output)
@@ -131,17 +135,17 @@ impl<'a> BodyForeRoute<'a> {
                 )
                 .filter(|bytes| *bytes <= 16 * 1024 * 1024)
                 .ok_or("Body Fore delivery byte capacity exceeded")?;
-            let mut available = Vec::with_capacity(count);
+            let mut available = prepare_vec(count)?;
             let identity = std::sync::Arc::new(crate::ExternalForeIdentity {
                 front_port_id: port.front_port_id.clone(),
                 track: port.track,
                 value_kind: port.value_kind.clone(),
             });
             for _ in 0..count {
-                available.push(ExternalForeDelivery::prepared(
+                available.push(ExternalForeDelivery::try_prepared(
                     identity.clone(),
                     port.byte_capacity as usize,
-                ));
+                )?);
             }
             output_slots.push(OutputSlots {
                 port: port.clone(),
@@ -173,7 +177,7 @@ impl<'a> BodyForeRoute<'a> {
             inputs,
             ports,
             output_slots,
-            deliveries: Vec::with_capacity(delivery_capacity),
+            deliveries: prepare_vec(delivery_capacity)?,
             pending_output: None,
             started: false,
             acknowledged_inputs: VecDeque::with_capacity(MAX_COMPLETED_INPUT_EVENTS),
@@ -351,6 +355,14 @@ impl<'a> BodyForeRoute<'a> {
     pub(super) fn into_custody(self) -> (Vec<ExternalForeDelivery>, Option<BodyForePendingOutput>) {
         (self.deliveries, self.pending_output)
     }
+}
+
+fn prepare_vec<T>(count: usize) -> Result<Vec<T>, String> {
+    let mut values = Vec::new();
+    values
+        .try_reserve_exact(count)
+        .map_err(|_| "Body Fore preparation allocation failed")?;
+    Ok(values)
 }
 
 #[cfg(test)]

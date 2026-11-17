@@ -11,7 +11,13 @@ mod ledger;
 pub(crate) use ledger::{KernelResourceLedger, KernelResourceReservation};
 #[path = "../../src/kernel_preparation/exact_profile.rs"]
 mod exact_profile;
+#[path = "../../src/kernel_preparation/image_bounds.rs"]
+mod image_bounds;
 #[path = "../../src/kernel_preparation/placement_resources.rs"]
 mod placement_resources;
 #[path = "../../src/kernel_preparation/region_resources.rs"]
 pub(crate) mod region_resources;
+
+#[cfg(test)]
+#[path = "../../src/kernel_preparation/image_test_fixture.rs"]
+mod image_test_fixture;

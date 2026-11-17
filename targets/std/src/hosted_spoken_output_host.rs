@@ -84,6 +84,7 @@ impl crate::StdHost {
         &mut self,
         playback: crate::hosted_audio::HostedPlaybackSelection,
     ) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("selected playback cannot replace active Host reservations".into());
         }
@@ -129,7 +130,7 @@ impl crate::StdHost {
         }
         advertisement.resources.sort();
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
-        let resources = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let resources = self.kernel_resources.replacement_for(&advertisement)?;
         self.advertisement = advertisement;
         self.base_registry = registry;
         self.kernel_resources = resources;
@@ -209,6 +210,7 @@ impl crate::StdHost {
         artifact: Option<crate::hosted_wav_artifact::WavArtifactSelection>,
         adapter: Option<crate::hosted_speech_synthesis::EspeakSpeechAdapter>,
     ) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("spoken output cannot replace active Host reservations".into());
         }
@@ -280,7 +282,7 @@ impl crate::StdHost {
         }
         advertisement.resources.sort();
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
-        let resources = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let resources = self.kernel_resources.replacement_for(&advertisement)?;
         self.advertisement = advertisement;
         self.kernel_resources = resources;
         self.wav_artifact = artifact;

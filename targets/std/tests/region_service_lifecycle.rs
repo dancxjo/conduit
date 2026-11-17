@@ -4,6 +4,7 @@
 extern crate alloc;
 extern crate self as conduit_planner;
 use conduit_core::*;
+use conduit_std_host::kernel_multivalue;
 #[path = "../../../architecture/planner/src/execution_regions.rs"]
 pub mod execution_regions;
 #[path = "../../../architecture/composite/tests/support/region_fixture.rs"]

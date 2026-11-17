@@ -1,7 +1,6 @@
 //! Exact pre-play-start lowering from string-identified plan facts into the
 //! numeric tables consumed by `conduit-kernel`.
 
-use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
     ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ConnectionTrack,
@@ -17,6 +16,13 @@ use conduit_kernel::{
 };
 
 mod admission;
+mod materialize;
+mod materialize_fragment;
+mod materialize_identity;
+mod owned_layout;
+pub(crate) use materialize::reserved;
+use materialize::{collect_exact, PlacementNodes};
+pub use owned_layout::{fragment_lowering_layout, FragmentLoweringLayout};
 mod fore_value;
 pub use fore_value::{ForeValueRefusal, LoweredForePort};
 mod fusion;
@@ -743,635 +749,7 @@ fn lower_verified_fragment_for_profile(
     fragment: &PlanFragment,
     profile: KernelStorageProfile,
 ) -> Result<LoweredPlanFragment, LoweringError> {
-    let mut placement_nodes = BTreeMap::new();
-    let mut nodes = Vec::with_capacity(fragment.placements.len());
-    let mut node_specs = Vec::with_capacity(fragment.placements.len());
-    let mut identity_ports = Vec::new();
-    for (node_index, placement) in fragment.placements.iter().enumerate() {
-        let node = NodeId(as_u16(node_index)?);
-        if placement_nodes
-            .insert(placement.placement_id.clone(), node)
-            .is_some()
-        {
-            return Err(LoweringError::DuplicatePlacement(
-                placement.placement_id.clone(),
-            ));
-        }
-        let checked_front = placement.checked_port_front();
-        let inputs = lower_ports(
-            node,
-            &placement.placement_id,
-            &placement.inputs,
-            PortDirection::Input,
-            checked_front.value_contracts(),
-        )?;
-        let outputs = lower_ports(
-            node,
-            &placement.placement_id,
-            &placement.outputs,
-            PortDirection::Output,
-            checked_front.value_contracts(),
-        )?;
-        if inputs.len() > profile.maximum_ports_per_node() {
-            return Err(LoweringError::ProfileCapacityExceeded {
-                placement_id: placement.placement_id.clone(),
-                direction: PortDirection::Input,
-                required: inputs.len(),
-                available: profile.maximum_ports_per_node(),
-            });
-        }
-        if outputs.len() > profile.maximum_ports_per_node() {
-            return Err(LoweringError::ProfileCapacityExceeded {
-                placement_id: placement.placement_id.clone(),
-                direction: PortDirection::Output,
-                required: outputs.len(),
-                available: profile.maximum_ports_per_node(),
-            });
-        }
-        let input_cords = [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE];
-        let maximum_step_fuel = step_work::maximum_step_fuel(placement)?;
-        let terminal_transductions = placement
-            .terminal_transductions
-            .iter()
-            .map(|profile| {
-                let input = inputs
-                    .iter()
-                    .find(|port| port.port_id == profile.input_port_id)
-                    .map(|port| port.port)
-                    .ok_or_else(|| {
-                        LoweringError::InvalidTerminalTransduction(placement.placement_id.clone())
-                    })?;
-                let output = outputs
-                    .iter()
-                    .find(|port| port.port_id == profile.output_port_id)
-                    .map(|port| port.port)
-                    .ok_or_else(|| {
-                        LoweringError::InvalidTerminalTransduction(placement.placement_id.clone())
-                    })?;
-                let cancellation_input = if matches!(
-                    profile.cancellation,
-                    conduit_core::CancellationTransduction::Request { .. }
-                ) {
-                    Some(
-                        inputs
-                            .iter()
-                            .find(|port| {
-                                port.value_kind.as_str()
-                                    == conduit_core::CANCELLATION_REQUEST_INFO_ID
-                            })
-                            .map(|port| port.port)
-                            .ok_or_else(|| {
-                                LoweringError::InvalidTerminalTransduction(
-                                    placement.placement_id.clone(),
-                                )
-                            })?,
-                    )
-                } else {
-                    None
-                };
-                Ok(LoweredTerminalTransduction {
-                    input,
-                    output,
-                    cancellation_input,
-                    profile: profile.clone(),
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        identity_ports.extend(
-            inputs
-                .iter()
-                .chain(outputs.iter())
-                .map(|port| KernelPortIdentity {
-                    node,
-                    direction: port.direction,
-                    port: port.port,
-                    port_id: port.port_id.clone(),
-                }),
-        );
-        nodes.push(LoweredNode {
-            node,
-            placement_id: placement.placement_id.clone(),
-            maximum_step_fuel,
-            inputs,
-            outputs,
-            terminal_transductions: terminal_transductions.clone(),
-        });
-        node_specs.push(NodeSpec {
-            input_cords,
-            maximum_step_fuel,
-        });
-    }
-
-    let mut connection_ids = BTreeSet::new();
-    let mut cords = Vec::with_capacity(fragment.connections.len());
-    let mut remote_endpoints = Vec::new();
-    let mut value_slots = 0u16;
-    let mut value_bytes = 0u32;
-    let mut resource_cords = Vec::new();
-    for connection in &fragment.connections {
-        if !connection_ids.insert(connection.connection_id.clone()) {
-            return Err(LoweringError::DuplicateConnection(
-                connection.connection_id.clone(),
-            ));
-        }
-        if connection.item_capacity == 0 || connection.byte_capacity == 0 {
-            return Err(LoweringError::InvalidConnectionBudget(
-                connection.connection_id.clone(),
-            ));
-        }
-        let source_node = placement_nodes
-            .get(&connection.source_placement_id)
-            .copied();
-        let sink_node = placement_nodes.get(&connection.sink_placement_id).copied();
-        let source_port = source_node
-            .map(|node| {
-                find_port(
-                    &nodes[usize::from(node.0)].outputs,
-                    &connection.source_port_id,
-                )
-                .ok_or_else(|| {
-                    LoweringError::UnknownConnectionPort(connection.connection_id.clone())
-                })
-            })
-            .transpose()?;
-        let sink_port = sink_node
-            .map(|node| {
-                find_port(&nodes[usize::from(node.0)].inputs, &connection.sink_port_id).ok_or_else(
-                    || LoweringError::UnknownConnectionPort(connection.connection_id.clone()),
-                )
-            })
-            .transpose()?;
-        if let Some(resource) = &connection.resource {
-            let (Some(source_node), Some(source_port), Some(sink_node), Some(sink_port)) =
-                (source_node, source_port, sink_node, sink_port)
-            else {
-                return Err(LoweringError::ResourceAuthorityTransferUnsupported(
-                    connection.connection_id.clone(),
-                ));
-            };
-            if resource.owner_placement_id != connection.source_placement_id
-                || resource.contract.port_id != connection.source_port_id
-                || resource.contract.mobility != conduit_core::ResourcePortMobility::HostLocal
-            {
-                return Err(LoweringError::ResourceAuthorityTransferUnsupported(
-                    connection.connection_id.clone(),
-                ));
-            }
-            let placement = fragment
-                .placements
-                .iter()
-                .find(|placement| placement.placement_id == connection.source_placement_id)
-                .ok_or_else(|| {
-                    LoweringError::UnknownConnectionEndpoint(connection.connection_id.clone())
-                })?;
-            let index = placement
-                .resources
-                .iter()
-                .position(|binding| binding == &resource.source_binding)
-                .ok_or_else(|| {
-                    LoweringError::ResourceBindingInvalid(placement.placement_id.clone())
-                })?;
-            resource_cords.push(LoweredResourceCord {
-                connection_id: connection.connection_id.clone(),
-                source_node,
-                source_port,
-                sink_node,
-                sink_port,
-                resource: ResourceId(as_u16(index)?),
-                contract: resource.contract.clone(),
-                binding: resource.source_binding.clone(),
-            });
-            continue;
-        }
-        let cord = CordId(as_u16(cords.len())?);
-        if source_node.zip(source_port).is_some_and(|(node, port)| {
-            let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
-            !source_contract_matches(
-                descriptor,
-                connection.track,
-                &connection.value_kind,
-                connection.temporal,
-            )
-        }) || sink_node.zip(sink_port).is_some_and(|(node, port)| {
-            let descriptor = &nodes[usize::from(node.0)].inputs[usize::from(port.0)];
-            descriptor.value_kind != connection.value_kind
-                || (descriptor.temporal != connection.temporal
-                    && !matches!(
-                        (connection.temporal, descriptor.temporal),
-                        (
-                            conduit_core::PortTemporal::Flow { .. },
-                            conduit_core::PortTemporal::Value
-                        )
-                    )
-                    && !matches!(
-                        (connection.temporal, descriptor.temporal),
-                        (
-                            conduit_core::PortTemporal::Flow { closes: true },
-                            conduit_core::PortTemporal::Flow { closes: false }
-                        )
-                    ))
-        }) {
-            return Err(LoweringError::ConnectionContractMismatch(
-                connection.connection_id.clone(),
-            ));
-        }
-        let slot_start = value_slots;
-        let source_value_bound = source_node.zip(source_port).and_then(|(node, port)| {
-            let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
-            match connection.track {
-                ConnectionTrack::AbnormalTerminal => descriptor.maximum_abnormal_value_bytes,
-                ConnectionTrack::Payload => descriptor.maximum_value_bytes,
-                ConnectionTrack::NormalClose | ConnectionTrack::Quiescence => None,
-            }
-        });
-        let sink_value_bound = sink_node.zip(sink_port).and_then(|(node, port)| {
-            nodes[usize::from(node.0)].inputs[usize::from(port.0)].maximum_value_bytes
-        });
-        if !matches!(
-            connection.track,
-            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
-        ) && source_value_bound
-            .zip(sink_value_bound)
-            .is_some_and(|(source, sink)| source > sink)
-        {
-            return Err(LoweringError::ConnectionContractMismatch(
-                connection.connection_id.clone(),
-            ));
-        }
-        let maximum_value_bytes = if !matches!(
-            connection.track,
-            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
-        ) {
-            admitted_maximum_value_bytes(
-                source_value_bound
-                    .or(sink_value_bound)
-                    .map(u32::try_from)
-                    .transpose()
-                    .map_err(|_| LoweringError::CapacityOverflow)?,
-                connection.byte_capacity,
-            )
-        } else {
-            connection.byte_capacity
-        };
-        value_slots = value_slots
-            .checked_add(connection.item_capacity)
-            .ok_or(LoweringError::CapacityOverflow)?;
-        value_bytes = value_bytes
-            .checked_add(connection.byte_capacity)
-            .ok_or(LoweringError::CapacityOverflow)?;
-        if let Some((sink_node, sink_port)) = sink_node.zip(sink_port) {
-            let sink_slot =
-                &mut node_specs[usize::from(sink_node.0)].input_cords[usize::from(sink_port.0)];
-            if sink_slot.is_some() {
-                return Err(LoweringError::MultipleConnectionsToInput {
-                    placement_id: connection.sink_placement_id.clone(),
-                    port_id: connection.sink_port_id.clone(),
-                });
-            }
-            *sink_slot = Some(cord);
-        }
-        let spec = match (source_node.zip(source_port), sink_node.zip(sink_port)) {
-            (Some((source_node, source_port)), Some((sink_node, sink_port))) => {
-                if connection.selected_line.is_some() || !connection.admitted_lines.is_empty() {
-                    return Err(LoweringError::InvalidRemoteConnection(
-                        connection.connection_id.clone(),
-                    ));
-                }
-                CordSpec::local(
-                    cord,
-                    (source_node, source_port),
-                    (sink_node, sink_port),
-                    CordCapacity {
-                        slot_start,
-                        item_capacity: connection.item_capacity,
-                        byte_capacity: connection.byte_capacity,
-                        pressure_policy: lower_pressure_policy(connection.pressure_policy),
-                    },
-                )
-                .with_track(lower_connection_track(connection.track))
-                .with_maximum_value_bytes(maximum_value_bytes)
-            }
-            (Some((source_node, source_port)), None) => {
-                let endpoint = lower_remote_endpoints(
-                    fragment,
-                    connection,
-                    cord,
-                    RemoteCordDirection::Egress,
-                    &mut remote_endpoints,
-                )?;
-                CordSpec::remote_egress(
-                    cord,
-                    (source_node, source_port),
-                    endpoint,
-                    CordCapacity {
-                        slot_start,
-                        item_capacity: connection.item_capacity,
-                        byte_capacity: connection.byte_capacity,
-                        pressure_policy: lower_pressure_policy(connection.pressure_policy),
-                    },
-                )
-                .with_track(lower_connection_track(connection.track))
-                .with_maximum_value_bytes(maximum_value_bytes)
-            }
-            (None, Some((sink_node, sink_port))) => {
-                let endpoint = lower_remote_endpoints(
-                    fragment,
-                    connection,
-                    cord,
-                    RemoteCordDirection::Ingress,
-                    &mut remote_endpoints,
-                )?;
-                CordSpec::remote_ingress(
-                    cord,
-                    endpoint,
-                    (sink_node, sink_port),
-                    CordCapacity {
-                        slot_start,
-                        item_capacity: connection.item_capacity,
-                        byte_capacity: connection.byte_capacity,
-                        pressure_policy: lower_pressure_policy(connection.pressure_policy),
-                    },
-                )
-                .with_track(lower_connection_track(connection.track))
-                .with_maximum_value_bytes(maximum_value_bytes)
-            }
-            (None, None) => {
-                return Err(LoweringError::UnknownConnectionEndpoint(
-                    connection.connection_id.clone(),
-                ));
-            }
-        };
-        cords.push(LoweredCord {
-            connection_id: connection.connection_id.clone(),
-            spec,
-        });
-    }
-
-    let mut fore_ports = Vec::with_capacity(fragment.fore_ports.len());
-    for planned in &fragment.fore_ports {
-        if planned.item_capacity == 0 || planned.byte_capacity == 0 {
-            return Err(LoweringError::InvalidConnectionBudget(ConnectionId::from(
-                planned.front_port_id.as_str(),
-            )));
-        }
-        let node = placement_nodes
-            .get(&planned.placement_id)
-            .copied()
-            .ok_or_else(|| {
-                LoweringError::UnknownConnectionEndpoint(ConnectionId::from(
-                    planned.front_port_id.as_str(),
-                ))
-            })?;
-        let ports = match planned.direction {
-            PortDirection::Input => &nodes[usize::from(node.0)].inputs,
-            PortDirection::Output => &nodes[usize::from(node.0)].outputs,
-        };
-        let port = find_port(ports, &planned.gear_port_id).ok_or_else(|| {
-            LoweringError::UnknownConnectionPort(ConnectionId::from(planned.front_port_id.as_str()))
-        })?;
-        let descriptor = &ports[usize::from(port.0)];
-        let descriptor_matches = match planned.track {
-            ConnectionTrack::Payload => {
-                descriptor.value_kind == planned.value_kind
-                    && descriptor.temporal == planned.temporal
-            }
-            ConnectionTrack::AbnormalTerminal => {
-                descriptor.abnormal_kind.as_ref() == Some(&planned.value_kind)
-                    && planned.temporal == PortTemporal::Value
-            }
-            ConnectionTrack::NormalClose => {
-                descriptor.temporal == (PortTemporal::Flow { closes: true })
-                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
-                    && planned.temporal == PortTemporal::Value
-            }
-            ConnectionTrack::Quiescence => {
-                matches!(descriptor.temporal, PortTemporal::Flow { .. })
-                    && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
-                    && planned.temporal == PortTemporal::Value
-            }
-        };
-        if !descriptor_matches {
-            return Err(LoweringError::ConnectionContractMismatch(
-                ConnectionId::from(planned.front_port_id.as_str()),
-            ));
-        }
-        let cord = CordId(as_u16(cords.len())?);
-        let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len() + fore_ports.len())?);
-        let capacity = CordCapacity {
-            slot_start: value_slots,
-            item_capacity: planned.item_capacity,
-            byte_capacity: planned.byte_capacity,
-            pressure_policy: lower_pressure_policy(planned.pressure_policy),
-        };
-        value_slots = value_slots
-            .checked_add(planned.item_capacity)
-            .ok_or(LoweringError::CapacityOverflow)?;
-        value_bytes = value_bytes
-            .checked_add(planned.byte_capacity)
-            .ok_or(LoweringError::CapacityOverflow)?;
-        let maximum_value_bytes = if matches!(
-            planned.track,
-            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
-        ) {
-            planned.byte_capacity
-        } else {
-            admitted_maximum_value_bytes(
-                planned
-                    .value_contract
-                    .as_ref()
-                    .map(|contract| contract.maximum_bytes),
-                planned.byte_capacity,
-            )
-        };
-        let spec = match planned.direction {
-            PortDirection::Input => {
-                let input = &mut node_specs[usize::from(node.0)].input_cords[usize::from(port.0)];
-                if input.replace(cord).is_some() {
-                    return Err(LoweringError::MultipleConnectionsToInput {
-                        placement_id: planned.placement_id.clone(),
-                        port_id: planned.gear_port_id.clone(),
-                    });
-                }
-                CordSpec::remote_ingress(cord, endpoint, (node, port), capacity)
-            }
-            PortDirection::Output => {
-                CordSpec::remote_egress(cord, (node, port), endpoint, capacity)
-            }
-        }
-        .with_track(lower_connection_track(planned.track))
-        .with_maximum_value_bytes(maximum_value_bytes);
-        cords.push(LoweredCord {
-            connection_id: ConnectionId::from(alloc::format!(
-                "front/{}/{}/{}/{}",
-                planned.direction as u8,
-                planned.front_port_id.as_str(),
-                planned.placement_id.as_str(),
-                planned.gear_port_id.as_str(),
-            )),
-            spec,
-        });
-        fore_ports.push(LoweredForePort {
-            front_port_id: planned.front_port_id.clone(),
-            direction: planned.direction,
-            track: planned.track,
-            endpoint,
-            cord,
-            value_kind: planned.value_kind.clone(),
-            value_contract: planned.value_contract.clone(),
-            quantity_profile: fore_value::selected_profile(fragment, planned)?,
-            abnormal_kind: planned.abnormal_kind.clone(),
-            temporal: planned.temporal,
-            item_capacity: planned.item_capacity,
-            byte_capacity: planned.byte_capacity,
-            selected_line: planned.selected_line.clone(),
-        });
-    }
-
-    let routes = lower_routes(&cords)?;
-    let mut host_calls = Vec::new();
-    let mut resources = Vec::new();
-    for (placement, node) in fragment.placements.iter().zip(nodes.iter()) {
-        for (index, requirement) in placement.host_calls.iter().enumerate() {
-            if requirement.maximum_in_flight != 1 {
-                return Err(LoweringError::UnsupportedHostCallConcurrency(
-                    placement.placement_id.clone(),
-                ));
-            }
-            let call = HostCallId(as_u16(index)?);
-            host_calls.push(LoweredHostCall {
-                node: node.node,
-                call,
-                contract_id: requirement.contract_id.clone(),
-                target_kind: requirement.target_kind.clone(),
-                maximum_in_flight: requirement.maximum_in_flight,
-                binding: HostCallBinding {
-                    call,
-                    maximum_input_bytes: requirement.maximum_input_bytes,
-                    maximum_output_bytes: requirement.maximum_output_bytes,
-                },
-            });
-        }
-        for (index, binding) in placement.resources.iter().enumerate() {
-            if binding.units == 0 {
-                return Err(LoweringError::ResourceBindingInvalid(
-                    placement.placement_id.clone(),
-                ));
-            }
-            resources.push(LoweredResource {
-                node: node.node,
-                binding: KernelResourceBinding {
-                    resource: ResourceId(as_u16(index)?),
-                    units: binding.units,
-                },
-            });
-        }
-    }
-
-    let mut signs = Vec::with_capacity(fragment.expected_sign.len());
-    for (index, expected) in fragment.expected_sign.iter().enumerate() {
-        let target = match expected {
-            ExpectedSign::PlanFragmentReceived | ExpectedSign::PlanTerminal => {
-                SignExpectationTarget::Fragment
-            }
-            ExpectedSign::PlacementPrepared(id) | ExpectedSign::PlacementTerminal(id) => {
-                SignExpectationTarget::Node(
-                    *placement_nodes
-                        .get(id)
-                        .ok_or(LoweringError::SignReferenceMissing)?,
-                )
-            }
-            ExpectedSign::ConnectionTerminal(id) => {
-                if let Some(cord) = cords.iter().find(|cord| &cord.connection_id == id) {
-                    SignExpectationTarget::Cord(cord.spec.cord)
-                } else {
-                    let resource = resource_cords
-                        .iter()
-                        .find(|cord| &cord.connection_id == id)
-                        .ok_or(LoweringError::SignReferenceMissing)?;
-                    SignExpectationTarget::Resource {
-                        node: resource.source_node,
-                        resource: resource.resource,
-                    }
-                }
-            }
-        };
-        signs.push(LoweredSign {
-            expectation: SignExpectationId(as_u16(index)?),
-            expected: expected.clone(),
-            target,
-        });
-    }
-
-    let shared_pools = lower_shared_pools(fragment, &placement_nodes)?;
-    let fusions = lower_fusions(fragment, &placement_nodes, &cords)?;
-    let states = state::lower_states(fragment, &placement_nodes)?;
-
-    Ok(LoweredPlanFragment {
-        completion_policy: fragment.completion_policy,
-        identity: KernelIdentityMap {
-            plan_id: fragment.plan_id.clone(),
-            fragment_id: fragment.fragment_id.clone(),
-            placements: nodes
-                .iter()
-                .map(|node| (node.node, node.placement_id.clone()))
-                .collect(),
-            ports: identity_ports,
-            connections: cords
-                .iter()
-                .map(|cord| (cord.spec.cord, cord.connection_id.clone()))
-                .collect(),
-            remote_endpoints: remote_endpoints
-                .iter()
-                .map(|item| (item.endpoint, item.connection_id.clone()))
-                .collect(),
-            fore_endpoints: fore_ports
-                .iter()
-                .map(|item| KernelForeEndpointIdentity {
-                    endpoint: item.endpoint,
-                    cord: item.cord,
-                    front_port_id: item.front_port_id.clone(),
-                    direction: item.direction,
-                    track: item.track,
-                    value_kind: item.value_kind.clone(),
-                })
-                .collect(),
-            host_calls: host_calls
-                .iter()
-                .map(|item| (item.node, item.call, item.contract_id.clone()))
-                .collect(),
-            resources: resources
-                .iter()
-                .zip(
-                    fragment
-                        .placements
-                        .iter()
-                        .flat_map(|placement| &placement.resources),
-                )
-                .map(|(item, binding)| (item.node, item.binding.resource, binding.clone()))
-                .collect(),
-            resource_connections: resource_cords
-                .iter()
-                .map(|item| (item.source_node, item.resource, item.connection_id.clone()))
-                .collect(),
-        },
-        nodes,
-        node_specs,
-        states,
-        cords,
-        fusions,
-        remote_endpoints,
-        fore_ports,
-        routes,
-        host_calls,
-        resources,
-        resource_cords,
-        signs,
-        shared_pools,
-        cord_value_slots: value_slots,
-        cord_value_bytes: value_bytes,
-        sign_items: fragment.sign_storage_budget.item_capacity,
-        sign_bytes: fragment.sign_storage_budget.byte_capacity,
-    })
+    materialize_fragment::lower(fragment, profile)
 }
 
 fn admitted_maximum_value_bytes(semantic_bound: Option<u32>, byte_capacity: u32) -> u32 {
@@ -1391,38 +769,46 @@ fn fragment_id_for_host(
 }
 
 fn lower_routes(cords: &[LoweredCord]) -> Result<Vec<LoweredRoute>, LoweringError> {
-    let mut grouped = BTreeMap::<(NodeId, PortId), Vec<RouteTarget>>::new();
+    let mut routes: Vec<LoweredRoute> = reserved(cords.len())?;
     for cord in cords {
-        if let Some((source_node, source_port)) = cord.spec.source_local() {
-            grouped
-                .entry((source_node, source_port))
-                .or_default()
-                .push(RouteTarget {
-                    cord: cord.spec.cord,
-                    sink: cord.spec.sink,
-                });
+        let Some((source_node, source_port)) = cord.spec.source_local() else {
+            continue;
+        };
+        if routes
+            .iter()
+            .any(|r| r.source_node == source_node && r.source_port == source_port)
+        {
+            continue;
         }
+        let matching = || {
+            cords
+                .iter()
+                .filter(|c| c.spec.source_local() == Some((source_node, source_port)))
+        };
+        let mut targets = reserved(matching().count())?;
+        targets.extend(matching().map(|c| RouteTarget {
+            cord: c.spec.cord,
+            sink: c.spec.sink,
+        }));
+        routes.push(LoweredRoute {
+            source_node,
+            source_port,
+            range: RouteRange {
+                start: 0,
+                len: as_u16(targets.len())?,
+            },
+            targets,
+        });
     }
+    routes.sort_unstable_by_key(|route| (route.source_node, route.source_port));
     let mut next_target = 0u16;
-    grouped
-        .into_iter()
-        .map(|((source_node, source_port), targets)| {
-            let len = as_u16(targets.len())?;
-            let range = RouteRange {
-                start: next_target,
-                len,
-            };
-            next_target = next_target
-                .checked_add(len)
-                .ok_or(LoweringError::CapacityOverflow)?;
-            Ok(LoweredRoute {
-                source_node,
-                source_port,
-                range,
-                targets,
-            })
-        })
-        .collect()
+    for route in &mut routes {
+        route.range.start = next_target;
+        next_target = next_target
+            .checked_add(route.range.len)
+            .ok_or(LoweringError::CapacityOverflow)?;
+    }
+    Ok(routes)
 }
 
 fn as_u16(value: usize) -> Result<u16, LoweringError> {

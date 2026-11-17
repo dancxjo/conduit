@@ -106,8 +106,14 @@ fn prepare_tick_values(
 ) -> Result<InstalledBack, String> {
     let count = usize::try_from(configuration.count)
         .map_err(|_| "tick count does not fit hosted preparation".to_string())?;
-    let mut ticks = Vec::with_capacity(count);
-    let mut waits = Vec::with_capacity(count);
+    let mut ticks = Vec::new();
+    let mut waits = Vec::new();
+    ticks
+        .try_reserve_exact(count)
+        .map_err(|_| "Tick value backing allocation failed")?;
+    waits
+        .try_reserve_exact(count)
+        .map_err(|_| "Tick wait backing allocation failed")?;
     for sequence in 0..configuration.count {
         ticks.push(
             values
