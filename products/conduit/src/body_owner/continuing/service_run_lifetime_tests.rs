@@ -195,7 +195,9 @@ fn actual_resident_service_uses_face_runner_until_lull_but_explicit_start_stays_
     let text = include_str!("../../../../../plots/ambient-home/resident.conduit")
         .replace("60000ms", "5ms");
     let source = crate::plot_source::parse(&text).unwrap();
-    let plot = source.expand_entry_for_authoring().unwrap();
+    let plot = source
+        .expand_named_for_authoring("ambient-resident")
+        .unwrap();
     let resident = conduit_body::ResidentPlot::new(
         plot.expanded.source_document_id.clone(),
         plot.expanded.checked_plot_id.clone(),
