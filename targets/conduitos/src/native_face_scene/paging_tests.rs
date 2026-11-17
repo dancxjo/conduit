@@ -114,7 +114,7 @@ fn touch_pages_reach_named_plots_without_submitting_body_actions() {
         )
         .unwrap();
         assert!(scene.pages() > 1);
-        let controls = scene.page_controls().unwrap().unwrap();
+        let controls: NativePageControls = scene.page_controls().unwrap().unwrap();
         assert!(!controls.can_previous);
         let (x, y) = center(controls.previous);
         assert!(matches!(
