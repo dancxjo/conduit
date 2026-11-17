@@ -80,9 +80,8 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
         "std/x86_64/computer".into(),
         format!("sha256:{:x}", Sha256::digest(b"host image")),
         host("host/service-body-test", "boot/service"),
-    )
-    .with_owned_body(&root)
-    .unwrap();
+    );
+    runtime.attach_owned_body(&root).unwrap();
     let truth = runtime.owned_body_truth().unwrap();
     assert_eq!(truth["biography"]["body_id"], body_id);
     assert_eq!(truth["host"]["boot_id"], "boot/service");

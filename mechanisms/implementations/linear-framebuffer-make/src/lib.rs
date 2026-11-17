@@ -1,3 +1,8 @@
+mod initialization;
+pub use initialization::CheckedScanoutInitialization;
+mod native_mask_initialization;
+pub use native_mask_initialization::CheckedNativeMaskInitialization;
+
 use conduit_host_make::{
     HostMakePackage, ImplementationMetadata, ImplementationOffer, MakeContribution, MakeExtension,
     PackageCatalogContribution, PrerequisiteNode, PresenterMetadata,
@@ -10,6 +15,7 @@ fn package_catalog() -> PackageCatalogContribution {
     let targets = vec![
         "std/x86_64/computer".into(),
         "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
+        "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb".into(),
         "conduitos/x86_64/pc".into(),
         "conduitos/aarch64/virt".into(),
         "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
@@ -68,6 +74,7 @@ fn package_catalog() -> PackageCatalogContribution {
                 targets: vec![
                     "std/x86_64/computer".into(),
                     "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
+                    "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb".into(),
                     "conduitos/x86_64/pc".into(),
                     "conduitos/aarch64/virt".into(),
                     "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
@@ -90,6 +97,10 @@ fn package_catalog() -> PackageCatalogContribution {
                 )],
             ),
         ]),
+        initialization_contracts: BTreeMap::from([(
+            "display/linear-framebuffer@1".into(),
+            initialization::contract(),
+        )]),
         facilities: vec!["compositor/native@1".into()],
         mutually_exclusive_mechanisms: vec![
             ("compositor/native@1".into(), "browser/dom".into()),
@@ -124,6 +135,7 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
                 target_patterns: vec![
                     "std/x86_64/computer".into(),
                     "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
+                    "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb".into(),
                     "conduitos/x86_64/pc".into(),
                     "conduitos/aarch64/virt".into(),
                     "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),

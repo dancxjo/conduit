@@ -3,7 +3,11 @@
 //! to the worker. Start is acknowledged after durable lifecycle publication.
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
-use conduit_std_host::body_execution::{BodyRunReport, BodyRunRequest};
+use conduit_std_host::body_execution::{
+    BodyRunReport, BodyRunRequest, CommittedBodyStartup, ImageBodyRunReport,
+};
+#[path = "continuing/startup.rs"]
+pub(super) mod startup;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
 use std::{
     path::Path,
@@ -16,12 +20,31 @@ pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
 // The installed kernel's finite inline scratch exceeds the platform default
 // worker stack. This is one service worker per owned Body Play, never a pool.
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
-type WorkerOutcome = (StdHost, Result<BodyRunReport, String>, Vec<u8>);
+enum RunReport {
+    Reference(BodyRunReport),
+    Image(ImageBodyRunReport),
+}
+impl RunReport {
+    fn report(&self) -> &BodyRunReport {
+        match self {
+            Self::Reference(report) => report,
+            Self::Image(report) => report.report(),
+        }
+    }
+}
+type WorkerOutcome = (StdHost, Result<RunReport, String>, Vec<u8>);
 
 pub(crate) struct RunWorker {
+    mode: WorkerMode,
+}
+enum WorkerMode {
+    Local(LocalWorker),
+    Member(super::startup_member::MemberWorker),
+}
+struct LocalWorker {
     control: RunControl,
     started: Receiver<(BodyPlayIdentity, Wake)>,
-    acknowledge: Option<SyncSender<Result<(), String>>>,
+    acknowledge: Option<SyncSender<Result<Option<CommittedBodyStartup>, String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
 }
 
@@ -69,6 +92,7 @@ impl Owner {
             .realization()
             .expect("Plan just committed")
             .clone();
+        let needs_startup = startup::needs_startup(&proposed.plan);
         let host = self.host.take_for_play()?;
         let control = RunControl::default();
         let worker_control = control.clone();
@@ -98,24 +122,69 @@ impl Owner {
                             );
                         }
                     });
-                    let result = host.run_body_plan_to_with_start(
-                        BodyRunRequest {
-                            wake: &proposed.wake,
-                            plan: &proposed.plan,
-                            control: &worker_control,
-                            keyboard: None,
-                        },
-                        &mut output,
-                        &mut timer,
-                        |play, wake| {
-                            started_tx.send((play.clone(), wake.clone())).map_err(|_| {
-                                "Body owner start observer disconnected".to_string()
-                            })?;
-                            ack_rx
-                                .recv()
-                                .map_err(|_| "Body owner start acknowledgement lost".to_string())?
-                        },
-                    );
+                    let request = BodyRunRequest {
+                        wake: &proposed.wake,
+                        plan: &proposed.plan,
+                        control: &worker_control,
+                        keyboard: None,
+                    };
+                    let started = |play: &BodyPlayIdentity,
+                                   wake: &Wake|
+                     -> Result<
+                        Option<conduit_std_host::body_execution::CommittedBodyStartup>,
+                        String,
+                    > {
+                        started_tx
+                            .send((play.clone(), wake.clone()))
+                            .map_err(|_| "Body owner start observer disconnected".to_string())?;
+                        ack_rx
+                            .recv()
+                            .map_err(|_| "Body owner start acknowledgement lost".to_string())?
+                    };
+                    let result = if needs_startup && host.image_identity().is_some() {
+                        host.run_selected_image_body_plan_with_committed_startup_to(
+                            request,
+                            &[],
+                            &mut output,
+                            &mut timer,
+                            None,
+                            |play, wake| {
+                                started(play, wake)?.ok_or_else(|| {
+                                    "durable startup acknowledgment omitted evidence".to_string()
+                                })
+                            },
+                        )
+                        .map(RunReport::Image)
+                    } else if needs_startup {
+                        host.run_body_plan_with_committed_startup_to(
+                            request,
+                            &mut output,
+                            &mut timer,
+                            None,
+                            |play, wake| {
+                                started(play, wake)?.ok_or_else(|| {
+                                    "durable startup acknowledgment omitted evidence".to_string()
+                                })
+                            },
+                        )
+                        .map(RunReport::Reference)
+                    } else if host.image_identity().is_some() {
+                        host.run_selected_image_body_plan_to_with_start(
+                            request,
+                            &mut output,
+                            &mut timer,
+                            |play, wake| started(play, wake).map(|_| ()),
+                        )
+                        .map(RunReport::Image)
+                    } else {
+                        host.run_body_plan_to_with_start(
+                            request,
+                            &mut output,
+                            &mut timer,
+                            |play, wake| started(play, wake).map(|_| ()),
+                        )
+                        .map(RunReport::Reference)
+                    };
                     let _ = finished.send(());
                     result
                 });
@@ -123,10 +192,12 @@ impl Owner {
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(RunWorker {
-            control,
-            started: started_rx,
-            acknowledge: Some(ack_tx),
-            thread: Some(thread),
+            mode: WorkerMode::Local(LocalWorker {
+                control,
+                started: started_rx,
+                acknowledge: Some(ack_tx),
+                thread: Some(thread),
+            }),
         })
     }
 
@@ -155,7 +226,7 @@ impl Owner {
     fn retain_finished(
         &mut self,
         root: &Path,
-        result: Result<BodyRunReport, String>,
+        result: Result<RunReport, String>,
         output: Vec<u8>,
     ) -> Result<(), String> {
         let authority = self.host.advertisement();
@@ -165,8 +236,11 @@ impl Owner {
             .ok_or("Body proposal vanished while its Host was executing")?
             .clone();
         let mut next = self.session.clone();
-        let receipt = match result {
-            Ok(report) => {
+        // Borrow the report so its original IMAGE lease survives serialization
+        // AND the existing durable owner transaction below.
+        let receipt = match &result {
+            Ok(owned_report) => {
+                let report = owned_report.report();
                 if proposed.play.as_ref() != Some(&report.play) {
                     return Err("Body worker returned a different Play".into());
                 }
@@ -178,6 +252,7 @@ impl Owner {
                     "wake_id":proposed.wake.wake_id, "play":report.play,
                     "wake_at_start":report.wake_at_start, "terminal":report.terminal,
                     "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+                    "startup_chimes":report.startup_chimes,
                     "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
                     "terminal_sign":report.terminal_sign,
                     "output_utf8":String::from_utf8_lossy(&output),
@@ -202,15 +277,18 @@ impl Owner {
     }
 }
 
-impl RunWorker {
+impl LocalWorker {
     pub(crate) fn progress(&mut self, owner: &mut Owner, root: &Path) -> Result<bool, String> {
         match self.started.try_recv() {
             Ok((play, wake)) => {
-                let result = owner.retain_started(root, play, wake);
+                let result = startup::retain_acknowledgment(owner, root, play, wake);
                 if let Some(acknowledge) = self.acknowledge.take() {
-                    let _ = acknowledge.send(result.clone());
+                    let status = result.as_ref().map(|_| ()).map_err(Clone::clone);
+                    let _ = acknowledge.send(result);
+                    status?;
+                } else {
+                    return Err("Body owner received duplicate Started acknowledgment".into());
                 }
-                result?;
             }
             Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
         }
@@ -234,3 +312,27 @@ impl RunWorker {
             .map_err(|_| "Body Play already has a stop request".into())
     }
 }
+
+impl RunWorker {
+    pub(super) fn from_member(worker: super::startup_member::MemberWorker) -> Self {
+        Self {
+            mode: WorkerMode::Member(worker),
+        }
+    }
+    pub(crate) fn progress(&mut self, owner: &mut Owner, root: &Path) -> Result<bool, String> {
+        match &mut self.mode {
+            WorkerMode::Local(worker) => worker.progress(owner, root),
+            WorkerMode::Member(worker) => worker.progress(owner, root),
+        }
+    }
+    pub(crate) fn request_lull(&self) -> Result<(), String> {
+        match &self.mode {
+            WorkerMode::Local(worker) => worker.request_lull(),
+            WorkerMode::Member(worker) => worker.request_lull(),
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "continuing/receipt_tests.rs"]
+mod receipt_tests;

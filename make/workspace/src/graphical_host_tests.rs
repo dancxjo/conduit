@@ -182,3 +182,104 @@ fn shipped_graphical_sources_declare_exact_native_mask_prerequisites() {
         }
     }
 }
+
+fn pi5_initialized_source() -> String {
+    PI3.replace("raspberry-pi-3-model-b-plus-rev-1.3", "raspberry-pi-5-model-b-rev-1.1-8gb")
+        .replace("implementation: \"display/linear-framebuffer@1\"}", "implementation: \"display/linear-framebuffer@1\", initialization: {backend: \"KMSDRM\", width: 1024, height: 600}}")
+}
+fn check_initialized(source: &str) -> conduit_host_make::CheckedHostConfiguration {
+    check_host_configuration(
+        parse_host_configuration_conduit(source).unwrap(),
+        &super::catalog(),
+        &super::package_set(),
+    )
+    .unwrap()
+}
+#[test]
+fn pi5_checked_scanout_and_mask_preserve_explicit_geometry_and_original_pools() {
+    let checked = check_initialized(&pi5_initialized_source());
+    let scanout = super::CheckedScanoutInitialization::from_configuration(&checked).unwrap();
+    assert_eq!(
+        (scanout.width(), scanout.height(), scanout.surface_bytes()),
+        (1024, 600, 2_457_600)
+    );
+    assert_eq!(scanout.configuration_id(), checked.configuration_id());
+    let mask = super::CheckedNativeMaskInitialization::from_configuration(&checked).unwrap();
+    assert_eq!(mask.configuration_id(), checked.configuration_id());
+    assert!(checked
+        .profile()
+        .presenters
+        .iter()
+        .any(|p| p.implementation == "presenter/native-graphical@1"));
+    assert_eq!(
+        checked
+            .configuration()
+            .resources
+            .iter()
+            .find(|p| p.class == "face/surface")
+            .unwrap()
+            .bytes,
+        2_457_600
+    );
+}
+#[test]
+fn initialized_native_mask_refuses_missing_geometry_and_short_surface_without_enlargement() {
+    let missing = check_initialized(&PI3.replace(
+        "raspberry-pi-3-model-b-plus-rev-1.3",
+        "raspberry-pi-5-model-b-rev-1.1-8gb",
+    ));
+    assert!(super::CheckedScanoutInitialization::from_configuration(&missing).is_err());
+    let short =
+        check_initialized(&pi5_initialized_source().replace("bytes: 2457600", "bytes: 2457599"));
+    assert!(super::CheckedNativeMaskInitialization::from_configuration(&short).is_err());
+    assert_eq!(
+        short
+            .configuration()
+            .resources
+            .iter()
+            .find(|p| p.class == "face/surface")
+            .unwrap()
+            .bytes,
+        2_457_599
+    );
+    let invalid =
+        pi5_initialized_source().replace("backend: \"KMSDRM\"", "backend: \"unselected-backend\"");
+    assert!(check_host_configuration(
+        parse_host_configuration_conduit(&invalid).unwrap(),
+        &super::catalog(),
+        &super::package_set()
+    )
+    .is_err());
+}
+#[test]
+fn pi5_display_and_checked_speaker_intents_compose_without_pcm_or_display_effects() {
+    let source = pi5_initialized_source().replace("  limits =", "  base = {kind: \"audio/speaker\", implementation: \"std/kernel-audio-play-alsa-hw@1\", initialization: {executable_sha256: \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", card_id: \"vc4hdmi1\", device: 0, base_identity: \"fixture-hdmi\"}}\n  limits =");
+    let checked = check_initialized(&source);
+    assert!(super::CheckedNativeMaskInitialization::from_configuration(&checked).is_ok());
+    assert!(checked
+        .resolved_bases()
+        .iter()
+        .any(|(kind, implementation)| kind == "audio/speaker"
+            && implementation == "std/kernel-audio-play-alsa-hw@1"));
+}
+
+#[test]
+fn pi5_display_and_pinned_whisper_capability_share_the_checked_catalog() {
+    let source = pi5_initialized_source().replace("  limits =", "  base = {kind: \"speech/recognizer\", implementation: \"std/hosted-whisper-clip-speech@2\"}\n  capability = {kind: \"speech/recognize-clip\", pinned_implementation: \"std/hosted-whisper-clip-speech@2\"}\n  need = {id: \"speech/process\", class: \"conduit.resource/whisper-process-slot@1\", slots: 1, bytes: 1}\n  limits =");
+    let checked = check_initialized(&source);
+    assert!(super::CheckedNativeMaskInitialization::from_configuration(&checked).is_ok());
+    assert!(checked.profile().capabilities.iter().any(|capability| {
+        capability.kind == "speech/recognize-clip"
+            && capability.implementation == "std/hosted-whisper-clip-speech@2"
+    }));
+    let foreign = source.replace(
+        "pinned_implementation: \"std/hosted-whisper-clip-speech@2\"",
+        "pinned_implementation: \"std/hosted-whisper-clip-speech@999\"",
+    );
+    assert!(check_host_configuration(
+        parse_host_configuration_conduit(&foreign).unwrap(),
+        &super::catalog(),
+        &super::package_set(),
+    )
+    .is_err());
+}

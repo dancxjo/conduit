@@ -380,6 +380,37 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Export a public contact once; closes its TLS listener and does not serve contacts.
+    MemberContactExport {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        member_credential: PathBuf,
+        #[arg(long)]
+        route_bind: std::net::SocketAddr,
+        #[arg(long)]
+        route_url: String,
+        #[arg(long)]
+        route_tls_cert: PathBuf,
+        #[arg(long)]
+        route_tls_key: PathBuf,
+        #[arg(long)]
+        authorize_route: bool,
+    },
+    /// Explicitly install a selected original owner pin on a stopped joined member.
+    MemberContact {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        descriptor: PathBuf,
+        #[arg(long)]
+        authorize_route: bool,
+    },
+    /// Explicitly prepare and export the original owner identity for member authentication.
+    MemberCarrierReceiver {
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Start the retained Plot on the installed owner's current Host Boot.
     Start {
         #[arg(long)]
@@ -390,6 +421,9 @@ pub(crate) enum BodyCommand {
         /// Explicitly admit one new Todo list under this Body before its first action.
         #[arg(long)]
         todo_new_list: Option<String>,
+        /// Explicit finite selection of one admitted member for the complete retained workset.
+        #[arg(long)]
+        startup_member: Option<PathBuf>,
     },
     /// Request that the current service-owned Body Play stop and lull.
     Lull {

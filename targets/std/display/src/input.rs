@@ -25,6 +25,18 @@ pub enum NativeInputRefusal {
     InvalidKey { scancode: Option<i32> },
 }
 impl Scanout<'_> {
+    /// Actual settled key-queue readiness, no interaction or resource grant.
+    pub fn prepared_input(&self) -> Result<crate::PreparedNativeInput, NativeInputRefusal> {
+        if !self.input_ready {
+            return Err(NativeInputRefusal::NotPrepared);
+        }
+        self.input_owner
+            .as_ref()
+            .filter(|input| input.matches_display(&self.initialized))
+            .cloned()
+            .ok_or(NativeInputRefusal::Lost)
+    }
+
     /// Before Play, discard queued input from earlier window lifetimes. Each
     /// call inspects at most the supplied allowance. Readiness requires an
     /// actual empty SDL queue, not merely the end of a poll cycle. Preparation
@@ -39,7 +51,15 @@ impl Scanout<'_> {
             return Err(NativeInputRefusal::InvalidBound);
         }
         if self.input_ready {
-            return Ok(NativeInput::Idle);
+            if self
+                .input_owner
+                .as_ref()
+                .is_some_and(|input| input.matches_display(&self.initialized))
+            {
+                return Ok(NativeInput::Idle);
+            }
+            self.input_ready = false;
+            self.input_owner = None;
         }
         let queue = self
             .canvas
@@ -59,6 +79,12 @@ impl Scanout<'_> {
                 None => {
                     let pending: Vec<Event> = queue.peek_events(1);
                     if pending.is_empty() {
+                        if has_held_keys(events)? {
+                            return Ok(NativeInput::Pending);
+                        }
+                        self.input_owner = Some(crate::PreparedNativeInput::prepared(
+                            self.initialized.clone(),
+                        ));
                         self.input_ready = true;
                         return Ok(NativeInput::Idle);
                     }
@@ -83,6 +109,13 @@ impl Scanout<'_> {
         }
         if !self.input_ready {
             return Err(NativeInputRefusal::NotPrepared);
+        }
+        if !self
+            .input_owner
+            .as_ref()
+            .is_some_and(|input| input.matches_display(&self.initialized))
+        {
+            return Err(NativeInputRefusal::Lost);
         }
         for _ in 0..maximum_events {
             let Some(event) = events.poll_event() else {
@@ -182,3 +215,85 @@ fn key(
 }
 #[cfg(test)]
 mod tests;
+
+fn held_key_bytes(bytes: &[u8]) -> Result<bool, NativeInputRefusal> {
+    if bytes.is_empty()
+        || bytes.len() > sdl2::sys::SDL_Scancode::SDL_NUM_SCANCODES as usize
+        || bytes.iter().any(|value| *value > 1)
+    {
+        return Err(NativeInputRefusal::PreparationUnavailable);
+    }
+    Ok(bytes.iter().any(|value| *value != 0))
+}
+fn has_held_keys(_events: &EventPump) -> Result<bool, NativeInputRefusal> {
+    let mut count = 0;
+    // SDL owns this byte array. The live exclusive EventPump establishes the
+    // initialized original-thread context; no Scancode enum conversion occurs.
+    let pointer = unsafe { sdl2::sys::SDL_GetKeyboardState(&mut count) };
+    if pointer.is_null()
+        || count <= 0
+        || count as usize > sdl2::sys::SDL_Scancode::SDL_NUM_SCANCODES as usize
+    {
+        return Err(NativeInputRefusal::PreparationUnavailable);
+    }
+    held_key_bytes(unsafe { core::slice::from_raw_parts(pointer, count as usize) })
+}
+impl Scanout<'_> {
+    /// Observe only output lifecycle events. Keyboard/mouse/touch events stay
+    /// queued for their actual admitted consumer; this grants no input authority.
+    pub fn poll_output_lifecycle(
+        &mut self,
+        events: &mut EventPump,
+        maximum_events: u16,
+    ) -> Result<NativeInput, NativeInputRefusal> {
+        self.require_live().map_err(|_| NativeInputRefusal::Lost)?;
+        if maximum_events == 0 || maximum_events > 256 {
+            return Err(NativeInputRefusal::InvalidBound);
+        }
+        events.pump_events();
+        for _ in 0..maximum_events {
+            let mut found = None;
+            for (minimum, maximum) in [
+                (
+                    sdl2::sys::SDL_EventType::SDL_QUIT as u32,
+                    sdl2::sys::SDL_EventType::SDL_QUIT as u32,
+                ),
+                (
+                    sdl2::sys::SDL_EventType::SDL_WINDOWEVENT as u32,
+                    sdl2::sys::SDL_EventType::SDL_WINDOWEVENT as u32,
+                ),
+                (
+                    sdl2::sys::SDL_EventType::SDL_RENDER_TARGETS_RESET as u32,
+                    sdl2::sys::SDL_EventType::SDL_RENDER_DEVICE_RESET as u32,
+                ),
+            ] {
+                let mut event = core::mem::MaybeUninit::<sdl2::sys::SDL_Event>::uninit();
+                // SDL fills one matching initialized union. GETEVENT removes only
+                // these lifecycle types and never consumes unrelated input.
+                let count = unsafe {
+                    sdl2::sys::SDL_PeepEvents(
+                        event.as_mut_ptr(),
+                        1,
+                        sdl2::sys::SDL_eventaction::SDL_GETEVENT,
+                        minimum,
+                        maximum,
+                    )
+                };
+                if count < 0 {
+                    return Err(NativeInputRefusal::PreparationUnavailable);
+                }
+                if count == 1 {
+                    found = Some(unsafe { Event::from_ll(event.assume_init()) });
+                    break;
+                }
+            }
+            let Some(event) = found else {
+                return Ok(NativeInput::Idle);
+            };
+            if let Some(input) = self.translate_input(event)? {
+                return Ok(input);
+            }
+        }
+        Ok(NativeInput::Pending)
+    }
+}

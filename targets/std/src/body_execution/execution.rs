@@ -3,7 +3,13 @@ use super::*;
 
 impl StdHost {
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn run_body_plan_to_with_start_and_clock<'a, W: Write, T: TimerAdapter, F>(
+    pub(super) fn run_body_plan_to_with_start_and_clock<
+        'a,
+        W: Write,
+        T: TimerAdapter,
+        F,
+        A: StartupAcknowledgmentValue,
+    >(
         &mut self,
         request: BodyRunRequest<'_>,
         output: &mut W,
@@ -21,7 +27,7 @@ impl StdHost {
         started: F,
     ) -> Result<BodyRunReport, String>
     where
-        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<A, String>,
     {
         self.run_body_plan_to_with_start_and_clock_and_creche(
             request,
@@ -45,6 +51,7 @@ impl StdHost {
         W: Write,
         T: TimerAdapter,
         F,
+        A: StartupAcknowledgmentValue,
     >(
         &mut self,
         request: BodyRunRequest<'_>,
@@ -65,7 +72,7 @@ impl StdHost {
         custody: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
     ) -> Result<BodyRunReport, String>
     where
-        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<A, String>,
     {
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let funded = if custody.is_some() {
@@ -81,12 +88,13 @@ impl StdHost {
             {
                 return Err("funded IMAGE supports direct Tick with bounded output only".into());
             }
-            let layout = crate::installed_std::body_kernel::funded::TickPreparationLayout::prepare(
+            let layout = crate::installed_std::body_kernel::funded::TickPreparationLayout::prepare_with_playback(
                 &request,
                 &self.advertisement,
                 &self.kernel_resources,
                 timer,
                 fore.is_some(),
+                self.playback.as_ref(),
             )?;
             let lease = self
                 .kernel_resources
@@ -159,6 +167,8 @@ impl StdHost {
                 &prospective_play.active_play_id,
                 has_fore_output,
                 layout,
+                &self.advertisement,
+                self.playback.as_ref(),
             )?
         } else if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(
@@ -184,6 +194,9 @@ impl StdHost {
                 self.selected_text_file.as_ref(),
             )?
         };
+        if funded.is_none() {
+            kernel.prepare_startup_outputs(&request.plan.plots, self.playback.as_ref())?;
+        }
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
         if let Some(terminal) = &terminal {
             kernel.attach_parsec_terminal(
@@ -200,6 +213,9 @@ impl StdHost {
             kernel.attach_creche(owner, request.plan, &prospective_play, &self.advertisement)?;
         }
         kernel.require_supported_execution()?;
+        if kernel.requires_startup() && !A::PROVIDES_STARTUP {
+            return Err("startup Source requires retained Body Started acknowledgment".into());
+        }
         let prepared_lifecycle = if funded.is_some() {
             Some(image::prepare_lifecycle(
                 &request,
@@ -222,21 +238,16 @@ impl StdHost {
                 wake,
                 sign,
             )?;
-            let receipt = kernel.prepare_memory(
+            super::prepared::reserve_prepared_kernel(
+                &mut kernel,
                 timer,
-                &self.advertisement.host_id,
-                &self.advertisement.boot_id,
+                &self.advertisement,
+                &mut self.kernel_resources,
+                plans,
                 lifecycle,
                 layout.clock_identity_bytes,
-            )?;
-            let reserved = self.kernel_resources.reserve_funded_body(
-                &self.advertisement,
-                plans,
-                &receipt,
                 lease,
-            )?;
-            kernel.attach_image_memory(lease);
-            reserved
+            )?
         } else {
             self.kernel_resources
                 .prepare_and_reserve_plans(&self.advertisement, plans)?
@@ -278,12 +289,22 @@ impl StdHost {
                         None,
                     )
                 };
-            if let Err(error) = started(&play, &wake_at_start) {
-                if let Some(queue) = live_queue {
-                    queue.mark_play_terminal();
+            let acknowledgment: BodyStartedAcknowledgment = match started(&play, &wake_at_start) {
+                Ok(value) => value.into(),
+                Err(error) => {
+                    if let Some(queue) = live_queue {
+                        queue.mark_play_terminal();
+                    }
+                    return Err(error);
                 }
-                return Err(error);
-            }
+            };
+            let startup = match &acknowledgment {
+                BodyStartedAcknowledgment::LifecycleOnly => None,
+                BodyStartedAcknowledgment::CommittedStartup(witness) => {
+                    Some(witness.for_play(request.plan, &play)?)
+                }
+            };
+            kernel.bind_startup(startup)?;
             if let Some(owner) = creche.as_deref_mut() {
                 owner.confirm_started(&self.advertisement, &play)?;
             }
@@ -314,6 +335,7 @@ impl StdHost {
                 queue.mark_play_terminal();
             }
             Ok(BodyRunReport {
+                startup_chimes: result.startup_chimes,
                 play,
                 wake_at_start,
                 terminal: result.terminal,

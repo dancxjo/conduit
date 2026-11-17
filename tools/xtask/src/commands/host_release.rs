@@ -21,10 +21,12 @@ const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_FILE_BYTES: u64 = 32 * 1024 * 1024;
 const MAXIMUM_NATIVE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
-#[derive(Clone, Copy, Debug, ValueEnum)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub(crate) enum ReleasePlatform {
     Browser,
     Linux,
+    #[value(name = "linux-x86-64")]
+    LinuxX86_64,
     LinuxArmv6,
     LinuxAarch64,
     Windows,
@@ -57,6 +59,30 @@ struct ReleaseFile {
 pub(crate) struct ReleaseOptions {
     pub(crate) json: bool,
     pub(crate) quiet: bool,
+    pub(crate) native_display: bool,
+}
+
+pub(crate) fn validate_options(
+    platform: ReleasePlatform,
+    native_display: bool,
+) -> Result<(), String> {
+    if platform == ReleasePlatform::LinuxX86_64
+        && !cfg!(all(target_os = "linux", target_arch = "x86_64"))
+    {
+        return Err("linux-x86-64 release requires an x86_64 Linux build Host".into());
+    }
+    if native_display
+        && !matches!(
+            platform,
+            ReleasePlatform::LinuxX86_64 | ReleasePlatform::LinuxAarch64
+        )
+    {
+        return Err("--native-display requires --platform linux-x86-64 or linux-aarch64".into());
+    }
+    if native_display && !cfg!(target_os = "linux") {
+        return Err("--native-display requires a Linux build Host".into());
+    }
+    Ok(())
 }
 
 pub(crate) fn run(
@@ -65,10 +91,16 @@ pub(crate) fn run(
     source_identity: &str,
     opts: &ReleaseOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    validate_options(platform, opts.native_display)?;
     match platform {
         ReleasePlatform::Browser => build_browser(output, source_identity)?,
         ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
-        ReleasePlatform::LinuxAarch64 => linux::build_aarch64(output, source_identity)?,
+        ReleasePlatform::LinuxX86_64 => {
+            linux::build_x86_64(output, source_identity, opts.native_display)?
+        }
+        ReleasePlatform::LinuxAarch64 => {
+            linux::build_aarch64(output, source_identity, opts.native_display)?
+        }
         ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
         ReleasePlatform::Windows => build_windows(output, source_identity)?,
         ReleasePlatform::Macos => build_macos(output, source_identity)?,
@@ -397,4 +429,39 @@ mod tests {
         assert!(!root.join("oversized.json").exists());
         fs::remove_dir_all(root).unwrap();
     }
+}
+
+#[cfg(test)]
+#[test]
+fn unsupported_native_release_refuses_before_output_or_external_commands() {
+    let output = std::env::temp_dir().join(format!(
+        "conduit-native-unsupported-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    for platform in [
+        ReleasePlatform::Browser,
+        ReleasePlatform::Linux,
+        ReleasePlatform::LinuxArmv6,
+        ReleasePlatform::Windows,
+        ReleasePlatform::Macos,
+    ] {
+        let error = run(
+            &output,
+            platform,
+            "fixture",
+            &ReleaseOptions {
+                json: false,
+                quiet: true,
+                native_display: true,
+            },
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("--native-display requires"));
+        assert!(!output.exists());
+    }
+    assert!(validate_options(ReleasePlatform::Linux, false).is_ok());
 }

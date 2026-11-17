@@ -56,6 +56,14 @@ pub(super) fn initialize(
     initialization: &BaseInitialization,
     host: &StdHost,
 ) -> Result<HostedPlaybackSelection, String> {
+    let offer = host.advertisement();
+    initialize_on(initialization, &offer.boot_id, offer.offer_generation)
+}
+pub(super) fn initialize_on(
+    initialization: &BaseInitialization,
+    boot: &conduit_core::BootId,
+    generation: conduit_core::OfferGeneration,
+) -> Result<HostedPlaybackSelection, String> {
     let p = parameters(initialization)?;
     // This implementation owns its executable path; source cannot substitute another program.
     let observed = digest(&bounded_read(
@@ -73,13 +81,8 @@ pub(super) fn initialize(
     if after != observed {
         return Err("speaker executable changed during discovery".into());
     }
-    let offer = host.advertisement();
-    HostedPlaybackSelection::from_observation(
-        observation,
-        offer.boot_id.clone(),
-        offer.offer_generation,
-    )
-    .with_executable_sha256(p.executable_sha256)
+    HostedPlaybackSelection::from_observation(observation, boot.clone(), generation)
+        .with_executable_sha256(p.executable_sha256)
 }
 #[cfg(test)]
 mod tests {

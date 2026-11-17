@@ -53,6 +53,16 @@ impl KernelResourceLedger {
             && self.instances.iter().all(|(_, active)| *active == 0)
     }
 
+    /// Initialized Base backing may remain owned during fixed owner setup;
+    /// an admitted kernel instance or uncertain retirement may not.
+    pub(crate) fn require_owner_identity_preparation(&self) -> Result<(), String> {
+        self.require_available()?;
+        if self.instances.iter().any(|(_, active)| *active != 0) {
+            return Err("fixed owner preparation requires no admitted kernel instances".into());
+        }
+        Ok(())
+    }
+
     pub(crate) fn new(advertisement: &HostAdvertisement) -> Result<Self, String> {
         if advertisement.protocol_version != PROTOCOL_VERSION {
             return Err("kernel host advertisement uses the wrong protocol version".to_string());
@@ -92,17 +102,41 @@ impl KernelResourceLedger {
     }
 
     pub(crate) fn release(&mut self, reservation: KernelResourceReservation) -> Result<(), String> {
+        self.release_borrowed(&reservation)
+    }
+
+    /// Validate the entire release before changing either pool or instance usage.
+    /// The successful prepared-token path requires no cloning or allocation.
+    pub(crate) fn release_borrowed(
+        &mut self,
+        reservation: &KernelResourceReservation,
+    ) -> Result<(), String> {
+        for (id, _) in &reservation.instances {
+            let (_, used) = self
+                .instances
+                .iter()
+                .find(|(candidate, _)| candidate == id)
+                .ok_or("released capability is absent from the ledger")?;
+            let released = reservation
+                .instances
+                .iter()
+                .filter(|(candidate, _)| candidate == id)
+                .try_fold(0u16, |sum, (_, count)| sum.checked_add(*count))
+                .ok_or("capability release exceeded its reservation")?;
+            if released > *used {
+                return Err("capability release exceeded its reservation".into());
+            }
+        }
+        // Pool release itself checks every pool and group before mutation.
+        PoolUsage::release_all(&mut self.pools, &reservation.bindings)?;
         for (id, released) in &reservation.instances {
             let (_, used) = self
                 .instances
                 .iter_mut()
                 .find(|(candidate, _)| candidate == id)
-                .ok_or_else(|| "released capability is absent from the ledger".to_string())?;
-            *used = used
-                .checked_sub(*released)
-                .ok_or_else(|| "capability release exceeded its reservation".to_string())?;
+                .expect("validated capability release");
+            *used -= released;
         }
-        PoolUsage::release_all(&mut self.pools, &reservation.bindings)?;
         Ok(())
     }
 

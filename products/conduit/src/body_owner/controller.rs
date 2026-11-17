@@ -2,6 +2,9 @@
 use super::state;
 #[path = "participants/invited.rs"]
 mod invited;
+#[path = "startup_member.rs"]
+mod startup_member;
+pub(crate) use startup_member::StartupMemberSelection;
 #[path = "participants/mod.rs"]
 mod participants;
 use conduit_body::{
@@ -214,6 +217,7 @@ pub(crate) struct Owner {
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     pending_member_return: Option<member_return::PendingMemberReturn>,
     invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
+    member_carrier_identity: Option<conduit_std_host::body_execution::StartupOwnerIdentity>,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_template:
@@ -329,6 +333,7 @@ impl Owner {
             pending_native_mask: None,
             pending_member_return: None,
             invited_mask_offers: BTreeMap::new(),
+            member_carrier_identity: None,
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -362,6 +367,7 @@ impl Owner {
             pending_native_mask: None,
             pending_member_return: None,
             invited_mask_offers: BTreeMap::new(),
+            member_carrier_identity: None,
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -603,6 +609,18 @@ impl TimerAdapter for DeadlineTimer {
         ThreadTimer.monotonic_observation(host_id, boot_id)
     }
 
+    fn monotonic_identity_backing_bound(
+        &self,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
+    ) -> Option<usize> {
+        ThreadTimer.monotonic_identity_backing_bound(host_id, boot_id)
+    }
+
+    fn monotonic_ticks_on(&mut self, basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        ThreadTimer.monotonic_ticks_on(basis)
+    }
+
     fn monotonic_now_ms(&mut self) -> Option<u64> {
         ThreadTimer.monotonic_now_ms()
     }
@@ -611,6 +629,10 @@ impl TimerAdapter for DeadlineTimer {
         ThreadTimer.monotonic_now_micros()
     }
 }
+
+#[cfg(test)]
+#[path = "startup_timer_tests.rs"]
+mod startup_timer_tests;
 
 #[cfg(test)]
 #[path = "tests.rs"]

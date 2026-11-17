@@ -5,6 +5,8 @@
 #![cfg(feature = "sdl")]
 mod initialized;
 mod input;
+mod prepared_input;
+pub use prepared_input::{NativeInputClaimRefusal, NativeInputHostClaim, PreparedNativeInput};
 mod preparation;
 pub use input::{NativeInput, NativeInputRefusal};
 mod surface;
@@ -31,6 +33,7 @@ pub struct Scanout<'a> {
     surface: Surface,
     live: bool,
     input_ready: bool,
+    input_owner: Option<PreparedNativeInput>,
     initialized: InitializedDisplay,
 }
 impl<'a> Scanout<'a> {
@@ -53,9 +56,15 @@ impl<'a> Scanout<'a> {
             surface,
             live: true,
             input_ready: false,
+            input_owner: None,
             initialized,
         })
     }
+    /// Actual retained CPU pixels, excluding SDL/GPU and allocator overhead.
+    pub fn cpu_backing_bytes(&self) -> usize {
+        self.surface.backing_bytes()
+    }
+
     /// Observe this exact live preparation; neither a CPU Surface nor copied
     /// advertisement bytes can construct an InitializedDisplay.
     pub fn initialized_display(&self) -> Result<InitializedDisplay, String> {
@@ -104,6 +113,10 @@ impl<'a> Scanout<'a> {
     /// Revocation is terminal for this prepared scanout. Reacquisition requires
     /// a new preparation; device availability alone cannot restore authority.
     pub fn lose(&mut self) {
+        if let Some(input) = self.input_owner.take() {
+            input.revoke();
+        }
+        self.input_ready = false;
         self.initialized.revoke();
         self.live = false;
         self.surface.lose();

@@ -10,6 +10,8 @@ impl BodyKernel<'_> {
         clock: &mut T,
         output: &mut W,
         creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
+        control: &RunControl,
+        external_cancel: &dyn Fn() -> bool,
     ) -> Result<(), String> {
         if !self
             .requests
@@ -52,6 +54,58 @@ impl BodyKernel<'_> {
                     format_args!("Body request value: {error:?}"),
                 )
             })?;
+        if operation.contract_id.as_str() == conduit_std_offers::STARTUP_CHIME_OPERATION {
+            let Some(InstalledBack::StartupChime(back)) =
+                self.scheduler.drivers().get(usize::from(request.node.0))
+            else {
+                return Err(diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("startup request belongs to different installed Back"),
+                ));
+            };
+            let output = self
+                .startup_outputs
+                .iter_mut()
+                .find(|(node, _)| *node == request.node)
+                .map(|(_, output)| output)
+                .ok_or("startup request has no prepared selected speaker")?;
+            let receipt = self
+                .startup_receipts
+                .iter_mut()
+                .find(|receipt| receipt.node == request.node)
+                .ok_or("startup request has no admitted receipt slot")?;
+            if receipt
+                .request
+                .is_some_and(|prior| prior.0 >= request.request.0)
+            {
+                return Err(diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("stale startup request cannot overwrite terminal evidence"),
+                ));
+            }
+            let outcome = output.execute_controlled(input, back.pcm(), control, || {
+                control.stop_requested() || external_cancel()
+            });
+            receipt.request = Some(request.request);
+            receipt.disposition = Some(outcome.disposition);
+            receipt.failure = outcome.failure;
+            receipt.kernel_accepted = false;
+            if outcome.disposition == HostCallDisposition::Cancelled
+                && (control.stop_requested() || external_cancel())
+            {
+                return Ok(());
+            }
+            self.scheduler
+                .complete_host_call(request.node, request.request, outcome)
+                .map_err(|error| {
+                    diagnostic::error(
+                        &mut self.error_diagnostic,
+                        format_args!("startup completion: {error:?}"),
+                    )
+                })?;
+            receipt.kernel_accepted = true;
+            return Ok(());
+        }
         if data_text::is_file(&operation.contract_id) {
             let source = self
                 .data_text_hosts

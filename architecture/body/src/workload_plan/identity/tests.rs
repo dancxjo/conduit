@@ -182,3 +182,31 @@ fn streamed_topology_and_body_time_branches_match_legacy_bytes() {
         );
     }
 }
+
+#[test]
+fn borrowed_play_identity_matches_legacy_and_rejects_changed_scope() {
+    for sequence in [0, 1, u64::MAX] {
+        let body = BodyId::bound("body/borrowed".into());
+        let wake = WakeId::bound("wake/borrowed".into());
+        let plan: PlanId = "plan/borrowed".into();
+        let valid = BodyPlayIdentity {
+            active_play_id: bind_body_play(&body, &wake, &plan, sequence),
+            body_id: body,
+            wake_id: wake,
+            plan_id: plan,
+            play_sequence: sequence,
+        };
+        assert!(body_play_matches(&valid));
+        for case in 0..5 {
+            let mut changed = valid.clone();
+            match case {
+                0 => changed.body_id = BodyId::bound("body/changed".into()),
+                1 => changed.wake_id = WakeId::bound("wake/changed".into()),
+                2 => changed.plan_id = "plan/changed".into(),
+                3 => changed.play_sequence ^= 1,
+                _ => changed.active_play_id.0.push('0'),
+            }
+            assert!(!body_play_matches(&changed));
+        }
+    }
+}

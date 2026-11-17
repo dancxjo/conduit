@@ -10,6 +10,7 @@ use conduit_body::ResidentPlot;
 use conduit_plot::ActivationSyntax;
 #[cfg(unix)]
 pub(crate) use controller::run_service_window;
+pub(crate) use controller::StartupMemberSelection;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
     BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,

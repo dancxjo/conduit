@@ -83,6 +83,7 @@ impl Owner {
     pub(crate) fn from_prepared_born(host: StdHost, prepared: PreparedBirth) -> Self {
         Self {
             prepared_admission_route: None,
+            member_carrier_identity: None,
             host: OwnerHost::new(host),
             session: prepared.session,
             resident: prepared.resident,

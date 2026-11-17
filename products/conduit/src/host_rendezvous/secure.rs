@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{debug, run_session, RendezvousLine, MAXIMUM_FRAME_BYTES};
+mod startup_binding;
 
 pub(crate) struct SecureNetworkOptions {
     pub(crate) bind: Option<String>,
@@ -158,9 +159,10 @@ pub(crate) fn serve(
     println!("The remote browser must trust the configured TLS identity.");
     println!("Waiting up to {timeout_seconds} seconds for one authenticated connection…");
     let result = (|| {
-        let mut line = listener
+        let line = listener
             .accept_with_timeout(Duration::from_secs(timeout_seconds))
             .map_err(debug("accept secure rendezvous Line"))?;
+        let mut line = startup_binding::BoundLine::new(line, listener.certificate_binding_sha256());
         run_session(
             &mut line,
             state_dir,

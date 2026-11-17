@@ -19,6 +19,17 @@ pub(crate) struct BaseBackingReservation {
     binding: ResourceBinding,
 }
 impl BaseBackingReservation {
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub(crate) fn owned_identity_bytes(&self) -> Option<usize> {
+        self.identity
+            .0
+             .0
+            .capacity()
+            .checked_add(self.identity.1 .0.capacity())?
+            .checked_add(self.base.0.capacity())?
+            .checked_add(self.binding.pool_id.0.capacity())?
+            .checked_add(self.binding.class_id.0.capacity())
+    }
     pub(crate) fn bytes(&self) -> u32 {
         self.binding.units
     }
@@ -88,12 +99,9 @@ impl KernelResourceLedger {
     ) -> Result<BaseBackingReservation, String> {
         self.require_available()?;
         if bytes == 0
-            || self.identity
-                != (
-                    host.host_id.clone(),
-                    host.boot_id.clone(),
-                    host.offer_generation,
-                )
+            || self.identity.0 != host.host_id
+            || self.identity.1 != host.boot_id
+            || self.identity.2 != host.offer_generation
         {
             return Err("Base backing requires the exact initialized Host ledger".into());
         }
@@ -107,15 +115,12 @@ impl KernelResourceLedger {
             })
             .ok_or("Base backing provider is not current and ready")?;
         if !host.bases.iter().any(|entry| {
-            entry.binding()
-                == conduit_core::BaseProviderBinding {
-                    base_id: provider.base_id.clone(),
-                    provider_instance_id: provider.provider_instance_id.clone(),
-                    provider_generation: provider.provider_generation,
-                    implementation_id: provider.implementation_id.clone(),
-                    mechanism_family: provider.mechanism_family.clone(),
-                    enforcement_class: provider.enforcement_class,
-                }
+            entry.base_id == provider.base_id
+                && entry.provider_instance_id == provider.provider_instance_id
+                && entry.provider_generation == provider.provider_generation
+                && entry.implementation_id == provider.implementation_id
+                && entry.mechanism_family == provider.mechanism_family
+                && entry.enforcement_class == provider.enforcement_class
         }) {
             return Err("Base backing provider is absent from the staged current offer".into());
         }

@@ -103,6 +103,7 @@ impl<'a> BodyKernel<'a> {
                 && !todo_checkpoint(operation)
                 && !todo_checkpoint_read(operation)
                 && !face(operation)
+                && !startup::supports(operation)
                 && operation.contract_id.as_str()
                     != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
@@ -302,8 +303,24 @@ impl<'a> BodyKernel<'a> {
         for part in &lowered.partitions {
             operations.extend(part.host_calls.iter().cloned());
         }
+        let gate_count = drivers
+            .iter()
+            .filter(|back| matches!(back, InstalledBack::StartupSource(_)))
+            .count();
+        let mut startup_gates = Vec::new();
+        startup_gates
+            .try_reserve_exact(gate_count)
+            .map_err(|_| "startup gate allocation failed")?;
+        for driver in &drivers {
+            if let InstalledBack::StartupSource(source) = driver {
+                startup_gates.push(source.gate.clone());
+            }
+        }
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
+            startup_outputs: Vec::new(),
+            startup_receipts: Vec::new(),
+            startup_gates,
             terminal_events: None,
             error_diagnostic: None,
             cleanup_diagnostic: None,

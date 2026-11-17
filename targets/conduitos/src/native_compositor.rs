@@ -1,5 +1,9 @@
 //! Persistent finite native compositor service above the scanout mechanism.
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+mod backing;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+pub use backing::PreparedCompositorBacking;
 mod contracts;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod damage;
@@ -27,7 +31,11 @@ mod surface_lifecycle;
 mod surface_update;
 pub use scanout_acknowledgement::ScanoutAcknowledgement;
 
-#[cfg(all(test, not(all(target_arch = "x86_64", target_os = "none"))))]
+#[cfg(all(
+    test,
+    feature = "native-compositor",
+    not(all(target_arch = "x86_64", target_os = "none"))
+))]
 pub(crate) fn reference_surface_buffer(
     width: u16,
     height: u16,

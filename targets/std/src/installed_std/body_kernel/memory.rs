@@ -73,6 +73,11 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
+        InstalledBack::StartupChime(back) => Ok(back.retained_backing_bytes()),
+        InstalledBack::StartupSource(_) => {
+            super::super::startup_source_back::StartupGate::backing_bytes()
+                .ok_or_else(|| "startup gate backing overflow".into())
+        }
         InstalledBack::Inactive => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
     }
@@ -112,15 +117,15 @@ impl BodyKernel<'_> {
             &mut bytes,
             crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
         )?;
-        let mut ticks = 0;
+        let mut installed = 0;
         for driver in self.scheduler.drivers() {
-            if matches!(driver, InstalledBack::Tick(_)) {
-                ticks += 1;
+            if !matches!(driver, InstalledBack::Inactive) {
+                installed += 1;
             }
             add(&mut bytes, back_bytes(driver)?)?;
         }
-        if ticks == 0 {
-            return Err("IMAGE memory receipt requires actual tick Back".into());
+        if installed == 0 {
+            return Err("IMAGE memory receipt requires actual installed Back".into());
         }
         add(
             &mut bytes,
@@ -128,6 +133,9 @@ impl BodyKernel<'_> {
                 .tick_backing_bytes()
                 .ok_or("IMAGE memory receipt does not support this Fore/input/live contract")?,
         )?;
+        for (_, output) in &self.startup_outputs {
+            add(&mut bytes, output.retained_backing_bytes())?;
+        }
         for host in &self.data_text_hosts {
             add(
                 &mut bytes,
@@ -157,6 +165,9 @@ impl BodyKernel<'_> {
             )?;
         }
         for count in [
+            vector(&self.startup_gates)?,
+            vector(&self.startup_outputs)?,
+            vector(&self.startup_receipts)?,
             vector(&self.activations)?,
             vector(&self.partitions)?,
             vector(&self.operations)?,

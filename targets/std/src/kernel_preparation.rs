@@ -261,5 +261,8 @@ mod tests;
 #[cfg(test)]
 mod creche_quarantine_tests;
 
+mod image_configuration;
+mod image_construction;
 mod image_memory;
+pub(crate) use image_construction::StagedImageMemory;
 pub(crate) use image_memory::{BodyMemoryReceipt, ImageMemoryLease};

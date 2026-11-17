@@ -148,6 +148,7 @@ pub(crate) struct DurableHostTruth {
 mod presentation_host;
 
 mod remote_fragment_driver;
+pub(crate) mod startup_member;
 mod worker_text;
 use remote_fragment_driver::drive_remote_fragment;
 
@@ -158,6 +159,7 @@ pub(crate) struct DurableHostRuntime {
     birth: Option<body_birth::ServiceBirth>,
     birth_root: Option<PathBuf>,
     remote_fragment: Option<AdmittedRemoteFragment>,
+    startup_member: Option<startup_member::MemberRun>,
     pending_worker_text: Option<conduit_kernel::scheduler::HostCallRequest>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
@@ -190,6 +192,7 @@ impl DurableHostRuntime {
             birth: None,
             birth_root: None,
             remote_fragment: None,
+            startup_member: None,
             pending_worker_text: None,
             pool_member: None,
             cancellation_signal: None,
@@ -1178,6 +1181,8 @@ enum Request {
         maximum_millis: u64,
         #[serde(default)]
         todo_new_list: Option<String>,
+        #[serde(default)]
+        startup_member: Option<Box<crate::durable_host::owner::StartupMemberSelection>>,
     },
     BodyLull {
         protocol: u16,
@@ -1202,6 +1207,15 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
         realization: PoolRealizationEnvelope,
+    },
+    BodyMemberCarrierReceiver {
+        protocol: u16,
+        token: Vec<u8>,
+    },
+    StartupMember {
+        protocol: u16,
+        token: Vec<u8>,
+        command: Box<startup_member::Command>,
     },
     PrepareRemote {
         protocol: u16,
@@ -1244,6 +1258,14 @@ enum Request {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 enum Response {
+    BodyMemberCarrierReceiver {
+        protocol: u16,
+        peer: conduit_body::FederationPeer,
+    },
+    StartupMember {
+        protocol: u16,
+        reply: Box<startup_member::Reply>,
+    },
     Status {
         protocol: u16,
         target_id: String,
@@ -1468,56 +1490,11 @@ pub(crate) fn signal_remote_cancellation(
 }
 
 #[cfg(unix)]
-pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result<(), String> {
-    use std::os::unix::{fs::PermissionsExt, net::UnixListener};
-
-    runtime.install_cancellation_signal(state_dir);
-    runtime.birth_root = Some(state_dir.to_path_buf());
-    let socket = state_dir.join("control.sock");
-    if socket.exists() {
-        fs::remove_file(&socket)
-            .map_err(|error| format!("remove stale control endpoint: {error}"))?;
-    }
-    let listener = UnixListener::bind(&socket)
-        .map_err(|error| format!("bind durable host control endpoint: {error}"))?;
-    fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))
-        .map_err(|error| format!("restrict durable host control endpoint: {error}"))?;
-    let token = read_secret(&state_dir.join("control.token"))?;
-    let mut polling_play = false;
-    loop {
-        terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
-        let running = runtime.host.body_is_running()
-            || runtime.speech_worker.is_some()
-            || runtime.owner_spoken_worker.is_some()
-            || terminal_attach::is_attached(&mut runtime);
-        if running != polling_play {
-            listener
-                .set_nonblocking(running)
-                .map_err(|error| format!("set Body owner control responsiveness: {error}"))?;
-            polling_play = running;
-        }
-        runtime.progress_owned_body()?;
-        runtime.progress_browser_speech()?;
-        runtime.progress_owner_spoken()?;
-        let mut stream = match listener.accept() {
-            Ok((stream, _)) => stream,
-            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                let pause = if runtime.host.body_is_running()
-                    || runtime.speech_worker.is_some()
-                    || runtime.owner_spoken_worker.is_some()
-                {
-                    10
-                } else {
-                    100
-                };
-                std::thread::sleep(std::time::Duration::from_millis(pause));
-                continue;
-            }
-            Err(error) => return Err(format!("accept local host control: {error}")),
-        };
-        client_frame::serve_client(state_dir, &mut stream, &mut runtime, &token)?;
-    }
-}
+mod service;
+#[cfg(unix)]
+pub(crate) use service::serve;
+#[cfg(all(unix, feature = "native-display"))]
+pub(crate) use service::serve_with_foreground;
 
 #[cfg(not(unix))]
 pub(crate) fn serve(_state_dir: &Path, _runtime: DurableHostRuntime) -> Result<(), String> {
@@ -1932,6 +1909,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
         | Request::ObserveLocalModelPool { token, .. }
+        | Request::BodyMemberCarrierReceiver { token, .. }
+        | Request::StartupMember { token, .. }
         | Request::PrepareRemote { token, .. }
         | Request::PreparePoolMember { token, .. }
         | Request::ExchangeRemote { token, .. }
@@ -1994,8 +1973,46 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
     {
         return refused("selected-speech-active");
     }
+    if !matches!(
+        &request,
+        Request::Status { .. } | Request::StartupMember { .. }
+    ) {
+        runtime.discard_startup_handshake();
+    }
+    if runtime.startup_member_custody_retained()
+        && !matches!(
+            &request,
+            Request::Status { .. } | Request::StartupMember { .. }
+        )
+    {
+        return refused("startup-member-custody-retained");
+    }
     let truth = runtime.truth();
     match request {
+        Request::BodyMemberCarrierReceiver { protocol, .. } if protocol == PROTOCOL => {
+            match &mut runtime.host {
+                HostSource::Body { owner, .. } => owner
+                    .prepare_current_member_carrier_receiver()
+                    .map(|peer| Response::BodyMemberCarrierReceiver {
+                        protocol: PROTOCOL,
+                        peer,
+                    })
+                    .unwrap_or_else(|code| refused(&code)),
+                _ => refused("installed Host does not own original Body identity"),
+            }
+        }
+        Request::StartupMember {
+            protocol, command, ..
+        } if protocol == PROTOCOL => {
+            let reply = runtime
+                .startup_member_command(*command)
+                .unwrap_or_else(|code| startup_member::Reply::Refused { code });
+            Response::StartupMember {
+                protocol: PROTOCOL,
+                reply: Box::new(reply),
+            }
+        }
+
         Request::Status { protocol, .. } if protocol == PROTOCOL => Response::Status {
             protocol: PROTOCOL,
             target_id: truth.target_id.clone(),
@@ -2499,9 +2516,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             protocol,
             maximum_millis,
             todo_new_list,
+            startup_member,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body(maximum_millis, todo_new_list)
+            .start_owned_body_selected(maximum_millis, todo_new_list, startup_member.map(|s| *s))
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,

@@ -339,29 +339,20 @@ impl DurableHostRuntime {
         result
     }
 
-    pub(crate) fn with_owned_body(self, root: &Path) -> Result<Self, String> {
-        let Self {
-            target_id,
-            image_content_digest,
-            host,
-            birth,
-            birth_root,
-            remote_fragment,
-            pending_worker_text,
-            pool_member,
-            cancellation_signal,
-            next_observation_sequence,
-            #[cfg(unix)]
-            terminal_route,
-            mut selected_speech_equipment,
-            speech_worker,
-            speech_terminal,
-            owner_spoken_worker,
-            owner_spoken_terminal,
-            spoken_template_session,
-        } = self;
-        let HostSource::Bare(host) = host else {
+    pub(crate) fn attach_owned_body(&mut self, root: &Path) -> Result<(), String> {
+        // Refuse before moving the Host or any affine prepared execution owner.
+        if self.startup_member_custody_retained()
+            || self.remote_fragment.is_some()
+            || self.pool_member.is_some()
+        {
+            return Err("retained member execution forbids Host ownership conversion".into());
+        }
+        if !matches!(self.host, HostSource::Bare(_)) {
             return Err("durable Host already owns a Body session".into());
+        }
+        let HostSource::Bare(host) = std::mem::replace(&mut self.host, HostSource::Transitioning)
+        else {
+            unreachable!()
         };
         let previous_generation = host.advertisement().offer_generation;
         let owner = crate::durable_host::owner::resume_service(*host, root)?;
@@ -374,33 +365,15 @@ impl DurableHostRuntime {
                 current.offer_generation,
             )?;
         }
-        if let Some(equipment) = &mut selected_speech_equipment {
+        if let Some(equipment) = &mut self.selected_speech_equipment {
             equipment.advance_offer_generation(owner.host.current())?;
         }
-        Ok(Self {
-            target_id,
-            image_content_digest,
-            host: HostSource::Body {
-                owner: Box::new(owner),
-                root: root.to_path_buf(),
-                running: None,
-            },
-            birth,
-            birth_root,
-            remote_fragment,
-            pending_worker_text,
-            pool_member,
-            cancellation_signal,
-            next_observation_sequence,
-            #[cfg(unix)]
-            terminal_route,
-            selected_speech_equipment,
-            speech_worker,
-            speech_terminal,
-            owner_spoken_worker,
-            owner_spoken_terminal,
-            spoken_template_session,
-        })
+        self.host = HostSource::Body {
+            owner: Box::new(owner),
+            root: root.to_path_buf(),
+            running: None,
+        };
+        Ok(())
     }
 
     pub(super) fn owned_body_truth(&self) -> Result<serde_json::Value, String> {

@@ -11,17 +11,43 @@ fn id<T: serde::de::DeserializeOwned>(text: &str) -> T {
     serde_json::from_value(serde_json::Value::String(text.into())).unwrap()
 }
 
-struct Fixture {
-    root: PathBuf,
+pub(crate) struct Fixture {
+    pub(crate) root: PathBuf,
     pending: PendingBodyJoin,
-    receipt: PortableAdmissionReceipt,
+    pub(crate) receipt: PortableAdmissionReceipt,
+}
+impl Fixture {
+    pub(crate) fn select_body(&mut self, body_id: &conduit_body::BodyId) {
+        self.pending.invitation.claim.body_id = body_id.clone();
+        self.pending.request.body_id = body_id.clone();
+        self.receipt.credential.body_id = body_id.clone();
+        let key = SpawnInvitationSecret::from_csprng_bytes(self.pending.invitation.secret).unwrap();
+        let actual = &self.pending.request.host_advertisement;
+        self.pending.request.signature = key
+            .sign(&self.pending.invitation.claim.signing_transcript(
+                &actual.host_id,
+                &actual.boot_id,
+                actual.offer_generation,
+            ))
+            .to_vec();
+        fs::write(
+            self.root.join("body/pending-join.json"),
+            serde_json::to_vec(&self.pending).unwrap(),
+        )
+        .unwrap();
+    }
+    pub(crate) fn verifying_key(&self) -> [u8; 32] {
+        SpawnInvitationSecret::from_csprng_bytes(self.pending.invitation.secret)
+            .unwrap()
+            .verifying_key()
+    }
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(self.root.parent().unwrap());
     }
 }
-fn fixture() -> Fixture {
+pub(crate) fn fixture() -> Fixture {
     let (manifest, root) = durable_host::tests::fixture();
     let installation = durable_host::install_without_start(&manifest, &root).unwrap();
     fs::create_dir_all(root.join("body")).unwrap();
@@ -93,7 +119,7 @@ fn fixture() -> Fixture {
         receipt,
     }
 }
-fn complete(f: &Fixture) -> Result<(), String> {
+pub(crate) fn complete(f: &Fixture) -> Result<(), String> {
     durable_host::membership::complete_body_join_document(f.receipt.clone(), &f.root, true)
 }
 #[test]

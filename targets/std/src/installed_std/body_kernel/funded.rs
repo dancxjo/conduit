@@ -1,4 +1,5 @@
-//! Borrowed closed Tick footprint, reserved before any kernel materialization.
+//! Borrowed closed cooperative Tick/startup footprint before materialization.
+mod startup;
 use super::*;
 use crate::{
     body_execution::BodyRunRequest,
@@ -40,8 +41,25 @@ pub(crate) fn bounds() -> FragmentSetBounds {
     }
 }
 impl TickPreparationLayout {
-    /// Only dimensions and borrowed identities are read here. No Plan validation
-    /// clone, lowering, timer observation, Fore payload or value slot is built.
+    pub(crate) fn prepare_delegated<T: TimerAdapter>(
+        request: &BodyRunRequest<'_>,
+        global_play: &conduit_body::BodyPlayIdentity,
+        host: &HostAdvertisement,
+        ledger: &KernelResourceLedger,
+        timer: &T,
+        selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+    ) -> Result<Self, String> {
+        let mut layout =
+            Self::prepare_with_playback(request, host, ledger, timer, false, selected_playback)?;
+        let extra = crate::body_execution::delegated_preparation_backing_bytes(
+            request.plan,
+            global_play,
+            host,
+        )?;
+        add(&mut layout.peak_bytes, extra)?;
+        Ok(layout)
+    }
+    #[cfg(test)]
     pub(crate) fn prepare<T: TimerAdapter>(
         request: &BodyRunRequest<'_>,
         host: &HostAdvertisement,
@@ -49,13 +67,25 @@ impl TickPreparationLayout {
         timer: &T,
         has_output: bool,
     ) -> Result<Self, String> {
+        Self::prepare_with_playback(request, host, ledger, timer, has_output, None)
+    }
+    /// Only dimensions and borrowed identities are read here. No Plan validation
+    /// clone, lowering, timer observation, Fore payload or value slot is built.
+    pub(crate) fn prepare_with_playback<T: TimerAdapter>(
+        request: &BodyRunRequest<'_>,
+        host: &HostAdvertisement,
+        ledger: &KernelResourceLedger,
+        timer: &T,
+        has_output: bool,
+        selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+    ) -> Result<Self, String> {
         if request.keyboard.is_some()
             || request.plan.body_time_requirement.is_some()
             || !request.plan.mask_topologies.is_empty()
             || request.plan.plots.is_empty()
             || request.plan.plots.len() > conduit_body::MAX_BODY_PLOTS
         {
-            return Err("selected IMAGE funded profile supports finite Tick output only".into());
+            return Err("selected IMAGE funded profile supports finite Tick/startup only".into());
         }
         ledger.preflight_image_shape(
             request
@@ -82,7 +112,12 @@ impl TickPreparationLayout {
                 return Err("funded Tick requires one local fragment per Plot".into());
             }
             for gear in &part.plan.fragments[0].placements {
-                if gear.implementation_id.as_str() != conduit_std_offers::TICK_IMPLEMENTATION {
+                if !matches!(
+                    gear.implementation_id.as_str(),
+                    conduit_std_offers::TICK_IMPLEMENTATION
+                        | conduit_std_offers::BODY_WAKE_IMPLEMENTATION
+                        | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                ) {
                     return Err(
                         "selected IMAGE receipt has no owned accounting for this Back".into(),
                     );
@@ -102,9 +137,10 @@ impl TickPreparationLayout {
                 requests = requests
                     .checked_add(budget.host_requests)
                     .ok_or("Tick request budget overflow")?;
-                // The ordinary finite Tick Back owns both values and waits.
-                add(&mut tick_vectors, array::<ValueRef>(budget.host_requests)?)?;
-                add(&mut tick_vectors, array::<ValueRef>(budget.host_requests)?)?;
+                add(
+                    &mut tick_vectors,
+                    startup::backing_bytes(gear, &budget, selected_playback)?,
+                )?;
             }
             for port in &part.plan.fragments[0].fore_ports {
                 if !has_output
@@ -128,7 +164,7 @@ impl TickPreparationLayout {
         )
         .map_err(|_| "selected Tick lowering footprint is unsupported")?;
         if lowered.nodes == 0 {
-            return Err("funded Tick requires actual Tick Back".into());
+            return Err("funded IMAGE requires actual installed Back".into());
         }
         for _ in 0..fore_count {
             signs = signs
@@ -368,8 +404,21 @@ impl<'a> BodyKernel<'a> {
         parent_play: &conduit_core::ActivePlayId,
         has_output: bool,
         funding: &TickPreparationLayout,
+        advertisement: &HostAdvertisement,
+        selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
     ) -> Result<Self, String> {
-        Self::prepare_with_live(
+        if partitions
+            .iter()
+            .flat_map(|part| &part.plan.fragments)
+            .any(|fragment| {
+                fragment.host_id != advertisement.host_id
+                    || fragment.boot_id != advertisement.boot_id
+                    || fragment.offer_generation != advertisement.offer_generation
+            })
+        {
+            return Err("funded kernel differs from current Host/Boot/offer".into());
+        }
+        let mut kernel = Self::prepare_with_live(
             partitions,
             false,
             parent_play,
@@ -381,6 +430,8 @@ impl<'a> BodyKernel<'a> {
             #[cfg(target_os = "linux")]
             None,
             Some(funding),
-        )
+        )?;
+        kernel.prepare_startup_outputs(partitions, selected_playback)?;
+        Ok(kernel)
     }
 }

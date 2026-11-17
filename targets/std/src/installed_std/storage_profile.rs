@@ -2,7 +2,7 @@
 //! Preparation refuses Plans exceeding any table before Play starts.
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
-pub(super) const MAX_NODES: usize = 32;
+pub(crate) const MAX_NODES: usize = 32;
 // A chain with 32 nodes has 33 Cords including its two external Fores.
 pub(super) const MAX_CORDS: usize = 64;
 pub(super) const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
