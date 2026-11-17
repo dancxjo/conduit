@@ -91,19 +91,27 @@ impl PatchbayApplicationPort {
                             && checked_plot_id == plot.graph.checked_plot_id.as_str()
                     })
                 };
-                let before_filter = content.subjects.len();
-                content
-                    .subjects
-                    .retain(|subject| !planned(&subject.identity));
-                // append_checkpointed appends subjects and never changes prior
-                // entries: after its initial plot checkpoint, named Gear,
-                // Composition, Port and Cord emitters only append gear/, port/
-                // or cord/ identities (or reuse an unchanged existing entry).
-                // Consequently planned plot/ filtering can remove entries only
-                // at the first checkpoint. Fail closed if that contract changes.
-                if checked_subjects != 0 && before_filter != content.subjects.len() {
-                    bounds_error = Some(FaceFragmentError::InvalidIdentity);
-                    return false;
+                #[cfg(test)]
+                lookup_work::subject_checkpoint(content.subjects.len());
+                let mut planned_subject = |subject: &conduit_face::FaceSubject| {
+                    #[cfg(test)]
+                    lookup_work::subject_query();
+                    planned(&subject.identity)
+                };
+                if checked_subjects == 0 {
+                    content.subjects.retain(|subject| !planned_subject(subject));
+                } else {
+                    // The emitter only appends or reuses unchanged subjects.
+                    // Prior retained entries were already filtered and checked;
+                    // a planned identity in the new tail still fails closed.
+                    let Some(tail) = content.subjects.get(checked_subjects..) else {
+                        bounds_error = Some(FaceFragmentError::InvalidIdentity);
+                        return false;
+                    };
+                    if tail.iter().any(&mut planned_subject) {
+                        bounds_error = Some(FaceFragmentError::InvalidIdentity);
+                        return false;
+                    }
                 }
                 content
                     .disclosures
