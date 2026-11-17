@@ -1,11 +1,13 @@
 //! Exact linked Source representation and kernel Back for pure compensation.
-//! These definitions supply no Kind offer, equipment, Plan or admission grant.
+//! A semantic Kind definition is not an initialized Host offer or a grant.
 extern crate alloc;
 mod back;
 mod codec;
+mod kind;
 pub use back::ObservationBack;
 pub use codec::{CodecError, PreparedObservationCodec};
 use conduit_core::{BorrowedStructuredValueValidator, StructuredInfoRefusal};
+pub use kind::{KIND, KIND_REVISION};
 include!(concat!(env!("OUT_DIR"), "/contract.rs"));
 pub const INPUT_TYPE_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/input.type"));
 pub const RESULT_TYPE_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/result.type"));

@@ -30,6 +30,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-kernel",
+ "conduit-planner",
  "conduit-plot",
  "embedded-hal",
  "embedded-hal-async",
@@ -50,6 +51,25 @@ name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
  "conduit-assigned-plan",
+]
+
+[[package]]
+name = "conduit-language"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-planner"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-language",
+ "conduit-plot",
+ "serde",
+ "sha2",
 ]
 
 [[package]]

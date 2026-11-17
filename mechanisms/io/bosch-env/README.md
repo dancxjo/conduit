@@ -138,8 +138,28 @@ responsiveness measurement. The actual three-node production-scheduler test
 checks pressure, exact once-only delivery, cancellation, typed unavailable,
 canonical refusal and zero post-preparation allocation.
 
-This boundary supplies no Kind registration, initialized Host offer, equipment
+The semantic Kind definition creates no initialized Host offer, equipment
 loan, Plan or Started receipt. Source/offer selection and factory binding must
 still identify this exact implementation and fund its real storage/work before
 Play. Physical acquisition, whole firmware and complete sampling/Mask integration
 remain unqualified; the test pipeline is not Body admission or a sensor Play.
+
+
+### Selectable semantic front
+
+`ObservationContract::kind()` describes `device/bme280-compensation@1` through
+its ordinary `device/bme280-compensation` Kind. Its complete callable Front
+(profiles, temporal behavior and shorthand) comes from the reviewed checked
+Source. It adds no physical attachment, bus access or invented authority. A
+building Host can install that definition into the existing catalogs and retain
+the original `bme280-observation` Plot through `CanonicalBackCatalog::insert_exact`.
+Choosing the Source Back changes expansion/realization identity while preserving
+the caller's Source and checked identity; leaving the Kind unexpanded allows a
+separately admitted native realization. Neither choice invents an available Back.
+
+Hosted tests exercise both forms and the ordinary planner's sealed three-Gear
+Plan and resource refusal. Their Host offers and finite two-unit preparation pool
+are explicitly fixtures, not electrical readiness or a measured MCU budget.
+They complement the real-kernel test; they do not yet prove Plan-to-factory
+binding, Body admission or physical execution. Planner/Language are hosted test
+dependencies, absent from the normal selected kernel Back's runtime graph.

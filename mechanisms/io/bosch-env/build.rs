@@ -54,5 +54,33 @@ fn main() {
         checked.source_document_id.as_str(),
         plot.checked_plot_id.as_str(),
     ));
+    let front = plot.checked_front();
+    assert!(front.startup_parameters().is_empty());
+    assert!(front.resource_ports().is_empty() && front.value_contracts().is_empty());
+    let [input] = front.inputs() else {
+        panic!("reviewed unary input")
+    };
+    let [result] = front.outputs() else {
+        panic!("reviewed unary result")
+    };
+    assert_eq!(input.port_id.as_str(), "input");
+    assert_eq!(result.port_id.as_str(), "result");
+    assert!(input.abnormal_kind.is_none() && result.abnormal_kind.is_none());
+    use conduit_plot::rust_binding::semantic_core::PortTemporal;
+    for (name, port) in [("INPUT", input), ("RESULT", result)] {
+        let PortTemporal::Flow { closes } = port.temporal else {
+            panic!("reviewed finite Flow")
+        };
+        constants.push_str(&format!(
+            "pub const {name}_PROFILE: &str = {:?};\npub const {name}_CLOSES: bool = {closes};\n",
+            port.value_kind.as_str()
+        ));
+    }
+    let shorthand = front
+        .shorthand()
+        .map(|(input, result)| (input.as_str(), result.as_str()));
+    constants.push_str(&format!(
+        "pub const SHORTHAND: Option<(&str, &str)> = {shorthand:?};\n"
+    ));
     fs::write(out.join("contract.rs"), constants).unwrap();
 }

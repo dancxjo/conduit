@@ -196,7 +196,8 @@ pub fn prepare<'a>(
             },
             NodeSpec {
                 input_cords: [Some(CordId(0))],
-                maximum_step_fuel: 4,
+                // One finite conversion plus prepared send and consume.
+                maximum_step_fuel: 3,
             },
             NodeSpec {
                 input_cords: [Some(CordId(1))],
