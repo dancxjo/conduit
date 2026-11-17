@@ -347,6 +347,11 @@ pub(crate) fn call(state: &Path, command: Command) -> Result<Reply, String> {
     }
 }
 
+#[cfg(not(unix))]
+pub(crate) fn call(_: &Path, _: Command) -> Result<Reply, String> {
+    Err("startup member requires local Unix control".into())
+}
+
 #[cfg(unix)]
 pub(crate) fn owner_peer(state: &Path) -> Result<conduit_body::FederationPeer, String> {
     match super::body::call(
