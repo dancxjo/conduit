@@ -1,5 +1,6 @@
 //! Original checked-package preimages for generic families, never rewritten AST.
 use super::*;
+mod preparation_backing;
 use crate::{CheckedPackageBundle, PackageExportCatalog, PackageMemberSource};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

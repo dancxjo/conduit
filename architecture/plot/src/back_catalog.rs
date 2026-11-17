@@ -1,4 +1,5 @@
 use crate::prelude::*;
+mod preparation_backing;
 use crate::{CheckedCanonicalPlot, CheckedSyntaxDocument};
 use alloc::collections::BTreeMap;
 use conduit_core::{CheckedPlotId, Kind, KindId, PlotBack, SourceDocumentId};

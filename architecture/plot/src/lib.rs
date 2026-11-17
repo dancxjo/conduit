@@ -20,8 +20,10 @@ use conduit_core::{
 use sha2::{Digest, Sha256};
 
 mod back_catalog;
+mod preparation_backing;
 #[cfg(target_has_atomic = "ptr")]
 mod preparation_cache;
+mod profile_catalog_backing;
 #[cfg(target_has_atomic = "ptr")]
 pub use preparation_cache::{
     CatalogueRead, CatalogueTable, PreparationCacheLimitError, PreparationCacheLimits,

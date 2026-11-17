@@ -1,6 +1,7 @@
 //! Value-semantic checked catalogues share immutable preparation snapshots.
 //! Mutation copies a shared snapshot; no process-global catalogue is introduced.
 use super::*;
+mod preparation_backing;
 #[cfg(not(target_has_atomic = "ptr"))]
 use alloc::boxed::Box as Shared;
 #[cfg(target_has_atomic = "ptr")]

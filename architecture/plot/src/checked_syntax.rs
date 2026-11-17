@@ -1,4 +1,5 @@
 mod cord;
+mod preparation_backing;
 pub use cord::{CheckedCanonicalCord, CheckedCordStage};
 mod boundary_provenance;
 pub(crate) use boundary_provenance::boundary_provenance_digest;
