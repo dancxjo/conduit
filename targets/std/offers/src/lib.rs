@@ -272,8 +272,6 @@ fn functional_offer(
 pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
     vec![
         tick_capability_offer(),
-        body_wake_offer(),
-        startup_chime_offer(),
         time_every_offer(),
         audio_render_demand_offer(),
         music_synth_reference_offer(),

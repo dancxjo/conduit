@@ -309,6 +309,10 @@ pub(crate) fn test_checked_host_profile(source: &str) -> crate::HostProfile {
 fn test_catalog_metadata() -> PackageCatalogContribution {
     let mut implementations = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
+        .chain([
+            conduit_std_offers::body_wake_offer(),
+            conduit_std_offers::startup_chime_offer(),
+        ])
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
             let mut prerequisites = offer
