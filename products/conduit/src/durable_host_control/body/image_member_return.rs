@@ -92,3 +92,27 @@ mod tests {
         }
     }
 }
+
+// Explicit transaction fixture only: no installed workspace constructor exists.
+#[cfg(test)]
+fn fixture_decode_borrowed(
+    command: crate::durable_host_control::image_return_ingress::BorrowedCommand<'_>,
+) -> Result<Command, serde_json::Error> {
+    use crate::durable_host_control::image_return_ingress::BorrowedCommand;
+    match command {
+        BorrowedCommand::Begin {
+            presentation,
+            images,
+            ..
+        } => Ok(Command::Begin {
+            presentation: Box::new(serde_json::from_str(presentation.get())?),
+            images: serde_json::from_str(images.get())?,
+        }),
+        BorrowedCommand::Complete { proof } => Ok(Command::Complete {
+            proof: Box::new(serde_json::from_str(proof.get())?),
+        }),
+    }
+}
+#[cfg(test)]
+#[path = "image_member_return/ingress_tests.rs"]
+mod ingress_tests;
