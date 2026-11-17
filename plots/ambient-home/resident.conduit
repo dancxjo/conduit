@@ -1,7 +1,9 @@
 # Standing operation in one Play. Storage is bounded independently of elapsed
 # observations. Explicit cancellation or provider/identity failure ends it.
+# Keep the clock current; photo selection and weather acquisition retain their
+# independent five-minute cadence inside the admitted observation provider.
 plot ambient-resident {
-    cadence: time/every(60000ms)
+    cadence: time/every(1000ms)
     observe: ambient/resident-observation("America/Los_Angeles")
     wallpaper: resident-wallpaper-display
     clock_weather: resident-clock-weather-display

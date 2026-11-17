@@ -86,7 +86,7 @@ fn planned_source(
     let source = if resident {
         include_str!("../../../../../plots/ambient-home/resident.conduit")
             .replace("ambient-resident", "ambient-home")
-            .replace("60000ms", "1ms")
+            .replace("1000ms", "1ms")
     } else {
         source
     };

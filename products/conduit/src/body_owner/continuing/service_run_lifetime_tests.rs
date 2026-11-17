@@ -194,7 +194,7 @@ fn actual_resident_service_uses_face_runner_until_lull_but_explicit_start_stays_
     };
     write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let text = include_str!("../../../../../plots/ambient-home/resident.conduit")
-        .replace("60000ms", "5ms");
+        .replace("1000ms", "5ms");
     let source = crate::plot_source::parse(&text).unwrap();
     let plot = source
         .expand_named_for_authoring("ambient-resident")
