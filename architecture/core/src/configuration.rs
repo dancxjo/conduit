@@ -3,6 +3,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 mod decoding;
+mod human_integer;
 
 use crate::{KindId, PortId};
 
@@ -158,11 +159,8 @@ pub enum KindConfigurationRule {
 const MAXIMUM_EXACT_JAVASCRIPT_INTEGER: u64 = 9_007_199_254_740_991;
 
 mod human_u64 {
-    use alloc::{
-        format,
-        string::{String, ToString},
-    };
-    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+    use alloc::string::ToString;
+    use serde::{Deserialize, Deserializer, Serializer};
 
     use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
 
@@ -184,30 +182,13 @@ mod human_u64 {
         if !deserializer.is_human_readable() {
             return u64::deserialize(deserializer);
         }
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum HumanInteger {
-            Number(u64),
-            Decimal(String),
-        }
-        match HumanInteger::deserialize(deserializer)? {
-            HumanInteger::Number(value) if value <= MAXIMUM_EXACT_JAVASCRIPT_INTEGER => Ok(value),
-            HumanInteger::Number(value) => Err(D::Error::custom(format!(
-                "JSON integer {value} exceeds JavaScript's exact integer range; encode it as a decimal string"
-            ))),
-            HumanInteger::Decimal(value) => value
-                .parse()
-                .map_err(|_| D::Error::custom("invalid exact u64 decimal string")),
-        }
+        super::human_integer::deserialize_unsigned(deserializer)
     }
 }
 
 mod human_i64 {
-    use alloc::{
-        format,
-        string::{String, ToString},
-    };
-    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+    use alloc::string::ToString;
+    use serde::{Deserialize, Deserializer, Serializer};
 
     use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
 
@@ -235,26 +216,7 @@ mod human_i64 {
         if !deserializer.is_human_readable() {
             return i64::deserialize(deserializer);
         }
-        #[derive(Deserialize)]
-        #[serde(untagged)]
-        enum HumanInteger {
-            Number(i64),
-            Decimal(String),
-        }
-        match HumanInteger::deserialize(deserializer)? {
-            HumanInteger::Number(value)
-                if (MINIMUM_EXACT_JAVASCRIPT_INTEGER..=MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER)
-                    .contains(&value) =>
-            {
-                Ok(value)
-            }
-            HumanInteger::Number(value) => Err(D::Error::custom(format!(
-                "JSON integer {value} exceeds JavaScript's exact integer range; encode it as a decimal string"
-            ))),
-            HumanInteger::Decimal(value) => value
-                .parse()
-                .map_err(|_| D::Error::custom("invalid exact i64 decimal string")),
-        }
+        super::human_integer::deserialize_signed(deserializer)
     }
 }
 
