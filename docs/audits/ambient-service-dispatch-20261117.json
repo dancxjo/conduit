@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-11-17T05:09:23.667763+00:00",
+  "source": "ded479f418bb4139b8ebbb79d7eeff0f839dd69c",
+  "result": "1 passed; 0 failed; 608 filtered out; 4.56s",
+  "test": "actual_resident_service_uses_face_runner_until_lull_but_explicit_start_stays_finite",
+  "scope": [
+    "actual owner/service dispatch",
+    "same Play holds both runtime Face subjects",
+    "explicit Lull retires Play",
+    "explicit finite start still expires"
+  ],
+  "limits": [
+    "fixture image, authority grant, generated photographs and loopback HTTP weather",
+    "sample period shortened from60000ms to5ms; both facets observed for100ms",
+    "no physical SDL scanout, speaker, original installed Root admission or device power-cycle proof",
+    "exact Ambient implementation whitelist; not generic Wake composition"
+  ],
+  "sha256": {
+    "products/conduit/src/body_owner/continuing/service_run_lifetime.rs": "e9f35f4332389df9a2166916e654d42319ee906c987dc456f33f4d35dfe01162",
+    "products/conduit/src/body_owner/continuing/service_run_lifetime_tests.rs": "bf10c68f934b28484ff71a371f7dc947a1bf967f58da7470cbc12e0ff5ea482b",
+    "target/ambient-deployment-proof/standing-service-slot-proof.log": "335d2f583312647901de3f56c98726e489743de0e508a616d60d52d6b38eaf73"
+  }
+}
