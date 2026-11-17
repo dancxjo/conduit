@@ -1684,6 +1684,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-ambient-display"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-assigned-plan"
 version = "0.1.0"
 dependencies = [
@@ -2710,6 +2719,7 @@ dependencies = [
  "conduit-ai",
  "conduit-alife",
  "conduit-alife-distributed-conformance",
+ "conduit-ambient-display",
  "conduit-audio",
  "conduit-bluetooth",
  "conduit-body",

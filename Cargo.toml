@@ -65,6 +65,7 @@ members = [
 	"products/conduit",
 	"plots/birth",
 	"plots/commons",
+	"plots/ambient-display/model",
 	"plots/todo/model",
 	"semantics/home",
 	"semantics/plot-library",
