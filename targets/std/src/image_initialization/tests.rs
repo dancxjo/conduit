@@ -309,3 +309,20 @@ fn selected_initial_creche_refuses_mismatched_resource_or_image_before_publicati
         );
     }
 }
+
+#[test]
+fn selected_timer_initializes_both_exact_authored_operations() {
+    let source = SOURCE.replace("  limits =", "  capability = {kind: \"time/every\", pinned_implementation: \"std/kernel-time-every@1\"}\n  limits =");
+    let image = image(&source);
+    let host = host(&image, "boot/both-timers").unwrap();
+    assert_eq!(host.advertisement.capabilities.len(), 2);
+    assert_eq!(host.advertisement.resources.len(), 1);
+    for implementation in ["std/kernel-time-tick@2", "std/kernel-time-every@1"] {
+        assert!(host.advertisement.capabilities.iter().any(|offer| offer
+            .implementation
+            .implementation_id
+            .as_str()
+            == implementation));
+    }
+    assert_eq!(host.advertisement.resources[0].capacity_units, 8);
+}

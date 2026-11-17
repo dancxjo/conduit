@@ -617,7 +617,7 @@ impl StdHost {
             facilities.insert("compositor/native@1".into());
         }
         #[allow(unused_mut)]
-        let mut expected_capabilities = 1
+        let mut expected_capabilities = entry.capabilities.len()
             + usize::from(initial.recognition.is_some())
             + initial
                 .cpu
