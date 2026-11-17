@@ -1,9 +1,11 @@
 //! Serialized CapabilityOffer schema; validation and construction retain their existing owners.
 use crate::*;
 use alloc::vec::Vec;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+mod decode;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CapabilityOffer {
     #[serde(default)]
     pub startup_parameters: Vec<FrontStartupParameter>,
