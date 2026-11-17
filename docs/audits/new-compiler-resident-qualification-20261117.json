@@ -1,0 +1,13 @@
+{
+  "schema": "conduit.qualification/ambient-compiler-syntax@1",
+  "observed_at": "2026-11-17T03:47:14.025467+00:00",
+  "source": "6ad3d8c5a5f5e59ca2858cfb6fafa18de17b38bf",
+  "executable_sha256": "e541c6a670825933d485cc95f528a98c6ce26787d8cc139c7715a8f0cac9dbe3",
+  "executable_bytes": 62472040,
+  "prior_declared_maximum_executable_bytes": 66735232,
+  "fits_prior_executable_bound": true,
+  "command": "sealed candidate check plots/ambient-home/resident.conduit --json",
+  "exit_code": 0,
+  "diagnostics": [],
+  "scope": "Ordinary effect-free Source check only; not bounded child-process preparation, admission, Started, Source adoption or hardware proof"
+}
