@@ -484,3 +484,7 @@ mod pointer_gesture;
 #[cfg(test)]
 #[path = "native_face_scene/paging_tests.rs"]
 mod paging_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/ambient_component_tests.rs"]
+mod ambient_component_tests;
