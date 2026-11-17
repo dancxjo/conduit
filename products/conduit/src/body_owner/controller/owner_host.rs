@@ -199,4 +199,5 @@ impl DerefMut for OwnerHost {
 }
 
 #[cfg(test)]
+#[path = "owner_host/tests.rs"]
 mod tests;
