@@ -78,20 +78,7 @@ pub fn prepare_layout_component_document(
     root: &str,
     profile: NativeMaskStorageProfile,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    configured::prepare_renderer_document(
-        host,
-        source,
-        root,
-        profile,
-        configured::RendererContract {
-            component: layout_component_mask_kind(profile.bytes()),
-            renderer: layout_resource_renderer_kind(profile),
-            kind_name: NATIVE_LAYOUT_COMPONENT_RENDERER_KIND,
-            back_source: BACK_SOURCE,
-            back_root: "native-layout-component-back",
-            capability: NATIVE_LAYOUT_COMPONENT_CAPABILITY,
-        },
-    )
+    prepare_layout_component_source(host, source, profile)?.prepare_root(host, root)
 }
 
 /// Deployment entrance for a native consumer implementing checked layouts.
@@ -144,3 +131,26 @@ pub(super) fn prepare_offered_component_document(
 
 #[cfg(test)]
 mod tests;
+
+/// Check one auxiliary Source once for several explicit roots. The owner must
+/// fund checking, correspondence verification and each retained result; this
+/// value supplies neither execution authority nor original-counter custody.
+pub fn prepare_layout_component_source(
+    host: &HostAdvertisement,
+    source: &str,
+    profile: NativeMaskStorageProfile,
+) -> Result<configured::CheckedNativeComponentSource, MaskOfferError> {
+    profile.admit_host(host, NATIVE_LAYOUT_COMPONENT_CAPABILITY)?;
+    configured::CheckedNativeComponentSource::prepare(source, profile, layout_contract(profile))
+}
+
+fn layout_contract(profile: NativeMaskStorageProfile) -> configured::RendererContract {
+    configured::RendererContract {
+        component: layout_component_mask_kind(profile.bytes()),
+        renderer: layout_resource_renderer_kind(profile),
+        kind_name: NATIVE_LAYOUT_COMPONENT_RENDERER_KIND,
+        back_source: BACK_SOURCE,
+        back_root: "native-layout-component-back",
+        capability: NATIVE_LAYOUT_COMPONENT_CAPABILITY,
+    }
+}

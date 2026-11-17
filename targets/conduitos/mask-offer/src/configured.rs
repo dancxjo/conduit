@@ -5,6 +5,10 @@ use conduit_core::*;
 use conduit_face::*;
 use conduit_plot::{CanonicalBackCatalog, expand_canonical_plot_for_authoring_with_backs};
 
+#[path = "configured/checked_source.rs"]
+mod checked_source;
+pub use checked_source::CheckedNativeComponentSource;
+
 pub const NATIVE_COMPONENT_RENDERER_KIND: &str = "face/native-component-resource-mask";
 const BACK_SOURCE: &str = "plot native-component-back (\n label: Text\n recipe: ComponentRecipeInfo\n look: LookInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(label = label, recipe = recipe, look = look)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
 
@@ -185,149 +189,7 @@ pub(super) fn prepare_renderer_document(
     contract: RendererContract,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
     profile.admit_host(host, contract.capability)?;
-    let mut catalog = ProfileCatalog::new();
-    for projection in [
-        face_interaction_kind_projection(),
-        face_tee_kind_projection(),
-    ] {
-        catalog
-            .insert(projection)
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
-    }
-    for kind in [
-        show_resource_source_kind(),
-        contract.renderer,
-        contract.component.clone(),
-    ] {
-        catalog
-            .insert_kind(kind)
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
-    }
-    let mut startup = catalog
-        .startup_catalog()
-        .map_err(|_| MaskOfferError::InvalidPlan)?;
-    install_mask_plot_value_aliases(&mut startup).map_err(|_| MaskOfferError::InvalidPlan)?;
-    for (alias, schema) in [
-        ("ComponentRecipeInfo", component_recipe_type()),
-        ("LookInfo", look_type()),
-    ] {
-        let profile = schema.profile().map_err(|_| MaskOfferError::InvalidPlan)?;
-        startup
-            .insert_structured_type(alias, schema.clone())
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
-        startup
-            .ensure_structured_type(profile.value_kind().as_str(), schema)
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
-    }
-    if contract
-        .component
-        .configuration
-        .iter()
-        .any(|field| field.key == "layout")
-    {
-        let schema = component_layout_type();
-        let value_kind = schema
-            .profile()
-            .map_err(|_| MaskOfferError::InvalidPlan)?
-            .value_kind()
-            .clone();
-        startup
-            .insert_structured_type("ComponentLayoutInfo", schema.clone())
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
-        startup
-            .ensure_structured_type(value_kind.as_str(), schema)
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
-    }
-    let back = check_syntax_document(&parse_syntax_document(contract.back_source), &startup)
-        .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let mut backs = CanonicalBackCatalog::new();
-    backs
-        .insert(&contract.component, &back, contract.back_root)
-        .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let document = check_syntax_document(&parse_syntax_document(source), &startup)
-        .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let authoring =
-        expand_canonical_plot_for_authoring_with_backs(&document, root, &catalog, &backs)
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let mask = MaskPlot::admit(&authoring).map_err(|_| MaskOfferError::InvalidPlan)?;
-    let placements = default_expanded_placements(&authoring.expanded, core::slice::from_ref(host))
-        .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let boundaries: BTreeMap<_, _> = [
-        (PortDirection::Input, "face"),
-        (PortDirection::Output, "show"),
-        (PortDirection::Output, "interaction"),
-    ]
-    .into_iter()
-    .map(|(direction, name)| {
-        (
-            ForeBoundaryKey {
-                direction,
-                front_port_id: port_id(name),
-                track: ConnectionTrack::Payload,
-            },
-            ConnectionQueueLimits {
-                item_capacity: 1,
-                byte_capacity: if name == "interaction" {
-                    MAX_FACE_INTERACTION_BYTES as u32
-                } else {
-                    profile.bytes()
-                },
-            },
-        )
-    })
-    .collect();
-    let empty = BTreeMap::new();
-    let lines = BTreeMap::new();
-    let grants = vec![authority_grant(
-        "conduitos/component-mask/present",
-        &present_authority_requirement(kind_id("face/base/conduitos-surface@1")),
-        host.host_id.clone(),
-        host.boot_id.clone(),
-        CapabilityId::from(contract.capability),
-    )];
-    let bases = [BaseImplementationId::from("conduit.base/local@1")];
-    let options = || PlanningOptions {
-        connection_bases: &empty,
-        line_candidates: &lines,
-        connection_item_capacity: 1,
-        connection_byte_capacity: profile.bytes(),
-        authority_grants: &grants,
-        protected_resource_grants: &[],
-        line_offers: &[],
-    };
-    let plan = plan_expanded_authoring_with_options(
-        &authoring,
-        core::slice::from_ref(host),
-        &placements,
-        &bases,
-        options(),
-        &boundaries,
-    )
-    .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let planned = PlannedMaskPlot::admit(&mask, &plan).map_err(|_| MaskOfferError::InvalidPlan)?;
-    let prepared = prepare_configured_mask(
-        &document,
-        &authoring,
-        &catalog,
-        &backs,
-        &planned,
-        ConfiguredMaskPlanningInputs {
-            hosts: core::slice::from_ref(host),
-            placements: &placements,
-            bases: &bases,
-            options: options(),
-            boundary_limits: &boundaries,
-        },
-        &kind_id(contract.kind_name),
-    )
-    .map_err(|_| MaskOfferError::InvalidPlan)?;
-    let configuration = prepared.configuration();
-    Ok((
-        MaskStage {
-            planned_mask: planned,
-        },
-        configuration,
-    ))
+    CheckedNativeComponentSource::prepare(source, profile, contract)?.prepare_root(host, root)
 }
 
 #[cfg(test)]

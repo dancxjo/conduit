@@ -271,3 +271,12 @@ fn malformed_advertised_layout_refuses_actual_wrappers_instead_of_downgrading() 
         );
     }
 }
+
+#[test]
+fn checked_ambient_source_retained_owner_has_supported_backing() {
+    let profile = NativeMaskStorageProfile::Standard;
+    let host = host(profile);
+    let source = conduit_face::AMBIENT_CLOCK_MASK_SOURCE;
+    let checked = prepare_layout_component_source(&host, source, profile).unwrap();
+    assert!(checked.owned_preparation_backing_bytes().is_some());
+}
