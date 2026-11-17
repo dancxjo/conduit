@@ -84,3 +84,30 @@ Plot; identical unit names and retention of low pressure bits are insufficient.
 The protocol test pins the driver's intermediate to prevent a rounded legacy
 comparison from hiding this distinction. This records a source audit and an
 executed driver regression, not a newly executed differential Source test.
+
+### Authored fixed-point observation candidate
+
+`bme280_observation::compensate` is a separate, pure calculation over decoded
+factory coefficients and raw samples. It preserves the authored stages' signed
+arithmetic shifts, checked I128 coordinates, humidity clamp and refusal ordering.
+Malformed calibration/sample coordinates outrank disabled raw samples, which
+outrank invalid calibration. Checked arithmetic failure remains a distinct error;
+it is not relabeled as an unavailable sensor reading. It adds neither the
+legacy driver's factory-block rejection nor its physical-range policy.
+
+This operation owns no bus, timer or allocation and is not a registered native
+Back. The legacy `Sensor` APIs remain unchanged. Acquisition transcript/deadline
+correspondence, exact typed operation binding, finite resource admission,
+Started execution, target firmware fit and physical proof remain separate gates.
+The Source differential test loads the original authored stages rather than
+comparing against another handwritten compensation formula. Core and Plot are
+test-only dependencies; the normal library remains `no_std` with the existing
+embedded-hal dependencies only.
+
+The differential test covers 185 deterministic cases, including the original
+vector, all coefficient bounds, malformed/disabled/invalid precedence, signed
+coefficient trajectories and a valid-input arithmetic overflow. It checks native
+allocation separately from the allocating host evaluator. This is bounded
+conformance coverage, not an exhaustive proof over all inputs. The library also
+passes the Cortex-M0+ `thumbv6m-none-eabi` compile check; that does not establish
+whole-firmware memory admission or physical execution.

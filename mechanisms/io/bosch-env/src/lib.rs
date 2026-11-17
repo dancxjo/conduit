@@ -5,6 +5,7 @@
 #![no_std]
 #[cfg(test)]
 extern crate std;
+pub mod bme280_observation;
 mod calibration;
 use calibration::Calibration;
 use embedded_hal_async::{delay::DelayNs, i2c::I2c};
