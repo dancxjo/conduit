@@ -125,3 +125,28 @@ fn native_model_backing_is_optional_and_std_ci_exercises_api23_without_downloads
     assert!(native.contains("api-23") && native.contains("disable-linking"));
     assert!(!native.contains("download-binaries") && !native.contains("api-24"));
 }
+
+#[test]
+fn mcu_execution_defaults_exclude_offer_decoding_but_foundation_tests_the_receiver() {
+    let default = features(&["-p", "conduit-mcu-host-runtime"]);
+    assert!(!default["conduit-mcu-host-runtime"].contains("return-receiver"));
+    assert!(!default["conduit-wire"].contains("offer-images"));
+    assert!(!default["conduit-wire"].contains("deflate"));
+    let step = WorkspaceShard::TestFoundation.package_test_step().unwrap();
+    let feature_argument = step
+        .args
+        .windows(2)
+        .find(|pair| pair[0] == "--features")
+        .unwrap()[1];
+    assert!(feature_argument
+        .split(',')
+        .any(|f| f == "conduit-mcu-host-runtime/return-receiver"));
+    let selected = features(&[
+        "-p",
+        "conduit-mcu-host-runtime",
+        "--features",
+        "return-receiver",
+    ]);
+    assert!(selected["conduit-wire"].contains("offer-images"));
+    assert!(selected["conduit-wire"].contains("deflate"));
+}

@@ -6,6 +6,8 @@ pub mod member_return;
 #[cfg(test)]
 mod member_return_tests;
 pub mod membership;
+#[cfg(feature = "return-receiver")]
+pub mod return_receiver;
 pub mod transport;
 #[cfg(test)]
 #[macro_use]
