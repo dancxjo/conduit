@@ -19,7 +19,7 @@ pub(super) struct Selection {
     release_bundle_sha256: String,
     body_id: conduit_body::BodyId,
     role: Role,
-    cache: PathBuf,
+    manifest: PathBuf,
     manifest_sha256: [u8; 32],
 }
 impl Selection {
@@ -43,8 +43,8 @@ impl Selection {
             || self.configuration_id != selected.configuration_id()
             || self.release_bundle_sha256 != installation.release_bundle_sha256
             || body != Some(self.body_id.as_str())
-            || !self.cache.is_absolute()
-            || self.cache.as_os_str().len() > 4096
+            || !self.manifest.is_absolute()
+            || self.manifest.as_os_str().len() > 4096
             || self.manifest_sha256 == [0; 32]
             || selected.host_image().is_none()
         {
@@ -100,7 +100,7 @@ impl Selection {
                 boot_id: config.boot_id.clone(),
                 capability_id: implementation.into(),
             },
-            cache: self.cache.clone(),
+            manifest: self.manifest.clone(),
             manifest_sha256: self.manifest_sha256,
         })
     }
@@ -111,7 +111,7 @@ impl Selection {
         if self.role != Role::Mask {
             return Err("ambient policy did not select Mask assets".into());
         }
-        let cache = self.cache.clone();
+        let cache = self.manifest.clone();
         let digest = self.manifest_sha256;
         // SAFETY: this exact local stopped-service policy independently selects
         // this Body and immutable cache. It never derives access from received Face.
@@ -150,7 +150,7 @@ pub(super) fn configure(state: &Path, policy: &Path) -> Result<(), String> {
     // Validate immutable bytes before retaining the operator selection. Actual
     // construction repeats this read under its original IMAGE reservation.
     let _deck = conduit_std_host::ambient_wallpaper::cache::load_deck(
-        &selected.cache,
+        &selected.manifest,
         selected.manifest_sha256,
     )?;
     write_json_atomic(&state.join(FILE), &selected)?;

@@ -40,7 +40,7 @@ pub struct SourceCheckImageInstallation<'a> {
 /// The checked IMAGE supplies exact provider bounds; cached bytes grant nothing.
 pub struct AmbientImageInstallation {
     pub grant: AuthorityGrant,
-    pub cache: std::path::PathBuf,
+    pub manifest: std::path::PathBuf,
     pub manifest_sha256: [u8; 32],
 }
 
@@ -283,7 +283,7 @@ pub unsafe fn initialize_image_with_ambient(
                     };
                     Ok((definition, provider_budget, worker, move || {
                         let deck = conduit_std_host::ambient_wallpaper::cache::load_deck(
-                            &ambient.cache,
+                            &ambient.manifest,
                             ambient.manifest_sha256,
                         )?;
                         let provider = match init.lifetime {
