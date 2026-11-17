@@ -477,3 +477,7 @@ mod corner_tests;
 
 #[path = "native_face_scene/pointer_gesture.rs"]
 mod pointer_gesture;
+
+#[cfg(test)]
+#[path = "native_face_scene/ambient_component_tests.rs"]
+mod ambient_component_tests;
