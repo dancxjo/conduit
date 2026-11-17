@@ -212,7 +212,7 @@ fn active_runtime(
     ));
     std::fs::create_dir_all(&root).unwrap();
     std::fs::write(root.join("installation.json"),serde_json::to_vec(&serde_json::json!({"schema":"conduit.install/durable-host@1","host_id":"host/active-carrier","release_source_identity":"source/test","release_bundle_sha256":format!("sha256:{}","1".repeat(64)),"product_executable":"fixture-unused","body_state":null,"joined_body_state":null})).unwrap()).unwrap();
-    let text = "plot active-carrier { clock: time/tick(count = 1, period-ms = 5000) }";
+    let text = "plot active-carrier {\n clock: time/tick(count = 1, period-ms = 5000)\n}\n";
     let source = crate::plot_source::parse(text)
         .unwrap()
         .expand_entry_for_authoring()
