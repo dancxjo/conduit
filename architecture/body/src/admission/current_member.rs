@@ -81,3 +81,6 @@ impl AdmissionManager {
         })
     }
 }
+
+#[path = "member_return_images.rs"]
+mod member_return_images;
