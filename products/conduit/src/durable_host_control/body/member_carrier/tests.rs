@@ -228,9 +228,9 @@ fn active_runtime(
     let peer = issuer.then(|| owner.prepare_current_member_carrier_receiver().unwrap());
     owner.persist(&root).unwrap();
     std::fs::write(root.join("body/source.conduit"), text).unwrap();
-    let worker = owner.start_service_run(&root, 2000).unwrap();
     let mut runtime =
         DurableHostRuntime::new("test/target".into(), "sha256:test".into(), StdHost::new());
+    let worker = owner.start_service_run(&root, 2000).unwrap();
     runtime.host = HostSource::Body {
         owner: Box::new(owner),
         root: root.clone(),
@@ -264,6 +264,13 @@ fn finish_active(mut runtime: DurableHostRuntime, root: std::path::PathBuf) {
 }
 #[test]
 fn actual_running_image_receiver_reuses_issuer_and_carrier_calls_reach_original_authentication() {
+    let carrier_requests = requests(9);
+    let admission=serde_json::from_value(serde_json::json!({
+        "schema":conduit_body::SPAWN_ADMISSION_REQUEST_SCHEMA,
+        "invitation_id":"fixture/invitation", "body_id":"fixture/body",
+        "host_advertisement":StdHost::new().advertisement(),"nonce":vec![0;32],"signature":vec![0;64],
+        "membership_admitted":false,"plan_created":false,"play_created":false,
+    })).unwrap();
     let (mut runtime, root, peer) = active_runtime(true, true);
     let before = runtime.owned_body_truth().unwrap()["biography"]["membership"].clone();
     let Response::BodyMemberCarrierReceiver { receiver, .. } = handle(
@@ -277,7 +284,7 @@ fn actual_running_image_receiver_reuses_issuer_and_carrier_calls_reach_original_
         panic!("existing receiver must be readable during actual Play");
     };
     assert_eq!(*receiver, peer.unwrap());
-    for mut request in requests(9).into_iter().filter(|r| {
+    for mut request in carrier_requests.into_iter().filter(|r| {
         matches!(
             r,
             Request::BodyMemberCarrierBegin { .. } | Request::BodyMemberCarrierComplete { .. }
@@ -287,7 +294,11 @@ fn actual_running_image_receiver_reuses_issuer_and_carrier_calls_reach_original_
             expires_at_millis, ..
         } = &mut request
         {
-            *expires_at_millis = crate::durable_host::current_time_millis().unwrap() + 1000;
+            *expires_at_millis = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64
+                + 1000;
         }
         let Response::Refused { code, .. } = handle(request, &[9; 32], &mut runtime) else {
             panic!("invalid member must remain unauthenticated");
@@ -302,12 +313,6 @@ fn actual_running_image_receiver_reuses_issuer_and_carrier_calls_reach_original_
             "{code}"
         );
     }
-    let admission=serde_json::from_value(serde_json::json!({
-        "schema":conduit_body::SPAWN_ADMISSION_REQUEST_SCHEMA,
-        "invitation_id":"fixture/invitation", "body_id":"fixture/body",
-        "host_advertisement":StdHost::new().advertisement(),"nonce":vec![0;32],"signature":vec![0;64],
-        "membership_admitted":false,"plan_created":false,"play_created":false,
-    })).unwrap();
     for request in [
         Request::BodyWake {
             protocol: PROTOCOL,
@@ -343,11 +348,12 @@ fn actual_running_image_receiver_reuses_issuer_and_carrier_calls_reach_original_
 }
 #[test]
 fn actual_running_reference_owner_never_initializes_issuer_or_enters_unfunded_carrier_lane() {
+    let carrier_requests = requests(9);
     let (mut runtime, root, _) = active_runtime(false, false);
     assert!(
         matches!(handle(Request::BodyMemberCarrierReceiver{protocol:PROTOCOL,token:vec![9;32]},&[9;32],&mut runtime),Response::Refused{code,..} if code=="member carrier owner key absent")
     );
-    for request in requests(9).into_iter().filter(|r| {
+    for request in carrier_requests.into_iter().filter(|r| {
         matches!(
             r,
             Request::BodyMemberCarrierBegin { .. } | Request::BodyMemberCarrierComplete { .. }
