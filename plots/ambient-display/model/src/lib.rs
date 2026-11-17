@@ -42,3 +42,7 @@ pub use projection_memory::{
     ambient_fragment_backing_bytes, ambient_home_fragment_backing_bound,
     ambient_home_workspace_bytes,
 };
+
+#[cfg(test)]
+#[path = "tests/fixtures.rs"]
+mod test_fixtures;

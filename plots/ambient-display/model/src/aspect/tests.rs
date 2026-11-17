@@ -1,8 +1,5 @@
 use super::*;
-#[allow(dead_code)]
-#[path = "../tests/fixtures.rs"]
-mod fixtures;
-use fixtures::*;
+use crate::test_fixtures::*;
 
 #[test]
 fn independent_aspects_project_only_their_subjects_from_one_checked_observation() {

@@ -1,10 +1,8 @@
 use crate::{AmbientFaceRefusal, PreparedAmbientFaces};
-use alloc::{string::String, vec::Vec};
-use conduit_core::StructuredInfoValue;
-use conduit_face::{FaceContributionBasis, FaceFragment, FacePropertyValue};
+use alloc::vec::Vec;
+use conduit_face::FacePropertyValue;
 
-mod fixtures;
-use fixtures::*;
+use crate::test_fixtures::*;
 
 #[test]
 fn home_plot_has_one_bounded_contributor_and_no_embedded_realization() {

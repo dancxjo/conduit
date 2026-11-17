@@ -1,10 +1,13 @@
-use super::*;
+use crate::PreparedAmbientFaces;
+use alloc::string::String;
 use alloc::vec::Vec;
+use conduit_core::StructuredInfoValue;
 use conduit_core::{
     kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
     ResourceSemanticIdentity, ResourceVersionIdentity, StructuredFieldValue, StructuredInfoType,
     StructuredInfoTypeShape,
 };
+use conduit_face::{FaceContributionBasis, FaceFragment};
 use conduit_plot::rust_binding::{primitive_into_structured, NativePrimitive};
 
 pub(super) fn primitive<T: NativePrimitive>(
