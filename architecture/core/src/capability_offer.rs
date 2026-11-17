@@ -6,6 +6,9 @@ use crate::{
 };
 use alloc::vec::Vec;
 
+#[path = "capability_offer/backing.rs"]
+mod backing;
+
 mod validation;
 pub(crate) use validation::validate_terminal_transduction_ports;
 

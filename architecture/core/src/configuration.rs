@@ -8,6 +8,8 @@ mod human_integer;
 use crate::{KindId, PortId};
 
 mod structured;
+#[path = "configuration/retained_backing.rs"]
+mod retained_backing;
 pub use structured::StructuredConfigurationValue;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

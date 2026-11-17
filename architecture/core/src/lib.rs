@@ -32,6 +32,7 @@ mod execution;
 mod execution_fusion;
 mod fixed_integer;
 mod front;
+mod metadata_backing;
 mod host_advertisement_comparison;
 pub use host_advertisement_comparison::{
     bounded_host_advertisement_comparison_supported, HostAdvertisementEqualitySeed,

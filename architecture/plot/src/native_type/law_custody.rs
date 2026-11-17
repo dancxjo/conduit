@@ -14,6 +14,7 @@ pub use family_material::{
     NativeFamilyAnchor, NativeFamilyMaterial, NativeFamilyMember, NativeLawContext,
 };
 mod verification;
+mod preparation_backing;
 use verification::verify;
 mod material_preflight;
 mod root_source;

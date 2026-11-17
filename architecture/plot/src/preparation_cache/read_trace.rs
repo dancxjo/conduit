@@ -173,6 +173,7 @@ impl ReadTrace {
 /// preparation installs this handle; published snapshots keep the disabled default.
 #[derive(Clone, Default)]
 pub(crate) struct TraceHandle(Option<alloc::sync::Arc<ReadTrace>>);
+mod preparation_backing;
 impl TraceHandle {
     pub fn new() -> Self {
         Self(Some(alloc::sync::Arc::new(ReadTrace::new())))

@@ -5,6 +5,9 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
+#[path = "front/backing.rs"]
+mod backing;
+
 /// Exact location of a finite variable-size value in one callable Fore.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum FrontValueLocation {

@@ -52,6 +52,19 @@ impl StructuredConfigurationValue {
     pub fn canonical_value(&self) -> &[u8] {
         &self.canonical_value
     }
+
+    /// Owned payload capacities, excluding inline Self and allocator overhead.
+    /// Immutable linked bytes remain independently owned and add no heap charge.
+    /// This observation confers neither memory admission nor Source authority.
+    pub fn owned_backing_bytes(&self) -> Option<usize> {
+        self.profile
+            .0
+            .capacity()
+            .checked_add(match &self.canonical_value {
+                Cow::Owned(bytes) => bytes.capacity(),
+                Cow::Borrowed(_) => 0,
+            })
+    }
 }
 
 // Compare the complete existing profile spelling without allocating a Kind ID.
@@ -72,3 +85,7 @@ fn profile_matches_digest(profile: &str, digest: [u8; 32]) -> bool {
             && encoded[index * 2 + 1] == HEX[usize::from(byte & 0x0f)]
     })
 }
+
+#[cfg(test)]
+#[path = "structured_backing_tests.rs"]
+mod backing_tests;

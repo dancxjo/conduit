@@ -7,6 +7,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
 
 mod checked_encoding;
+mod preparation_backing;
 mod checked_node;
 use checked_node::{node, same_span};
 mod constant;

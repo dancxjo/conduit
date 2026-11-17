@@ -20,6 +20,8 @@ use conduit_core::{
 use sha2::{Digest, Sha256};
 
 mod back_catalog;
+mod preparation_backing;
+mod profile_catalog_backing;
 #[cfg(target_has_atomic = "ptr")]
 mod preparation_cache;
 #[cfg(target_has_atomic = "ptr")]
