@@ -61,7 +61,7 @@ fn host() -> (StdHost, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let endpoint = listener.local_addr().unwrap();
     listener.set_nonblocking(true).unwrap();
-    let http = thread::spawn(move || {
+    let serve = move || {
         let deadline = Instant::now() + Duration::from_secs(10);
         let mut stream = loop {
             match listener.accept() {
@@ -100,7 +100,7 @@ fn host() -> (StdHost, JoinHandle<()>) {
             body.len()
         )
         .unwrap();
-    });
+    };
     let workspace = ambient_home_workspace_bytes().unwrap() * 2;
     let source = format!(
         r#"host service-ambient {{
@@ -170,6 +170,7 @@ fn host() -> (StdHost, JoinHandle<()>) {
         )
     }
     .unwrap();
+    let http = thread::spawn(serve);
     (host, http)
 }
 #[test]
