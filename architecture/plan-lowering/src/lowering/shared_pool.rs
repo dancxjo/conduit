@@ -1,9 +1,9 @@
 use super::{as_u16, LoweringError};
-use alloc::collections::{BTreeMap, BTreeSet};
+use alloc::collections::BTreeSet;
 use alloc::vec::Vec;
 use conduit_core::{
     AdmittedLine, ArtifactId, AuthorityGrantId, BootId, CapabilityId, HostId, ImplementationId,
-    OfferGeneration, PlacementId, PlanFragment, PoolMemberLimits, PoolRealizationHealth,
+    OfferGeneration, PlanFragment, PoolMemberLimits, PoolRealizationHealth,
     PoolRealizationObservation, ResourceBinding, ResourceHealth, SharedPoolId,
     SharedPoolSelectionPolicy, SignId,
 };
@@ -199,7 +199,7 @@ fn lower_health(ready: bool) -> LoweredObservationHealth {
 
 pub(super) fn lower_shared_pools(
     fragment: &PlanFragment,
-    placement_nodes: &BTreeMap<PlacementId, NodeId>,
+    placement_nodes: &super::PlacementNodes<'_>,
 ) -> Result<Vec<LoweredSharedPool>, LoweringError> {
     let mut pool_ids = BTreeSet::new();
     let mut shared_pools = Vec::with_capacity(fragment.shared_pools.len());
@@ -210,7 +210,7 @@ pub(super) fn lower_shared_pools(
         let local_consumers = pool
             .consumers
             .iter()
-            .filter_map(|consumer| placement_nodes.get(consumer).copied())
+            .filter_map(|consumer| placement_nodes.get(consumer))
             .collect::<Vec<_>>();
         for placement in &fragment.placements {
             let references_pool = placement.pool_references.contains(&pool.pool_id);

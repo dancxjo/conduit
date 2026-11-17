@@ -1,8 +1,5 @@
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use conduit_core::{
-    ArtifactId, ExecutionProfileId, FusionId, ImplementationId, PlacementId, PlanFragment,
-};
+use conduit_core::{ArtifactId, ExecutionProfileId, FusionId, ImplementationId, PlanFragment};
 use conduit_kernel::{CordId, NodeId};
 
 use super::{LoweredCord, LoweringError};
@@ -22,7 +19,7 @@ pub struct LoweredFusion {
 
 pub(super) fn lower_fusions(
     fragment: &PlanFragment,
-    placement_nodes: &BTreeMap<PlacementId, NodeId>,
+    placement_nodes: &super::PlacementNodes<'_>,
     cords: &[LoweredCord],
 ) -> Result<Vec<LoweredFusion>, LoweringError> {
     fragment
@@ -35,7 +32,6 @@ pub(super) fn lower_fusions(
                 .map(|placement| {
                     placement_nodes
                         .get(placement)
-                        .copied()
                         .ok_or(LoweringError::InvalidFragment)
                 })
                 .collect::<Result<Vec<_>, _>>()?;

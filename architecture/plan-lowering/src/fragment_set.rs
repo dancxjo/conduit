@@ -6,8 +6,15 @@ use crate::lowering::{
     KernelStorageProfile, LoweredPlanFragment, LoweringError,
 };
 use alloc::vec::Vec;
+mod backing;
+mod layout;
+pub use backing::lowered_local_fragment_set_backing_bytes;
 use conduit_core::{Plan, PlanFragment, PortDirection, StateLifetime};
 use conduit_kernel::{CordEndpoint, RemoteEndpointId, SignExpectationTarget};
+pub use layout::{
+    lower_local_fragment_set_from_plans_with_limit, lower_local_fragment_set_layout_from_plans,
+    FragmentSetLayout,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub struct FragmentSetBounds {
@@ -63,9 +70,12 @@ pub fn lower_local_fragment_set(
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
-    lower_local_fragment_set_with(fragments, profile, bounds, |_, fragment| {
-        lower_plan_fragment_for_profile(fragment, profile)
-    })
+    lower_local_fragment_set_with(
+        Fragments::Borrowed(fragments),
+        profile,
+        bounds,
+        |_, fragment| lower_plan_fragment_for_profile(fragment, profile),
+    )
 }
 
 /// Lower local fragments through their complete sealed Plans, preserving
@@ -75,27 +85,45 @@ pub fn lower_local_fragment_set_from_plans(
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
-    let fragments = plans
-        .iter()
-        .map(|plan| {
-            plan.fragments
-                .first()
-                .filter(|_| plan.fragments.len() == 1)
-                .ok_or(FragmentSetError::Fragment(LoweringError::InvalidFragment))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    lower_local_fragment_set_with(&fragments, profile, bounds, |index, fragment| {
-        lower_plan_fragment_for_profile_from_plan(plans[index], &fragment.fragment_id, profile)
-    })
+    if plans.iter().any(|plan| plan.fragments.len() != 1) {
+        return Err(FragmentSetError::Fragment(LoweringError::InvalidFragment));
+    }
+    lower_local_fragment_set_with(
+        Fragments::Plans(plans),
+        profile,
+        bounds,
+        |index, fragment| {
+            lower_plan_fragment_for_profile_from_plan(plans[index], &fragment.fragment_id, profile)
+        },
+    )
 }
 
+#[derive(Clone, Copy)]
+enum Fragments<'a> {
+    Borrowed(&'a [&'a PlanFragment]),
+    Plans(&'a [&'a Plan]),
+}
+impl<'a> Fragments<'a> {
+    fn len(self) -> usize {
+        match self {
+            Self::Borrowed(parts) => parts.len(),
+            Self::Plans(plans) => plans.len(),
+        }
+    }
+    fn get(self, index: usize) -> Option<&'a PlanFragment> {
+        match self {
+            Self::Borrowed(parts) => parts.get(index).copied(),
+            Self::Plans(plans) => plans.get(index).and_then(|p| p.fragments.first()),
+        }
+    }
+}
 fn lower_local_fragment_set_with(
-    fragments: &[&PlanFragment],
+    fragments: Fragments<'_>,
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
     mut lower: impl FnMut(usize, &PlanFragment) -> Result<LoweredPlanFragment, LoweringError>,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
-    let first = fragments.first().ok_or(FragmentSetError::Empty)?;
+    let first = fragments.get(0).ok_or(FragmentSetError::Empty)?;
     if fragments.len() > usize::from(bounds.fragments) {
         return Err(capacity(
             "fragments",
@@ -104,7 +132,8 @@ fn lower_local_fragment_set_with(
         ));
     }
     let mut result = LoweredFragmentSet {
-        partitions: Vec::with_capacity(fragments.len()),
+        partitions: crate::lowering::reserved(fragments.len())
+            .map_err(FragmentSetError::Fragment)?,
         state_slots: 0,
         nodes: 0,
         cords: 0,
@@ -116,15 +145,20 @@ fn lower_local_fragment_set_with(
     let mut route_targets = 0_u16;
     let mut sign_expectations = 0_u16;
     let mut fore_endpoints = 0_u16;
-    for (index, fragment) in fragments.iter().enumerate() {
+    for index in 0..fragments.len() {
+        let fragment = fragments
+            .get(index)
+            .ok_or(FragmentSetError::Fragment(LoweringError::InvalidFragment))?;
         if fragment.host_id != first.host_id
             || fragment.boot_id != first.boot_id
             || fragment.offer_generation != first.offer_generation
         {
             return Err(FragmentSetError::DifferentHostBootOrGeneration);
         }
-        if fragments[..index].iter().any(|prior| {
-            prior.plan_id == fragment.plan_id && prior.fragment_id == fragment.fragment_id
+        if (0..index).any(|i| {
+            fragments.get(i).is_some_and(|prior| {
+                prior.plan_id == fragment.plan_id && prior.fragment_id == fragment.fragment_id
+            })
         }) {
             return Err(FragmentSetError::DuplicateFragment);
         }

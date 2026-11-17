@@ -1,6 +1,6 @@
 //! Exact typed directional port numbering before Play.
 use super::{as_u16, LoweredPort, LoweringError};
-use alloc::{collections::BTreeSet, vec::Vec};
+use alloc::vec::Vec;
 use conduit_core::{
     FrontValueContract, FrontValueLocation, PlacementId, PortDescriptor, PortDirection,
     PortId as PlanPortId,
@@ -13,62 +13,53 @@ pub(super) fn lower_ports(
     expected_direction: PortDirection,
     value_contracts: &[FrontValueContract],
 ) -> Result<Vec<LoweredPort>, LoweringError> {
-    let mut ids = BTreeSet::new();
-    ports
-        .iter()
-        .enumerate()
-        .map(|(index, descriptor)| {
-            if descriptor.direction != expected_direction {
-                return Err(LoweringError::PortDirectionMismatch {
-                    placement_id: placement_id.clone(),
-                    port_id: descriptor.port_id.clone(),
-                });
-            }
-            if !ids.insert(descriptor.port_id.clone()) {
-                return Err(LoweringError::DuplicatePort {
-                    placement_id: placement_id.clone(),
-                    port_id: descriptor.port_id.clone(),
-                });
-            }
-            Ok(LoweredPort {
-                node,
-                port: PortId(as_u16(index)?),
+    let mut result = super::reserved(ports.len())?;
+    for (index, descriptor) in ports.iter().enumerate() {
+        if descriptor.direction != expected_direction {
+            return Err(LoweringError::PortDirectionMismatch {
+                placement_id: placement_id.clone(),
                 port_id: descriptor.port_id.clone(),
-                value_kind: descriptor.value_kind.clone(),
-                direction: descriptor.direction,
-                temporal: descriptor.temporal,
-                abnormal_kind: descriptor.abnormal_kind.clone(),
-                maximum_value_bytes: value_contracts
-                    .iter()
-                    .find(|bound| {
-                        bound.location
-                            == match expected_direction {
-                                PortDirection::Input => {
-                                    FrontValueLocation::Input(descriptor.port_id.clone())
-                                }
-                                PortDirection::Output => {
-                                    FrontValueLocation::Output(descriptor.port_id.clone())
-                                }
-                            }
-                    })
-                    .map(|contract| u64::from(contract.contract.maximum_bytes)),
-                maximum_abnormal_value_bytes: value_contracts
-                    .iter()
-                    .find(|bound| {
-                        bound.location
-                            == match expected_direction {
-                                PortDirection::Input => {
-                                    FrontValueLocation::InputAbnormal(descriptor.port_id.clone())
-                                }
-                                PortDirection::Output => {
-                                    FrontValueLocation::OutputAbnormal(descriptor.port_id.clone())
-                                }
-                            }
-                    })
-                    .map(|contract| u64::from(contract.contract.maximum_bytes)),
-            })
-        })
-        .collect()
+            });
+        }
+        if ports[..index]
+            .iter()
+            .any(|prior| prior.port_id == descriptor.port_id)
+        {
+            return Err(LoweringError::DuplicatePort {
+                placement_id: placement_id.clone(),
+                port_id: descriptor.port_id.clone(),
+            });
+        }
+        let bound = |abnormal| {
+            value_contracts
+                .iter()
+                .rev()
+                .find(
+                    |bound| match (&bound.location, expected_direction, abnormal) {
+                        (FrontValueLocation::Input(id), PortDirection::Input, false)
+                        | (FrontValueLocation::Output(id), PortDirection::Output, false)
+                        | (FrontValueLocation::InputAbnormal(id), PortDirection::Input, true)
+                        | (FrontValueLocation::OutputAbnormal(id), PortDirection::Output, true) => {
+                            id == &descriptor.port_id
+                        }
+                        _ => false,
+                    },
+                )
+                .map(|bound| u64::from(bound.contract.maximum_bytes))
+        };
+        result.push(LoweredPort {
+            node,
+            port: PortId(as_u16(index)?),
+            port_id: descriptor.port_id.clone(),
+            value_kind: descriptor.value_kind.clone(),
+            direction: descriptor.direction,
+            temporal: descriptor.temporal,
+            abnormal_kind: descriptor.abnormal_kind.clone(),
+            maximum_value_bytes: bound(false),
+            maximum_abnormal_value_bytes: bound(true),
+        });
+    }
+    Ok(result)
 }
 
 pub(super) fn find_port(ports: &[LoweredPort], id: &PlanPortId) -> Option<PortId> {
