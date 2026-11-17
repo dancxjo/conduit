@@ -151,13 +151,13 @@ fn configuration(root: &str) -> ConfiguredMaskConfiguration {
 }
 
 fn configuration_for_source(source: &str, root: &str) -> ConfiguredMaskConfiguration {
-    let provider = crate::product_bases::fixture_surface_provider();
+    let provider = tests::fixture::framebuffer_provider_entry();
     let profile = NativeMaskStorageProfile::Standard;
     let host = native_layout_host_advertisement(
         &"host/ambient-component-fixture".into(),
         &"boot/ambient-component-fixture".into(),
         1,
-        &provider.entry,
+        &provider,
         profile,
     );
     let (stage, configuration) =
