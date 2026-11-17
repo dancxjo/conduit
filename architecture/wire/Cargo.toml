@@ -7,6 +7,7 @@ edition = "2021"
 conduit-core = { path = "../core" }
 conduit-plot = { path = "../plot" }
 miniz_oxide = { version = "=0.8.9", default-features = false, optional = true }
+serde = { version = "1", default-features = false, features = ["alloc"], optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
 
@@ -17,6 +18,8 @@ conduit-plot = { path = "../plot" }
 default = []
 deflate = ["dep:miniz_oxide"]
 offer-images = ["deflate", "dep:serde_json", "dep:sha2"]
+# Preparation only; default MCU execution does not select this JSON scanner.
+offer-preparation = ["offer-images", "dep:serde", "serde_json/raw_value"]
 
 [dev-dependencies]
 miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }

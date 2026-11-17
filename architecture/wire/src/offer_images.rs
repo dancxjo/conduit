@@ -4,6 +4,9 @@ use alloc::vec::Vec;
 use conduit_core::CapabilityOffer;
 use sha2::{Digest, Sha256};
 
+#[cfg(feature = "offer-preparation")]
+pub mod portable_preparation;
+
 /// The expected digest comes from the caller's exact publication context. A
 /// digest checks bytes, not who published them or whether they are current.
 pub struct CapabilityOfferImage<'a> {
