@@ -6,6 +6,7 @@ use sha2::{Digest, Sha256};
 enum Target {
     Control(FaceControl),
     Subject(usize),
+    Page(bool),
 }
 
 pub(super) struct PendingTap {
@@ -23,7 +24,17 @@ impl NativeFaceScene {
             .as_ref()
             .and_then(|tap| match tap.target {
                 Target::Control(control) => Some(control),
-                Target::Subject(_) => None,
+                Target::Subject(_) | Target::Page(_) => None,
+            })
+    }
+
+    pub(super) fn pressed_page(&self) -> Option<bool> {
+        self.input
+            .pointer
+            .as_ref()
+            .and_then(|tap| match tap.target {
+                Target::Page(forward) => Some(forward),
+                _ => None,
             })
     }
 
@@ -91,6 +102,9 @@ impl NativeFaceScene {
     }
 
     fn pointer_target(&self, x: i16, y: i16) -> Result<Option<Target>, FaceSceneError> {
+        if let Some((forward, available)) = self.page_target(x, y)? {
+            return Ok(available.then_some(Target::Page(forward)));
+        }
         if self.showing_diagram {
             let mut drawing = GraphicsScene::empty();
             let hits = diagram::append(
