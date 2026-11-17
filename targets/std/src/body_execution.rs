@@ -41,9 +41,27 @@ pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservatio
 mod creche;
 #[cfg(test)]
 mod creche_tests;
+mod delegated;
 mod execution;
+mod prepared;
+pub(crate) use delegated::preparation_backing_bytes as delegated_preparation_backing_bytes;
+pub use delegated::{
+    DelegatedBodyPreparationReceipt, DelegatedBodyProgress, DelegatedBodyRequest,
+    DelegatedBodyTerminalReceipt, DelegatedKernelFailure, DelegatedKernelFailureCode,
+    PreparedDelegatedBody,
+};
 mod image;
+mod startup;
 pub use image::ImageBodyRunReport;
+use startup::StartupAcknowledgmentValue;
+pub use startup::{BodyStartedAcknowledgment, CommittedBodyStartup, StartupChimeCallReceipt};
+mod owner_identity;
+pub use owner_identity::{StartupOwnerChallenge, StartupOwnerIdentity};
+mod startup_control_workspace;
+pub use startup_control_workspace::{
+    StartupMemberControlWorkspace, STARTUP_MEMBER_CONTROL_FRAME_BYTES,
+    STARTUP_MEMBER_MAXIMUM_CHIME_RECEIPTS,
+};
 mod fore;
 mod fore_custody;
 pub use fore_custody::{
@@ -118,6 +136,7 @@ pub struct BodyRunReport {
     pub terminal_sign: SignIdentity,
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
+    pub startup_chimes: Vec<StartupChimeCallReceipt>,
     pub kernel_events: Vec<KernelEvent>,
     /// Receipt-correlated child Signs; a refusal remains distinct from an
     /// empty child stream and never borrows the parent's Sign identity.

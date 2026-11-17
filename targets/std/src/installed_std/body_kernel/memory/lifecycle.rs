@@ -176,6 +176,7 @@ pub(crate) fn result_bytes(report: &BodyRunReport) -> Result<usize, String> {
         )?;
     }
     for count in [
+        vector(&report.startup_chimes)?,
         vector(&report.partitions)?,
         vector(&report.requests)?,
         vector(&report.kernel_events)?,

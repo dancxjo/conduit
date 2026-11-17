@@ -403,6 +403,7 @@ pub(super) fn build_advertisement(
         capabilities.extend(conduit_std_offers::alife_offers());
     }
     capabilities.push(conduit_std_offers::audio_tone_offer());
+    capabilities.push(conduit_std_offers::body_wake_offer());
     if playback.is_some() {
         capabilities.push(conduit_std_offers::audio_play_alsa_hw_offer());
     }
@@ -452,50 +453,8 @@ pub fn reference_advertisement(config: StdHostConfig) -> HostAdvertisement {
     )
 }
 
-/// The exact offers installed for the portable supported-nucleus contracts by
-/// the broad hosted reference composition.
-pub fn supported_nucleus_offers() -> Vec<conduit_core::CapabilityOffer> {
-    let advertisement = reference_advertisement(StdHostConfig {
-        host_id: conduit_core::HostId::from("std-inventory"),
-        boot_id: conduit_core::BootId::from("std-inventory/boot"),
-        offer_generation: conduit_core::OfferGeneration(1),
-    });
-
-    let contracts = conduit_semantic_catalog::supported_nucleus_contracts();
-    let missing = contracts
-        .iter()
-        .filter(|contract| {
-            !advertisement.capabilities.iter().any(|offer| {
-                offer.kind_id == contract.kind_id
-                    && offer.inputs == contract.inputs
-                    && offer.outputs == contract.outputs
-                    && offer.limits == contract.limits
-            })
-        })
-        .map(|contract| contract.kind_id.as_str())
-        .collect::<Vec<_>>();
-    assert!(
-        missing.is_empty(),
-        "std reference composition does not install exact contracts: {missing:?}"
-    );
-
-    contracts
-        .into_iter()
-        .map(|contract| {
-            advertisement
-                .capabilities
-                .iter()
-                .find(|offer| {
-                    offer.kind_id == contract.kind_id
-                        && offer.inputs == contract.inputs
-                        && offer.outputs == contract.outputs
-                        && offer.limits == contract.limits
-                })
-                .expect("missing contracts were checked above")
-                .clone()
-        })
-        .collect()
-}
+mod nucleus;
+pub use nucleus::supported_nucleus_offers;
 
 #[cfg(test)]
 mod tests;

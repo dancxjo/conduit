@@ -131,11 +131,19 @@ fn retirement_pipe_failure_preserves_the_established_terminal_cause() {
         )),
     ] {
         let before = format!("{terminal:?}");
-        record_pipe_failure(&mut terminal, io::Error::from(io::ErrorKind::BrokenPipe));
+        record_pipe_failure(
+            &mut terminal,
+            io::Error::from(io::ErrorKind::BrokenPipe),
+            &mut None,
+        );
         assert_eq!(format!("{terminal:?}"), before);
     }
     let mut terminal = None;
-    record_pipe_failure(&mut terminal, io::Error::from(io::ErrorKind::BrokenPipe));
+    record_pipe_failure(
+        &mut terminal,
+        io::Error::from(io::ErrorKind::BrokenPipe),
+        &mut None,
+    );
     assert!(matches!(terminal, Some(ProcessTerminal::ProviderLost(_))));
 }
 
@@ -144,7 +152,11 @@ fn retirement_pipe_failure_preserves_the_established_terminal_cause() {
 fn pipe_failure_invalidates_apparent_success() {
     use std::os::unix::process::ExitStatusExt;
     let mut terminal = Some(ProcessTerminal::Exited(ExitStatus::from_raw(0)));
-    record_pipe_failure(&mut terminal, io::Error::from(io::ErrorKind::BrokenPipe));
+    record_pipe_failure(
+        &mut terminal,
+        io::Error::from(io::ErrorKind::BrokenPipe),
+        &mut None,
+    );
     assert!(matches!(terminal, Some(ProcessTerminal::ProviderLost(_))));
 }
 

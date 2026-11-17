@@ -151,19 +151,7 @@ impl KernelResourceLedger {
             .image_memory
             .as_ref()
             .ok_or("original IMAGE counter missing")?;
-        if bytes < ImageMemoryLease::owned_backing_bytes() {
-            return Err("IMAGE footprint omits lease backing".into());
-        }
-        used.fetch_update(Ordering::AcqRel, Ordering::Acquire, |prior| {
-            prior.checked_add(bytes).filter(|next| *next <= limit)
-        })
-        .map_err(|_| "selected IMAGE managed backing capacity is unavailable")?;
-        Ok(ImageMemoryLease {
-            inner: Arc::new(ImageMemoryCharge {
-                used: used.clone(),
-                bytes: AtomicUsize::new(bytes),
-            }),
-        })
+        reserve_image_memory(used, limit, bytes)
     }
     pub(crate) fn reserve_funded_body(
         &mut self,
@@ -223,4 +211,24 @@ impl KernelResourceLedger {
     pub(crate) fn image_memory_observer(&self) -> Arc<AtomicUsize> {
         self.image_memory.as_ref().unwrap().clone()
     }
+}
+
+pub(super) fn reserve_image_memory(
+    used: &Arc<AtomicUsize>,
+    limit: usize,
+    bytes: usize,
+) -> Result<ImageMemoryLease, String> {
+    if bytes < ImageMemoryLease::owned_backing_bytes() {
+        return Err("IMAGE footprint omits lease backing".into());
+    }
+    used.fetch_update(Ordering::AcqRel, Ordering::Acquire, |prior| {
+        prior.checked_add(bytes).filter(|next| *next <= limit)
+    })
+    .map_err(|_| "selected IMAGE managed backing capacity is unavailable")?;
+    Ok(ImageMemoryLease {
+        inner: Arc::new(ImageMemoryCharge {
+            used: used.clone(),
+            bytes: AtomicUsize::new(bytes),
+        }),
+    })
 }

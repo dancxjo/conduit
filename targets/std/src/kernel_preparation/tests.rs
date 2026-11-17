@@ -222,3 +222,37 @@ mod selected_image_boot;
 
 #[path = "tests/image_workset.rs"]
 mod image_workset;
+
+#[test]
+fn borrowed_release_refusal_is_atomic_and_valid_release_does_not_allocate() {
+    let host = advertisement(
+        "release-host".into(),
+        "release-boot".into(),
+        OfferGeneration(1),
+    );
+    let plot = parse(
+        include_str!("../../../../proof/fixtures/plots/kernel-multivalue.conduit"),
+        &profile_catalog(),
+    )
+    .unwrap();
+    let plan = plan_local(&plot, &host).unwrap();
+    let mut ledger = KernelResourceLedger::new(&host).unwrap();
+    let reservation = ledger
+        .prepare_and_reserve(&host, &plan.fragments[0])
+        .unwrap();
+    let before = format!("{ledger:?}");
+    let mut invalid = reservation.clone();
+    invalid.instances.push(invalid.instances[0].clone());
+    assert!(ledger.release_borrowed(&invalid).is_err());
+    assert_eq!(format!("{ledger:?}"), before);
+    let mut invalid = reservation.clone();
+    invalid.bindings[0].units = u32::MAX;
+    assert!(ledger.release_borrowed(&invalid).is_err());
+    assert_eq!(format!("{ledger:?}"), before);
+    let guard = crate::allocation_probe::begin();
+    let result = ledger.release_borrowed(&reservation);
+    let allocations = guard.finish();
+    result.unwrap();
+    assert_eq!(allocations, 0);
+    assert!(ledger.is_idle());
+}

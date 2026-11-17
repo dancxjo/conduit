@@ -8,6 +8,8 @@ use conduit_host_make::{
 };
 use std::{collections::BTreeSet, io::Write};
 
+mod playback;
+
 const MAXIMUM_IMAGE_BYTES: usize = 64 * 1024;
 const MAXIMUM_TIMER_POOLS: usize = 16;
 
@@ -19,6 +21,29 @@ impl StdHost {
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
+    ) -> Result<Self, String> {
+        Self::from_selected_timer_bases(config, image, catalog, None)
+    }
+    pub fn from_selected_timer_and_playback_image(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &conduit_host_make::CheckedHostConfiguration,
+        selected: &crate::hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        if !cfg!(conduit_prepared_process_layout) {
+            return Err(env!("CONDUIT_PREPARED_PROCESS_LAYOUT").into());
+        }
+        Self::from_selected_timer_bases(config, image, catalog, Some((checked, selected)))
+    }
+    fn from_selected_timer_bases(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        selected: Option<(
+            &conduit_host_make::CheckedHostConfiguration,
+            &crate::hosted_audio::HostedPlaybackSelection,
+        )>,
     ) -> Result<Self, String> {
         // Bound caller identities before formatting derived provider identities.
         // Reserve their largest fixed suffix in the same finite input frame.
@@ -75,8 +100,18 @@ impl StdHost {
             facilities,
             bounds
         );
+        let supported = |id: &str| {
+            id == conduit_std_offers::TICK_IMPLEMENTATION
+                || (selected.is_some()
+                    && matches!(
+                        id,
+                        conduit_std_offers::BODY_WAKE_IMPLEMENTATION
+                            | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                    ))
+        };
         if !manifest.target.starts_with("std/")
-            || manifest.implementations != [conduit_std_offers::TICK_IMPLEMENTATION]
+            || manifest.implementations.is_empty()
+            || manifest.implementations.iter().any(|id| !supported(id))
         {
             return Err("selected IMAGE operation workset is unsupported: only explicit hosted time/tick is initialized".into());
         }
@@ -87,15 +122,18 @@ impl StdHost {
         if timer.is_none()
             || timers.next().is_some()
             || manifest.base_selections.iter().any(|base| {
-                !matches!(
-                    (base.kind.as_str(), base.driver.as_str()),
-                    ("timer/monotonic", "hosted/monotonic-clock@1")
-                        | (
-                            "serial/text",
-                            "hosted/serial@1" | "raspberry-pi-os/serial@1"
-                        )
-                        | ("storage/protected-file", "hosted/protected-file@1")
-                )
+                !(selected.is_some()
+                    && base.kind == "audio/speaker"
+                    && base.driver == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION)
+                    && !matches!(
+                        (base.kind.as_str(), base.driver.as_str()),
+                        ("timer/monotonic", "hosted/monotonic-clock@1")
+                            | (
+                                "serial/text",
+                                "hosted/serial@1" | "raspberry-pi-os/serial@1"
+                            )
+                            | ("storage/protected-file", "hosted/protected-file@1")
+                    )
             })
         {
             return Err(
@@ -111,6 +149,11 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if selected.is_some()
+                && budget.class == conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS
+            {
+                continue;
+            }
             if budget.class != TIMER_RESOURCE_CLASS
                 || budget.slots == 0
                 || budget.bytes == 0
@@ -128,9 +171,17 @@ impl StdHost {
                 budget.slots,
             ));
         }
+        if resources.is_empty() {
+            return Err("selected timer requires an explicit timer pool".into());
+        }
         if slots > manifest.bounds.timer_slots {
             return Err("aggregate selected timer pools exceed IMAGE timer_slots".into());
         }
+        let playback = selected
+            .map(|(checked, selected)| {
+                playback::prepare_playback(&config, image, catalog, checked, selected)
+            })
+            .transpose()?;
         // std::time::Instant is this concrete hosted monotonic mechanism. It
         // needs no device discovery or caller-supplied physical bearer.
         let _current = std::time::Instant::now();
@@ -154,14 +205,48 @@ impl StdHost {
         registry
             .register(entry.clone())
             .map_err(|error| format!("selected timer registry: {error:?}"))?;
+        let mut candidates = vec![entry.clone()];
+        let mut candidate_capabilities = Vec::new();
+        let mut ready_resource_classes = BTreeSet::from([TIMER_RESOURCE_CLASS.into()]);
+        let mut initialized_base_kinds = BTreeSet::from(["timer/monotonic".into()]);
+        let mut initialized_driver_kinds = BTreeSet::from(["hosted/monotonic-clock@1".into()]);
+        if let Some(((selected, _), _)) = &playback {
+            let mut speaker = selected
+                .checked_base_entry()
+                .ok_or("selected speaker lacks exact provider identity")?;
+            speaker.capabilities.retain(|offer| {
+                manifest
+                    .implementations
+                    .iter()
+                    .any(|id| id == offer.implementation.implementation_id.as_str())
+            });
+            if speaker.capabilities.is_empty() {
+                return Err("selected speaker has no built supported audio implementation".into());
+            }
+            registry
+                .register(speaker.clone())
+                .map_err(|error| format!("selected speaker registry: {error:?}"))?;
+            ready_resource_classes.insert(conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS.into());
+            initialized_base_kinds.insert("audio/speaker".into());
+            initialized_driver_kinds
+                .insert(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into());
+            candidates.push(speaker);
+            if manifest
+                .implementations
+                .iter()
+                .any(|id| id == conduit_std_offers::BODY_WAKE_IMPLEMENTATION)
+            {
+                candidate_capabilities.push(conduit_std_offers::body_wake_offer());
+            }
+        }
         let binding = bind_runtime_offer(
             manifest,
             image,
             &bytes.bytes,
             catalog,
             RuntimeOfferInputs {
-                host_id: config.host_id,
-                boot_id: config.boot_id,
+                host_id: config.host_id.clone(),
+                boot_id: config.boot_id.clone(),
                 offer_generation: config.offer_generation,
                 offer_sign_id: format!(
                     "{}/timer-ready/{}",
@@ -170,21 +255,24 @@ impl StdHost {
                 )
                 .into(),
                 host_profile: manifest.profile_id.as_str().into(),
-                candidate_bases: vec![entry],
-                candidate_capabilities: vec![],
+                candidate_bases: candidates,
+                candidate_capabilities,
                 planner_capabilities: vec![],
                 facts: RuntimeFacts {
-                    ready_resource_classes: BTreeSet::from([TIMER_RESOURCE_CLASS.into()]),
-                    initialized_base_kinds: BTreeSet::from(["timer/monotonic".into()]),
-                    initialized_driver_kinds: BTreeSet::from(["hosted/monotonic-clock@1".into()]),
+                    ready_resource_classes,
+                    initialized_base_kinds,
+                    initialized_driver_kinds,
                     available_facilities: BTreeSet::new(),
-                    authority_ready: false,
+                    // The checked provider can offer grant-requiring Backs.
+                    // Requirements remain on the offer; this creates no grant.
+                    authority_ready: playback.is_some(),
                 },
             },
         )
         .map_err(|error| format!("selected timer IMAGE binding: {error:?}"))?;
         let mut host = Self::from_image_binding(binding)?;
-        if host.advertisement.capabilities.len() != 1
+        let expected = manifest.implementations.len();
+        if host.advertisement.capabilities.len() != expected
             || host.advertisement.resources.len() != budgets.len()
         {
             return Err(
@@ -192,7 +280,13 @@ impl StdHost {
             );
         }
         host.base_registry = registry;
-        host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        if let Some(((selected, lease), memory)) = playback {
+            memory.bind(&mut host.kernel_resources, &host.advertisement, image)?;
+            host.playback = Some(selected);
+            host._playback_memory = Some(lease);
+        } else {
+            host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        }
         Ok(host)
     }
 }

@@ -309,6 +309,7 @@ fn report(terminal: TerminalDisposition) -> BodyRunReport {
         },
         partitions: Vec::new(),
         requests: Vec::new(),
+        startup_chimes: Vec::new(),
         kernel_events: Vec::new(),
         scan_child_signs: Ok(Vec::new()),
         scan_cancellation_failed: false,
