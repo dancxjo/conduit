@@ -9,7 +9,11 @@ use std::{
 pub const MAXIMUM_CURRENT_BODY_BYTES: usize = 4096;
 const MAXIMUM_HEADERS: usize = 4096;
 const MAXIMUM_WAIT: Duration = Duration::from_secs(2);
+#[cfg(not(unix))]
 const CONNECT_WAIT: Duration = Duration::from_millis(250);
+#[cfg(unix)]
+#[path = "http/connect.rs"]
+mod connect;
 #[cfg(unix)]
 const POLL_WAIT: Duration = Duration::from_millis(25);
 const REQUEST: &[u8] = b"GET /v1/forecast?latitude=47.6062&longitude=-122.3321&current=temperature_2m,weather_code&temperature_unit=celsius&timeformat=unixtime&timezone=UTC HTTP/1.0\r\nHost: api.open-meteo.com\r\nAccept: application/json\r\nAccept-Encoding: identity\r\nConnection: close\r\n\r\n";
@@ -34,8 +38,8 @@ pub enum OpenMeteoHttpRefusal {
 /// authorized peer. This object neither proves endpoint authorization nor
 /// registers a Base; installation must bind its exact peer and HTTP profile.
 /// HTTP is explicit, unauthenticated transport, with no automatic TLS fallback.
-/// Installation must allow the 250ms connect wait in its cooperative cancellation
-/// budget; subsequent socket polling checks cancellation at most every 25ms.
+/// Unix connection and IO waits check cancellation at most every 25ms, sharing
+/// the same two-second total deadline. Other targets retain a 250ms connect wait.
 /// These are cooperative waits, not hard OS scheduling or RSS guarantees.
 pub struct OpenMeteoHttp {
     endpoint: SocketAddr,
@@ -64,12 +68,17 @@ impl OpenMeteoHttp {
         check(deadline, &cancelled)?;
         conduit_time::decode_tick(tick).map_err(|_| E::InvalidTick)?;
         let deadline = deadline.min(Instant::now() + MAXIMUM_WAIT);
-        let remaining = deadline.saturating_duration_since(Instant::now());
-        if remaining.is_zero() {
-            return Err(E::Deadline);
-        }
-        let mut stream = TcpStream::connect_timeout(&self.endpoint, remaining.min(CONNECT_WAIT))
-            .map_err(|_| E::Connect)?;
+        #[cfg(unix)]
+        let mut stream = connect::connect(self.endpoint, deadline, &cancelled)?;
+        #[cfg(not(unix))]
+        let mut stream = {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(E::Deadline);
+            }
+            TcpStream::connect_timeout(&self.endpoint, remaining.min(CONNECT_WAIT))
+                .map_err(|_| E::Connect)?
+        };
         stream.set_nonblocking(true).map_err(|_| E::Io)?;
         let mut sent = 0;
         while sent < REQUEST.len() {
