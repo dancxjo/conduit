@@ -68,6 +68,8 @@ digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
 trace=(a.output/'run.log').read_text()
 started='CPU_FACTORY_STARTED' in trace
 entered='original_complete_factory_called=true' in trace
+prepared='CPU_FACTORY_RETURN original_complete_factory_called=true error=None' in trace
+shortage='CPU_FULL_FACTORY_SHORTAGE' in trace
 effects=('CPU_SOURCE_HISTORY' in trace or 'CPU_FULL_MEDIA_PRESERVED' in trace)
 receipt={
  'scope':'Fresh public Root signed three-fragment ingress and unchanged complete factory; conditional original renderer/admission/Start',
@@ -80,9 +82,9 @@ receipt={
  'library_features':selected_features,
  'fixture_sources_sha256':{p.name:digest(p) for p in sorted(Path(__file__).parent.glob('*.rs'))},
  'constructor_exit':result.returncode,'compile_log_sha256':digest(a.output/'compile.log'),'run_log_sha256':digest(a.output/'run.log'),
- 'whole_factory_called':entered,'preparation_result':'prepared' if started else 'sampling-kernel/Tables(Layout)' if result.returncode==0 else 'failed; inspect log','admission':started,'Start':started,'hardware_effects':False,'original_Source_execution_completed':effects and result.returncode==0,
+ 'whole_factory_called':entered,'preparation_result':'prepared' if prepared else 'sampling-kernel/Tables(Layout)' if result.returncode==0 and 'Tables(Layout)' in trace else 'failed; inspect log','admission':started,'Start':started,'exact_runtime_shortage_refused_before_effects':shortage and result.returncode==0,'hardware_effects':False,'original_Source_execution_completed':effects and result.returncode==0,
  'recording_state':'full pre-existing residence; zero new Source records' if 'CPU_FULL_MEDIA_PRESERVED' in trace else 'new Source records recovered' if 'CPU_SOURCE_HISTORY' in trace else 'not checked',
- 'not_proved':([] if started else ['Successful complete Source preparation','Renderer preparation and whole admission/Start'])+([] if effects else ['Provider effects or continuing Play'])+['Target stack/heap/ABI fit','Physical device execution'],
+ 'not_proved':([] if prepared else ['Successful complete Source preparation'])+([] if started else ['Renderer preparation and whole admission/Start'])+([] if effects else ['Provider effects or continuing Play'])+['Target stack/heap/ABI fit','Physical device execution'],
 }
 (a.output/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
 raise SystemExit(result.returncode)

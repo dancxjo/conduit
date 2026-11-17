@@ -281,6 +281,11 @@ pub fn probe(
                 println!("CPU_FACTORY_NEGATIVE original_complete_factory_called=true supplied_recording_output={} result=sampling-kernel/Tables(Layout) retained_input=true renderer_prepared=false admission=false Start=false",crate::play::RECORDING_OUTPUT_BYTES);
             }
             Ok(prepared) => {
+                if std::env::var_os("CPU_ADMISSION_SHORTAGE").is_some() {
+                    crate::shortage::refuse(prepared, parts.resources);
+                    assert!(crate::accounting::peak() <= crate::config::HEAP_BYTES);
+                    return;
+                }
                 assert!(
                     std::env::var_os("CPU_EXPECT_PREPARED").is_some(),
                     "baseline unexpectedly prepared; explicitly qualify corrected case"

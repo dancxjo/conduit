@@ -12,6 +12,7 @@ mod full_residence;
 mod payload;
 #[path = "../../../../rp2040/firmware/host/src/phase_trace.rs"]
 mod phase_trace;
+mod shortage;
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
     pub use EXECUTION as EXECUTION_DELEGATION;

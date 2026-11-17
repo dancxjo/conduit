@@ -163,7 +163,7 @@ fn full_payload_and_following_header_fit_funded_wire_backing() {
 
 #[test]
 fn empty_read_yields_before_retry_and_preserves_the_next_frame() {
-    let mut link = Link::new(Packets {
+    let mut link = Link::new(Fake {
         input: vec![vec![], frame(b"fresh")].into(),
         ..Default::default()
     });
@@ -176,7 +176,7 @@ fn empty_read_yields_before_retry_and_preserves_the_next_frame() {
             .is_pending());
         assert_eq!(ready(receive).unwrap(), b"fresh");
     }
-    assert_eq!(link.carrier.reads, [READ_TIMEOUT_MILLIS; 2]);
+    assert_eq!(link.carrier.deadlines, [READ_TIMEOUT_MILLIS; 2]);
 }
 #[test]
 fn empty_document_read_yields_and_preserves_the_next_document_frame() {
@@ -185,7 +185,7 @@ fn empty_document_read_yields_and_preserves_the_next_document_frame() {
     let (length, next) =
         conduit_wire::encode_bounded_document_chunk(&mut encoded, payload, 0, &[3; 32]).unwrap();
     assert_eq!(next, payload.len());
-    let mut link = Link::new(Packets {
+    let mut link = Link::new(Fake {
         input: vec![vec![], frame(&encoded[..length])].into(),
         ..Default::default()
     });
@@ -199,8 +199,14 @@ fn empty_document_read_yields_and_preserves_the_next_document_frame() {
             .is_pending());
         ready(receive).unwrap();
     }
-    assert_eq!(link.carrier.reads, [READ_TIMEOUT_MILLIS; 2]);
+    assert_eq!(link.carrier.deadlines, [READ_TIMEOUT_MILLIS; 2]);
     assert_eq!(document.completed().unwrap().0, payload);
+}
+
+fn frame(payload: &[u8]) -> Vec<u8> {
+    let mut bytes = Vec::from(u16::try_from(payload.len()).unwrap().to_be_bytes());
+    bytes.extend_from_slice(payload);
+    bytes
 }
 
 #[derive(Default)]
