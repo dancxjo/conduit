@@ -200,6 +200,10 @@ pub(super) fn refuse(
     line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
     error: &str,
 ) {
+    eprintln!(
+        "member route refused: {}",
+        error.chars().take(256).collect::<String>()
+    );
     let _ = send(
         line,
         &MemberReturnFrame::Refused {
