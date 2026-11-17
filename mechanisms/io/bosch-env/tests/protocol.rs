@@ -24,6 +24,7 @@ enum Expect {
     Read(u8, Vec<u8>),
     Write(u8, u8),
     Fail,
+    Pending,
 }
 struct Bus {
     steps: Rc<RefCell<VecDeque<Expect>>>,
@@ -50,6 +51,7 @@ impl I2c for Bus {
             .expect("unexpected bus effect");
         match step {
             Expect::Fail => Err(Fault),
+            Expect::Pending => std::future::pending().await,
             Expect::Write(register, value) => {
                 let [Operation::Write(bytes)] = operations else {
                     panic!("expected write")
@@ -360,4 +362,70 @@ fn exact_measurement_uses_the_existing_acquisition_without_allocating() {
     assert_eq!((costs.allocations, costs.reallocations), (0, 0));
     assert_eq!(&delay.calls[..delay.len], &[2_000_000, 10_000_000]);
     assert_eq!(sensor.chip(), Some(Chip::Bme280));
+}
+
+#[test]
+fn every_bus_fault_or_cancellation_invalidates_cached_readiness_and_can_recover() {
+    for chip in [Chip::Bme280, Chip::Bmp280] {
+        for reinitialize in [false, true] {
+            let operation_count = if reinitialize {
+                initialize(chip).len()
+            } else {
+                measure(chip).len()
+            };
+            for index in 0..operation_count {
+                for cancel in [false, true] {
+                    let mut script = initialize(chip);
+                    let mut operation = if reinitialize {
+                        initialize(chip)
+                    } else {
+                        measure(chip)
+                    };
+                    operation[index] = if cancel {
+                        Expect::Pending
+                    } else {
+                        Expect::Fail
+                    };
+                    script.extend(operation);
+                    let (bus, steps, _) = make_bus(script, Address::Primary as u8);
+                    let mut sensor = Sensor::new(bus, Address::Primary);
+                    let mut delay = Delay::default();
+                    run(sensor.initialize(&mut delay)).unwrap();
+                    assert_eq!(sensor.chip(), Some(chip));
+                    // Both operations must withdraw the previous readiness before
+                    // any await. Dropping a future cannot restore that evidence.
+                    let operation = async {
+                        if reinitialize {
+                            sensor.initialize(&mut delay).await.map(|_| ())
+                        } else {
+                            sensor.measure_exact(&mut delay).await.map(|_| ())
+                        }
+                    };
+                    if cancel {
+                        let mut operation = pin!(operation);
+                        let mut cx = Context::from_waker(Waker::noop());
+                        assert!(operation.as_mut().poll(&mut cx).is_pending());
+                    } else {
+                        assert_eq!(run(operation), Err(Error::Bus(Fault)));
+                    }
+                    assert_eq!(sensor.chip(), None);
+                    let remaining = steps.borrow().len();
+                    assert_eq!(remaining, operation_count - index - 1);
+                    assert_eq!(
+                        run(sensor.measure_exact(&mut delay)),
+                        Err(Error::NotInitialized)
+                    );
+                    assert_eq!(steps.borrow().len(), remaining);
+                    // An explicit new initialization recovers the same bus owner;
+                    // unexecuted effects from the cancelled assignment are retired.
+                    steps.borrow_mut().clear();
+                    steps.borrow_mut().extend(initialize(chip));
+                    steps.borrow_mut().extend(measure(chip));
+                    assert_eq!(run(sensor.initialize(&mut delay)), Ok(chip));
+                    assert!(run(sensor.measure_exact(&mut delay)).is_ok());
+                    assert!(steps.borrow().is_empty());
+                }
+            }
+        }
+    }
 }
