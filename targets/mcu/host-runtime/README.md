@@ -8,8 +8,8 @@ It does not yet install a complete MCU Host or replace running firmware.
 `membership::SpawnAdmission` borrows independently retained construction and
 actual Host/Boot/IMAGE facts. Only the pinned owner's verified current-Boot
 receipt establishes the returned membership. A retained credential refuses this
-fresh-spawn entrance before carrier effects; retained-Part return is a separate
-unfinished extraction. No fallback invitation is manufactured after interruption.
+fresh-spawn entrance before carrier effects. No fallback invitation is manufactured
+after interruption.
 
 The arrival message preserves the existing admission wire representation while
 borrowing the advertisement, friendly label and fixed public key. Serialization
@@ -55,6 +55,19 @@ proof, not physical USB/UART, admitted Play, persistence or overnight proof.
 This extraction reuses the control mechanisms from the existing MCU delivery
 checkpoint `55d9f409ed`, refreshed onto current `dev` after #6886. It deliberately
 omits the old application factories, Root wrapper, construction-carrier decoder,
-image-return family and continuation subsystem. A configuration/profile fence
+hosted image-return receiver and continuation subsystem. A configuration/profile fence
 formerly supplied by the Root wrapper now lives in the shared preparation-policy
 check; a signed wrong-profile regression verifies refusal before input retention.
+
+`member_return::RetainedReturn` carries immutable image slices and exact grant
+references, using caller-funded hash/input/output buffers. It checks image count,
+aggregate bytes, duplicates, scope and supported bounded Host context before I/O.
+The original pinned owner must acknowledge the same Body/Part/Host, actual Boot,
+and ordered inventory. Unsupported rich contexts refuse without an owned
+advertisement fallback. Credential and grant text decoding still uses bounded,
+fallible allocation; this is not a zero-allocation whole exchange.
+
+Lost acknowledgement preserves the original retained identity for another fresh
+return. Signing an acknowledgement alone does not establish durable owner custody:
+the hosted receiver must commit the return before attesting it. That receiver is
+not included in this extraction, and no physical reboot/rejoin is claimed.

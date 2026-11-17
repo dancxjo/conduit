@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = ["authenticated-admission"]
-authenticated-admission = ["dep:ed25519-dalek", "dep:miniz_oxide", "dep:serde_json"]
+authenticated-admission = ["dep:ed25519-dalek", "dep:miniz_oxide", "dep:serde_json", "dep:serde-json-core"]
 
 [dependencies]
 conduit-core = { path = "../core" }
@@ -20,6 +20,8 @@ serde_json = { version = "1", default-features = false, features = ["alloc"], op
 
 # Immutable snapshot clones share their backing on every portable Host.
 portable-atomic-util = { version = "0.2.8", default-features = false, features = ["alloc"] }
+
+serde-json-core = { version = "0.6", optional = true }
 
 [target.'cfg(not(target_has_atomic = "ptr"))'.dependencies]
 portable-atomic = { version = "1", default-features = false, features = ["critical-section"] }
