@@ -2249,6 +2249,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-mcu-host-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-wire",
+ "ed25519-dalek",
+ "serde",
+ "serde-json-core",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-midi"
 version = "0.1.0"
 dependencies = [
