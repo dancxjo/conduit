@@ -53,5 +53,48 @@
     "No physical I2C, power-cycle, firmware heap/stack or whole static-memory proof",
     "Original cooperative work refusal 17282/5000 remains unchanged",
     "Resolved supporting features are not globally software-storage neutral; see WORKSPACE-REDUCTION.md"
-  ]
+  ],
+  "rp2040_make_package": {
+    "checked_source_commit": "0d1ef0d5d81f0c1463386ee4225a238e4b28ca0b",
+    "proof_class": "host library/test compilation only; no recipe execution or target build",
+    "environment": {
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_INCREMENTAL": "0"
+    },
+    "purpose": "declared package feature compiles the actual included firmware helper support branch instead of only enabling a dependency feature",
+    "checks": [
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "--offline",
+          "-p",
+          "conduit-host-rp2040",
+          "--features",
+          "execution-workspace",
+          "--tests"
+        ],
+        "exit_code": 0,
+        "elapsed": "0.18s",
+        "raw_log_sha256": "5dd20d16e6a4ba8d62fd7d86f600646752bc3cc0b4ec0330fb65402d5842b7c3",
+        "raw_log_location": "ignored target/green-rp-make-delivery-shared.log"
+      },
+      {
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "--offline",
+          "-p",
+          "conduit-host-rp2040",
+          "--tests"
+        ],
+        "exit_code": 0,
+        "elapsed": "0.18s",
+        "raw_log_sha256": "299f16a2c523be18fef769975d2df00e0505521db047540feea3a74b94666887",
+        "raw_log_location": "ignored target/green-rp-make-delivery-default.log"
+      }
+    ]
+  }
 }
