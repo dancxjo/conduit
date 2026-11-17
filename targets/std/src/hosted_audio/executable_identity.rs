@@ -36,7 +36,10 @@ impl HostedPlaybackSelection {
     }
 }
 
-fn verify_file(path: &std::path::Path, expected: &[u8; 32]) -> Result<(), PlaybackFailure> {
+pub(super) fn verify_file(
+    path: &std::path::Path,
+    expected: &[u8; 32],
+) -> Result<(), PlaybackFailure> {
     const MAXIMUM_BYTES: u64 = 8 * 1024 * 1024;
     let mut file = std::fs::File::open(path).map_err(|_| PlaybackFailure::ProviderLost)?;
     if file

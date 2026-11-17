@@ -8,6 +8,7 @@ mod alsa_aplay;
 mod base_registration;
 mod discovery;
 mod executable_identity;
+pub(crate) mod image_initialization;
 #[cfg(test)]
 mod fake;
 mod proof;
