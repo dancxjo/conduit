@@ -1,9 +1,9 @@
 //! CPU diagnostic only: immutable fixture recording -> Face -> two Mask materials.
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId};
+use conduit_dht11_observation::{ObservationContract, PreparedObservationQuantityForms};
 use conduit_environment_history::{HistoryGraph, PreparedHistoryFace, HISTORY_SUBJECT};
-use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedObservationQuantityForms},
-    recording::{PreparedRecordingChunk, RecordingContext, RecordingDisposition},
+use conduit_environment_runtime::recording::{
+    PreparedRecordingChunk, RecordingContext, RecordingDisposition,
 };
 use conduit_face::{Face, FaceBasis, FaceContributionBasis};
 use std::{fmt::Debug, fs, path::PathBuf};

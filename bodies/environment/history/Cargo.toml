@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-environment-face = { path = "../../../semantics/environment-face" }

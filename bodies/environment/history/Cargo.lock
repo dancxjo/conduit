@@ -125,6 +125,7 @@ name = "conduit-environment-history"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-environment-face",
  "conduit-environment-runtime",
  "conduit-face",
