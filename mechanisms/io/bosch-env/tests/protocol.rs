@@ -356,6 +356,10 @@ fn exact_measurement_uses_the_existing_acquisition_without_allocating() {
     assert_eq!(run(sensor.initialize(&mut delay)), Ok(Chip::Bme280));
     let (result, costs) = allocation_probe::observe(|| run(sensor.measure_exact(&mut delay)));
     let exact = result.unwrap();
+    // Pin the retained driver intermediate, not just the rounded conversion.
+    // Authored BME Source uses signed shifts and has a different pressure
+    // result for these temperature/pressure coefficients and raw samples.
+    assert_eq!(exact.pressure_q24_8_pascal, 25_767_240);
     assert_eq!(exact.into_reading().pressure_centi_pascal, 10065328);
     assert_eq!(exact.temperature_centi_celsius, 2508);
     assert!(steps.borrow().is_empty());

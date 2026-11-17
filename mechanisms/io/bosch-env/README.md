@@ -63,3 +63,24 @@ claim that a particular module is wired, powered, detected or operating.
 The exact API preserves this driver's current protocol and refusal policy. It is
 not a claim of correspondence with Conduit Source BME contracts, an admitted
 provider, or completed sampling/Mask integration.
+
+
+### Arithmetic correspondence boundary
+
+`ExactReading` preserves the driver's intermediate; it does not make the driver
+interchangeable with the authored `bme280-observation` Plot. The pinned Bosch C
+routine uses signed division by powers of two, which truncates toward zero.
+The authored Source uses signed arithmetic shifts, which round negative values
+toward negative infinity. For the temperature/pressure coefficients used by the
+existing protocol fixture and raw pressure 415148 / temperature 519888, this
+driver yields pressure Q24.8 **25767240**. The Source regression
+`architecture/plot/tests/bme280_observation.rs::complete_compensation_yields_one_exact_typed_observation`
+expects **25767233** for those same temperature/pressure inputs. Humidity fixture
+coefficients differ, so that comparison makes no humidity-equivalence claim.
+
+Preserve the existing driver/oracle behavior. A future native BME Back must
+explicitly resolve the arithmetic and refusal contract before replacing that
+Plot; identical unit names and retention of low pressure bits are insufficient.
+The protocol test pins the driver's intermediate to prevent a rounded legacy
+comparison from hiding this distinction. This records a source audit and an
+executed driver regression, not a newly executed differential Source test.
