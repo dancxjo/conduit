@@ -31,6 +31,7 @@ package_test_shard!(
         "conduit-host-orange-pi",
         "conduit-host-raspberry-pi",
         "conduit-host-rp2040",
+        "conduit-mcu-host-runtime",
         "conduit-rp2040-flash-layout",
         "conduit-emergency-keyword-spotter",
         "conduit-linear-framebuffer-make",
