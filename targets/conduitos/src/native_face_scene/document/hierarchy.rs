@@ -1,7 +1,7 @@
 //! Resolve declared rhetorical hierarchy into the native reader's first view.
 //!
 //! This is presentation policy over immutable Face truth. Associated content
-//! within a containing subject leads its structural context; subordinate text
+//! leads its structural context; subordinate text
 //! remains in the complete Details reader. Neither choice changes semantic
 //! order, action identity, availability, or image-resource selection.
 use super::{Item, layout};
@@ -23,14 +23,12 @@ pub(super) fn arrange_primary(face: &Face, items: &mut Vec<Item>) {
     let mut associated = alloc::vec![false; face.subjects.len()];
     let mut subordinate = alloc::vec![false; face.subjects.len()];
     for relation in &face.composition {
-        let (Some(child), Some(parent)) = (index(&relation.source), index(&relation.target)) else {
+        let Some(child) = index(&relation.source) else {
             continue;
         };
-        // A peer association is not a containment hierarchy. Do not invent a
-        // hierarchy from wording, roles, serialization order or identity names.
-        if !contains.contains(&(parent, child)) {
-            continue;
-        }
+        // The explicit rhetorical relation is sufficient: a contribution may
+        // be associated with Body truth through provenance rather than Contains.
+        // Contains only extends that declared disposition to its own content.
         match relation.kind {
             FaceCompositionKind::Associate => associated[child] = true,
             FaceCompositionKind::Subordinate => subordinate[child] = true,
