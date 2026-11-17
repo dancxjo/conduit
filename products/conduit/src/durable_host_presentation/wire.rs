@@ -555,79 +555,11 @@ pub(super) fn load_member_encounter(
     .map_err(|_| "invalid installed finite member encounter".into())
 }
 
-fn signed_return_exchange(
-    state: &std::path::Path,
-    prior: &conduit_body::MembershipCredential,
-    actual: &conduit_core::HostAdvertisement,
-    candidate: &RendezvousCandidate,
-) -> Result<
-    (
-        SecureWebSocketClientLine,
-        conduit_body::MembershipCredential,
-    ),
-    String,
-> {
-    use crate::durable_host::routed_join::{MemberReturnFrame, MEMBER_RETURN_SCHEMA};
-    let deadline = Instant::now()
-        + Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000)));
-    let mut line = connect(
-        candidate,
-        Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000))),
-    )?;
-    line.replace_io_deadline(deadline)
-        .map_err(|e| format!("member return I/O deadline:{e:?}"))?;
-    send(
-        &mut line,
-        &MemberReturnFrame::Advertise {
-            schema: MEMBER_RETURN_SCHEMA.into(),
-            credential: prior.clone(),
-            advertisement: Box::new(actual.clone()),
-        },
-        ADMISSION,
-    )?;
-    let challenge = match receive::<MemberReturnFrame>(&mut line, MESSAGE)? {
-        MemberReturnFrame::Challenge { schema, challenge } if schema == MEMBER_RETURN_SCHEMA => {
-            *challenge
-        }
-        MemberReturnFrame::Refused { code, .. } => {
-            return Err(format!("member return refused: {code}"))
-        }
-        _ => return Err("member return challenge response schema".into()),
-    };
-    let proof = super::super::membership::sign_return_challenge(
-        state,
-        prior,
-        actual,
-        &challenge,
-        super::super::current_time_millis()?,
-    )?;
-    send(
-        &mut line,
-        &MemberReturnFrame::Proof {
-            schema: MEMBER_RETURN_SCHEMA.into(),
-            proof: crate::durable_host::owner::MemberReturnProofDocument::encode(proof),
-        },
-        MESSAGE,
-    )?;
-    let credential = match receive::<MemberReturnFrame>(&mut line, ADMISSION)? {
-        MemberReturnFrame::Admitted {
-            schema,
-            credential,
-            advertisement,
-        } if schema == MEMBER_RETURN_SCHEMA
-            && *advertisement == *actual
-            && credential.issued_at_millis >= challenge.issued_at_millis
-            && credential.issued_at_millis < challenge.expires_at_millis =>
-        {
-            credential
-        }
-        MemberReturnFrame::Refused { code, .. } => {
-            return Err(format!("member return refused: {code}"))
-        }
-        _ => return Err("member return response differs from authenticated challenge".into()),
-    };
-    Ok((line, credential))
-}
+#[path = "wire/return_exchange.rs"]
+mod return_exchange;
+#[path = "wire/return_validity.rs"]
+mod return_validity;
+use return_exchange::signed_return_exchange;
 
 #[cfg(test)]
 #[path = "member_return_tests.rs"]
