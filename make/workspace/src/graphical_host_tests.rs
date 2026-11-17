@@ -262,3 +262,24 @@ fn pi5_display_and_checked_speaker_intents_compose_without_pcm_or_display_effect
         .any(|(kind, implementation)| kind == "audio/speaker"
             && implementation == "std/kernel-audio-play-alsa-hw@1"));
 }
+
+#[test]
+fn pi5_display_and_pinned_whisper_capability_share_the_checked_catalog() {
+    let source = pi5_initialized_source().replace("  limits =", "  base = {kind: \"speech/recognizer\", implementation: \"std/hosted-whisper-clip-speech@2\"}\n  capability = {kind: \"speech/recognize-clip\", pinned_implementation: \"std/hosted-whisper-clip-speech@2\"}\n  need = {id: \"speech/process\", class: \"conduit.resource/whisper-process-slot@1\", slots: 1, bytes: 1}\n  limits =");
+    let checked = check_initialized(&source);
+    assert!(super::CheckedNativeMaskInitialization::from_configuration(&checked).is_ok());
+    assert!(checked.profile().capabilities.iter().any(|capability| {
+        capability.kind == "speech/recognize-clip"
+            && capability.implementation == "std/hosted-whisper-clip-speech@2"
+    }));
+    let foreign = source.replace(
+        "pinned_implementation: \"std/hosted-whisper-clip-speech@2\"",
+        "pinned_implementation: \"std/hosted-whisper-clip-speech@999\"",
+    );
+    assert!(check_host_configuration(
+        parse_host_configuration_conduit(&foreign).unwrap(),
+        &super::catalog(),
+        &super::package_set(),
+    )
+    .is_err());
+}
