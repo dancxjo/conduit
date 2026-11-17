@@ -6,11 +6,17 @@ use super::{
 use alloc::vec::Vec;
 
 pub(super) fn verify_plan_connections(plan: &Plan) -> bool {
-    let mut connections = plan
+    let count = plan
         .fragments
         .iter()
-        .flat_map(|fragment| &fragment.connections)
-        .collect::<Vec<_>>();
+        .map(|fragment| fragment.connections.len())
+        .sum();
+    let mut connections = Vec::with_capacity(count);
+    connections.extend(
+        plan.fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections),
+    );
     // Sort only borrowed scratch; the Plan and its canonical order stay intact.
     connections.sort_unstable_by(|left, right| left.connection_id.cmp(&right.connection_id));
     let mut remaining = connections.as_slice();
