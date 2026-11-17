@@ -8,8 +8,6 @@ pub const WRITE_TIMEOUT_MILLIS: u32 = 2_000;
 /// Platform-owned IO. Every read/write must enforce the passed local deadline.
 /// Cancellation must stop using the borrowed buffer before its future returns
 /// or is dropped. Empty writes terminate USB packets; UART may treat them as no-op.
-/// A successful read must supply bytes. Platforms filtering empty USB packets
-/// must yield and enforce the remaining deadline; Link refuses zero progress.
 #[allow(async_fn_in_trait)]
 pub trait Carrier {
     type Error;
@@ -21,7 +19,6 @@ pub trait Carrier {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refusal {
     Carrier,
-    NoProgress,
     Framing,
     OutputExtent,
     Document,
@@ -59,9 +56,6 @@ impl<C: Carrier> Link<C> {
                 .read(&mut packet, READ_TIMEOUT_MILLIS)
                 .await
                 .map_err(|_| Refusal::Carrier)?;
-            if n == 0 {
-                return Err(Refusal::NoProgress);
-            }
             let bytes = packet.get(..n).ok_or(Refusal::OutputExtent)?;
             self.decoder
                 .accept_bytes(bytes)
@@ -87,9 +81,6 @@ impl<C: Carrier> Link<C> {
                 .read(&mut packet, READ_TIMEOUT_MILLIS)
                 .await
                 .map_err(|_| Refusal::Carrier)?;
-            if n == 0 {
-                return Err(Refusal::NoProgress);
-            }
             let bytes = packet.get(..n).ok_or(Refusal::OutputExtent)?;
             self.decoder
                 .accept_bytes(bytes)
