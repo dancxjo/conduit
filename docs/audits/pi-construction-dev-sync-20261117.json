@@ -1,0 +1,22 @@
+{
+  "schema": "conduit.qualification/pi-construction-dev-sync@1",
+  "tested_source": "674c9b2cb4e87ecbc33233daac33cf1698ead45f",
+  "dev": "02c2af772a",
+  "dev_change": "Merged #6963 bounded borrowed Core preparation",
+  "owning_tests": {
+    "command": "cargo test -p conduit-workspace-make --lib",
+    "passed": 10,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_lint": {
+    "packages": [
+      "conduit-workspace-make",
+      "conduit-host-hosted",
+      "conduit-linear-framebuffer-make"
+    ],
+    "scope": "lib/tests/no-deps/-D warnings",
+    "result": "PASS"
+  },
+  "limits": "Construction compatibility only; not a new Root/Pi/MCU executable, source adoption, Started, sound or physical Show. No new PR/CI slot."
+}
