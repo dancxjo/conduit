@@ -11,6 +11,7 @@ const MAXIMUM_BYTES: u64 = 64 * 1024;
 pub(super) struct Captured {
     path: PathBuf,
     pub sha256: String,
+    pub execution_workspace: bool,
 }
 impl Captured {
     pub fn capture(
@@ -20,6 +21,13 @@ impl Captured {
         dry_run: bool,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let bytes = read(input, source_sha256)?;
+        let value: serde_json::Value = serde_json::from_slice(&bytes)?;
+        let execution_workspace = match value.get("resident_execution_storage") {
+            None => false,
+            Some(serde_json::Value::String(value)) if value == "owned" => false,
+            Some(serde_json::Value::String(value)) if value == "shared-workspace" => true,
+            _ => return Err("unsupported captured resident execution storage".into()),
+        };
         let sha256 = format!("{:x}", Sha256::digest(&bytes));
         let path = if dry_run {
             input.canonicalize()?
@@ -29,7 +37,11 @@ impl Captured {
             fs::write(&path, bytes)?;
             path.canonicalize()?
         };
-        Ok(Self { path, sha256 })
+        Ok(Self {
+            path,
+            sha256,
+            execution_workspace,
+        })
     }
     pub fn configure(&self, command: &mut Command) {
         command

@@ -50,7 +50,12 @@ conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }
 conduit-time = { path = "../../../../semantics/time", default-features = false }
 conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
 conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["appliance", "face-projection", "display-mask"] }
+[features]
+# Support only. The captured typed-selection receipt selects physical storage.
+execution-workspace = ["conduit-mcu-host-runtime/execution-workspace", "conduit-semantic-catalog/execution-workspace", "conduit-mcu-source-build/execution-workspace"]
+
 [build-dependencies]
+conduit-mcu-source-build = { path = "../../../mcu/source-build" }
 conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 conduit-embedded-build = { path = "../../../../make/embedded-build" }
 conduit-host-make = { path = "../../../../make/host" }

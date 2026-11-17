@@ -19,7 +19,7 @@ pub fn prepare(
         image_id,
         source_identity,
         out,
-        conduit_embedded_build::ResidentExecutionStorage::Owned,
+        None,
         |source, input, physical| {
             native_build::calibrate_and_emit_neutral(source, None, out, input, physical)
         },
@@ -44,7 +44,7 @@ pub fn inspect_schema(
         image_id,
         source_identity,
         out,
-        conduit_embedded_build::ResidentExecutionStorage::SharedWorkspaceSchema,
+        Some(conduit_embedded_build::ResidentExecutionStorage::SharedWorkspaceSchema),
         |source, mut input, physical| {
             input.bounds.image = conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING;
             calibration::inspect_with_physical_bases(source, input, physical)
@@ -60,7 +60,7 @@ fn with_inputs<T>(
     image_id: &str,
     source_identity: &str,
     out: &Path,
-    storage: conduit_embedded_build::ResidentExecutionStorage,
+    inspection_storage: Option<conduit_embedded_build::ResidentExecutionStorage>,
     finish: impl FnOnce(
         &mut workset::Workset,
         calibration::Input<'_>,
@@ -70,6 +70,15 @@ fn with_inputs<T>(
     let Some(mut source) = workset::from_environment(None)? else {
         return Ok(None);
     };
+    let storage = inspection_storage.unwrap_or_else(|| source.resident_execution_storage());
+    if inspection_storage.is_none()
+        && storage == conduit_embedded_build::ResidentExecutionStorage::SharedWorkspace
+        && !cfg!(feature = "execution-workspace")
+    {
+        return Err(
+            "captured shared workspace requires matching target execution-workspace support".into(),
+        );
+    }
     let image = image_input::from_environment(checked, catalog, image_id, source_identity)?;
     let bus = conduit_host_rp2040::CheckedI2cConstruction::from_configuration(checked)?;
     if bus.maximum_call_operations == 0 || bus.call_address_range.is_none() {
@@ -99,8 +108,8 @@ fn with_inputs<T>(
     let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(checked)?;
     // Each Source-selected owner retains its exact compiler requirement. A
     // shared pool is an aggregate limit, not an equal per-owner allowance.
-    // This BSP still selects Owned storage; workspace/schema storage requires
-    // a separate explicit runtime/profile choice and memory qualification.
+    // Captured storage is sealed into each original resident artifact.
+    // Inspection overrides are host-only and never qualify a target artifact.
     let mut resident_bounds = conduit_host_rp2040::source_build::resident_expression_bounds(
         u16::try_from(work.capacity_units.min(u32::from(u16::MAX - 3)))
             .map_err(|_| "private work width")?,

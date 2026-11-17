@@ -129,6 +129,13 @@ pub struct PreparedResidentLoans<'a> {
     _owner: &'a mut Initialized,
 }
 impl<'a> PreparedResidentLoans<'a> {
+    #[cfg(feature = "execution-workspace")]
+    pub fn execution_workspace_requirements_at<const P: usize>(
+        &self,
+        _slot: usize,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+        None // zero slots: there is no owner or workspace claim
+    }
     pub fn terminal_transductions<const P: usize>(
         &self,
     ) -> [Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>; 0] {
@@ -178,6 +185,12 @@ pub struct PreparedResidentEntryLoan<'a> {
     _loan: core::marker::PhantomData<&'a mut Initialized>,
 }
 impl<'a> PreparedResidentEntryLoan<'a> {
+    #[cfg(feature = "execution-workspace")]
+    pub fn execution_workspace_requirements<const P: usize>(
+        &self,
+    ) -> Option<conduit_kernel::scheduler::StepWorkspaceRequirements> {
+        match self.never {}
+    }
     pub fn terminal_transductions<const P: usize>(
         &self,
     ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {

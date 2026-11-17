@@ -170,6 +170,7 @@ pub fn compile_specialized_with_installed(
     Ok(Workset {
         installed_values,
         calibrated: false,
+        resident_execution_storage: conduit_embedded_build::ResidentExecutionStorage::Owned,
         checked_source: checked,
         sha256,
         entries: material,

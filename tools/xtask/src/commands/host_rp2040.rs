@@ -79,6 +79,9 @@ pub(super) fn build(
     super::host_workset_source::clear_inputs(command);
     description.configure(command)?;
     if let Some(input) = workset {
+        if input.uses_execution_workspace() {
+            command.args(["--features", "execution-workspace"]);
+        }
         input.configure(command)?;
     }
     let build_out = super::host_cargo_build::run(command, &target_dir, "conduit-rp2040-host")?;

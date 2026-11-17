@@ -118,6 +118,13 @@ unsafe impl<'a>
     > {
         Some(generated::PreparedResidentLoans::terminal_transductions::<P>(self))
     }
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements_at<const P: usize>(
+        &self,
+        slot: usize,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+        generated::PreparedResidentLoans::execution_workspace_requirements_at::<P>(self, slot)
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)
     }
@@ -139,6 +146,12 @@ unsafe impl<'a> conduit_mcu_host_runtime::execution_factory::PreparedResidentEnt
         &self,
     ) -> Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]> {
         Some(generated::PreparedResidentEntryLoan::terminal_transductions::<P>(self))
+    }
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements<const P: usize>(
+        &self,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+        Some(generated::PreparedResidentEntryLoan::execution_workspace_requirements::<P>(self))
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)

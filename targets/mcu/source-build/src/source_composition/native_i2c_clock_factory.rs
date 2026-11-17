@@ -2,8 +2,8 @@
 // resident/software/native owners, construct storage from those exact owners,
 // and enter the original kernel preparation path with immutable terminal laws.
 // This returns an unbound member of a whole-workset preparation, never a Play.
-// Callers selecting execution-workspace must additionally use the original
-// prepare_execution_workspace gate before whole-workset admission and Start.
+// With explicit execution-workspace support, cold-fund the exact selected
+// owners before returning this still-unbound whole-workset member.
 use conduit_kernel::{assigned::ResidentLayout, scheduler::StepBack};
 use conduit_mcu_host_runtime::{
     execution::{ExecutionSigns, ExecutionValues, PreparedBacks, PreparedFragment, Refusal},
@@ -122,7 +122,7 @@ where
             .ok_or(Refusal::Bounds)?)
         .ok_or(Refusal::Bounds)?;
     let (values, signs) = storage(&backs, remaining).map_err(Refusal::Back)?;
-    PreparedFragment::prepare_with_linked_terminal_transductions(
+    let fragment = PreparedFragment::prepare_with_linked_terminal_transductions(
         approved,
         b::AssignedBodyPreparationProfile {
             maxima: profile.maxima,
@@ -137,5 +137,16 @@ where
         policy.maximum_retained_bytes,
         || Ok(backs),
         expected,
-    )
+    )?;
+    #[cfg(feature = "execution-workspace")]
+    let fragment = {
+        let mut fragment = fragment;
+        // The original remaining retained ceiling funds one exact maximum pair.
+        // No provider is bound and no workset is admitted or Started here.
+        fragment
+            .prepare_execution_workspace()
+            .map_err(|_| Refusal::Bounds)?;
+        fragment
+    };
+    Ok(fragment)
 }

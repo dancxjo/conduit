@@ -128,3 +128,35 @@ fn no_selected_workset_clears_all_inherited_compilation_inputs() {
         );
     }
 }
+
+#[test]
+fn captured_physical_storage_is_explicit_and_part_of_the_existing_identity() {
+    let f = Fixture::new();
+    let path = f.receipt(false);
+    let omitted = f.capture(Some(&path), "omitted-storage");
+    assert!(!omitted.uses_execution_workspace());
+    let mut receipt: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    receipt["resident_execution_storage"] = "shared-workspace".into();
+    fs::write(&path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+    let shared = f.capture(Some(&path), "shared-storage");
+    assert!(shared.uses_execution_workspace());
+    assert_ne!(omitted.identity, shared.identity);
+    shared.verify().unwrap();
+    receipt["resident_execution_storage"] = "owned".into();
+    fs::write(&path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+    let owned = f.capture(Some(&path), "owned-storage");
+    assert!(!owned.uses_execution_workspace());
+    assert_ne!(owned.identity, shared.identity);
+    shared.verify().unwrap(); // captured bytes remain immutable after input changes
+    receipt["resident_execution_storage"] = "automatic".into();
+    fs::write(&path, serde_json::to_vec(&receipt).unwrap()).unwrap();
+    assert!(WorksetSourceInput::capture(
+        &f.0.join("source.conduit"),
+        &["main".into()],
+        Some(&path),
+        "fixture/git",
+        &f.0.join("invalid-storage"),
+        false
+    )
+    .is_err());
+}
