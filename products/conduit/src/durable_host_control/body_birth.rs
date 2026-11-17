@@ -119,7 +119,7 @@ impl DurableHostRuntime {
                 let prepared = crate::durable_host::owner::Owner::prepare_born(
                     born.body().clone(),
                     friendly_name,
-                    &advertisement,
+                    host,
                 )?;
                 let body_id = prepared.body_id().clone();
                 // Publication can fail after its recoverable journal is written.
@@ -133,7 +133,13 @@ impl DurableHostRuntime {
                     return Err(super::CONTROL_OUTCOME_UNKNOWN.into());
                 };
                 let mut owner =
-                    crate::durable_host::owner::Owner::from_prepared_born(*host, prepared);
+                    match crate::durable_host::owner::Owner::from_prepared_born(host, prepared) {
+                        Ok(owner) => owner,
+                        Err((host, _)) => {
+                            self.host = HostSource::Bare(host);
+                            return Err(super::CONTROL_OUTCOME_UNKNOWN.into());
+                        }
+                    };
                 let presented = (|| {
                     if let Some(checked) = &checked_source {
                         owner.set_resident_plot_name(checked)?;

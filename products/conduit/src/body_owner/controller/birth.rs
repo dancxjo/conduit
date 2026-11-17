@@ -8,13 +8,14 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::{bind_sign, HostAdvertisement};
+use conduit_core::bind_sign;
 use conduit_std_host::StdHost;
 use std::path::Path;
 
 pub(crate) struct PreparedBirth {
     session: BodyLifecycleSession,
     resident: Option<ResidentPlot>,
+    root_preparation: Option<conduit_std_host::body_execution::ImageRootPreparationOwner>,
 }
 
 impl PreparedBirth {
@@ -31,8 +32,10 @@ impl Owner {
     pub(crate) fn prepare_born(
         body: Body,
         friendly_name: String,
-        advertised: &HostAdvertisement,
+        host: &StdHost,
     ) -> Result<PreparedBirth, String> {
+        let root_preparation = OwnerHost::prepare(host)?;
+        let advertised = host.advertisement();
         let admitted_sequence = body
             .birth_sequence
             .checked_add(1)
@@ -77,14 +80,19 @@ impl Owner {
         Ok(PreparedBirth {
             resident: body.workset.plots().first().cloned(),
             session,
+            root_preparation,
         })
     }
 
-    pub(crate) fn from_prepared_born(host: StdHost, prepared: PreparedBirth) -> Self {
-        Self {
+    pub(crate) fn from_prepared_born(
+        host: Box<StdHost>,
+        prepared: PreparedBirth,
+    ) -> Result<Self, (Box<StdHost>, String)> {
+        let host = OwnerHost::from_prepared_boxed(host, prepared.root_preparation)?;
+        Ok(Self {
             prepared_admission_route: None,
             member_carrier_identity: None,
-            host: OwnerHost::new(host)?,
+            host,
             session: prepared.session,
             resident: prepared.resident,
             resident_name: None,
@@ -106,6 +114,6 @@ impl Owner {
             todo_live: None,
             todo_verified: None,
             notebook: None,
-        }
+        })
     }
 }
