@@ -147,6 +147,26 @@ impl KernelResourceLedger {
         Ok(bytes)
     }
 
+    /// Reserve the independently computed fixed Base stores before allocation.
+    /// This is not a complete Plan receipt, process RSS or preparation peak.
+    pub(crate) fn reserve_managed_base_memory(
+        &mut self,
+        bytes: usize,
+    ) -> Result<ImageMemoryLease, String> {
+        self.require_available()?;
+        let bounds = self
+            .image_bounds
+            .as_ref()
+            .ok_or("managed Base requires checked IMAGE bounds")?;
+        let limit = usize::try_from(bounds.heap_arena_bytes)
+            .map_err(|_| "IMAGE heap exceeds local size")?;
+        let used = self
+            .image_memory
+            .as_ref()
+            .ok_or("IMAGE memory owner absent")?;
+        reserve_image_memory(used, limit, bytes)
+    }
+
     /// Called only with the closed borrowed-Plan preparation footprint.
     pub(crate) fn fund_tick_preparation(&self, bytes: usize) -> Result<ImageMemoryLease, String> {
         self.require_available()?;
