@@ -62,4 +62,10 @@ fn printable_and_zero_heavy_payloads_use_compact_single_byte_string() {
     assert_eq!(literal.len(), 3 + 1024 + 2 * 1024);
     assert!(literal.len() < (3 + bytes.len() * 4) / 2);
     assert_eq!(byte_string_literal(&[]), "b\"\"");
+    for digit in b'0'..=b'9' {
+        assert_eq!(
+            byte_string_literal(&[0, digit]),
+            format!("b\"\\x00{}\"", char::from(digit))
+        );
+    }
 }
