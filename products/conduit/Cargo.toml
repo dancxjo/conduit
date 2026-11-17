@@ -49,7 +49,7 @@ conduit-semantic-catalog = { path = "../../semantics/catalog", default-features 
 conduit-tongues = { path = "../../semantics/tongues" }
 conduit-time = { path = "../../semantics/time" }
 conduit-text = { path = "../../semantics/text" }
-conduit-wire = { path = "../../architecture/wire" }
+conduit-wire = { path = "../../architecture/wire", features = ["offer-images"] }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["plot-catalog"] }
 conduit-workspace-make = { path = "../../make/workspace" }
 patchbay-svg-mask = { path = "../../plots/patchbay/workbench/svg-mask" }

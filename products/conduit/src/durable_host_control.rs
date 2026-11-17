@@ -1043,6 +1043,11 @@ enum Request {
         token: Vec<u8>,
         encounter: Box<crate::durable_host::MemberEncounter>,
     },
+    BodyMemberImageReturn {
+        protocol: u16,
+        token: Vec<u8>,
+        command: Box<body::image_member_return::Command>,
+    },
     BodyMemberReturnBegin {
         protocol: u16,
         token: Vec<u8>,
@@ -1330,6 +1335,10 @@ enum Response {
     BodyBrowserLeft {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
+    },
+    BodyMemberImageReturn {
+        protocol: u16,
+        reply: Box<body::image_member_return::Reply>,
     },
     BodyMemberReturnChallenge {
         protocol: u16,
@@ -1891,6 +1900,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
         | Request::BodyReturn { token, .. }
+        | Request::BodyMemberImageReturn { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
@@ -2226,6 +2236,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|credential| Response::BodyMemberReturned {
                 protocol: PROTOCOL,
                 credential,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberImageReturn {
+            protocol, command, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_image_member_return(*command)
+            .map(|reply| Response::BodyMemberImageReturn {
+                protocol: PROTOCOL,
+                reply: Box::new(reply),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberReturnBegin {

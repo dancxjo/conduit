@@ -4,6 +4,8 @@
 
 #[path = "body/face_snapshot.rs"]
 mod face_snapshot;
+#[path = "body/image_member_return.rs"]
+pub(super) mod image_member_return;
 #[path = "body/member_leave.rs"]
 mod member_leave;
 #[path = "body/member_return.rs"]
