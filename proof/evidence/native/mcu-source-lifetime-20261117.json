@@ -85,7 +85,8 @@
           "name": "_RNvNtCsionmlz3CBjb_19conduit_rp2040_host4heap5BYTES",
           "bytes": 110592
         }
-      ]
+      ],
+      "trace_with_mutex_refcell_linked_bytes": 492
     },
     "compiler_limits": {
       "memory_bytes": 2147483648,
