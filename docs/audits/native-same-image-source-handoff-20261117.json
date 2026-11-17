@@ -1,0 +1,75 @@
+{
+  "schema": "conduit.handoff/native-initialization-source@1",
+  "created_at": "2026-11-17T03:05:03.958386+00:00",
+  "source_commit": "33a911b7dee8ffb98472cd5208def43337d835bc",
+  "source_ref": "origin/integrate/ambient-root-b341-20261117",
+  "ambient_reference": "3ca69772b7",
+  "scope": "Source-only hunk release to Queue for same-original-counter speaker plus native Mask initial equipment composition in its isolated current-dev checkout. Not blanket whole-file replacement or effect authority.",
+  "files": [
+    {
+      "path": "targets/std/src/image_initialization.rs",
+      "sha256": "5939f33660c781900400488edd6cdc361280a6db15dc19bbca0f0c1a88481313",
+      "bytes": 29364
+    },
+    {
+      "path": "targets/std/src/selected_native_mask/initialization.rs",
+      "sha256": "8aecc1f7e55e3ff09f24ed025413c388a953f65484494fb8fb159a0d323d7934",
+      "bytes": 15017
+    },
+    {
+      "path": "targets/std/src/selected_native_mask.rs",
+      "sha256": "79546d0cd0feafe763d29d78b66164fcb4b719993a98b054f2ab92b44ea5f9d6",
+      "bytes": 22484
+    },
+    {
+      "path": "targets/std/src/selected_scanout.rs",
+      "sha256": "59b8a88fce40250c97ad8a7381f4b7bf629a38781d2d030ae9980477e4e4ea03",
+      "bytes": 6466
+    },
+    {
+      "path": "targets/std/src/selected_native_mask/images.rs",
+      "sha256": "6b6a01d08c02ae91a03523565bbe71f2f33bf0a752a94b4d18cb4d0c79294836",
+      "bytes": 10994
+    },
+    {
+      "path": "targets/std/src/selected_native_source/registry.rs",
+      "sha256": "b83b4d4d4e869485bab6016a9b51dd204522a8a0a502e96a09e3d5115ecdd66a",
+      "bytes": 2856
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/backing.rs",
+      "sha256": "9d2a6acdedb2c32adc3779b434d85a143986f14127fb267570503163d9d881f8",
+      "bytes": 3811
+    },
+    {
+      "path": "targets/conduitos/src/native_compositor/backing/tests.rs",
+      "sha256": "a3f1bc08234019b0d9c09f6a0a21594f1357b0b5042c4e66c80eba4915ff659e",
+      "bytes": 1327
+    },
+    {
+      "path": "targets/conduitos/src/native_mask_play/unbound.rs",
+      "sha256": "657979948b7a3e3427b63a76e55e96802ace4f1e27d4c3ab80b61f28859f47a1",
+      "bytes": 4062
+    },
+    {
+      "path": "targets/conduitos/src/native_mask_play/retained.rs",
+      "sha256": "415395e4f9d50b000110d0fdd78cf01ff1e31752bf81bc8243678b26b1ff51ae",
+      "bytes": 13018
+    },
+    {
+      "path": "targets/conduitos/src/native_mask_play/unbound/tests.rs",
+      "sha256": "ad627b567f5d668c8f1edc98ad67c5295be028b1195dfaa3f5f538b9bee6b15e",
+      "bytes": 2272
+    },
+    {
+      "path": "mechanisms/implementations/linear-framebuffer-make/src/initialization.rs",
+      "sha256": "4e9d29389a06f140212da002132749e1ef87f28c21b2c27b24051229cc8534fc",
+      "bytes": 3608
+    },
+    {
+      "path": "mechanisms/implementations/linear-framebuffer-make/src/native_mask_initialization.rs",
+      "sha256": "008a62cc9a39d1e93ad00ef8b71cdf0fa48a02803f49b8e341d92f7b9f2d8df6",
+      "bytes": 3703
+    }
+  ]
+}
