@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running unittests src/lib.rs (target/debug/deps/conduit_mcu_source_build-a78e82e511d8a760)
+
+running 1 test
+test bme_sampling_build_tests::repeated_sampling_selects_real_finite_state_and_pairing_owners ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 12.89s
+

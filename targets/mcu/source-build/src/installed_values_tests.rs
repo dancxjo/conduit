@@ -287,3 +287,6 @@ fn captured_make_receipt_preserves_source_and_installed_material() {
     );
     assert_eq!(captured.entries[0].rust, original.entries[0].rust);
 }
+
+#[path = "green_closed_source_tests.rs"]
+mod green_closed_source_tests;

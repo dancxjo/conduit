@@ -34,8 +34,9 @@ fn library() -> String {
         .join("\n");
     format!("{imports}\n{body}")
 }
-#[test]
-fn repeated_sampling_selects_real_finite_state_and_pairing_owners() {
+/// Original repeated protocol Source and exact standard-family selections.
+/// This returns authoring inputs only; it creates no availability or grant.
+pub(super) fn selected_source() -> (String, Vec<S<'static>>) {
     let mut startup = p::StartupCatalog::new();
     let mut profiles = p::ProfileCatalog::new();
     crate::protocol_catalog::install(&mut startup, &mut profiles).unwrap();
@@ -231,6 +232,12 @@ plot sampled-environment (
 }
 "#);
     let source = format!("{imports}\n{library}\n{wrappers}");
+    (source, selected)
+}
+
+#[test]
+fn repeated_sampling_selects_real_finite_state_and_pairing_owners() {
+    let (source, selected) = selected_source();
     let sha = format!("{:x}", Sha256::digest(source.as_bytes()));
     let workset = workset::compile_specialized(
         source.as_bytes(),
