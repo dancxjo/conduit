@@ -1,0 +1,6 @@
+
+running 2 tests
+test source_composition::native_i2c_clock_tests::mixed_duplicate_missing_inventory_refuses_before_native_preparation ... ok
+test source_composition::native_i2c_clock_tests::exact_native_pair_uses_remapped_kernel_nodes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.00s

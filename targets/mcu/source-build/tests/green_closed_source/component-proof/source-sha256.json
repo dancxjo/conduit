@@ -1,0 +1,19 @@
+{
+  "make/embedded-build/src/resident_library.rs": "e538a944fd3302fb160fa99e19f10a4d2a57f1359a46826ffbfcfbcbdcac3c9b",
+  "make/embedded-build/src/resident_library_empty_source.rs": "67403227a71fecca69bf6b95b835a18c563b3cd5040087975efe1868ff942ec2",
+  "make/embedded-build/src/resident_library_empty_tests.rs": "20e3947c0b30a2805022c8601eb76c2f9bbefe0e138ff48ee20251cc8606a038",
+  "targets/mcu/source-build/Cargo.toml": "727d5ae050cc28ed06a02bd502f0c1746a470981f3fdaab671519a417b4da416",
+  "targets/mcu/source-build/src/green_closed_source_tests.rs": "e43660b572e76f664b7c3656333b8b378218f5b28f1ff75394777d762916e950",
+  "targets/mcu/source-build/src/source_composition/native_i2c_clock_factory.rs": "1c7a34a8109c3fb96c513a86c95e6fd46930a342fa0020a141e25a31b72cfdd3",
+  "targets/mcu/source-build/src/workset.rs": "719807af1e60ddcd9f32ee130098d2bcaef15f87eb3f6f6f8212c5848ba056ee",
+  "targets/mcu/source-build/src/workset_compile.rs": "212b9e9555d4838bc3b95aa9757231704f6a467d4514796cef71bb808f9a82dc",
+  "targets/mcu/source-build/src/workset_inputs.rs": "54f9f754d666fcee75c7e177997f3c386059fcb9a48b73b629364f27340c5f83",
+  "targets/rp2040/firmware/host/Cargo.toml": "f66c5f1ad99e220fb78c7c6c6de761235ac80aec40b4d715a1b72c554ec4541e",
+  "targets/rp2040/firmware/host/dht_workset_build.rs": "9b921ba21068d39fff5b974be0f25722247f8c83cfe7580da8b343789e551770",
+  "targets/rp2040/firmware/host/i2c_workset_build.rs": "4d700894347c1d2c85f973b9ff137d5e64ba086fb0014a919a8c404c6a92d146",
+  "targets/rp2040/firmware/host/src/resident.rs": "6eaaf195ed1350787117c067c85631fe89efded24a0584d01695c6a81f4a6295",
+  "tools/xtask/src/commands/host_rp2040.rs": "c56f98b02bc84ef2179c46c706937859b1cb16bfaeb883403b9e7e046a5e1eb7",
+  "tools/xtask/src/commands/host_workset_source.rs": "00e2d5a6cad4e9f2eefaf95461c735327f3e213774f746633f59e9dc2f1069a7",
+  "tools/xtask/src/commands/host_workset_source_tests.rs": "a510b35b72f6132fcc5dd0f46b5964e4e52c3cfcd682cbd5d345713f027e51a0",
+  "tools/xtask/src/commands/host_workset_specializations.rs": "7445529cb517064699847bde95f0ef9490e61948d02f9484eaf547c0258d0ee6"
+}

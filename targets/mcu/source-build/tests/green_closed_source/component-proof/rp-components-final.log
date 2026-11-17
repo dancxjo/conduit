@@ -1,0 +1,3 @@
+conduit_mcu_source_build 0
+conduit_host_rp2040 0
+green_i2c_build_helper 0

@@ -1,0 +1,6 @@
+
+running 2 tests
+test empty::empty_inventory_generation_still_obeys_its_explicit_byte_bound ... ok
+test empty::empty_inventory_retains_no_computation_owners_and_lends_no_backs ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

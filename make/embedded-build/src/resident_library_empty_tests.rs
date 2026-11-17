@@ -20,6 +20,12 @@ fn empty_inventory_retains_no_computation_owners_and_lends_no_backs() {
     assert!(owner
         .identify_mixed_assignments(b"not a plan", &[])
         .is_err());
+    #[cfg(feature = "execution-workspace")]
+    {
+        let loans = owner.prepare_selected_array([]).unwrap();
+        assert_eq!(loans.execution_workspace_requirements_at::<1>(0), None);
+        assert!(loans.split().is_empty());
+    }
     owner.into_backs();
 }
 

@@ -1,0 +1,15 @@
+
+running 1 test
+GREEN_CLOSED_PAYLOAD architecture_independent_owned_output_plus_scratch=208884 original_entire_heap=49152
+GREEN_CLOSED_INVENTORY residents=52 exact_private_work=17282 original_pool=5000
+GREEN_CLOSED_LARGEST exact_private_work=5379 kind=conduitese/pure-expression/299c1461f57cc0e5c309f9d48fb1f76440cad33ccc2c7cfc0b225d8e2383aa7d
+GREEN_CLOSED_RESIDENT_STORAGE target=host-usize owned_residents=52 retained_heap=0 inline_bytes=234704 preparation_peak_heap=0 runtime_execution=not-started
+
+GREEN_SHARED_RESIDENT_STORAGE target=host-usize owners=52 static_inventory_bytes=15192 shared_workspace_bytes=8102 execution=not-started
+
+GREEN_CLOSED_CORE source_sha256=361a1ca98a0eb9e2b0f4a2721a51a6930563d070cfeb52219f06efc9bbb3aa70 nodes=81 cords=91 software=27 refusal=selected resident private work requires 5073 units; original pool has 5000
+GREEN_HISTORICAL_FIXTURE_INDIVIDUAL selected resident preparation for closed-sampling-core/sampler/sampler/inline-579195cb6ff8-0/inline-d6f4798826b2-0/expression-35fa85d2132e-0: PrivateWork { required: 5379, maximum: 4997 }
+GREEN_ACTUAL_BSP_INDIVIDUAL selected resident preparation for closed-sampling-core/sampler/sampler/inline-579195cb6ff8-0/inline-d6f4798826b2-0/expression-35fa85d2132e-0: PrivateWork { required: 5379, maximum: 5000 }
+test installed_values::tests::green_closed_source_tests::closed_sampling_core_accounts_original_owner_work_before_mask ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 58 filtered out; finished in 31.23s

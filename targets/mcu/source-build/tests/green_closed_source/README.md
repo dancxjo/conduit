@@ -1,5 +1,9 @@
 # Green closed sampling integration boundary
 
+Current production reduction and corrected accounting: [WORKSPACE-REDUCTION.md](WORKSPACE-REDUCTION.md). The initial261e evidence below remains historical.
+
+**Accounting correction:** RP2040 retains these Owned Backs in its static `OWNER` inventory (`host/src/resident.rs`), funded by the static IMAGE reservation. The 208,884-byte payload is permanent inline/static SRAM, not a heap allocation. Its comparison with the 49,152-byte arena is a budget reference, not an existing heap charge. Shared workspace moves only the maximum transient pair into cold-funded kernel backing.
+
 This candidate does **not** qualify Green firmware or a complete environmental Play. It isolates the first actual production blocker without replacing the application with the old open-Fore environmental service or a diagnostic sensor loop.
 
 Base: `823fd1b0d15631fec18fd7cf7296a955a91a2063`, a descendant of frozen qualified MCU Source `8cebe9cddd771d70fb2ff287031b1753978cd3b2` (their merge-base is exactly 8ce). New authoring input SHA256: `361a1ca98a0eb9e2b0f4a2721a51a6930563d070cfeb52219f06efc9bbb3aa70`. This is a distinct candidate, not the frozen ACA Source/fabrication identity. No Make IMAGE, fabrication identity, sealed artifact, admission or Started receipt was produced.
@@ -18,7 +22,8 @@ The new core has no input bindings: original `InstalledValueBindings` emits chec
 | Resident / software owners | 52 / 27 |
 | All resident computation work | 17,282 units |
 | Original aggregate work pool | 5,000 units |
-| Largest one resident / original per-owner ceiling | 5,379 / 4,997 units |
+| Largest resident / conservative261e fixture ceiling | 5,379 / 4,997 units |
+| Largest resident / actual BSP individual ceiling | 5,379 / 5,000 units |
 | Ordinary aggregate preparation refusal | first cumulative 5,073 >5,000 |
 | Owned canonical output + scratch payload alone | 208,884 bytes |
 | Original entire heap arena | 49,152 bytes |

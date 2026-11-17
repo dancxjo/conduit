@@ -110,7 +110,7 @@ pub(super) fn compile_captured_with_installed(
     let description: Value = serde_json::from_slice(capture.bytes)
         .map_err(|e| format!("captured specializations: {e}"))?;
     let selected = selections(&description, source_sha256)?;
-    super::compile_specialized_with_installed(
+    let mut workset = super::compile_specialized_with_installed(
         source,
         source_sha256,
         entries,
@@ -118,7 +118,18 @@ pub(super) fn compile_captured_with_installed(
         &selected,
         installed,
         prepare,
-    )
+    )?;
+    workset.resident_execution_storage = match description.get("resident_execution_storage") {
+        None => conduit_embedded_build::ResidentExecutionStorage::Owned,
+        Some(Value::String(value)) if value == "owned" => {
+            conduit_embedded_build::ResidentExecutionStorage::Owned
+        }
+        Some(Value::String(value)) if value == "shared-workspace" => {
+            conduit_embedded_build::ResidentExecutionStorage::SharedWorkspace
+        }
+        _ => return Err("unsupported captured resident execution storage".into()),
+    };
+    Ok(workset)
 }
 
 fn read(path: PathBuf, maximum: usize) -> Result<Vec<u8>, String> {
@@ -163,7 +174,17 @@ fn selections<'a>(
     description: &'a Value,
     source_sha256: &str,
 ) -> Result<Vec<Specialization<'a>>, String> {
-    let description = object(description, &["schema", "source_sha256", "specializations"])?;
+    let fields = if description.get("resident_execution_storage").is_some() {
+        &[
+            "schema",
+            "source_sha256",
+            "specializations",
+            "resident_execution_storage",
+        ][..]
+    } else {
+        &["schema", "source_sha256", "specializations"][..]
+    };
+    let description = object(description, fields)?;
     if description["schema"].as_u64() != Some(1)
         || description["source_sha256"].as_str() != Some(source_sha256)
     {
@@ -245,6 +266,63 @@ mod tests {
         wrong["specializations"][2]["feedback"] = "false".into();
         assert!(selections(&wrong, "source-pin").is_err());
     }
+    #[test]
+    fn captured_storage_defaults_owned_and_only_accepts_explicit_supported_realizations() {
+        use conduit_embedded_build::ResidentExecutionStorage as Storage;
+        let source = b"type Frame = {\n value: U64\n}\nplot value (\n input: Frame...| >> output: Frame...|\n) = (.)\n";
+        let source_pin = format!("{:x}", Sha256::digest(source));
+        let compile = |storage: Option<Value>| {
+            let mut description =
+                serde_json::json!({"schema":1,"source_sha256":source_pin,"specializations":[]});
+            if let Some(storage) = storage {
+                description["resident_execution_storage"] = storage;
+            }
+            let bytes = serde_json::to_vec(&description).unwrap();
+            let digest = format!("{:x}", Sha256::digest(&bytes));
+            compile_captured(
+                source,
+                &source_pin,
+                &["value".into()],
+                None,
+                CapturedTypedSelections {
+                    bytes: &bytes,
+                    sha256: &digest,
+                },
+            )
+        };
+        let omitted = compile(None).unwrap();
+        let owned = compile(Some("owned".into())).unwrap();
+        let shared = compile(Some("shared-workspace".into())).unwrap();
+        assert_eq!(omitted.resident_execution_storage(), Storage::Owned);
+        assert_eq!(owned.resident_execution_storage(), Storage::Owned);
+        assert_eq!(
+            shared.resident_execution_storage(),
+            Storage::SharedWorkspace
+        );
+        assert_eq!(omitted.entries[0].plot, shared.entries[0].plot);
+        assert_eq!(omitted.sha256, shared.sha256);
+        let prepared = shared.prepare_selected_residents(crate::resident_expression_bounds(1000));
+        if cfg!(feature = "execution-workspace") {
+            assert!(prepared
+                .unwrap()
+                .iter()
+                .all(|owner| owner.execution_storage() == Storage::SharedWorkspace));
+        } else {
+            assert!(prepared
+                .err()
+                .unwrap()
+                .contains("requires matching execution-workspace support"));
+        }
+        for invalid in [
+            Value::Null,
+            true.into(),
+            "shared-workspace-schema".into(),
+            "automatic".into(),
+        ] {
+            assert!(compile(Some(invalid)).is_err());
+        }
+    }
+
     #[test]
     fn internal_receipt_is_pinned_to_exact_source_and_capture_bytes() {
         let source = b"plot value (\n input: U64...| >> output: U64...|\n) = (.)\n";

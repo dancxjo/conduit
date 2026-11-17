@@ -29,6 +29,7 @@ pub struct Entry {
 pub struct Workset {
     pub(crate) installed_values: crate::installed_values::InstalledValueBindings,
     pub(crate) calibrated: bool,
+    pub(crate) resident_execution_storage: conduit_embedded_build::ResidentExecutionStorage,
     pub(crate) checked_source: p::CheckedSyntaxDocument,
     pub sha256: [u8; 32],
     pub entries: Vec<Entry>,
@@ -95,6 +96,11 @@ mod construction;
 pub use construction::{compile, compile_specialized, compile_specialized_with_installed};
 
 impl Workset {
+    /// Captured physical realization choice, not a resource or execution grant.
+    pub fn resident_execution_storage(&self) -> conduit_embedded_build::ResidentExecutionStorage {
+        self.resident_execution_storage
+    }
+
     /// Generate resident implementations from the same checked Source closure
     /// as the authored Plans. The document remains on the fabrication Host.
     pub fn prepare_residents(
@@ -117,10 +123,15 @@ impl Workset {
         &self,
         bounds: conduit_embedded_build::ResidentExpressionBounds,
     ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
-        self.prepare_selected_residents_with_storage(
-            bounds,
-            conduit_embedded_build::ResidentExecutionStorage::Owned,
-        )
+        if self.resident_execution_storage
+            != conduit_embedded_build::ResidentExecutionStorage::Owned
+            && !cfg!(feature = "execution-workspace")
+        {
+            return Err(
+                "captured shared workspace requires matching execution-workspace support".into(),
+            );
+        }
+        self.prepare_selected_residents_with_storage(bounds, self.resident_execution_storage)
     }
     /// Physical storage is selected before artifact sealing and calibration.
     /// The returned inventory still grants no execution or workspace capacity.

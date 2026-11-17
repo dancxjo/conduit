@@ -1,0 +1,6 @@
+
+running 2 tests
+test execution::execution_workspace::tests::original_workspace_is_funded_once_before_any_back_transfer ... ok
+test execution::execution_workspace::tests::owner_reports_derive_one_workspace_within_the_original_ceiling ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.00s

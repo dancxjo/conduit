@@ -31,3 +31,8 @@ conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["hos
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", features = ["delegated-preparation"] }
 conduit-mcu-host-runtime = { path = "../host-runtime", features = ["execution"] }
+
+[features]
+# Physical execution support only; selected storage remains an explicit
+# fabrication input and must be sealed/calibrated independently.
+execution-workspace = ["conduit-embedded-build/execution-workspace", "conduit-semantic-catalog/execution-workspace", "conduit-mcu-host-runtime/execution-workspace"]

@@ -86,6 +86,11 @@ impl WorksetSourceInput {
             specializations,
         })
     }
+    pub fn uses_execution_workspace(&self) -> bool {
+        self.specializations
+            .as_ref()
+            .is_some_and(|input| input.execution_workspace)
+    }
     pub fn configure(&self, command: &mut Command) -> Result<(), Box<dyn std::error::Error>> {
         self.verify()?;
         clear_inputs(command);

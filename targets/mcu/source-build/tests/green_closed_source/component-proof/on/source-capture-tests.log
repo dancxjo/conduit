@@ -1,0 +1,10 @@
+
+running 6 tests
+test capture::tests::no_selected_workset_clears_all_inherited_compilation_inputs ... ok
+test capture::tests::omitted_selections_cannot_enter_from_the_parent_environment ... ok
+test capture::tests::mutation_of_the_captured_receipt_refuses_before_configuring_a_child ... ok
+test capture::tests::mismatched_source_and_oversized_selection_inputs_refuse_capture ... ok
+test capture::tests::captured_selection_bytes_are_pinned_and_change_the_image_source_identity ... ok
+test capture::tests::captured_physical_storage_is_explicit_and_part_of_the_existing_identity ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

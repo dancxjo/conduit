@@ -1,0 +1,346 @@
+{
+  "conduit_kernel": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_kernel-component_on.rlib",
+    "sha256": "37a26a5feb4784c70666e82dfa8cd6b7e12ab7649daeed41dfbd5a4393d53d25"
+  },
+  "conduit_assigned_plan": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_assigned_plan-bda23f1221c38bf4.rlib",
+    "sha256": "6dff5e5d85455965e1ada0115521c0b7d648253c0e94c7bf13886d794bdf5c25"
+  },
+  "serde": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libserde-b6b5b74198ededb5.rlib",
+    "sha256": "475c0240f1b2d3ff8200e0950b6a7980a5ac5366f57d5b27ced6e94a240dae6b"
+  },
+  "serde_core": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libserde_core-906938651acd6a07.rlib",
+    "sha256": "2c3af99853da87b794d6ad50f51d3364d5d576e7cc5fea1ebfdfdac4b608e6cc"
+  },
+  "serde_json": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libserde_json-93a869fe21665e2d.rlib",
+    "sha256": "2d9820c7734f874cc20e655c5b2eba26ef88a77f97f91a12df1cc3eedee1d45e"
+  },
+  "itoa": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libitoa-763a2aea54fe86e2.rlib",
+    "sha256": "5cef362ac5e507ab181860360f976c1173761fae97ce4451c0ccfec4b3191f1f"
+  },
+  "memchr": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libmemchr-ed4bd6a2f7da223f.rlib",
+    "sha256": "3f160de7b61769622fc69c5e363caa0d4df461d3bbadf74f55ceb7e5b1e71361"
+  },
+  "zmij": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libzmij-df4ea61dd64cd6c2.rlib",
+    "sha256": "08063d94d0236569a4907b2823b052066d793e0c139d0237a5f9f5cc7ca183ea"
+  },
+  "conduit_time": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_time-component_on.rlib",
+    "sha256": "c8bddf75d383acd10d4b9c67d3bb6703b0b066da297f1e33ea25afeb012e3ca6"
+  },
+  "conduit_plot": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_plot-ca741f6e48da14a1.rlib",
+    "sha256": "e4a61596fc6081fbd73b9c2d82512c5e2b26ba8f73fc88cc92500c98a2a33342"
+  },
+  "sha2": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libsha2-d725ab20e165ad8d.rlib",
+    "sha256": "61071294bb9c73591484f6073ea58de74d855900ad925ce44da64e52fd507302"
+  },
+  "cfg_if": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libcfg_if-d05893e10c9c8e83.rlib",
+    "sha256": "e8de5e9fd684505edb70da0293ad80a20e4e9beeb9351294b6ba0933d384b3b3"
+  },
+  "digest": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libdigest-75596e1f5adb7cab.rlib",
+    "sha256": "674bf43e03bedd21682e038927edc060e519f7b1f1f6d44e32e64c92e9e71f4c"
+  },
+  "crypto_common": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libcrypto_common-dd9e4292a8538136.rlib",
+    "sha256": "e7e4679a6ee1950020c8aa36dd2ddcf645bdace33c30f568aa683fdf01186928"
+  },
+  "typenum": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libtypenum-09fd56e1b98d3373.rlib",
+    "sha256": "3e6e7b11245dc324b37bfca2ffc97250ab62953c55b47ebfb6c9e0bd9411fb23"
+  },
+  "generic_array": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libgeneric_array-4b0eb442542feb7c.rlib",
+    "sha256": "98d31d57a92733bc98f1c0d73fd0c7bb8ef78d2b78eaaa2f5b48ac46608259a4"
+  },
+  "block_buffer": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libblock_buffer-4f2e14eebe7b6ad8.rlib",
+    "sha256": "62a013ba17b0360edd3e3371224ebcfab8b5f80b9993aa09161f7dc171dec676"
+  },
+  "cpufeatures": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libcpufeatures-d45970610aefa33a.rlib",
+    "sha256": "2bd52d289ef6e50c310733da41d3a7d940dfea9944aa4346268f9ca157fc4e47"
+  },
+  "conduit_core": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_core-a05ee95d5af2ff26.rlib",
+    "sha256": "4a58091aaa09cf5bea8ef3a72827de74463f2003d9a16e5016eb0b106870c863"
+  },
+  "libm": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/liblibm-5731a452b56873dc.rlib",
+    "sha256": "9c681d41f8caa4c07cc814fc595faa108014e2b507d032fa34dba36b4b7c1535"
+  },
+  "conduit_semantic_catalog": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_semantic_catalog-component_on.rlib",
+    "sha256": "e9c92333f3e7eb54e9387f847205f4f023fda86a2a6e74f903aed164646c4512"
+  },
+  "conduit_resource_snapshot": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_resource_snapshot-component_on.rlib",
+    "sha256": "b482456695c0efc134ed58fb931cd6e1375b720fed7fd6b71260d3b42638d68e"
+  },
+  "conduit_web": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_web-4e1cea5d0a30708f.rlib",
+    "sha256": "a00a9507d235c46d165666c34c8ce16c64afbfb2ec5e240393ab9cf2a5984c13"
+  },
+  "conduit_plan_lowering": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_plan_lowering-component_on.rlib",
+    "sha256": "566f5c18638020ba76bba2b0622d71f4bcf829db33ac68ca55be348090d0edbb"
+  },
+  "conduit_body": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_body-2fcee304cdec862a.rlib",
+    "sha256": "c379039f0af105243c5bad7dd775a6c49a0c262798d54dd0986f2b1d7b84e16e"
+  },
+  "serde_json_core": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libserde_json_core-28d8d335e5882d2e.rlib",
+    "sha256": "5dfcecd242a029ca2c02bb8aed0d0969247a11ea391b20857afca592ceda249b"
+  },
+  "ryu": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libryu-8415dd0a307a5268.rlib",
+    "sha256": "08c0769e98e5c1b3095fecabd84cd00425c4b2fd6196dd132e1fc96a96f4aebb"
+  },
+  "heapless": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libheapless-3d3c632bf187fd22.rlib",
+    "sha256": "62875374682f780d2818e4476c589275f0414702525ff15c37bb63a5ba3b518b"
+  },
+  "hash32": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libhash32-a3634005462af5ba.rlib",
+    "sha256": "28fb46ed973f9347ab69e721779503883e401c4f0759adfd7d4b59e60e2b0cb9"
+  },
+  "byteorder": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libbyteorder-8d30dd12a8dcba11.rlib",
+    "sha256": "f38c3535cd57658b5ba8bbed27f13511701469fbea09a78f9e58f957c114541e"
+  },
+  "stable_deref_trait": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libstable_deref_trait-64f30039b2c2300d.rlib",
+    "sha256": "2f1e31aa02fe0d11acc8c2e876410ba64c1aea4817763096b829e0395e146281"
+  },
+  "minicbor": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libminicbor-f3795273a888ce05.rlib",
+    "sha256": "9753289ca91770113a868a76968130142d4fcffc13d47111483d1950a9e4d280"
+  },
+  "ed25519_dalek": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libed25519_dalek-cc76aefbdd0038c8.rlib",
+    "sha256": "d0d385c6a2329108627313410bfa20b07c28394dd62b701a59aa156be42b7e57"
+  },
+  "zeroize": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libzeroize-349b33d1bb5f1d11.rlib",
+    "sha256": "b295794a6cf1eed9bcb7f0ce35f456c0bdd6ac73e5ffa5086c53196d071d02d5"
+  },
+  "curve25519_dalek": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libcurve25519_dalek-6e6478ce1358813d.rlib",
+    "sha256": "b4aae453e03fb5095795f26d2ff24e3deea9db7c195447a20ebfae0d074b2660"
+  },
+  "subtle": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libsubtle-55f702608e37091d.rlib",
+    "sha256": "7370ee31c59b4f1d19aacaea9b9dd0657b063098add8792ecd5d3dbc277a04e5"
+  },
+  "ed25519": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libed25519-42f8de66289bbd19.rlib",
+    "sha256": "ab9c21489b63b1e5831a4e6403d4133117b3d9b7110abbc906b8470394108721"
+  },
+  "signature": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libsignature-b5a40ceeb80e5f50.rlib",
+    "sha256": "f1907a5af4a6ae21cd3d2efbe9bde8fb907688e79d9467a474e54fee3ce93986"
+  },
+  "miniz_oxide": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libminiz_oxide-65297df1501ecae0.rlib",
+    "sha256": "77db2ebf88c698a1efa4c1c1fb4d2d3f47d781d523a624a48faceab46b9f2bc2"
+  },
+  "adler2": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libadler2-76452541a63e9408.rlib",
+    "sha256": "bfe492f716abbb4bd5addae9992d2626f870c27e0c795c1684053c513fc8f150"
+  },
+  "postcard": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libpostcard-d7561f4f676a9bfe.rlib",
+    "sha256": "777a59ea0383873ef60421ed519469244940fef2fbd7c978f9543e43416766d4"
+  },
+  "cobs": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libcobs-3086ea35e254b86a.rlib",
+    "sha256": "087c9387e520ba5fa1ec9fff319ea765b921e52dba2089c8edf59609b92b42c4"
+  },
+  "thiserror": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libthiserror-cff61fc8878ef684.rlib",
+    "sha256": "ae5c30afe0cf43e268b103e0a7589cf4e6a6816502dda97c0b1d5e37cfc517f3"
+  },
+  "portable_atomic_util": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libportable_atomic_util-b3f70eda412da73e.rlib",
+    "sha256": "e057b131a9a041735143a509a0f7e71c3b2cb4acdd130c3c271a87ec7e1dd520"
+  },
+  "portable_atomic": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libportable_atomic-89c7f56d351723c0.rlib",
+    "sha256": "cd207deb18ef75936d3c216dd60ada92d6faa80645c2299d3482a1aab93287b0"
+  },
+  "conduit_audio": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_audio-component_on.rlib",
+    "sha256": "9ec89a359a04fd5e98dbec67beadd618db0fa1b670353240b494ceb773fbb990"
+  },
+  "conduit_data": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_data-component_on.rlib",
+    "sha256": "640f9ce6879e5657c55d4076dbe5198ad4d59ac4c369535fd3020f7b6a35579c"
+  },
+  "conduit_face": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_face-component_on.rlib",
+    "sha256": "24bcbfda0d3e9f8fc4f98576f6f61e81558ee106134daae409b11763ed88631c"
+  },
+  "conduit_planner": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_planner-ad80c436abdc2c9d.rlib",
+    "sha256": "b3c63988fd6234e7d60076f9f66a80e358460e0f903124501ca08844dc30d40b"
+  },
+  "conduit_language": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_language-973976133e63d1be.rlib",
+    "sha256": "1cd4068586de092f7ccd473ea72b37aeca36d4a2e0126681fbcfbdf0e04de5a2"
+  },
+  "conduit_human": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_human-component_on.rlib",
+    "sha256": "4026a693211dd3dc9533704e05ba86940f467601046e27f04be77a931d9cbf31"
+  },
+  "unicode_normalization": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libunicode_normalization-4eac7eff786d1e79.rlib",
+    "sha256": "6a329df75f14462b5ca198bcb5caf204a5b3e31c12f6f2eba5e2069a943ba642"
+  },
+  "tinyvec": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libtinyvec-3366317835bdf92f.rlib",
+    "sha256": "3e3009eeb9bd56680733bf4cd52358c1d608d4a7062edda4f3111309a9bb6b9b"
+  },
+  "conduit_alife": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_alife-component_on.rlib",
+    "sha256": "c9fbbe360b9e84e389397129b3d55250a750ebf76391d478ca306351c9ba21e9"
+  },
+  "conduit_education": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_education-component_on.rlib",
+    "sha256": "ec3529f6f7b0d2c55612f2a0eb5b817f19f592ff26cb176dfab608c0c397696b"
+  },
+  "conduit_process": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_process-79877326383c5c35.rlib",
+    "sha256": "73da92d7ee2daa5380ab181a40b913a158ae651d8b7880715d10320b3ff51300"
+  },
+  "conduit_text": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_text-2ebce40aa1634b94.rlib",
+    "sha256": "490b7f2340ec44399af2d8ce72f56cd1b9e1217ec37c5c140f739c9f287c0759"
+  },
+  "conduit_midi": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_midi-component_on.rlib",
+    "sha256": "3e3668ecddca048e329f5f9dd4e3f4ea3a1c26cd67a6b1b81de4b222902a265e"
+  },
+  "conduit_net": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_net-c24a7bb9d4aa62fc.rlib",
+    "sha256": "91a471e89a7b60a923ddd13bde7006c2a0b3b745d6241dd6ea64f69e57c36202"
+  },
+  "conduit_robotics": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_robotics-component_on.rlib",
+    "sha256": "a909da778a891aed3ad19d3a54ae90a4374d8d41d3f50f1ba33bbb72fa7acae8"
+  },
+  "conduit_purpose": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_purpose-281d5eae25d23fcc.rlib",
+    "sha256": "b08179a29b3c2ba6b6f358dabfe10d07894739898dafcc5a444df7af083e9f36"
+  },
+  "conduit_environment_runtime": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_environment_runtime-component_on.rlib",
+    "sha256": "efda97c77dd5f387c2d97837ffa266a1cd2a980b208eb9a7755ae384769f1e18"
+  },
+  "conduit_environment_face": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_environment_face-component_on.rlib",
+    "sha256": "8213329bf72fa95a3d32bbcb878e8fc27bf22b46ad350450f12960e03c1e3780"
+  },
+  "conduit_typed_retention": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_typed_retention-component_on.rlib",
+    "sha256": "b4234d02e4a970522c861f922e5b01afc996485a87d07075862f0c9f339c0097"
+  },
+  "conduit_dht11_observation": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_dht11_observation-component_on.rlib",
+    "sha256": "4ee768fbfb7ec6b3ccba237fe27b476788297d7af23a60b151e3d4dc9ec5aaf2"
+  },
+  "conduit_seven_segment_mask": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_seven_segment_mask-component_on.rlib",
+    "sha256": "c8c94c5acdd9594eefa0b8c31ec0574b28999f4ad878fad907837a36e5852750"
+  },
+  "conduit_pulse_capture": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_pulse_capture-component_on.rlib",
+    "sha256": "e18e425534b78a3307aa9bcc3dd77afcc52a65b4ff32b0a987038d9ad3416e36"
+  },
+  "conduit_tm1637_protocol": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_tm1637_protocol-695d2587d5309598.rlib",
+    "sha256": "b5b4e4ccc5d96f2b44f8760ccca245098ffa86a6c0c6f337e65792679d375226"
+  },
+  "conduit_mcu_host_runtime": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_mcu_host_runtime-component_on.rlib",
+    "sha256": "4d245855c22c1ec0ad8c9c71f5b4d776a908c83272fbe8b895cfdc0b0fe04ee5"
+  },
+  "conduit_wire": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_wire-f353ff1caa5e6bc7.rlib",
+    "sha256": "868e4a34cbbf8cf5e3a9e378ae373b5baf7c6213437eaf300adc80397fc0bbf7"
+  },
+  "conduit_i2c_transaction": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_i2c_transaction-component_on.rlib",
+    "sha256": "763dfa7d0e11e987b9955cace951cf37bf6b50c27f49d86f2a42f82a1ae07fa5"
+  },
+  "conduit_monotonic_wait": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_monotonic_wait-component_on.rlib",
+    "sha256": "7f46de8c96e5514ef03efc87219c6f5fe4e60f41d1b61d8de50ba0a1503fcfc1"
+  },
+  "conduit_composite": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_composite-component_on.rlib",
+    "sha256": "15d19b94ed1033722468a02605c2ae41949e5537500d36c2350b3d69fb584350"
+  },
+  "conduit_tm1637_wire": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_tm1637_wire-component_on.rlib",
+    "sha256": "31d48b59c4d1c76e02dc1af95987a98522f0ea3c4ee3d12efe7f1269781956c9"
+  },
+  "conduit_host_make": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_host_make-component_on.rlib",
+    "sha256": "8116fa4acffc81eeb0e2590eb6e1d22ca566f60fe88e32a71231ada0fba55f62"
+  },
+  "conduit_rp2040_flash_layout": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libconduit_rp2040_flash_layout-bf6e1977bfaee0ad.rlib",
+    "sha256": "ca4dab3073bd348eb1ec9af403193adc8ae62eb1fbf5a2bea5930418f63d5bdf"
+  },
+  "toml": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libtoml-b37646a6427b7a51.rlib",
+    "sha256": "42d337287cb17ad8f104b0ab3d1b2938ca6d52a99db04cd886a8648c9901926a"
+  },
+  "serde_spanned": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libserde_spanned-13b180788266def9.rlib",
+    "sha256": "778e5a0bec54a76193dc1a1886fd1ee3d4eaea3387625c0782863c38ef778493"
+  },
+  "toml_edit": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libtoml_edit-e79e3191fd99cdb2.rlib",
+    "sha256": "f6c2fe4101ae424d84d40ba06e7963978b7f3cab29082dcbf243fdd36c1863cd"
+  },
+  "winnow": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libwinnow-2be7da5b04e295ac.rlib",
+    "sha256": "8798ea7796e2ff11586498c394c386dd9e00e0be55de2a80fe77362c9e4add82"
+  },
+  "toml_datetime": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libtoml_datetime-196a2db57c6fb2ba.rlib",
+    "sha256": "77bc30fbce007eae42f7cca4a070cf40a29e98c3b2537e03e32724b6e2dacec6"
+  },
+  "toml_write": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libtoml_write-b77c479edb020a3f.rlib",
+    "sha256": "a0446e89c2586ac95d26f8230f853873ef82a266c5230bf5d16c0bed0936bee6"
+  },
+  "indexmap": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libindexmap-2a5c0c3e407eb360.rlib",
+    "sha256": "f2184ef2c8522c5f510836ebbd023e2f9e7f32ed0bf48a59beaa031b4812631b"
+  },
+  "hashbrown": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libhashbrown-8559ad8073936cd5.rlib",
+    "sha256": "12d4124114b75e5365bc437e8e23fcfe68403e22c92d92fb6aa9473b9e84d264"
+  },
+  "equivalent": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/debug/deps/libequivalent-bc5578463be669e6.rlib",
+    "sha256": "c20e373ed8899c2c044273da292d1834528228c90b977ad40b2d2e867b190da4"
+  },
+  "conduit_embedded_build": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/green-closed-source-20261117/target/green-workspace-qualification/on/deps/libconduit_embedded_build-component_on.rlib",
+    "sha256": "715c94cb57bb22c624376aed9bdcc9f9051dda0abae3ea26c41766ed5c3074c3"
+  }
+}

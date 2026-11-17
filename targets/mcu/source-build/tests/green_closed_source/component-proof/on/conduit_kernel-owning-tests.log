@@ -1,0 +1,9 @@
+
+running 5 tests
+test scheduler::execution_workspace::tests::funding_and_loan_extents_are_checked_before_storage_mutation ... ok
+test scheduler::execution_workspace::tests::cancellation_drains_values_and_does_not_reopen_workspace_installation ... ok
+test scheduler::execution_workspace::tests::complete_workspace_is_required_before_any_step_and_refusal_returns_its_owner ... ok
+test scheduler::execution_workspace::tests::boxed_preparation_initializes_workspace_custody_before_driver_transfer ... ok
+test scheduler::execution_workspace::tests::prebound_workspace_preserves_original_backing_and_checks_all_active_drivers ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 0.00s

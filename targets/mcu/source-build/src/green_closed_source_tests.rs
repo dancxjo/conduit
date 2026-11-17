@@ -149,6 +149,8 @@ plot closed-sampling-core (
             .count(),
         1
     );
+    // Preserve the original261e conservative fixture ceiling. The actual BSP
+    // passes its5000-unit pool as the individual compiler envelope (below).
     let mut bounds = crate::resident_expression_bounds(4997);
     bounds.native.canonical_bytes = 8192;
     // No aggregate pool is supplied and none of these diagnostic owners Starts.
@@ -242,6 +244,61 @@ fn main() {{
             "conduit_plan_lowering",
         ],
     );
+    #[cfg(feature = "execution-workspace")]
+    {
+        use conduit_embedded_build::ResidentExecutionStorage;
+        let shared = set
+            .prepare_selected_residents_with_storage(
+                diagnostic_bounds,
+                ResidentExecutionStorage::SharedWorkspace,
+            )
+            .unwrap();
+        assert_eq!(shared.len(), inventory.len());
+        for (owned, borrowed) in inventory.iter().zip(&shared) {
+            assert_eq!(owned.kind_id(), borrowed.kind_id());
+            assert_eq!(
+                owned.offer_description().semantic_contract,
+                borrowed.offer_description().semantic_contract
+            );
+            assert_eq!(owned.computation_work(), borrowed.computation_work());
+            assert_ne!(owned.artifact_id(), borrowed.artifact_id());
+        }
+        let code =
+            conduit_embedded_build::generate_resident_library(&shared, 16 * 1024 * 1024).unwrap();
+        crate::compiled_rust::verify_with_libraries(
+            &code,
+            r#"
+fn main() {
+ let mut owner = Initialized::prepare().unwrap();
+ let loans = PreparedResidentLoans { owner: &mut owner, nodes: core::array::from_fn(|i| Some(i as u16)) };
+ let mut output = 0;
+ let mut scratch = 0;
+ for slot in 0..ENTRY_COUNT {
+  let requirement = loans.execution_workspace_requirements_at::<1>(slot).unwrap().unwrap();
+  output = output.max(requirement.output_bytes);
+  scratch = scratch.max(requirement.scratch_bytes);
+ }
+ assert_eq!((output, scratch), (4051, 4051));
+ let entries = loans.split();
+ for entry in entries.iter().flatten() { assert!(entry.execution_workspace_requirements::<1>().is_some()); }
+ drop(entries);
+ let workspace = conduit_kernel::scheduler::PreparedStepWorkspace::try_new(
+  conduit_kernel::scheduler::StepWorkspaceRequirements { output_bytes: output, scratch_bytes: scratch }, 8102,
+ ).unwrap();
+ assert_eq!(workspace.reserved_backing_bytes(), 8102);
+ println!("GREEN_SHARED_RESIDENT_STORAGE target=host-usize owners={} static_inventory_bytes={} shared_workspace_bytes={} execution=not-started", ENTRY_COUNT, core::mem::size_of::<Initialized>(), workspace.reserved_backing_bytes());
+}
+"#,
+            "green-shared-sampling-storage",
+            &[
+                "conduit_core",
+                "conduit_plot",
+                "conduit_kernel",
+                "conduit_semantic_catalog",
+                "conduit_plan_lowering",
+            ],
+        );
+    }
     let result = set.prepare_selected_residents_with_exact_work(
         bounds,
         conduit_embedded_build::ResidentExecutionStorage::Owned,
@@ -256,8 +313,60 @@ fn main() {{
         entry.cords,
         material.nodes.len()
     );
+    let historical_individual = set.prepare_selected_residents(bounds).err().unwrap();
+    assert!(historical_individual.contains("PrivateWork { required: 5379, maximum: 4997 }"));
+    println!("GREEN_HISTORICAL_FIXTURE_INDIVIDUAL {historical_individual}");
+    // The real I2C BSP uses capacity5000 directly, not capacity minus3.
+    let mut actual_bsp_bounds = bounds;
+    actual_bsp_bounds.private_work_units = 5000;
+    let individual = set
+        .prepare_selected_residents(actual_bsp_bounds)
+        .err()
+        .unwrap();
+    println!("GREEN_ACTUAL_BSP_INDIVIDUAL {individual}");
+    assert!(individual.contains("PrivateWork { required: 5379, maximum: 5000 }"));
     assert!(
         refusal.contains("private work requires"),
         "unexpected preparation gate: {refusal}"
+    );
+}
+
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn original_dht_owned_inventory_reports_no_workspace_claim() {
+    let checked = crate::checked_dht11_tm1637_source().unwrap();
+    let owners = conduit_embedded_build::prepare_source_resident_library(
+        &checked,
+        crate::DHT11_TM1637_ENTRIES,
+        crate::dht11_tm1637_resident_bounds(),
+    )
+    .unwrap();
+    assert!(!owners.is_empty());
+    assert!(owners.iter().all(|owner| owner.execution_storage()
+        == conduit_embedded_build::ResidentExecutionStorage::Owned));
+    let code =
+        conduit_embedded_build::generate_resident_library(&owners, 16 * 1024 * 1024).unwrap();
+    crate::compiled_rust::verify_with_libraries(
+        &code,
+        r#"
+fn main() {
+ let mut owner = Initialized::prepare().unwrap();
+ let loans = PreparedResidentLoans { owner: &mut owner, nodes: core::array::from_fn(|i| Some(i as u16)) };
+ for slot in 0..ENTRY_COUNT { assert_eq!(loans.execution_workspace_requirements_at::<1>(slot), Some(None)); }
+ assert_eq!(loans.execution_workspace_requirements_at::<1>(ENTRY_COUNT), None);
+ let entries = loans.split();
+ for entry in entries.iter().flatten() { assert!(entry.execution_workspace_requirements::<1>().is_none()); }
+ drop(entries);
+ assert!(owner.available_identity(0).is_some());
+}
+"#,
+        "original-dht-owned-no-workspace",
+        &[
+            "conduit_core",
+            "conduit_plot",
+            "conduit_kernel",
+            "conduit_semantic_catalog",
+            "conduit_plan_lowering",
+        ],
     );
 }

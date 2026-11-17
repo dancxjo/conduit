@@ -35,9 +35,10 @@ pub fn generate_resident_library(
         .max()
         .ok_or(R::Bounds)?;
     code.push_str(&format!("/// Canonical extent of the selected prepared programs; not a queue grant.\npub const VALUE_SLOT_BYTES:usize={maximum_value_bytes};\n"));
-    let workspace = images
-        .iter()
-        .any(|image| image.execution_storage().uses_workspace());
+    let workspace = cfg!(feature = "execution-workspace")
+        || images
+            .iter()
+            .any(|image| image.execution_storage().uses_workspace());
     for (index, image) in images.iter().enumerate() {
         if images[..index].iter().any(|prior| {
             prior.offer_description().capability_id == image.offer_description().capability_id
