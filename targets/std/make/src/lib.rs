@@ -69,6 +69,11 @@ pub const HOSTED_PLATFORM_VARIANTS: [HostedPlatformVariant; 4] = [
 fn package_catalog() -> PackageCatalogContribution {
     let implementations = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
+        .chain([
+            conduit_std_offers::body_wake_offer(),
+            conduit_std_offers::startup_chime_offer(),
+            conduit_std_offers::whisper_clip_speech_offer(),
+        ])
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
             let mut prerequisites = offer

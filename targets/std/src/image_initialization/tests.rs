@@ -164,3 +164,12 @@ mod execution_refusal;
 mod reconfiguration;
 
 mod funded_execution;
+mod owner_identity;
+
+#[cfg(all(
+    target_os = "linux",
+    target_env = "gnu",
+    target_pointer_width = "64",
+    any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+mod startup;

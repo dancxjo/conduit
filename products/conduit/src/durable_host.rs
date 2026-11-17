@@ -121,9 +121,15 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
     match command {
         HostServiceCommand::Configure {
             configuration,
+            image,
             clear,
             state_dir,
-        } => selected_host_configuration::configure(&state_dir, configuration.as_deref(), clear),
+        } => selected_host_configuration::configure_with_image(
+            &state_dir,
+            configuration.as_deref(),
+            clear,
+            image.as_deref(),
+        ),
         HostServiceCommand::Install {
             manifest,
             state_dir,
@@ -429,6 +435,10 @@ use runtime_preparation::{prepare_runtime_with_scans, prepare_runtime_with_todo}
 #[path = "durable_host/startup_trace.rs"]
 mod startup_trace;
 
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+#[path = "durable_host/native_service.rs"]
+mod native_service;
+
 fn run(state_dir: &Path) -> Result<(), String> {
     use startup_trace::Phase;
     let trace = startup_trace::Trace::from_environment();
@@ -439,18 +449,19 @@ fn run(state_dir: &Path) -> Result<(), String> {
         read_installation(&state_dir.join("installation.json"))
             .map(|installation| installation.body_state.is_some())
     })?;
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    if native_service::run_if_selected(state_dir, &trace, owns_body)?.is_some() {
+        return Ok(());
+    }
     // Routed admission enters through authenticated local control while the
     // service owns this lock. No second process may edit its Body biography.
     let (status, mut truth) = runtime_preparation::prepare_traced_runtime(state_dir, &trace)?;
     let runtime = state_dir.join("runtime.json");
     if owns_body {
-        truth = match trace.run(Phase::OwnedBody, || truth.with_owned_body(state_dir)) {
-            Ok(truth) => truth,
-            Err(error) => {
-                let _ = fs::remove_file(&runtime);
-                return Err(error);
-            }
-        };
+        if let Err(error) = trace.run(Phase::OwnedBody, || truth.attach_owned_body(state_dir)) {
+            let _ = fs::remove_file(&runtime);
+            return Err(error);
+        }
     }
     trace.prepared();
     println!(
@@ -533,6 +544,13 @@ fn status(state_dir: &Path, json: bool) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[path = "durable_host_startup_member.rs"]
+mod startup_member;
+pub(crate) use startup_member::{
+    current_joined_credential, current_joined_owner_pin, export_member_contact,
+    install_member_contact, sign_startup_member_challenge,
+};
 
 pub(crate) fn body_status(state_dir: &Path, json: bool) -> Result<(), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
@@ -976,7 +994,7 @@ pub(crate) fn fresh_identity(prefix: &str, basis: &str) -> String {
     format!("{prefix}/{:x}", hasher.finalize())
 }
 
-fn current_time_millis() -> Result<u64, String> {
+pub(crate) fn current_time_millis() -> Result<u64, String> {
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| format!("system clock precedes Unix epoch: {error}"))?
@@ -1026,6 +1044,11 @@ pub(crate) use routed_join::{
 };
 
 pub(crate) use membership::leave_member_from_file;
+
+#[cfg(test)]
+pub(crate) use membership::{
+    complete_startup_joined_fixture, startup_joined_fixture, StartupJoinedFixture,
+};
 
 #[cfg(test)]
 mod tests {

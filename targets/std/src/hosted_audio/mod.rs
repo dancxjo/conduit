@@ -7,11 +7,16 @@
 mod alsa_aplay;
 mod base_registration;
 mod discovery;
+mod discovery_rows;
 mod executable_identity;
 #[cfg(test)]
 mod fake;
+mod playback_identity;
 mod proof;
+mod selected_identity;
 mod staged;
+pub(crate) mod startup_chime;
+mod startup_chime_host;
 #[cfg(test)]
 pub(crate) use fake::FakePlaybackBehavior;
 
@@ -80,11 +85,20 @@ pub struct HostedPlaybackSelection {
     pub offer_generation: OfferGeneration,
     delivery_mode: PlaybackDeliveryMode,
     executable_sha256: Option<[u8; 32]>,
+    source_base_id: Option<String>,
     #[cfg(test)]
     fake_behavior: Option<fake::FakePlaybackBehavior>,
 }
 
 impl HostedPlaybackSelection {
+    /// Physical endpoint identity remains separate from its logical Source Base.
+    pub fn same_physical_selection(&self, other: &Self) -> bool {
+        self.observation == other.observation
+            && self.boot_id == other.boot_id
+            && self.offer_generation == other.offer_generation
+            && self.delivery_mode == other.delivery_mode
+            && self.executable_sha256 == other.executable_sha256
+    }
     pub fn from_observation(
         observation: AlsaPlaybackObservation,
         boot_id: BootId,
@@ -96,6 +110,7 @@ impl HostedPlaybackSelection {
             offer_generation,
             delivery_mode: PlaybackDeliveryMode::Direct,
             executable_sha256: None,
+            source_base_id: None,
             #[cfg(test)]
             fake_behavior: None,
         }
@@ -109,17 +124,11 @@ impl HostedPlaybackSelection {
     }
 
     pub fn pool_id(&self) -> ResourcePoolId {
-        ResourcePoolId::from(format!(
-            "std/audio/alsa/{}/card-{}/device-{}",
-            self.observation.base_identity, self.observation.card_id, self.observation.device
-        ))
+        ResourcePoolId::from(playback_identity::endpoint(self, "std/audio/alsa/"))
     }
 
     pub fn alsa_target(&self) -> String {
-        format!(
-            "hw:CARD={},DEV={}",
-            self.observation.card_id, self.observation.device
-        )
+        playback_identity::alsa_target(self)
     }
 
     pub fn resource_observation(&self, host_id: HostId, sign_id: SignId) -> ResourceObservation {
@@ -213,6 +222,7 @@ impl HostedPlaybackSelection {
             offer_generation,
             delivery_mode: PlaybackDeliveryMode::Direct,
             executable_sha256: None,
+            source_base_id: None,
             fake_behavior: Some(behavior),
         }
     }

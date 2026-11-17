@@ -33,6 +33,11 @@ impl SpawnInvitationSecret {
         SigningKey::from_bytes(&self.0).sign(transcript).to_bytes()
     }
 
+    /// Public transport identity; private signing material remains in custody.
+    pub fn verifying_key(&self) -> [u8; 32] {
+        SigningKey::from_bytes(&self.0).verifying_key().to_bytes()
+    }
+
     /// Copies the secret into an exact target-provisioning buffer.
     ///
     /// This is only for an admitted local deployment mechanism that must place

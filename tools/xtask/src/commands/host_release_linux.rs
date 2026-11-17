@@ -1,5 +1,7 @@
 //! Existing x86_64 and AArch64 Linux release set.
 use super::*;
+#[path = "host_release_linux_native.rs"]
+mod native;
 
 pub(super) fn build_linux_set(
     output: &Path,
@@ -17,19 +19,7 @@ pub(super) fn build_linux_set(
         Command::new("cmake").arg("--version"),
         "CMake unavailable; run `cargo xtask setup linux-release`",
     )?;
-    require_success(
-        Command::new("cargo").args(["build", "--locked", "--release", "-p", "conduit"]),
-        "compile hosted Linux release",
-    )?;
-    fs::create_dir_all(output)?;
-    copy(
-        cargo_release_artifact(None, "conduit"),
-        &output.join("conduit-linux-x86_64"),
-    )?;
-    copy(
-        "products/conduit/install/install-linux-x86_64.sh",
-        &output.join("install-linux-x86_64.sh"),
-    )?;
+    compile_x86_64(output, false, false)?;
     require_success(
         Command::new("cargo")
             .args([
@@ -51,23 +41,7 @@ pub(super) fn build_linux_set(
         cargo_release_artifact(Some("aarch64-unknown-linux-gnu"), "conduit"),
         &output.join("conduit-linux-aarch64"),
     )?;
-    seal(
-        output,
-        "hosted-linux-x86_64.json",
-        "std/x86_64/computer",
-        "hosted-native@1",
-        "native-bundle",
-        "conduit-host-hosted/build-native@1",
-        "conduit-host-hosted/launch@1",
-        source_identity,
-        &[
-            (
-                "conduit-linux-x86_64",
-                "application/vnd.conduit.host+executable",
-            ),
-            ("install-linux-x86_64.sh", "application/x-sh"),
-        ],
-    )?;
+    seal_x86_64(output, source_identity)?;
     seal(
         output,
         "raspios-bookworm-pi4-model-b-rev-1.5-4gb.json",
@@ -115,27 +89,14 @@ pub(super) fn build_linux_set(
 pub(super) fn build_aarch64(
     output: &Path,
     source_identity: &str,
+    native_display: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     require_success(
         Command::new("aarch64-linux-gnu-gcc").arg("--version"),
         "AArch64 C cross compiler",
     )?;
     require_success(
-        Command::new("cargo")
-            .args([
-                "+1.98.1",
-                "build",
-                "--locked",
-                "--release",
-                "-p",
-                "conduit",
-                "--target",
-                "aarch64-unknown-linux-gnu",
-            ])
-            .env(
-                "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER",
-                "aarch64-linux-gnu-gcc",
-            ),
+        &mut release_command(Some("aarch64-unknown-linux-gnu"), native_display)?,
         "compile AArch64 Linux Host",
     )?;
     fs::create_dir_all(output)?;
@@ -164,3 +125,94 @@ pub(super) fn build_aarch64(
     }
     Ok(())
 }
+
+pub(super) fn build_x86_64(
+    output: &Path,
+    source_identity: &str,
+    native_display: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    compile_x86_64(output, native_display, true)?;
+    seal_x86_64(output, source_identity)
+}
+fn compile_x86_64(
+    output: &Path,
+    native_display: bool,
+    explicit_target: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let target = explicit_target.then_some("x86_64-unknown-linux-gnu");
+    require_success(
+        &mut release_command(target, native_display)?,
+        "compile hosted Linux release",
+    )?;
+    fs::create_dir_all(output)?;
+    copy(
+        cargo_release_artifact(target, "conduit"),
+        &output.join("conduit-linux-x86_64"),
+    )?;
+    copy(
+        "products/conduit/install/install-linux-x86_64.sh",
+        &output.join("install-linux-x86_64.sh"),
+    )?;
+    Ok(())
+}
+fn seal_x86_64(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
+    seal(
+        output,
+        "hosted-linux-x86_64.json",
+        "std/x86_64/computer",
+        "hosted-native@1",
+        "native-bundle",
+        "conduit-host-hosted/build-native@1",
+        "conduit-host-hosted/launch@1",
+        source_identity,
+        &[
+            (
+                "conduit-linux-x86_64",
+                "application/vnd.conduit.host+executable",
+            ),
+            ("install-linux-x86_64.sh", "application/x-sh"),
+        ],
+    )?;
+    Ok(())
+}
+fn release_command(
+    target: Option<&str>,
+    native_display: bool,
+) -> Result<Command, Box<dyn std::error::Error>> {
+    let search = if native_display {
+        Some(native::linker_search(target)?)
+    } else {
+        None
+    };
+    Ok(command_for(target, native_display, search.as_deref()))
+}
+fn command_for(
+    target: Option<&str>,
+    native_display: bool,
+    search: Option<&std::ffi::OsStr>,
+) -> Command {
+    let mut command = Command::new("cargo");
+    if target == Some("aarch64-unknown-linux-gnu") {
+        command.arg("+1.98.1");
+    }
+    command.args(["build", "--locked", "--release", "-p", "conduit"]);
+    if let Some(target) = target {
+        command.args(["--target", target]);
+        if target == "aarch64-unknown-linux-gnu" {
+            command.env(
+                "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER",
+                "aarch64-linux-gnu-gcc",
+            );
+        }
+    }
+    if native_display {
+        command.args(["--features", "native-display"]);
+    }
+    if let Some(search) = search {
+        command.env("LIBRARY_PATH", search);
+    }
+    command
+}
+#[cfg(test)]
+#[path = "host_release_linux/tests.rs"]
+mod tests;

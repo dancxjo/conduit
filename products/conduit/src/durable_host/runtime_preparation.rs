@@ -41,6 +41,8 @@ pub(super) fn prepare_traced_runtime(
             .map(|(initial, maximum)| (initial, *maximum)),
         StdHostComposition::reference(),
         trace,
+        #[cfg(all(target_os = "linux", feature = "native-display"))]
+        None,
     )
 }
 
@@ -78,6 +80,8 @@ pub(super) fn prepare_runtime_with_scans(
         thermostat,
         StdHostComposition::reference(),
         &Trace::disabled(),
+        #[cfg(all(target_os = "linux", feature = "native-display"))]
+        None,
     )
 }
 
@@ -96,6 +100,33 @@ pub(super) fn prepare_presentation_runtime(
         None,
         StdHostComposition::minimal().with_text(),
         &Trace::disabled(),
+        #[cfg(all(target_os = "linux", feature = "native-display"))]
+        None,
+    )
+}
+
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+pub(super) fn prepare_traced_runtime_with_scanout(
+    state_dir: &Path,
+    trace: &Trace,
+    scanout: &mut conduit_linux_display::Scanout<'_>,
+) -> Result<
+    (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+    String,
+> {
+    if retained_local_owner_scan(state_dir)?.is_some() {
+        return Err("selected scanout cannot preserve a scoped Thermostat Host".into());
+    }
+    prepare_runtime_with_composition(
+        state_dir,
+        None,
+        None,
+        StdHostComposition::reference(),
+        trace,
+        Some(scanout),
     )
 }
 
@@ -119,6 +150,9 @@ fn prepare_runtime_with_composition(
     thermostat: Option<(&conduit_thermostat_plot::ThermostatState, u16)>,
     composition: StdHostComposition,
     trace: &Trace,
+    #[cfg(all(target_os = "linux", feature = "native-display"))] scanout: Option<
+        &mut conduit_linux_display::Scanout<'_>,
+    >,
 ) -> Result<
     (
         RuntimeStatus,
@@ -160,8 +194,33 @@ fn prepare_runtime_with_composition(
             offer_generation: OfferGeneration(1),
         })
     })?;
+    let image_selected = installation
+        .selected_host_configuration
+        .as_ref()
+        .is_some_and(|s| s.host_image().is_some());
+    if image_selected
+        && (todo.is_some()
+            || thermostat.is_some()
+            || installation.selected_model.is_some()
+            || installation.selected_speech.is_some()
+            || installation.selected_todo_checkpoint.is_some())
+    {
+        return Err(
+            "selected IMAGE cannot preserve unrelated selected equipment or scoped scans".into(),
+        );
+    }
     let mut host = trace.run(Phase::HostConstruction, || {
-        Ok(if let Some((initial, maximum_items)) = todo {
+        Ok(if image_selected {
+            installation
+                .selected_host_configuration
+                .as_ref()
+                .unwrap()
+                .initialize_image(
+                    config,
+                    #[cfg(all(target_os = "linux", feature = "native-display"))]
+                    scanout,
+                )?
+        } else if let Some((initial, maximum_items)) = todo {
             StdHost::new_for_todo_scan(config, initial, maximum_items)?
         } else if let Some((initial, maximum_items)) = thermostat {
             StdHost::new_for_thermostat_scan(config, initial, maximum_items)?
@@ -188,8 +247,10 @@ fn prepare_runtime_with_composition(
         })
     })?;
     let selected_equipment = trace.run(Phase::EquipmentSelection, || {
-        if let Some(selection) = &installation.selected_host_configuration {
-            selection.attach_to_fresh_host(&mut host)?;
+        if !image_selected {
+            if let Some(selection) = &installation.selected_host_configuration {
+                selection.attach_to_fresh_host(&mut host)?;
+            }
         }
         Ok(if let Some(selection) = &installation.selected_speech {
             let artifact_dir = state_dir.join("spoken-artifacts");

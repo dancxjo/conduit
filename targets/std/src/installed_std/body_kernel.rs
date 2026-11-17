@@ -42,13 +42,21 @@ use fore_route::BodyForeRoute;
 
 mod diagnostic;
 mod execution;
+pub(crate) use execution::state::BodyExecutionState;
 pub(crate) mod funded;
 mod host_calls;
 #[path = "body_kernel/preparation.rs"]
 mod materialization;
 pub(crate) mod memory;
+mod startup;
 
 pub(crate) struct BodyKernel<'a> {
+    startup_outputs: Vec<(
+        conduit_kernel::NodeId,
+        crate::hosted_audio::startup_chime::PreparedChimeOutput,
+    )>,
+    startup_receipts: Vec<crate::body_execution::StartupChimeCallReceipt>,
+    startup_gates: Vec<super::startup_source_back::StartupGate>,
     terminal_events: Option<Vec<KernelEvent>>,
     error_diagnostic: Option<diagnostic::Diagnostic>,
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
@@ -76,33 +84,8 @@ pub(crate) struct BodyKernel<'a> {
     todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
 
-pub(crate) struct BodyKernelResult {
-    pub terminal: TerminalDisposition,
-    pub failure: Option<String>,
-    pub kernel_failure: Option<Failure>,
-    pub cleanup_failure: Option<String>,
-    pub partitions: Vec<KernelIdentityMap>,
-    pub requests: Vec<HostCallRequest>,
-    pub events: Vec<KernelEvent>,
-    pub scan_child_signs:
-        Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
-    pub scan_cancellation_failed: bool,
-    pub scan_output_completion_failed: bool,
-    pub each_child_signs: Result<
-        Vec<conduit_composite::ScanChildSignReceipt>,
-        conduit_composite::BoundedActivationError,
-    >,
-    pub each_cancellation_failed: bool,
-    pub each_output_completion_failed: bool,
-    pub fore_deliveries: Vec<ExternalForeDelivery>,
-    pub fore_pending_output: Option<crate::body_execution::BodyForePendingOutput>,
-    pub clock_observations: Vec<ObservedKernelEvent>,
-    pub clock_quality: Option<BodyTimeQuality>,
-    pub clock_execution_bounds: Option<(
-        conduit_core::MonotonicDuration,
-        conduit_core::MonotonicDuration,
-    )>,
-}
+mod result;
+pub(crate) use result::BodyKernelResult;
 
 fn keyboard(contract: &conduit_core::HostCallContractId) -> bool {
     contract.as_str() == conduit_std_offers::NEXT_KEY_EVENT_HOST_CALL_CONTRACT

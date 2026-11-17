@@ -99,20 +99,47 @@ pub(super) fn bind_body_play(
     plan_id: &PlanId,
     play_sequence: u64,
 ) -> ActivePlayId {
+    ActivePlayId::from(digest_id(
+        "body-play",
+        body_play_hash(body_id, wake_id, plan_id, play_sequence),
+    ))
+}
+pub(super) fn body_play_matches(play: &BodyPlayIdentity) -> bool {
+    let encoded = encode_digest(body_play_hash(
+        &play.body_id,
+        &play.wake_id,
+        &play.plan_id,
+        play.play_sequence,
+    ));
+    let Some(suffix) = play
+        .active_play_id
+        .as_str()
+        .strip_prefix("body-play/sha256:")
+    else {
+        return false;
+    };
+    suffix.as_bytes() == encoded
+}
+fn body_play_hash(
+    body_id: &BodyId,
+    wake_id: &WakeId,
+    plan_id: &PlanId,
+    play_sequence: u64,
+) -> CanonicalHash {
     let mut bytes = CanonicalHash::new();
     push(&mut bytes, "conduit.body/body-play@1");
     push(&mut bytes, body_id.as_str());
     push(&mut bytes, wake_id.as_str());
     push(&mut bytes, plan_id.as_str());
     bytes.extend_from_slice(&play_sequence.to_le_bytes());
-    ActivePlayId::from(digest_id("body-play", bytes))
+    bytes
 }
 
 fn push(output: &mut CanonicalHash, value: &str) {
     output.extend_from_slice(&(value.len() as u32).to_le_bytes());
     output.extend_from_slice(value.as_bytes());
 }
-fn digest_id(prefix: &str, bytes: CanonicalHash) -> String {
+fn encode_digest(bytes: CanonicalHash) -> [u8; 64] {
     let digest = bytes.0.finalize();
     let mut encoded = [0; 64];
     const HEX: &[u8; 16] = b"0123456789abcdef";
@@ -120,6 +147,10 @@ fn digest_id(prefix: &str, bytes: CanonicalHash) -> String {
         pair[0] = HEX[usize::from(byte >> 4)];
         pair[1] = HEX[usize::from(byte & 15)];
     }
+    encoded
+}
+fn digest_id(prefix: &str, bytes: CanonicalHash) -> String {
+    let encoded = encode_digest(bytes);
     let mut output = String::with_capacity(prefix.len() + "/sha256:".len() + encoded.len());
     output.push_str(prefix);
     output.push_str("/sha256:");

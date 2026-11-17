@@ -101,27 +101,15 @@ fn parse_aplay_list(
     sound_class: &Path,
 ) -> Result<Vec<AlsaPlaybackObservation>, PlaybackDiscoveryError> {
     let mut observations = Vec::new();
-    for line in listing.lines().filter(|line| line.starts_with("card ")) {
-        let (card_part, device_part) = line.split_once(", device ").ok_or_else(|| {
-            PlaybackDiscoveryError::Malformed(format!("missing device delimiter in {line:?}"))
-        })?;
-        let card_part = card_part
-            .strip_prefix("card ")
-            .ok_or_else(|| PlaybackDiscoveryError::Malformed(line.to_owned()))?;
-        let (card_index, card_tail) = card_part.split_once(": ").ok_or_else(|| {
-            PlaybackDiscoveryError::Malformed(format!("missing card delimiter in {line:?}"))
-        })?;
-        let (card_id, card_name) = bracketed_name(card_tail)?;
-        let (device, device_tail) = device_part.split_once(": ").ok_or_else(|| {
-            PlaybackDiscoveryError::Malformed(format!("missing device name in {line:?}"))
-        })?;
-        let (_, device_name) = bracketed_name(device_tail)?;
-        let card_index = card_index.parse::<u16>().map_err(|_| {
-            PlaybackDiscoveryError::Malformed(format!("invalid card index in {line:?}"))
-        })?;
-        let device = device.parse::<u16>().map_err(|_| {
-            PlaybackDiscoveryError::Malformed(format!("invalid device index in {line:?}"))
-        })?;
+    for row in super::discovery_rows::playback_rows(listing) {
+        let row = row.map_err(|error| PlaybackDiscoveryError::Malformed(error.to_string()))?;
+        let super::discovery_rows::PlaybackRow {
+            card_index,
+            card_id,
+            card_name,
+            device,
+            device_name,
+        } = row;
         let base_identity = base_identity(sound_class, card_index);
         observations.push(AlsaPlaybackObservation {
             card_index,
@@ -140,17 +128,6 @@ fn parse_aplay_list(
         ))
     });
     Ok(observations)
-}
-
-fn bracketed_name(value: &str) -> Result<(&str, &str), PlaybackDiscoveryError> {
-    let open = value
-        .find('[')
-        .ok_or_else(|| PlaybackDiscoveryError::Malformed(format!("missing '[' in {value:?}")))?;
-    let close = value[open + 1..]
-        .find(']')
-        .map(|index| open + 1 + index)
-        .ok_or_else(|| PlaybackDiscoveryError::Malformed(format!("missing ']' in {value:?}")))?;
-    Ok((value[..open].trim(), value[open + 1..close].trim()))
 }
 
 fn base_identity(sound_class: &Path, card_index: u16) -> String {

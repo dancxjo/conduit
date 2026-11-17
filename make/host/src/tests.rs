@@ -1,6 +1,9 @@
 use crate::test_packages::{test_build_host_image, test_catalog, test_checked_host_profile};
 use crate::*;
 
+#[path = "runtime_resource_order_tests.rs"]
+mod runtime_resource_order;
+
 const STD_COMPUTER: &str = include_str!("../../../targets/std/profiles/std-computer.profile.json");
 const CONDUITOS_NATIVE: &str =
     include_str!("../../../targets/conduitos/profiles/conduitos-native.host.conduit");

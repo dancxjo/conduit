@@ -11,6 +11,8 @@ use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+#[path = "selected_host_configuration/image.rs"]
+mod image;
 #[path = "selected_host_configuration/microphone.rs"]
 mod microphone;
 #[path = "selected_host_configuration/playback.rs"]
@@ -24,6 +26,8 @@ const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 pub(super) struct Selection {
     source: String,
     configuration_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    host_image: Option<conduit_host_make::HostImage>,
 }
 impl Selection {
     fn from_source(source: &str, target: &str) -> Result<Self, String> {
@@ -37,6 +41,7 @@ impl Selection {
         Ok(Self {
             source,
             configuration_id: checked.configuration_id().into(),
+            host_image: None,
         })
     }
     pub(super) fn validate_speech_overlap(
@@ -55,8 +60,12 @@ impl Selection {
         }
         Ok(())
     }
-    fn checked(&self) -> Result<CheckedHostConfiguration, String> {
-        let checked = check(&self.source)?;
+    pub(super) fn checked(&self) -> Result<CheckedHostConfiguration, String> {
+        let checked = if let Some(image) = &self.host_image {
+            image::check_image(&self.source, image)?
+        } else {
+            check(&self.source)?
+        };
         if checked.configuration_id() != self.configuration_id {
             return Err("retained Host configuration identity changed".into());
         }
@@ -98,6 +107,18 @@ impl Selection {
                     let selected = playback::initialize(initialization, host)?;
                     host.attach_selected_playback(selected)?;
                 }
+                #[cfg(not(all(target_os = "linux", feature = "native-display")))]
+                Some("display/linear-framebuffer@1") => {
+                    return Err(
+                        "selected scanout requires the native-display product feature".into(),
+                    )
+                }
+                #[cfg(all(target_os = "linux", feature = "native-display"))]
+                Some("display/linear-framebuffer@1") => {
+                    conduit_workspace_make::CheckedNativeMaskInitialization::from_configuration(
+                        &checked,
+                    )?;
+                }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
                 }
@@ -134,6 +155,18 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     playback::validate(initialization)?
                 }
+                #[cfg(not(all(target_os = "linux", feature = "native-display")))]
+                Some("display/linear-framebuffer@1") => {
+                    return Err(
+                        "selected scanout requires the native-display product feature".into(),
+                    )
+                }
+                #[cfg(all(target_os = "linux", feature = "native-display"))]
+                Some("display/linear-framebuffer@1") => {
+                    conduit_workspace_make::CheckedNativeMaskInitialization::from_configuration(
+                        &checked,
+                    )?;
+                }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
                 }
@@ -150,12 +183,21 @@ fn require_target(checked: &CheckedHostConfiguration, target: &str) -> Result<()
     Ok(())
 }
 
+#[cfg(test)]
 pub(super) fn configure(
     state_dir: &Path,
     source: Option<&Path>,
     clear: bool,
 ) -> Result<(), String> {
-    if source.is_some() == clear {
+    configure_with_image(state_dir, source, clear, None)
+}
+pub(super) fn configure_with_image(
+    state_dir: &Path,
+    source: Option<&Path>,
+    clear: bool,
+    image_path: Option<&Path>,
+) -> Result<(), String> {
+    if source.is_some() == clear || image_path.is_some() && (clear || source.is_none()) {
         return Err("select a Host configuration or explicitly clear it".into());
     }
     let _host = owner_lock::acquire(state_dir)?;
@@ -172,7 +214,23 @@ pub(super) fn configure(
         }
         let bytes = bounded_read(path, MAXIMUM_SOURCE_BYTES)?;
         let source = std::str::from_utf8(&bytes).map_err(|_| "Host configuration must be UTF-8")?;
-        let selection = Selection::from_source(source, running_target_id()?)?;
+        let mut selection = Selection::from_source(source, running_target_id()?)?;
+        if let Some(path) = image_path {
+            let bytes = bounded_read(path, 64 * 1024)?;
+            let image: conduit_host_make::HostImage = serde_json::from_slice(&bytes)
+                .map_err(|_| "invalid canonical Make IMAGE artifact")?;
+            image::check_image(source, &image)?;
+            selection.host_image = Some(image);
+        } else if let Some(prior) = &installation.selected_host_configuration {
+            if prior.configuration_id == selection.configuration_id {
+                selection.host_image = prior.host_image.clone();
+            } else if prior.host_image.is_some() {
+                return Err(
+                    "changing IMAGE-bound configuration requires an explicit replacement --image"
+                        .into(),
+                );
+            }
+        }
         if installation.selected_todo_checkpoint.is_some() {
             return Err(
                 "scoped Todo checkpoint Host cannot initialize additional checked equipment".into(),

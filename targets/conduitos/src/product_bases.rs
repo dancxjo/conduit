@@ -8,6 +8,12 @@ use conduit_core::{
     ResourcePoolId,
 };
 
+#[cfg(feature = "native-compositor-core")]
+pub use crate::native_mask_play::{
+    NativeMaskBackingReceipt, RetainedNativeMaskStorage, RetiredNativeMaskEvidence,
+    UnboundNativeMaskStorage,
+};
+
 pub use crate::native_surface_provider::{
     InitializedNativeOutput, NativeSurfaceProvider, SurfaceProviderError,
 };

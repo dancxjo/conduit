@@ -1,0 +1,21 @@
+{
+  "base_commit": "a458201480c969c7273859e59a9affe49f47d762",
+  "source_provenance": "b341d1c6191d4e5bdafe593fb75b4efd5ec4313c construction-only extraction",
+  "owning_tests": 9,
+  "focused_tests": 6,
+  "failed": 0,
+  "strict_clippy_packages": [
+    "conduit-workspace-make",
+    "conduit-linear-framebuffer-make"
+  ],
+  "threebee_actual_configuration_unchanged": "sha256:d0ffc42a6b6d0e64bff302e8a4dc0f0955dff6c39cbd011132b69347e67df095",
+  "motherbrain_complete_candidate_validated": false,
+  "motherbrain_refusal": "UnknownPinnedImplementation std/hosted-whisper-clip-speech@2",
+  "live_effects": false,
+  "logs": {
+    "owning": "a1d0ba5a6d9638fac2c8daa4930a2234c8cd62a49dc187556615e5344359a0e0",
+    "focused": "234f8c8f9cae9fbbaee27444872d139eb0a26a8b8e72518945da062883ddca82",
+    "workspace_clippy": "b1363abcaedb2fae692f87010c795478dc0cbf21e753704a95c8cdecff4527e8",
+    "mechanism_clippy": "15213bd074fced02767ffeec7134052f47e7ea7841d59ca03dd6544e81e5300e"
+  }
+}

@@ -48,6 +48,10 @@ pub mod relay_client;
 pub mod remote_emergency;
 #[cfg(target_os = "linux")]
 pub mod scoped_namespace;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod selected_native_mask;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod selected_scanout;
 #[cfg(target_os = "linux")]
 pub mod text_file;
 pub mod text_lab_live;
@@ -467,6 +471,9 @@ pub struct StdHost {
     terminal_attachment: Option<std::os::unix::net::UnixStream>,
     image_identity: Option<conduit_host_make::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
+    _playback_memory: Option<kernel_preparation::ImageMemoryLease>,
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    selected_scanout: Option<Box<selected_scanout::SelectedScanoutBase>>,
     wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
     speech_synthesis: Option<hosted_speech_synthesis::EspeakSpeechAdapter>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
@@ -843,6 +850,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -919,6 +929,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1008,6 +1021,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1059,6 +1075,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1110,6 +1129,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1161,6 +1183,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1197,6 +1222,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1257,6 +1285,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1312,6 +1343,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1356,6 +1390,9 @@ impl StdHost {
             advertisement,
             image_identity: Some(image_identity),
             playback: None,
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1413,6 +1450,9 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            _playback_memory: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,

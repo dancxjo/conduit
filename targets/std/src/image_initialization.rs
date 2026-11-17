@@ -8,6 +8,14 @@ use conduit_host_make::{
 };
 use std::{collections::BTreeSet, io::Write};
 
+mod initial_bases;
+mod playback;
+mod recognition;
+pub(crate) use initial_bases::InitialBases;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub(crate) use playback::prepare_playback_on;
+pub(crate) use recognition::InitialWhisper;
+
 const MAXIMUM_IMAGE_BYTES: usize = 64 * 1024;
 const MAXIMUM_TIMER_POOLS: usize = 16;
 
@@ -20,63 +28,55 @@ impl StdHost {
         image: &HostImage,
         catalog: &MakeCatalog,
     ) -> Result<Self, String> {
-        // Bound caller identities before formatting derived provider identities.
-        // Reserve their largest fixed suffix in the same finite input frame.
-        const IDENTITY_SUFFIX_BYTES: usize = 1 + "/monotonic".len() + "/timer-ready/".len() + 20;
-        let identity_bytes = config
-            .host_id
-            .as_str()
-            .len()
-            .checked_add(config.boot_id.as_str().len())
-            .and_then(|size| size.checked_add(IDENTITY_SUFFIX_BYTES))
-            .ok_or("selected timer identity exceeds finite preparation frame")?;
-        let maximum_bytes = MAXIMUM_IMAGE_BYTES
-            .checked_sub(identity_bytes)
-            .filter(|remaining| *remaining > 0)
-            .ok_or("selected timer identity exceeds finite preparation frame")?;
-        if config.offer_generation.0 == 0
-            || config.host_id.as_str().trim().is_empty()
-            || config.boot_id.as_str().trim().is_empty()
-        {
-            return Err(
-                "selected timer requires nonempty Host/Boot and a positive offer generation".into(),
-            );
+        Self::from_selected_initial_bases(config, image, catalog, InitialBases::default())
+    }
+    pub fn from_selected_timer_and_playback_image(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &conduit_host_make::CheckedHostConfiguration,
+        selected: &crate::hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        if !cfg!(conduit_prepared_process_layout) {
+            return Err(env!("CONDUIT_PREPARED_PROCESS_LAYOUT").into());
         }
-        // Validate the finite serialized input BEFORE cloning any authored pool,
-        // Base or provider metadata. This is not a managed-heap receipt.
-        let mut bytes = ImageBytes {
-            bytes: Vec::with_capacity(maximum_bytes),
-            maximum_bytes,
-        };
-        serde_json::to_writer(&mut bytes, image)
-            .map_err(|error| format!("selected IMAGE preparation: {error}"))?;
+        bounded_image_preflight(&config, image)?;
+        let (playback, memory) =
+            playback::prepare_playback(&config, image, catalog, checked, selected)?;
+        Self::from_selected_initial_bases(
+            config.clone(),
+            image,
+            catalog,
+            InitialBases {
+                playback: Some(playback),
+                memory: Some(memory),
+                ..InitialBases::default()
+            },
+        )
+    }
+    pub(crate) fn from_selected_initial_bases<'a>(
+        config: StdHostConfig,
+        image: &'a HostImage,
+        catalog: &MakeCatalog,
+        mut initial: InitialBases<'a>,
+    ) -> Result<Self, String> {
+        let has_playback = initial.playback.is_some();
+        let has_native = initial.has_native();
+        let bytes = image_frame(&config, image)?;
         let manifest = &image.manifest;
-        macro_rules! same {
-            ($($field:ident),+ $(,)?) => { $(if manifest.$field != image.payload.$field {
-                return Err(format!("selected IMAGE manifest/payload mismatch: {}", stringify!($field)));
-            })+ };
-        }
-        same!(
-            declared_name,
-            source_configuration_id,
-            target,
-            make_descriptor,
-            profile_fragments,
-            implementations,
-            host_calls,
-            resources,
-            resource_budgets,
-            bases,
-            base_selections,
-            drivers,
-            driver_selections,
-            lines,
-            presenters,
-            facilities,
-            bounds
-        );
+        let supported = |id: &str| {
+            id == conduit_std_offers::TICK_IMPLEMENTATION
+                || initial.supports_native_implementation(id)
+                || (has_playback
+                    && matches!(
+                        id,
+                        conduit_std_offers::BODY_WAKE_IMPLEMENTATION
+                            | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                    ))
+        };
         if !manifest.target.starts_with("std/")
-            || manifest.implementations != [conduit_std_offers::TICK_IMPLEMENTATION]
+            || manifest.implementations.is_empty()
+            || manifest.implementations.iter().any(|id| !supported(id))
         {
             return Err("selected IMAGE operation workset is unsupported: only explicit hosted time/tick is initialized".into());
         }
@@ -87,15 +87,19 @@ impl StdHost {
         if timer.is_none()
             || timers.next().is_some()
             || manifest.base_selections.iter().any(|base| {
-                !matches!(
-                    (base.kind.as_str(), base.driver.as_str()),
-                    ("timer/monotonic", "hosted/monotonic-clock@1")
-                        | (
-                            "serial/text",
-                            "hosted/serial@1" | "raspberry-pi-os/serial@1"
-                        )
-                        | ("storage/protected-file", "hosted/protected-file@1")
-                )
+                !(has_playback
+                    && base.kind == "audio/speaker"
+                    && base.driver == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION)
+                    && !initial.supports_native_base(&base.id, &base.kind, &base.driver)
+                    && !matches!(
+                        (base.kind.as_str(), base.driver.as_str()),
+                        ("timer/monotonic", "hosted/monotonic-clock@1")
+                            | (
+                                "serial/text",
+                                "hosted/serial@1" | "raspberry-pi-os/serial@1"
+                            )
+                            | ("storage/protected-file", "hosted/protected-file@1")
+                    )
             })
         {
             return Err(
@@ -111,6 +115,12 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial.owns_native_pool(&budget.id) {
+                continue;
+            }
+            if has_playback && budget.class == conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS {
+                continue;
+            }
             if budget.class != TIMER_RESOURCE_CLASS
                 || budget.slots == 0
                 || budget.bytes == 0
@@ -128,9 +138,13 @@ impl StdHost {
                 budget.slots,
             ));
         }
+        if resources.is_empty() {
+            return Err("selected timer requires an explicit timer pool".into());
+        }
         if slots > manifest.bounds.timer_slots {
             return Err("aggregate selected timer pools exceed IMAGE timer_slots".into());
         }
+        let playback = initial.playback.take();
         // std::time::Instant is this concrete hosted monotonic mechanism. It
         // needs no device discovery or caller-supplied physical bearer.
         let _current = std::time::Instant::now();
@@ -154,14 +168,57 @@ impl StdHost {
         registry
             .register(entry.clone())
             .map_err(|error| format!("selected timer registry: {error:?}"))?;
+        let mut candidates = vec![entry.clone()];
+        let mut candidate_capabilities = Vec::new();
+        let mut ready_resource_classes = BTreeSet::from([TIMER_RESOURCE_CLASS.into()]);
+        let mut initialized_base_kinds = BTreeSet::from(["timer/monotonic".into()]);
+        let mut initialized_driver_kinds = BTreeSet::from(["hosted/monotonic-clock@1".into()]);
+        if let Some((selected, _)) = &playback {
+            let mut speaker = selected
+                .checked_base_entry()
+                .ok_or("selected speaker lacks exact provider identity")?;
+            speaker.capabilities.retain(|offer| {
+                manifest
+                    .implementations
+                    .iter()
+                    .any(|id| id == offer.implementation.implementation_id.as_str())
+            });
+            if speaker.capabilities.is_empty() {
+                return Err("selected speaker has no built supported audio implementation".into());
+            }
+            registry
+                .register(speaker.clone())
+                .map_err(|error| format!("selected speaker registry: {error:?}"))?;
+            ready_resource_classes.insert(conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS.into());
+            initialized_base_kinds.insert("audio/speaker".into());
+            initialized_driver_kinds
+                .insert(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into());
+            candidates.push(speaker);
+            if manifest
+                .implementations
+                .iter()
+                .any(|id| id == conduit_std_offers::BODY_WAKE_IMPLEMENTATION)
+            {
+                candidate_capabilities.push(conduit_std_offers::body_wake_offer());
+            }
+        }
+        initial.project_native(
+            &config,
+            &mut registry,
+            &mut candidates,
+            &mut candidate_capabilities,
+            &mut ready_resource_classes,
+            &mut initialized_base_kinds,
+            &mut initialized_driver_kinds,
+        )?;
         let binding = bind_runtime_offer(
             manifest,
             image,
             &bytes.bytes,
             catalog,
             RuntimeOfferInputs {
-                host_id: config.host_id,
-                boot_id: config.boot_id,
+                host_id: config.host_id.clone(),
+                boot_id: config.boot_id.clone(),
                 offer_generation: config.offer_generation,
                 offer_sign_id: format!(
                     "{}/timer-ready/{}",
@@ -170,21 +227,42 @@ impl StdHost {
                 )
                 .into(),
                 host_profile: manifest.profile_id.as_str().into(),
-                candidate_bases: vec![entry],
-                candidate_capabilities: vec![],
+                candidate_bases: candidates,
+                candidate_capabilities,
                 planner_capabilities: vec![],
                 facts: RuntimeFacts {
-                    ready_resource_classes: BTreeSet::from([TIMER_RESOURCE_CLASS.into()]),
-                    initialized_base_kinds: BTreeSet::from(["timer/monotonic".into()]),
-                    initialized_driver_kinds: BTreeSet::from(["hosted/monotonic-clock@1".into()]),
-                    available_facilities: BTreeSet::new(),
-                    authority_ready: false,
+                    ready_resource_classes,
+                    initialized_base_kinds,
+                    initialized_driver_kinds,
+                    available_facilities: if has_native {
+                        BTreeSet::from(["compositor/native@1".into()])
+                    } else {
+                        BTreeSet::new()
+                    },
+                    // The checked provider can offer grant-requiring Backs.
+                    // Requirements remain on the offer; this creates no grant.
+                    authority_ready: playback.is_some() || has_native,
                 },
             },
         )
         .map_err(|error| format!("selected timer IMAGE binding: {error:?}"))?;
         let mut host = Self::from_image_binding(binding)?;
-        if host.advertisement.capabilities.len() != 1
+        // Presenters are separate initialized realization facts, not additional
+        // executable CapabilityOffers. Their prerequisite implementations must
+        // each appear exactly once in this complete current offer set.
+        let offered_implementations = host
+            .advertisement
+            .capabilities
+            .iter()
+            .map(|offer| offer.implementation.implementation_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let expected_implementations = manifest
+            .implementations
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        if offered_implementations != expected_implementations
+            || host.advertisement.capabilities.len() != manifest.implementations.len()
             || host.advertisement.resources.len() != budgets.len()
         {
             return Err(
@@ -192,7 +270,16 @@ impl StdHost {
             );
         }
         host.base_registry = registry;
-        host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        if let Some(memory) = initial.memory.take() {
+            memory.bind(&mut host.kernel_resources, &host.advertisement, image)?;
+        } else {
+            host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        }
+        if let Some((selected, lease)) = playback {
+            host.playback = Some(selected);
+            host._playback_memory = Some(lease);
+        }
+        initial.finish_native(&mut host)?;
         Ok(host)
     }
 }
@@ -218,3 +305,68 @@ impl Write for ImageBytes {
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) fn bounded_image_preflight(
+    config: &StdHostConfig,
+    image: &HostImage,
+) -> Result<(), String> {
+    image_frame(config, image).map(drop)
+}
+fn image_frame(config: &StdHostConfig, image: &HostImage) -> Result<ImageBytes, String> {
+    // Bound caller identities before formatting derived provider identities.
+    // Reserve their largest fixed suffix in the same finite input frame.
+    const IDENTITY_SUFFIX_BYTES: usize = 1 + "/monotonic".len() + "/timer-ready/".len() + 20;
+    let identity_bytes = config
+        .host_id
+        .as_str()
+        .len()
+        .checked_add(config.boot_id.as_str().len())
+        .and_then(|size| size.checked_add(IDENTITY_SUFFIX_BYTES))
+        .ok_or("selected timer identity exceeds finite preparation frame")?;
+    let maximum_bytes = MAXIMUM_IMAGE_BYTES
+        .checked_sub(identity_bytes)
+        .filter(|remaining| *remaining > 0)
+        .ok_or("selected timer identity exceeds finite preparation frame")?;
+    if config.offer_generation.0 == 0
+        || config.host_id.as_str().trim().is_empty()
+        || config.boot_id.as_str().trim().is_empty()
+    {
+        return Err(
+            "selected timer requires nonempty Host/Boot and a positive offer generation".into(),
+        );
+    }
+    // Validate the finite serialized input BEFORE cloning any authored pool,
+    // Base or provider metadata. This is not a managed-heap receipt.
+    let mut bytes = ImageBytes {
+        bytes: Vec::with_capacity(maximum_bytes),
+        maximum_bytes,
+    };
+    serde_json::to_writer(&mut bytes, image)
+        .map_err(|error| format!("selected IMAGE preparation: {error}"))?;
+    let manifest = &image.manifest;
+    macro_rules! same {
+            ($($field:ident),+ $(,)?) => { $(if manifest.$field != image.payload.$field {
+                return Err(format!("selected IMAGE manifest/payload mismatch: {}", stringify!($field)));
+            })+ };
+        }
+    same!(
+        declared_name,
+        source_configuration_id,
+        target,
+        make_descriptor,
+        profile_fragments,
+        implementations,
+        host_calls,
+        resources,
+        resource_budgets,
+        bases,
+        base_selections,
+        drivers,
+        driver_selections,
+        lines,
+        presenters,
+        facilities,
+        bounds
+    );
+    Ok(bytes)
+}

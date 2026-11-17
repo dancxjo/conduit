@@ -142,6 +142,7 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         "commits retain the admitted single raster"
     );
     crate::input_queue_tests::live_events(&mut scanout, &sdl);
+    crate::input_queue_tests::prepared_claims(&mut scanout, &sdl);
     // Invalid output is terminal; later commit cannot publish partial pixels.
     assert_eq!(
         scanout.write_pixel(format.width, 0, 0),
@@ -206,7 +207,7 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     let next_token = next.initialized_display().unwrap();
     assert_ne!(next_token.instance_nonce(), fresh_token.instance_nonce());
     let next_claim = next_token.claim_host().unwrap();
-    crate::input_queue_tests::focus_loss(&mut next, &sdl);
+    crate::input_queue_tests::output_lifecycle_preserves_input(&mut next, &sdl);
     drop(next);
     assert!(!next_claim.initialized().is_live());
     drop(next_claim);

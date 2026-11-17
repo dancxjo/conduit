@@ -242,8 +242,10 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         HostCommand::Release {
             output,
             platform,
+            native_display,
             source_identity,
         } => {
+            host_release::validate_options(platform, native_display)?;
             let source_identity = source_identity
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
@@ -254,6 +256,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 &host_release::ReleaseOptions {
                     json: opts.json,
                     quiet: opts.quiet,
+                    native_display,
                 },
             )
         }

@@ -67,6 +67,8 @@ mod near_back;
 mod numerical_back;
 mod pcm_clip_frames_back;
 mod startup_chime_back;
+mod startup_contract;
+mod startup_source_back;
 mod temporal_evidence_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{
@@ -266,6 +268,7 @@ use std::time::Duration;
 
 mod storage_profile;
 pub(crate) use facade::*;
+pub(crate) use storage_profile::MAX_NODES as MAXIMUM_INSTALLED_NODES;
 use storage_profile::{
     HOST_BINDING_SLOTS, HOST_CALLS_PER_NODE, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS,
     PENDING_REQUESTS, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,

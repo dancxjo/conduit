@@ -1,5 +1,5 @@
 {
-  "identity": "fe353c9b807a7f50ffaa35ede69841d3686cd84028eb42a8dada11befdf30056",
+  "identity": "221692693ac3a4a7458dab51f3c8f6d9a417d5e235f769614318e5c8f585c0cb",
   "revision": 1,
   "basis": {
     "body_id": "0b0de524d645eeae327aa9dd7db15af525dcc2411666cae9b28b52b4880b3868",
@@ -198,6 +198,11 @@
       "name": "Capability audio-tone"
     },
     {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/body-wake",
+      "role": "Capability",
+      "name": "Capability body-wake"
+    },
+    {
       "identity": "sign/patchbay-lifecycle/patchbay-portable/boot/0",
       "role": "Sign",
       "name": "Sign patchbay-lifecycle/patchbay-portable/boot/0"
@@ -371,6 +376,11 @@
       "identity": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
       "role": "Capability",
       "name": "Capability audio-tone"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/body-wake",
+      "role": "Capability",
+      "name": "Capability body-wake"
     }
   ],
   "relationships": [
@@ -555,6 +565,11 @@
       "kind": "Contains"
     },
     {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/body-wake",
+      "kind": "Contains"
+    },
+    {
       "source": "sign/patchbay-lifecycle/patchbay-portable/boot/0",
       "target": "document/7b1e5b2e2eb39faa766fe5bfd8b57ae9aa738f34bfc4b9207a65d64920dee403",
       "kind": "Describes"
@@ -727,6 +742,11 @@
     {
       "source": "candidate/c88d2f4b2859659ecbde3b42daafc677932b52cedeecca768e77b83c3fa66deb",
       "target": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/c88d2f4b2859659ecbde3b42daafc677932b52cedeecca768e77b83c3fa66deb",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/body-wake",
       "kind": "Contains"
     },
     {
@@ -1866,7 +1886,7 @@
       "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
       "name": "capability-count",
       "value": {
-        "Count": 18
+        "Count": 19
       }
     },
     {
@@ -2416,6 +2436,34 @@
       }
     },
     {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/body-wake",
+      "name": "capability-id",
+      "value": {
+        "Identity": "body-wake"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/body-wake",
+      "name": "kind-id",
+      "value": {
+        "Identity": "body/wake"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/body-wake",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/body-wake",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
       "subject": "body/0b0de524d645eeae327aa9dd7db15af525dcc2411666cae9b28b52b4880b3868",
       "name": "body-id",
       "value": {
@@ -2657,7 +2705,7 @@
       "subject": "candidate/c88d2f4b2859659ecbde3b42daafc677932b52cedeecca768e77b83c3fa66deb",
       "name": "capability-count",
       "value": {
-        "Count": 18
+        "Count": 19
       }
     },
     {
@@ -3040,6 +3088,27 @@
     },
     {
       "subject": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/body-wake",
+      "name": "capability-id",
+      "value": {
+        "Identity": "body-wake"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/body-wake",
+      "name": "kind-id",
+      "value": {
+        "Identity": "body/wake"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/body-wake",
       "name": "availability",
       "value": {
         "Text": "advertised"

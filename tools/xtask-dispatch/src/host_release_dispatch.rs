@@ -2,18 +2,26 @@
 use super::host_release;
 use std::path::PathBuf;
 
-pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
+struct ParsedRelease {
+    output: PathBuf,
+    platform: host_release::ReleasePlatform,
+    source_identity: Option<String>,
+    options: host_release::ReleaseOptions,
+}
+fn parse_options(options: &[String]) -> Result<ParsedRelease, String> {
     let mut values = options.iter();
     let mut output = None;
     let mut platform = None;
     let mut source_identity = None;
     let mut json = false;
     let mut quiet = false;
+    let mut native_display = false;
     while let Some(argument) = values.next() {
         match argument.as_str() {
             "--locked" => {}
             "--json" => json = true,
             "--quiet" => quiet = true,
+            "--native-display" => native_display = true,
             "--output" => {
                 output = Some(PathBuf::from(values.next().ok_or("missing --output path")?));
             }
@@ -21,6 +29,7 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
                 platform = Some(match values.next().map(String::as_str) {
                     Some("browser") => host_release::ReleasePlatform::Browser,
                     Some("linux") => host_release::ReleasePlatform::Linux,
+                    Some("linux-x86-64") => host_release::ReleasePlatform::LinuxX86_64,
                     Some("linux-aarch64") => host_release::ReleasePlatform::LinuxAarch64,
                     Some("linux-armv6") => host_release::ReleasePlatform::LinuxArmv6,
                     Some("windows") => host_release::ReleasePlatform::Windows,
@@ -42,15 +51,29 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
     }
     let output = output.ok_or("host release requires --output")?;
     let platform = platform.ok_or("host release requires --platform")?;
-    let source_identity = match source_identity {
+    Ok(ParsedRelease {
+        output,
+        platform,
+        source_identity,
+        options: host_release::ReleaseOptions {
+            json,
+            quiet,
+            native_display,
+        },
+    })
+}
+pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
+    let parsed = parse_options(options)?;
+    host_release::validate_options(parsed.platform, parsed.options.native_display)?;
+    let source_identity = match parsed.source_identity {
         Some(identity) => identity,
         None => command_identity("git", &["rev-parse", "HEAD"])?,
     };
     host_release::run(
-        &output,
-        platform,
+        &parsed.output,
+        parsed.platform,
         &source_identity,
-        &host_release::ReleaseOptions { json, quiet },
+        &parsed.options,
     )
     .map_err(|error| error.to_string())
 }
@@ -94,4 +117,31 @@ fn aarch64_release_platform_is_accepted_before_required_output_validation() {
         run_host_release(&options).unwrap_err(),
         "host release requires --output"
     );
+}
+
+#[cfg(test)]
+#[test]
+fn native_release_selection_is_parsed_without_building_or_resolving_source() {
+    let values = [
+        "--platform",
+        "linux-x86-64",
+        "--native-display",
+        "--output",
+        "target/fixture",
+        "--source-identity",
+        "fixture",
+    ]
+    .map(str::to_owned);
+    let parsed = parse_options(&values).unwrap();
+    assert_eq!(parsed.platform, host_release::ReleasePlatform::LinuxX86_64);
+    assert!(parsed.options.native_display);
+    assert_eq!(parsed.source_identity.as_deref(), Some("fixture"));
+    let defaults = parse_options(&[
+        "--platform".into(),
+        "linux".into(),
+        "--output".into(),
+        "target/fixture".into(),
+    ])
+    .unwrap();
+    assert!(!defaults.options.native_display);
 }

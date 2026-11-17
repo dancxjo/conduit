@@ -1,5 +1,8 @@
 //! Bounded process transport below provider-specific admission and semantics.
+pub(crate) mod layout;
+mod prepared;
 pub(crate) mod stream;
+pub(crate) use prepared::PreparedProcess;
 
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
@@ -61,29 +64,9 @@ pub(crate) fn run_process_with_input_bound(
     maximum_input_bytes: usize,
     cancelled: impl Fn() -> bool,
 ) -> Result<ProcessReport, ProcessError> {
-    if maximum_input_bytes > 8 * 1024 * 1024
-        || (!cfg!(unix) && maximum_input_bytes > 256)
-        || !request.program.is_absolute()
-        || request.stdin.len() > maximum_input_bytes
-        || request.maximum_stdout_bytes > 131_116
-        || request.maximum_stderr_bytes > 131_116
-        || request.timeout.is_zero()
-    {
-        return Err(ProcessError::InvalidRequest(
-            "invalid bounded process request",
-        ));
-    }
-    if request.require_process_group && !cfg!(unix) {
-        return Err(ProcessError::Unsupported(
-            "process-group retirement requires Unix",
-        ));
-    }
-    if !cfg!(any(unix, windows)) {
-        return Err(ProcessError::Unsupported(
-            "bounded pipe polling unavailable on this platform",
-        ));
-    }
+    PreparedProcess::validate(request, maximum_input_bytes)?;
     let started = Instant::now();
+    // Preserve the legacy entrance's cancellation timing before preparation.
     if cancelled() {
         return Ok(report(
             ProcessTerminal::Cancelled,
@@ -93,160 +76,189 @@ pub(crate) fn run_process_with_input_bound(
             false,
         ));
     }
-    let mut out = CapturedOutput {
-        retained: Vec::with_capacity(request.maximum_stdout_bytes),
-        observed_bytes: 0,
-    };
-    let mut err = CapturedOutput {
-        retained: Vec::with_capacity(request.maximum_stderr_bytes),
-        observed_bytes: 0,
-    };
-    let mut command = Command::new(request.program);
-    command
-        .args(request.arguments)
-        .env_clear()
-        .envs(request.environment.iter().map(|(k, v)| (k, v)))
-        .stdin(if request.stdin.is_empty() {
-            Stdio::null()
-        } else {
-            Stdio::piped()
-        })
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    #[cfg(unix)]
-    {
-        use std::os::unix::process::CommandExt;
-        command.process_group(0);
+    PreparedProcess::prepare(request, maximum_input_bytes)?.run_at(
+        request.stdin,
+        cancelled,
+        started,
+    )
+}
+impl PreparedProcess {
+    pub(crate) fn run(
+        self,
+        payload: &[u8],
+        cancelled: impl Fn() -> bool,
+    ) -> Result<ProcessReport, ProcessError> {
+        self.run_at(payload, cancelled, Instant::now())
     }
-    let child = command.spawn().map_err(ProcessError::Launch)?;
-    let mut guard = ChildGuard(child, false);
-    let child = &mut guard.0;
-    let mut stdout = child.stdout.take().expect("piped stdout");
-    let mut stderr = child.stderr.take().expect("piped stderr");
-    let mut stdin = child.stdin.take();
-    let preparation = prepare_pipe(&stdout)
-        .and_then(|()| prepare_pipe(&stderr))
-        .and_then(|()| {
-            if let Some(input) = &stdin {
-                prepare_pipe(input)
-            } else {
-                Ok(())
+    fn run_at(
+        self,
+        payload: &[u8],
+        cancelled: impl Fn() -> bool,
+        started: Instant,
+    ) -> Result<ProcessReport, ProcessError> {
+        if payload.len() > self.maximum_input_bytes || payload.is_empty() != self.input_is_empty {
+            return Err(ProcessError::InvalidRequest(
+                "invalid bounded process input",
+            ));
+        }
+        if cancelled() {
+            return Ok(report(
+                ProcessTerminal::Cancelled,
+                self.out,
+                self.err,
+                started,
+                false,
+            ));
+        }
+        let mut diagnostic = self.diagnostic;
+        let mut out = self.out;
+        let mut err = self.err;
+        let mut command = self.command;
+        let child = command.spawn().map_err(ProcessError::Launch)?;
+        let mut guard = ChildGuard(child, false);
+        let child = &mut guard.0;
+        let mut stdout = child.stdout.take().expect("piped stdout");
+        let mut stderr = child.stderr.take().expect("piped stderr");
+        let mut stdin = child.stdin.take();
+        let preparation = prepare_pipe(&stdout)
+            .and_then(|()| prepare_pipe(&stderr))
+            .and_then(|()| {
+                if let Some(input) = &stdin {
+                    prepare_pipe(input)
+                } else {
+                    Ok(())
+                }
+            });
+        let mut out_eof = false;
+        let mut err_eof = false;
+        let mut sent = 0;
+        if let Err(error) = preparation {
+            terminate(child);
+            let _ = child.wait();
+            guard.1 = true;
+            return Ok(report(
+                ProcessTerminal::ProviderLost(prepared::provider_error(
+                    &mut diagnostic,
+                    format_args!("{error}"),
+                )),
+                out,
+                err,
+                started,
+                true,
+            ));
+        }
+        let mut terminal = None;
+        let mut retired_at = None;
+        loop {
+            if terminal.is_none() {
+                if cancelled() {
+                    terminal = Some(ProcessTerminal::Cancelled);
+                } else if started.elapsed() >= self.timeout {
+                    terminal = Some(ProcessTerminal::TimedOut);
+                } else {
+                    match child.try_wait() {
+                        Ok(Some(status)) => terminal = Some(ProcessTerminal::Exited(status)),
+                        Ok(None) => {}
+                        Err(error) => {
+                            terminal = Some(ProcessTerminal::ProviderLost(
+                                prepared::provider_error(&mut diagnostic, format_args!("{error}")),
+                            ))
+                        }
+                    }
+                }
             }
-        });
-    let mut out_eof = false;
-    let mut err_eof = false;
-    let mut sent = 0;
-    if let Err(error) = preparation {
-        terminate(child);
+            if terminal.is_some() && retired_at.is_none() {
+                terminate(child);
+                stdin.take();
+                retired_at = Some(Instant::now());
+            }
+            if let Some(input) = &mut stdin {
+                // Large startup writes are admitted only on Unix's nonblocking
+                // pipes. Never retry a write without returning to the deadline.
+                match input.write(&payload[sent..]) {
+                    Ok(0) => {
+                        terminal = Some(ProcessTerminal::ProviderLost(prepared::provider_error(
+                            &mut diagnostic,
+                            format_args!("process stdin closed before delivery"),
+                        )))
+                    }
+                    Ok(size) => {
+                        sent += size;
+                        if sent == payload.len() {
+                            stdin.take();
+                        }
+                    }
+                    Err(error)
+                        if matches!(
+                            error.kind(),
+                            io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+                        ) => {}
+                    Err(error) => {
+                        terminal = Some(ProcessTerminal::ProviderLost(prepared::provider_error(
+                            &mut diagnostic,
+                            format_args!("process stdin: {error}"),
+                        )))
+                    }
+                }
+            }
+            for result in [
+                drain(
+                    &mut stdout,
+                    &mut out,
+                    self.maximum_stdout_bytes,
+                    &mut out_eof,
+                ),
+                drain(
+                    &mut stderr,
+                    &mut err,
+                    self.maximum_stderr_bytes,
+                    &mut err_eof,
+                ),
+            ] {
+                if let Err(error) = result {
+                    record_pipe_failure(&mut terminal, error, &mut diagnostic);
+                }
+            }
+            if let Some(retired) = retired_at {
+                if out_eof && err_eof {
+                    break;
+                }
+                if retired.elapsed() >= RETIREMENT {
+                    if matches!(terminal, Some(ProcessTerminal::Exited(_))) {
+                        terminal = Some(ProcessTerminal::ProviderLost(prepared::provider_error(
+                            &mut diagnostic,
+                            format_args!("descendant pipe did not retire within bound"),
+                        )));
+                    }
+                    break;
+                }
+            }
+            thread::sleep(POLL);
+        }
+        // Kill precedes reap; there are no pipe-reader threads to join. Dropping the
+        // captured pipe handles also retires descriptors held by escaped descendants.
         let _ = child.wait();
         guard.1 = true;
-        return Ok(report(
-            ProcessTerminal::ProviderLost(error.to_string()),
+        Ok(report(
+            terminal.expect("terminal process"),
             out,
             err,
             started,
             true,
-        ));
+        ))
     }
-    let mut terminal = None;
-    let mut retired_at = None;
-    loop {
-        if terminal.is_none() {
-            if cancelled() {
-                terminal = Some(ProcessTerminal::Cancelled);
-            } else if started.elapsed() >= request.timeout {
-                terminal = Some(ProcessTerminal::TimedOut);
-            } else {
-                match child.try_wait() {
-                    Ok(Some(status)) => terminal = Some(ProcessTerminal::Exited(status)),
-                    Ok(None) => {}
-                    Err(error) => terminal = Some(ProcessTerminal::ProviderLost(error.to_string())),
-                }
-            }
-        }
-        if terminal.is_some() && retired_at.is_none() {
-            terminate(child);
-            stdin.take();
-            retired_at = Some(Instant::now());
-        }
-        if let Some(input) = &mut stdin {
-            // Large startup writes are admitted only on Unix's nonblocking
-            // pipes. Never retry a write without returning to the deadline.
-            match input.write(&request.stdin[sent..]) {
-                Ok(0) => {
-                    terminal = Some(ProcessTerminal::ProviderLost(
-                        "process stdin closed before delivery".into(),
-                    ))
-                }
-                Ok(size) => {
-                    sent += size;
-                    if sent == request.stdin.len() {
-                        stdin.take();
-                    }
-                }
-                Err(error)
-                    if matches!(
-                        error.kind(),
-                        io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
-                    ) => {}
-                Err(error) => {
-                    terminal = Some(ProcessTerminal::ProviderLost(format!(
-                        "process stdin: {error}"
-                    )))
-                }
-            }
-        }
-        for result in [
-            drain(
-                &mut stdout,
-                &mut out,
-                request.maximum_stdout_bytes,
-                &mut out_eof,
-            ),
-            drain(
-                &mut stderr,
-                &mut err,
-                request.maximum_stderr_bytes,
-                &mut err_eof,
-            ),
-        ] {
-            if let Err(error) = result {
-                record_pipe_failure(&mut terminal, error);
-            }
-        }
-        if let Some(retired) = retired_at {
-            if out_eof && err_eof {
-                break;
-            }
-            if retired.elapsed() >= RETIREMENT {
-                if matches!(terminal, Some(ProcessTerminal::Exited(_))) {
-                    terminal = Some(ProcessTerminal::ProviderLost(
-                        "descendant pipe did not retire within bound".into(),
-                    ));
-                }
-                break;
-            }
-        }
-        thread::sleep(POLL);
-    }
-    // Kill precedes reap; there are no pipe-reader threads to join. Dropping the
-    // captured pipe handles also retires descriptors held by escaped descendants.
-    let _ = child.wait();
-    guard.1 = true;
-    Ok(report(
-        terminal.expect("terminal process"),
-        out,
-        err,
-        started,
-        true,
-    ))
 }
 // Retirement can discover a broken pipe after cancellation or the deadline.
 // That cleanup failure must not replace the already established terminal cause.
-fn record_pipe_failure(terminal: &mut Option<ProcessTerminal>, error: io::Error) {
+fn record_pipe_failure(
+    terminal: &mut Option<ProcessTerminal>,
+    error: io::Error,
+    diagnostic: &mut Option<String>,
+) {
     if terminal.is_none() || matches!(terminal, Some(ProcessTerminal::Exited(_))) {
-        *terminal = Some(ProcessTerminal::ProviderLost(format!(
-            "process pipe: {error}"
+        *terminal = Some(ProcessTerminal::ProviderLost(prepared::provider_error(
+            diagnostic,
+            format_args!("process pipe: {error}"),
         )));
     }
 }
@@ -383,3 +395,6 @@ fn drain(
 #[cfg(test)]
 #[path = "hosted_process_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod prepared_tests;
