@@ -352,7 +352,7 @@ fn production_requires_workspace_before_decode_or_core_for_image_and_unbounded_h
                 actual.boot_id.as_str(),
                 false,
             );
-            f.owner.host = crate::durable_host::owner::controller::OwnerHost::new(host);
+            f.owner.host = crate::durable_host::owner::controller::OwnerHost::new(host).unwrap();
         }
         let before = f.owner.session.evidence().clone();
         let manager = f.owner.admissions.clone();
