@@ -40,12 +40,7 @@ impl OwnerHost {
         host: StdHost,
         root_preparation: Option<conduit_std_host::body_execution::ImageRootPreparationOwner>,
     ) -> Result<Self, (StdHost, String)> {
-        let checked = match (&root_preparation, host.image_identity()) {
-            (Some(owner), Some(_)) => owner.verify_host(&host),
-            (None, None) => Ok(()),
-            _ => Err("Birth changed original IMAGE preparation lifetime".into()),
-        };
-        if let Err(error) = checked {
+        if let Err(error) = Self::verify_preparation(&host, &root_preparation) {
             return Err((host, error));
         }
         Ok(Self {
@@ -53,6 +48,33 @@ impl OwnerHost {
             current: Some(host),
             root_preparation,
         })
+    }
+
+    /// Birth already owns this Box. Refusal returns that exact allocation and
+    /// its affine Host, including after a recoverable journal was retained.
+    pub(crate) fn from_prepared_boxed(
+        host: Box<StdHost>,
+        root_preparation: Option<conduit_std_host::body_execution::ImageRootPreparationOwner>,
+    ) -> Result<Self, (Box<StdHost>, String)> {
+        if let Err(error) = Self::verify_preparation(&host, &root_preparation) {
+            return Err((host, error));
+        }
+        Ok(Self {
+            advertised: host.advertisement().clone(),
+            current: Some(*host),
+            root_preparation,
+        })
+    }
+
+    fn verify_preparation(
+        host: &StdHost,
+        root_preparation: &Option<conduit_std_host::body_execution::ImageRootPreparationOwner>,
+    ) -> Result<(), String> {
+        match (root_preparation, host.image_identity()) {
+            (Some(owner), Some(_)) => owner.verify_host(host),
+            (None, None) => Ok(()),
+            _ => Err("Birth changed original IMAGE preparation lifetime".into()),
+        }
     }
 
     pub(crate) fn has_image_custody(&self) -> bool {
@@ -73,10 +95,12 @@ impl OwnerHost {
     }
 
     fn verify_root_preparation_host(&self, host: &StdHost) -> Result<(), String> {
-        match (&self.root_preparation, host.image_identity()) {
-            (Some(owner), Some(_)) => owner.verify_host(host),
-            (None, None) => Ok(()),
-            _ => Err("Body Play changed original IMAGE preparation lifetime".into()),
+        if self.has_image_custody() {
+            self.root_preparation()?.verify_host(host)
+        } else if host.image_identity().is_none() {
+            Ok(())
+        } else {
+            Err("Body Play changed original IMAGE preparation lifetime".into())
         }
     }
 
@@ -154,7 +178,7 @@ impl OwnerHost {
 
 impl Drop for OwnerHost {
     fn drop(&mut self) {
-        if let Some(owner) = &self.root_preparation {
+        if let Some(owner) = self.optional_root_preparation() {
             owner.invalidate();
         }
     }
@@ -173,3 +197,7 @@ impl DerefMut for OwnerHost {
         self.current_mut()
     }
 }
+
+#[cfg(test)]
+#[path = "owner_host/tests.rs"]
+mod tests;
