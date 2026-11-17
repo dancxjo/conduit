@@ -91,6 +91,10 @@ pub(crate) mod browser;
 #[cfg(unix)]
 #[path = "durable_host_control/client_frame.rs"]
 mod client_frame;
+// The complete typed original-counter ingress owner is not yet implemented.
+// Do not expose this preparation fixture as an installed decoder.
+#[cfg(test)]
+mod image_return_ingress;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
