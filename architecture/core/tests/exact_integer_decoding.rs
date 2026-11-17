@@ -212,12 +212,38 @@ fn exact_integer_human_strings_bytes_and_scalar_categories_match_legacy() {
         );
         require_human_scalar_parity(variant, OwnedBytes(vec![0xff]), OwnedBytes(vec![0xff]));
         require_human_scalar_parity(variant, '1', '1');
+        require_human_scalar_parity(variant, 'x', 'x');
+        require_human_scalar_parity(variant, '☃', '☃');
         require_human_scalar_parity(variant, true, true);
+        require_human_scalar_parity(variant, false, false);
+        require_human_scalar_parity(variant, 1.0f32, 1.0f32);
         require_human_scalar_parity(variant, 1.0f64, 1.0f64);
+        require_human_scalar_parity(variant, -0.0f64, -0.0f64);
+        require_human_scalar_parity(variant, 1i8, 1i8);
+        require_human_scalar_parity(variant, i8::MIN, i8::MIN);
         require_human_scalar_parity(variant, 1u8, 1u8);
+        require_human_scalar_parity(variant, u8::MAX, u8::MAX);
         require_human_scalar_parity(variant, -1i16, -1i16);
+        require_human_scalar_parity(variant, i16::MAX, i16::MAX);
+        require_human_scalar_parity(variant, 1u16, 1u16);
+        require_human_scalar_parity(variant, u16::MAX, u16::MAX);
+        require_human_scalar_parity(variant, -1i32, -1i32);
+        require_human_scalar_parity(variant, i32::MAX, i32::MAX);
+        require_human_scalar_parity(variant, 1u32, 1u32);
+        require_human_scalar_parity(variant, u32::MAX, u32::MAX);
+        require_human_scalar_parity(variant, 1i64, 1i64);
+        require_human_scalar_parity(variant, i64::MAX, i64::MAX);
+        require_human_scalar_parity(variant, 1u64, 1u64);
         require_human_scalar_parity(variant, u64::MAX, u64::MAX);
         require_human_scalar_parity(variant, i64::MIN, i64::MIN);
+        require_human_scalar_parity(variant, 1i128, 1i128);
+        require_human_scalar_parity(variant, i128::MIN, i128::MIN);
+        require_human_scalar_parity(variant, 1u128, 1u128);
+        require_human_scalar_parity(variant, u128::MAX, u128::MAX);
+        require_human_scalar_parity(variant, 1isize, 1isize);
+        require_human_scalar_parity(variant, isize::MIN, isize::MIN);
+        require_human_scalar_parity(variant, 1usize, 1usize);
+        require_human_scalar_parity(variant, usize::MAX, usize::MAX);
     }
 }
 #[test]
