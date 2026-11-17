@@ -97,9 +97,15 @@ fn root_preparation_shares_loaned_counter_and_retires_without_early_refund() {
     let host = worker.join().unwrap();
     drop(host);
     drop(prepared);
-    assert!(used.load(Ordering::Acquire) >= 64_000);
+    let counter_metadata = crate::kernel_preparation::StagedImageMemory::counter_backing_bytes();
+    assert_eq!(
+        used.load(Ordering::Acquire),
+        64_000 + ImageMemoryLease::owned_backing_bytes() + counter_metadata
+    );
     drop(retained);
-    assert_eq!(used.load(Ordering::Acquire), 0);
+    // The observer itself still owns the original counter. Its metadata charge
+    // remains until that final Arc owner drops; it is not leaked result data.
+    assert_eq!(used.load(Ordering::Acquire), counter_metadata);
 }
 
 #[test]
