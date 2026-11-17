@@ -7,6 +7,7 @@ use conduit_std_host::browser_admission::{
 };
 use std::{cell::RefCell, path::Path};
 
+#[path = "member_carrier_client/authentication.rs"]
 mod authentication;
 #[path = "member_carrier_client/presence_deadline.rs"]
 mod presence_deadline;
@@ -140,7 +141,7 @@ impl MemberRoute {
                 request,
                 credential: credential.clone(),
                 deadline,
-                descriptor_expiry: candidate.expires_at_millis,
+                descriptor_expiry: encounter.candidate.expires_at_millis,
                 admitted,
             },
             snapshot,

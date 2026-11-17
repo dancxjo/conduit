@@ -15,8 +15,7 @@ mod continuity_key;
 #[path = "durable_host_membership/recovery.rs"]
 pub(super) mod recovery;
 pub(crate) use continuity_key::{
-    prepare_member_carrier_signer, sign_member_carrier_challenge, MemberCarrierSigningContext,
-    PreparedMemberCarrierSigner,
+    prepare_member_carrier_signer, MemberCarrierSigningContext, PreparedMemberCarrierSigner,
 };
 #[path = "durable_host_membership/returned.rs"]
 mod returned;

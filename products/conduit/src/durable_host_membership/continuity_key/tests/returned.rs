@@ -24,7 +24,7 @@ fn returned_credential_switch_is_recoverable_and_preserves_old_file_and_private_
     // Interrupt precisely after immutable publication, before pointer commit.
     let obstruction = f.root.join("installation.tmp");
     fs::create_dir(&obstruction).unwrap();
-    assert!(super::super::retain_returned_membership(
+    assert!(crate::durable_host::membership::retain_returned_membership(
         &f.root,
         &f.receipt.credential,
         &returned,
@@ -33,14 +33,22 @@ fn returned_credential_switch_is_recoverable_and_preserves_old_file_and_private_
     .is_err());
     let interrupted = durable_host::read_installation(&f.root.join("installation.json")).unwrap();
     assert!(
-        super::super::load_joined_credential(&f.root, &interrupted).unwrap()
+        crate::durable_host::membership::load_joined_credential(&f.root, &interrupted).unwrap()
             == f.receipt.credential
     );
     fs::remove_dir(&obstruction).unwrap();
-    super::super::retain_returned_membership(&f.root, &f.receipt.credential, &returned, &actual)
-        .unwrap();
+    crate::durable_host::membership::retain_returned_membership(
+        &f.root,
+        &f.receipt.credential,
+        &returned,
+        &actual,
+    )
+    .unwrap();
     let reopened = durable_host::read_installation(&f.root.join("installation.json")).unwrap();
-    assert!(super::super::load_joined_credential(&f.root, &reopened).unwrap() == returned);
+    assert!(
+        crate::durable_host::membership::load_joined_credential(&f.root, &reopened).unwrap()
+            == returned
+    );
     assert_ne!(
         reopened.joined_body_state.as_ref().unwrap().credential_path,
         old_path
@@ -48,7 +56,7 @@ fn returned_credential_switch_is_recoverable_and_preserves_old_file_and_private_
     assert_eq!(fs::read(old_path).unwrap(), old_bytes);
     assert_eq!(fs::read(key_path).unwrap(), key_bytes);
     // Stale prior cannot supersede an already committed replacement.
-    assert!(super::super::retain_returned_membership(
+    assert!(crate::durable_host::membership::retain_returned_membership(
         &f.root,
         &f.receipt.credential,
         &returned,
@@ -76,7 +84,7 @@ fn returned_credential_substitution_refuses_without_touching_retained_binding() 
             3 => returned.boot_id = "another/boot".into(),
             _ => actual.offer_generation.0 = 0,
         }
-        assert!(super::super::retain_returned_membership(
+        assert!(crate::durable_host::membership::retain_returned_membership(
             &f.root,
             &f.receipt.credential,
             &returned,
