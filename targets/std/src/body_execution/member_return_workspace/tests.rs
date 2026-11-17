@@ -1,6 +1,6 @@
 use super::*;
 use std::sync::atomic::Ordering;
-pub(super) fn host() -> StdHost {
+fn host() -> StdHost {
     use conduit_host_make::{
         build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
         BuildInputs,
