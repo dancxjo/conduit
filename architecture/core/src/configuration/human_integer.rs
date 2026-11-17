@@ -8,6 +8,14 @@ use serde::{
     Deserializer,
 };
 
+// Keep explicit semantic errors outside the carrier's visitor boundary, just
+// as the former untagged match did. This preserves its exact error text rather
+// than allowing a JSON decoder to append a token position to those errors.
+enum Parsed<T> {
+    Number(T),
+    Decimal(Result<T, core::num::ParseIntError>),
+}
+
 const UNTAGGED_REFUSAL: &str = "data did not match any variant of untagged enum HumanInteger";
 
 fn range_error<E: Error>(value: impl fmt::Display) -> E {
@@ -19,37 +27,37 @@ pub(super) fn deserialize_unsigned<'de, D: Deserializer<'de>>(
 ) -> Result<u64, D::Error> {
     struct Unsigned;
     impl Visitor<'_> for Unsigned {
-        type Value = u64;
+        type Value = Parsed<u64>;
         fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             f.write_str("an exact unsigned integer or decimal string")
         }
-        fn visit_u64<E: Error>(self, value: u64) -> Result<u64, E> {
-            if value <= MAXIMUM_EXACT_JAVASCRIPT_INTEGER {
-                Ok(value)
-            } else {
-                Err(range_error(value))
-            }
+        fn visit_u64<E: Error>(self, value: u64) -> Result<Parsed<u64>, E> {
+            Ok(Parsed::Number(value))
         }
-        fn visit_i64<E: Error>(self, value: i64) -> Result<u64, E> {
+        fn visit_i64<E: Error>(self, value: i64) -> Result<Parsed<u64>, E> {
             let value = u64::try_from(value).map_err(|_| E::custom(UNTAGGED_REFUSAL))?;
             self.visit_u64(value)
         }
-        fn visit_str<E: Error>(self, value: &str) -> Result<u64, E> {
-            value
-                .parse()
-                .map_err(|_| E::custom("invalid exact u64 decimal string"))
+        fn visit_str<E: Error>(self, value: &str) -> Result<Parsed<u64>, E> {
+            Ok(Parsed::Decimal(value.parse()))
         }
-        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<u64, E> {
+        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Parsed<u64>, E> {
             let value = core::str::from_utf8(value).map_err(|_| E::custom(UNTAGGED_REFUSAL))?;
             self.visit_str(value)
         }
         // The default would coerce char to str. The old untagged String arm
         // rejects Content::Char, even if it happens to contain a decimal digit.
-        fn visit_char<E: Error>(self, _: char) -> Result<u64, E> {
+        fn visit_char<E: Error>(self, _: char) -> Result<Parsed<u64>, E> {
             Err(E::custom(UNTAGGED_REFUSAL))
         }
     }
-    deserializer.deserialize_any(Unsigned)
+    match deserializer.deserialize_any(Unsigned)? {
+        Parsed::Number(value) if value <= MAXIMUM_EXACT_JAVASCRIPT_INTEGER => Ok(value),
+        Parsed::Number(value) => Err(range_error(value)),
+        Parsed::Decimal(value) => {
+            value.map_err(|_| D::Error::custom("invalid exact u64 decimal string"))
+        }
+    }
 }
 
 pub(super) fn deserialize_signed<'de, D: Deserializer<'de>>(
@@ -57,34 +65,34 @@ pub(super) fn deserialize_signed<'de, D: Deserializer<'de>>(
 ) -> Result<i64, D::Error> {
     struct Signed;
     impl Visitor<'_> for Signed {
-        type Value = i64;
+        type Value = Parsed<i64>;
         fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             f.write_str("an exact signed integer or decimal string")
         }
-        fn visit_i64<E: Error>(self, value: i64) -> Result<i64, E> {
-            let maximum = MAXIMUM_EXACT_JAVASCRIPT_INTEGER as i64;
-            if (-maximum..=maximum).contains(&value) {
-                Ok(value)
-            } else {
-                Err(range_error(value))
-            }
+        fn visit_i64<E: Error>(self, value: i64) -> Result<Parsed<i64>, E> {
+            Ok(Parsed::Number(value))
         }
-        fn visit_u64<E: Error>(self, value: u64) -> Result<i64, E> {
+        fn visit_u64<E: Error>(self, value: u64) -> Result<Parsed<i64>, E> {
             let value = i64::try_from(value).map_err(|_| E::custom(UNTAGGED_REFUSAL))?;
             self.visit_i64(value)
         }
-        fn visit_str<E: Error>(self, value: &str) -> Result<i64, E> {
-            value
-                .parse()
-                .map_err(|_| E::custom("invalid exact i64 decimal string"))
+        fn visit_str<E: Error>(self, value: &str) -> Result<Parsed<i64>, E> {
+            Ok(Parsed::Decimal(value.parse()))
         }
-        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<i64, E> {
+        fn visit_bytes<E: Error>(self, value: &[u8]) -> Result<Parsed<i64>, E> {
             let value = core::str::from_utf8(value).map_err(|_| E::custom(UNTAGGED_REFUSAL))?;
             self.visit_str(value)
         }
-        fn visit_char<E: Error>(self, _: char) -> Result<i64, E> {
+        fn visit_char<E: Error>(self, _: char) -> Result<Parsed<i64>, E> {
             Err(E::custom(UNTAGGED_REFUSAL))
         }
     }
-    deserializer.deserialize_any(Signed)
+    let maximum = MAXIMUM_EXACT_JAVASCRIPT_INTEGER as i64;
+    match deserializer.deserialize_any(Signed)? {
+        Parsed::Number(value) if (-maximum..=maximum).contains(&value) => Ok(value),
+        Parsed::Number(value) => Err(range_error(value)),
+        Parsed::Decimal(value) => {
+            value.map_err(|_| D::Error::custom("invalid exact i64 decimal string"))
+        }
+    }
 }
