@@ -145,6 +145,9 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
             },
         )
         .unwrap();
+    // Match production: the owned plan must survive retirement of its inputs.
+    drop(placements);
+    drop(hosts);
     let mut configuration = PreparedPureProtocolPipe::prepare(
         usb_configuration_decode_package().unwrap(),
         "usb-configuration-decode",

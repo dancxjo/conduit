@@ -144,6 +144,11 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
             )
             .map_err(E::Source)?;
         crate::protocol_source::preparation_stage("usb-hub-plan-ready");
+        // plan() consumes the expanded entry. Retire the remaining placement
+        // scratch and offer before allocating the owned artifact's kernel.
+        drop(placements);
+        drop(hosts);
+        crate::protocol_source::preparation_stage("usb-hub-plan-storage-retired");
         let boundary = &artifact.artifact().definition().boundary;
         let input = |name: &str| {
             boundary
