@@ -96,26 +96,48 @@ impl SecureWebSocketListener {
         self.certificate_binding_sha256
     }
 
+    /// One total deadline covers listening, TLS/WebSocket handshake and initial
+    /// application input. Listening consumes this budget, preserving the original API.
     pub fn accept_with_timeout(
         &self,
         timeout: Duration,
     ) -> Result<SecureWebSocketLine, SecureWebSocketError> {
-        if timeout.is_zero() {
-            return Err(SecureWebSocketError::InvalidConfiguration);
-        }
-        let deadline = Instant::now()
-            .checked_add(timeout)
-            .ok_or(SecureWebSocketError::InvalidConfiguration)?;
+        let deadline = finite_deadline(Instant::now(), timeout)?;
+        self.accept_until(deadline, None)
+    }
+
+    /// Bound listening separately from the accepted peer's initial I/O.
+    /// The latter begins once at TCP acceptance and covers TLS/WebSocket plus
+    /// initial application input; received bytes never renew it. Total wait is
+    /// bounded by listen_timeout + initial_io_timeout, apart from OS scheduling.
+    pub fn accept_with_timeouts(
+        &self,
+        listen_timeout: Duration,
+        initial_io_timeout: Duration,
+    ) -> Result<SecureWebSocketLine, SecureWebSocketError> {
+        let listen_deadline = finite_deadline(Instant::now(), listen_timeout)?;
+        // Validate the full declared lifetime before waiting for a peer.
+        finite_deadline(listen_deadline, initial_io_timeout)?;
+        self.accept_until(listen_deadline, Some(initial_io_timeout))
+    }
+
+    // None retains the original total deadline. Some selects one fresh,
+    // independently declared initial-I/O budget at TCP acceptance only.
+    fn accept_until(
+        &self,
+        listen_deadline: Instant,
+        initial_io_timeout: Option<Duration>,
+    ) -> Result<SecureWebSocketLine, SecureWebSocketError> {
         self.listener
             .set_nonblocking(true)
             .map_err(|error| SecureWebSocketError::Accept(error.kind()))?;
-        let stream = loop {
+        let (stream, accepted_at) = loop {
             match self.listener.accept() {
-                Ok((stream, _peer)) => break stream,
+                Ok((stream, _peer)) => break (stream, Instant::now()),
                 Err(error)
                     if matches!(error.kind(), ErrorKind::WouldBlock | ErrorKind::Interrupted) =>
                 {
-                    if Instant::now() >= deadline {
+                    if Instant::now() >= listen_deadline {
                         self.listener
                             .set_nonblocking(false)
                             .map_err(|error| SecureWebSocketError::Accept(error.kind()))?;
@@ -134,6 +156,13 @@ impl SecureWebSocketListener {
         self.listener
             .set_nonblocking(false)
             .map_err(|error| SecureWebSocketError::Accept(error.kind()))?;
+        if accepted_at >= listen_deadline {
+            return Err(SecureWebSocketError::AcceptDeadline);
+        }
+        let deadline = match initial_io_timeout {
+            Some(timeout) => finite_deadline(accepted_at, timeout)?,
+            None => listen_deadline,
+        };
         stream
             .set_nodelay(true)
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
@@ -167,14 +196,24 @@ impl SecureWebSocketListener {
     }
 }
 
+fn finite_deadline(started: Instant, timeout: Duration) -> Result<Instant, SecureWebSocketError> {
+    if timeout.is_zero() {
+        return Err(SecureWebSocketError::InvalidConfiguration);
+    }
+    started
+        .checked_add(timeout)
+        .ok_or(SecureWebSocketError::InvalidConfiguration)
+}
+
 pub struct SecureWebSocketLine {
     socket: WebSocket<StreamOwned<ServerConnection, TcpStream>>,
     maximum_message_bytes: usize,
     input_deadline_guard: Option<SocketDeadlineGuard>,
 }
 
-/// Enforce one absolute lifetime across accept, TLS/WebSocket handshake, and
-/// every later frame. The watchdog owns only a clone of this exact socket and
+/// Enforce the selected absolute cutoff across TLS/WebSocket and initial frames.
+/// The legacy cutoff also includes listening; the split API starts it at accept.
+/// The watchdog owns only a clone of this exact socket and
 /// is joined when the Line ends; it cannot affect another accepted Line.
 struct SocketDeadlineGuard {
     cancel: mpsc::Sender<()>,
@@ -498,4 +537,5 @@ fn map_socket_error(error: TungsteniteError) -> SecureWebSocketError {
 }
 
 #[cfg(test)]
+#[path = "secure_websocket/tests.rs"]
 mod tests;

@@ -244,3 +244,122 @@ fn pinned_tls_partial_frame_survives_poll_timeout() {
     drop(listener);
     fs::remove_dir_all(directory).unwrap();
 }
+
+// In-memory identity and ephemeral loopback socket are test equipment only;
+// production bind still requires its original explicit non-loopback scope.
+fn budget_test_listener() -> SecureWebSocketListener {
+    let CertifiedKey { cert, signing_key } =
+        generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+    let certificate = cert.der().clone();
+    let binding = Sha256::digest(certificate.as_ref()).into();
+    let provider = rustls::crypto::ring::default_provider();
+    let config = ServerConfig::builder_with_provider(provider.into())
+        .with_safe_default_protocol_versions()
+        .unwrap()
+        .with_no_client_auth()
+        .with_single_cert(
+            vec![certificate],
+            PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(signing_key.serialize_der())),
+        )
+        .unwrap();
+    SecureWebSocketListener {
+        listener: TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap(),
+        server_config: Arc::new(config),
+        maximum_message_bytes: 1024,
+        certificate_binding_sha256: binding,
+    }
+}
+
+#[test]
+fn late_peer_gets_its_initial_io_budget_while_legacy_api_keeps_total_bound() {
+    for split_budget in [false, true] {
+        let listener = budget_test_listener();
+        let address = listener.local_addr().unwrap();
+        let pin = listener.certificate_binding_sha256();
+        let client = thread::spawn(move || {
+            // Accept near the end of the listen window, then send the first
+            // application frame after that original window has elapsed.
+            thread::sleep(Duration::from_millis(250));
+            let mut line = SecureWebSocketClientLine::connect_pinned(
+                address,
+                &format!("wss://localhost:{}/budget", address.port()),
+                "localhost",
+                pin,
+                Duration::from_secs(2),
+                1024,
+            )?;
+            thread::sleep(Duration::from_millis(180));
+            line.send_binary(b"initial request")
+        });
+        let accepted = if split_budget {
+            listener.accept_with_timeouts(Duration::from_millis(350), Duration::from_millis(350))
+        } else {
+            listener.accept_with_timeout(Duration::from_millis(350))
+        };
+        let result = accepted.and_then(|mut line| {
+            let mut input = [0; 32];
+            let length = line.receive_binary(&mut input)?;
+            assert_eq!(&input[..length], b"initial request");
+            Ok(())
+        });
+        let sent = client.join().unwrap();
+        if split_budget {
+            assert_eq!(sent, Ok(()));
+            assert_eq!(result, Ok(()));
+        } else {
+            assert!(result.is_err(), "legacy timeout must include listening");
+        }
+    }
+}
+
+#[test]
+fn accepted_peer_trickle_cannot_renew_initial_io_deadline() {
+    let listener = budget_test_listener();
+    let address = listener.local_addr().unwrap();
+    let (connected, at_connection) = mpsc::sync_channel(1);
+    let client = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(200));
+        let mut stream = TcpStream::connect(address).unwrap();
+        connected.send(Instant::now()).unwrap();
+        // A valid incomplete TLS record: no complete handshake or application
+        // request. Each byte can satisfy a per-read timeout, never the watchdog.
+        stream.write_all(&[22, 3, 3, 0x40, 0]).unwrap();
+        for _ in 0..80 {
+            thread::sleep(Duration::from_millis(10));
+            if stream.write_all(&[0]).is_err() {
+                break;
+            }
+        }
+    });
+    let result =
+        listener.accept_with_timeouts(Duration::from_millis(350), Duration::from_millis(150));
+    let elapsed = at_connection.recv().unwrap().elapsed();
+    assert!(matches!(
+        result,
+        Err(SecureWebSocketError::Handshake | SecureWebSocketError::AcceptDeadline)
+    ));
+    assert!(
+        elapsed >= Duration::from_millis(100),
+        "record must wait for the absolute guard"
+    );
+    assert!(
+        elapsed < Duration::from_millis(500),
+        "trickle must not prolong accepted I/O"
+    );
+    client.join().unwrap();
+}
+
+#[test]
+fn separate_accept_budgets_must_both_be_finite_and_nonzero() {
+    let listener = budget_test_listener();
+    for (listen, initial) in [
+        (Duration::ZERO, Duration::from_secs(1)),
+        (Duration::from_secs(1), Duration::ZERO),
+        (Duration::from_secs(1), Duration::MAX),
+    ] {
+        assert!(matches!(
+            listener.accept_with_timeouts(listen, initial),
+            Err(SecureWebSocketError::InvalidConfiguration)
+        ));
+    }
+}
