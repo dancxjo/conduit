@@ -7,6 +7,8 @@
 extern crate std;
 pub mod bme280_observation;
 mod calibration;
+#[cfg(feature = "kernel-step")]
+pub mod typed;
 use calibration::Calibration;
 use embedded_hal_async::{delay::DelayNs, i2c::I2c};
 

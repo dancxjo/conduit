@@ -67,7 +67,7 @@ impl Prepared {
             second: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         }
     }
-    pub fn evaluate(&mut self, c: Calibration, s: Sample) -> Result<Observation, Error> {
+    pub fn input(&self, c: Calibration, s: Sample) -> Vec<u8> {
         let calibration = record(
             field_type(&self.input_type, "calibration"),
             &[
@@ -99,7 +99,7 @@ impl Prepared {
                 ("humidity", s.humidity),
             ],
         );
-        let input = StructuredInfoValue::record(
+        StructuredInfoValue::record(
             self.input_type.clone(),
             vec![
                 StructuredFieldValue::new("calibration", calibration).unwrap(),
@@ -108,7 +108,13 @@ impl Prepared {
         )
         .unwrap()
         .canonical_bytes()
-        .unwrap();
+        .unwrap()
+    }
+    pub fn canonical_result(&self) -> &[u8] {
+        &self.first
+    }
+    pub fn evaluate(&mut self, c: Calibration, s: Sample) -> Result<Observation, Error> {
+        let input = self.input(c, s);
         self.first.clear();
         self.first.extend_from_slice(&input);
         for (name, stage) in STAGES.iter().zip(&mut self.stages) {
@@ -123,7 +129,7 @@ impl Prepared {
             self.second.extend_from_slice(bytes);
             core::mem::swap(&mut self.first, &mut self.second);
         }
-        decode(&self.first)
+        decode(self.canonical_result())
     }
 }
 fn field_type<'a>(ty: &'a StructuredInfoType, name: &str) -> &'a StructuredInfoType {

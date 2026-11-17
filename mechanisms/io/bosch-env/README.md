@@ -100,9 +100,10 @@ Back. The legacy `Sensor` APIs remain unchanged. Acquisition transcript/deadline
 correspondence, exact typed operation binding, finite resource admission,
 Started execution, target firmware fit and physical proof remain separate gates.
 The Source differential test loads the original authored stages rather than
-comparing against another handwritten compensation formula. Core and Plot are
-test-only dependencies; the normal library remains `no_std` with the existing
-embedded-hal dependencies only.
+comparing against another handwritten compensation formula. The default library
+remains `no_std` with only the existing embedded-hal dependencies. Core and Plot are used for hosted conformance tests. The optional
+`kernel-step` profile described below adds Core and Kernel to runtime dependencies;
+Plot remains on the building Host.
 
 The differential test covers 185 deterministic cases, including the original
 vector, all coefficient bounds, malformed/disabled/invalid precedence, signed
@@ -111,3 +112,34 @@ allocation separately from the allocating host evaluator. This is bounded
 conformance coverage, not an exhaustive proof over all inputs. The library also
 passes the Cortex-M0+ `thumbv6m-none-eabi` compile check; that does not establish
 whole-firmware memory admission or physical execution.
+
+
+### Optional typed kernel boundary
+
+`kernel-step` exports `typed::ObservationContract`, `PreparedObservationCodec`
+and `ObservationBack`. Its build script checks the original reviewed Source and
+checked-Plot identities before generating immutable input/result schemas. A
+changed Source requires explicit correspondence review; regeneration cannot
+silently retarget the handwritten native implementation. No parser, schema tree
+or Plot evaluator is retained in the MCU Back.
+
+The codec accepts the exact canonical Source input and emits the exact canonical
+result, including typed unavailable outcomes. Malformed canonical data and
+checked arithmetic failure remain operation failures. Preparation allocates one
+bounded output buffer (730 bytes for the reviewed contract); maximum canonical
+input is 1397 bytes. Immutable schemas, inline state, Cord storage and allocator
+overhead are separate funding obligations. Conversion never grows the buffer.
+
+The Back uses the ordinary kernel's staged output/commit protocol. It does not
+consume a blocked input, clears staged output on commit/cancellation, and cannot
+restart after cancellation. One finite native conversion consumes cooperative
+operation fuel separately from kernel I/O; this is not a clock-cycle or MCU
+responsiveness measurement. The actual three-node production-scheduler test
+checks pressure, exact once-only delivery, cancellation, typed unavailable,
+canonical refusal and zero post-preparation allocation.
+
+This boundary supplies no Kind registration, initialized Host offer, equipment
+loan, Plan or Started receipt. Source/offer selection and factory binding must
+still identify this exact implementation and fund its real storage/work before
+Play. Physical acquisition, whole firmware and complete sampling/Mask integration
+remain unqualified; the test pipeline is not Body admission or a sensor Play.

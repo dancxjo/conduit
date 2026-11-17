@@ -7,9 +7,18 @@ license = "BSD-3-Clause"
 
 [workspace]
 
+[features]
+default = []
+kernel-step = ["dep:conduit-core", "dep:conduit-kernel", "dep:conduit-plot"]
+
 [dependencies]
 embedded-hal = "=1.0.0"
 embedded-hal-async = "=1.0.0"
+conduit-core = { path = "../../../architecture/core", optional = true }
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }
+
+[build-dependencies]
+conduit-plot = { path = "../../../architecture/plot", optional = true }
 
 [dev-dependencies]
 conduit-core = { path = "../../../architecture/core" }

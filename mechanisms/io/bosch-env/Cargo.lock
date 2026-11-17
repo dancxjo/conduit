@@ -29,6 +29,7 @@ name = "conduit-bosch-env"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-plot",
  "embedded-hal",
  "embedded-hal-async",
@@ -42,6 +43,13 @@ dependencies = [
  "libm",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
 ]
 
 [[package]]
