@@ -11,10 +11,11 @@ impl NativePathCdcLine {
     /// Match an independently installed USB serial pin on THIS descriptor.
     /// This checks local kernel attachment, not hardware authenticity, Body
     /// membership, peer key, installed firmware, Line Ready or execution grants.
-    /// Forwarded TTYs deliberately cannot satisfy this direct-USB contract.
+    /// Modem-control policy does not establish USB provenance. A forwarded
+    /// endpoint without a real local USB parent cannot satisfy this contract.
     /// No descriptor reopen, modem operation or framing read occurs here.
     pub fn verify_local_usb_serial(&self, expected: &str) -> Result<(), NativeUsbCdcError> {
-        if !self.local_exclusive || !self.controls_dtr {
+        if !self.local_exclusive {
             return Err(refusal(
                 "direct USB verification requires original local claimed carrier",
             ));

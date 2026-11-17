@@ -70,6 +70,9 @@ pub struct PicoSpawnObservation {
 pub enum ProvisioningCarrier {
     #[default]
     UsbCdc,
+    /// Direct USB UART without modem-control changes that may reset the MCU.
+    /// USB attachment remains independently checked on the original descriptor.
+    UsbUart,
     ForwardedTty,
 }
 impl ProvisioningCarrier {

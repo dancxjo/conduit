@@ -158,3 +158,32 @@ fn failed_modem_configuration_releases_its_new_exclusion() {
         .is_err());
     assert!(open(&path).is_ok());
 }
+
+#[test]
+fn usb_uart_provisioning_avoids_modem_control_but_does_not_certify_pty_as_usb() {
+    use crate::pico_spawn::ProvisioningCarrier;
+    let encoded = serde_json::to_string(&ProvisioningCarrier::UsbUart).unwrap();
+    assert_eq!(encoded, "\"usb-uart\"");
+    let mode: ProvisioningCarrier = serde_json::from_str(&encoded).unwrap();
+    assert!(matches!(mode, ProvisioningCarrier::UsbUart));
+    let (_master, _slave, path) = pty();
+    // This PTY rejects modem ioctls (the UsbCdc test above proves that path).
+    // UsbUart can claim it without those ioctls, but cannot invent USB ancestry.
+    let socket = mode.open(&path).unwrap();
+    assert_eq!(open(&path).unwrap_err().raw_os_error(), Some(libc::EBUSY));
+    assert!(socket.verify_local_usb_serial("fixture/serial").is_err());
+    drop(socket);
+    assert!(open(&path).is_ok());
+}
+
+#[test]
+fn no_modem_original_claim_still_checks_actual_descriptor_usb_attachment() {
+    let (_master, _slave, path) = pty();
+    let line = NativePathCdcLine::open_exclusive_tty(&path, 64, false).unwrap();
+    assert!(line.local_exclusive);
+    assert!(!line.controls_dtr);
+    // The descriptor is owned, exclusive and connected, yet its actual sysfs
+    // path has no USB parent. This is a negative provenance test, not hardware.
+    assert!(line.is_connected().unwrap());
+    assert!(line.verify_local_usb_serial("fixture/serial").is_err());
+}
