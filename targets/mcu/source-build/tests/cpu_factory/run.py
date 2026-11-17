@@ -1,7 +1,7 @@
 """Bounded fresh CPU Root, original whole Source and admitted execution; no hardware.
 
 Uses original Make generated workset data and unchanged production Source
-composition modules. --fingerprint must name a completed Cargo test graph.
+composition modules. --fingerprint must name a completed Cargo artifact graph.
 """
 import argparse,hashlib,json,os,re,subprocess
 from pathlib import Path
@@ -55,7 +55,7 @@ for original in (repo/'targets/mcu/source-build/src/source_composition').glob('*
  dst=generated/('source_'+original.name)
  if dst.exists() or dst.is_symlink():dst.unlink()
  dst.symlink_to(original)
-env=dict(os.environ,OUT_DIR=str(generated.resolve()),CPU_PROOF_OUTPUT=str(a.output.resolve()),CPU_BOARD_SOURCE=str(repo/'targets/esp32/firmware/host/src'))
+env=dict(os.environ,OUT_DIR=str(generated.resolve()),CPU_PROOF_OUTPUT=str(a.output.resolve()))
 command=['rustc','--edition=2021','--cfg','fore_carrier','--cfg','record_service','--cfg','assigned_workset','-L',f'dependency={deps}','--crate-name','a422_cpu_factory',str(Path(__file__).with_name('probe.rs')),'-o',str(a.output/'probe')]
 for name,lib in sorted(selected.items()):command+=['--extern',f'{name}={lib}']
 with (a.output/'compile.log').open('w') as log:result=subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT)

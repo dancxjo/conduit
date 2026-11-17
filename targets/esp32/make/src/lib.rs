@@ -1,14 +1,12 @@
-// Preserve the existing firmware helper paths and their tests while sharing
-// their one implementation with the optional host-side Source emitter.
+// Host-side construction owns its helpers; firmware compatibility entrances
+// reuse these exact implementations without a reverse firmware dependency.
 #[cfg(feature = "source-emission")]
 extern crate self as conduit_host_esp32_make;
 #[cfg(feature = "source-emission")]
 pub mod image_emission;
 #[cfg(feature = "source-emission")]
-#[path = "../../firmware/host/heap_layout.rs"]
 mod image_heap_layout;
 #[cfg(feature = "source-emission")]
-#[path = "../../firmware/host/recording_build.rs"]
 mod image_recording_build;
 
 use conduit_host_make::{

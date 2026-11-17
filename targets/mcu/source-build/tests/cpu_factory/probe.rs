@@ -10,8 +10,11 @@ mod execution;
 mod factory;
 mod full_residence;
 mod payload;
-#[path = "../../../../rp2040/firmware/host/src/phase_trace.rs"]
-mod phase_trace;
+mod phase_trace {
+    pub use conduit_mcu_host_runtime::preparation_trace::PreparationTrace as Trace;
+    pub const ENCODED_BYTES: usize =
+        conduit_mcu_host_runtime::preparation_trace::PREPARATION_TRACE_ENCODED_BYTES;
+}
 mod shortage;
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
@@ -149,8 +152,9 @@ mod workset {
     }
     pub use conduit_mcu_host_runtime::native_values::prepare as values;
 }
-#[path = "../../../../esp32/firmware/host/src/resident.rs"]
-mod resident;
+mod resident {
+    include!(concat!(env!("OUT_DIR"), "/source_resident_adapter.rs"));
+}
 mod play {
     include!(concat!(env!("OUT_DIR"), "/source_play.rs"));
 }

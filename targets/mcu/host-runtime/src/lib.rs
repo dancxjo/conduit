@@ -8,6 +8,7 @@ pub mod ingress;
 pub mod member_return;
 pub mod membership;
 pub mod poll_boundary;
+pub mod preparation_trace;
 pub mod root;
 pub mod seed;
 pub mod transport;
