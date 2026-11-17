@@ -1,6 +1,6 @@
 use super::{fixture, *};
 use crate::{
-    arch::dwc2::{test_io, EndpointRoute, PacketError, TransactionTranslator, TransferType},
+    arch::dwc2::{EndpointRoute, PacketError, TransactionTranslator, TransferType, test_io},
     usb_base::dwc2_endpoint_read::*,
 };
 use alloc::vec::Vec;
@@ -49,11 +49,13 @@ fn dwc2_nak_does_not_advance_report_ordinal_or_data_pid() {
     let result = host
         .execute(node, HostCallId(0), RequestId(0), &request)
         .unwrap();
-    assert!(conduit_core::validate_canonical_structured_value(result)
-        .unwrap()
-        .variant_payload("timeout")
-        .unwrap()
-        .is_some());
+    assert!(
+        conduit_core::validate_canonical_structured_value(result)
+            .unwrap()
+            .variant_payload("timeout")
+            .unwrap()
+            .is_some()
+    );
     let allocations = crate::test_allocations::allocations(|| {
         let result = host
             .execute(node, HostCallId(0), RequestId(1), &request)
@@ -101,11 +103,13 @@ fn dwc2_endpoint_identity_and_wire_geometry_are_selected_not_request_authority()
     let result = host
         .execute(node, HostCallId(0), RequestId(0), &fixture::input_length(7))
         .unwrap();
-    assert!(conduit_core::validate_canonical_structured_value(result)
-        .unwrap()
-        .variant_payload("unsupported")
-        .unwrap()
-        .is_some());
+    assert!(
+        conduit_core::validate_canonical_structured_value(result)
+            .unwrap()
+            .variant_payload("unsupported")
+            .unwrap()
+            .is_some()
+    );
     assert!(!host.retains_submission());
 }
 #[test]
