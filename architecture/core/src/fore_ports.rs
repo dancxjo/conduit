@@ -77,26 +77,13 @@ pub(crate) fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                             if !port_contract_matches {
                                 return false;
                             }
-                            let location = match (boundary.direction, boundary.track) {
-                                (PortDirection::Input, ConnectionTrack::AbnormalTerminal) => {
-                                    FrontValueLocation::InputAbnormal(port.port_id.clone())
-                                }
-                                (PortDirection::Output, ConnectionTrack::AbnormalTerminal) => {
-                                    FrontValueLocation::OutputAbnormal(port.port_id.clone())
-                                }
-                                (PortDirection::Input, _) => {
-                                    FrontValueLocation::Input(port.port_id.clone())
-                                }
-                                (PortDirection::Output, _) => {
-                                    FrontValueLocation::Output(port.port_id.clone())
-                                }
-                            };
-                            let internal_contract = placement
-                                .checked_port_front()
-                                .value_contract(&location)
-                                .cloned();
                             boundary.track == ConnectionTrack::NormalClose
-                                || internal_contract == boundary.value_contract
+                                || placement.port_value_contract_matches(
+                                    boundary.direction,
+                                    &port.port_id,
+                                    boundary.track == ConnectionTrack::AbnormalTerminal,
+                                    boundary.value_contract.as_ref(),
+                                )
                         })
                 })
         })
