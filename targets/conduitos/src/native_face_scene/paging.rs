@@ -95,6 +95,7 @@ impl NativeFaceScene {
         scene: &mut GraphicsScene,
         controls: NativePageControls,
         compact: bool,
+        look_hint: bool,
     ) -> Result<(), FaceSceneError> {
         for (forward, bounds, enabled, label) in [
             (
@@ -128,6 +129,22 @@ impl NativeFaceScene {
                     .height
                     .checked_sub(8)
                     .ok_or(FaceSceneError::InvalidExtent)?,
+            };
+            let label = if forward && look_hint {
+                ["Next · PgDn · F2 · Look F6–F11", "Next · F6", label]
+                    .into_iter()
+                    .find(|candidate| {
+                        TextLayout::new_selected(
+                            candidate,
+                            self.typography.style(GraphicsTextRole::Label.into()),
+                            text.width,
+                            self.text_scale_percent,
+                        )
+                        .is_ok_and(|layout| layout.finish_height() <= u32::from(text.height))
+                    })
+                    .ok_or(FaceSceneError::InputBound)?
+            } else {
+                label
             };
             let height = TextLayout::new_selected(
                 label,

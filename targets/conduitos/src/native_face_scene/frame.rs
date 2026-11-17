@@ -191,6 +191,7 @@ impl NativeFaceScene {
             .then(|| chrome.creche_preferences_hint(self.text_scale_percent))
             .flatten()
             .map(String::from);
+        let show_look_hint = look_hint.is_some();
         let footer = self
             .local_notice
             .clone()
@@ -243,7 +244,7 @@ impl NativeFaceScene {
                 }
             });
         if let Some(controls) = self.page_controls()? {
-            self.append_page_controls(&mut scene, controls, chrome.compact)?;
+            self.append_page_controls(&mut scene, controls, chrome.compact, show_look_hint)?;
         } else {
             chrome.admit_footer(&footer, self.text_scale_percent)?;
             push(

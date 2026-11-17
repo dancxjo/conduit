@@ -270,6 +270,7 @@ fn pager_painting_keeps_the_existing_document_command_capacity() {
                 &mut graphics,
                 scene.page_controls().unwrap().unwrap(),
                 false,
+                false,
             )
             .unwrap();
         assert_eq!(4 + graphics.commands().len(), chrome::COMMANDS);
@@ -281,4 +282,24 @@ fn pager_painting_keeps_the_existing_document_command_capacity() {
             (original.0, original.1, original.2.as_str())
         );
     }
+}
+
+#[test]
+fn paged_local_look_guidance_keeps_controls_and_the_original_command_bound() {
+    let mut scene = NativeFaceScene::prepare(library(), 640, 480).unwrap();
+    let controls = scene.page_controls().unwrap().unwrap();
+    let before = scene.frame().unwrap().scene.commands().len();
+    scene.set_local_creche_preferences(true);
+    let frame = scene.frame().unwrap();
+    assert!(
+        frame
+            .scene
+            .commands()
+            .last()
+            .unwrap()
+            .payload()
+            .contains("F6")
+    );
+    assert_eq!(frame.scene.commands().len(), before);
+    assert_eq!(scene.page_controls().unwrap().unwrap(), controls);
 }
