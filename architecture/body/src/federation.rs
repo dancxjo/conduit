@@ -201,6 +201,11 @@ impl FederatedReceivingSession {
 }
 
 pub fn challenge_transcript(challenge: &FederationChallenge) -> Vec<u8> {
+    challenge_transcript_digest(challenge).to_vec()
+}
+
+/// The identical existing transcript without allocating its digest buffer.
+pub fn challenge_transcript_digest(challenge: &FederationChallenge) -> [u8; 32] {
     let mut hash = Sha256::new();
     hash.update(b"conduit/federation-session/v1");
     hash_identity(&mut hash, challenge.session_id.as_str());
@@ -216,7 +221,7 @@ pub fn challenge_transcript(challenge: &FederationChallenge) -> Vec<u8> {
     hash.update(challenge.nonce);
     hash.update(challenge.expires_at_millis.to_le_bytes());
     hash.update(challenge.maximum_frames.to_le_bytes());
-    hash.finalize().to_vec()
+    hash.finalize().into()
 }
 
 pub fn operation_transcript(frame: &FederatedOperationFrame) -> Vec<u8> {

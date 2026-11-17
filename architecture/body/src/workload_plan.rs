@@ -326,6 +326,14 @@ impl BodyPlayIdentity {
         }
     }
 
+    /// Same canonical identity comparison without constructing an owned ID.
+    pub fn validate_for_borrowed(&self, plan: &BodyPlan) -> bool {
+        self.body_id == plan.body_id
+            && self.wake_id == plan.wake_id
+            && self.plan_id == plan.plan_id
+            && identity::body_play_matches(self)
+    }
+
     pub fn validate_for(&self, plan: &BodyPlan) -> bool {
         self.body_id == plan.body_id
             && self.wake_id == plan.wake_id
