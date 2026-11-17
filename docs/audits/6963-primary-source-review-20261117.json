@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.source-review@1",
+  "head": "20f28a3f799f93da9e6e8929792eab903124d60e",
+  "reviewed_at": "2026-11-17T02:47:18.706058+00:00",
+  "scope": [
+    "plan_verification/backing.rs closed-shape exclusions and checked arithmetic",
+    "borrowed_preparation.rs actual two-fragment Fore allocation probe",
+    "planned_gear/port_values.rs canonical duplicate/default and explicit-last semantics",
+    "plan_verification.rs orphan pool references retained",
+    "temporal_clock.rs retained String capacity accounting"
+  ],
+  "result": "No additional actionable finding in reviewed scope; earlier two findings corrected at this exact head. No independent test rerun or full funding/Root/chime approval.",
+  "tests_observed_as_source": [
+    "actual multi-fragment Fore scratch <= descriptor",
+    "orphan pool references refuse",
+    "duplicate default and last explicit contract parity"
+  ],
+  "limits": [
+    "Descriptor describes preparation scratch, not authority or allocator RSS containment.",
+    "Full funded constructor and product startup remain separate current writers.",
+    "No CI observation, merge, or live effects performed."
+  ]
+}
