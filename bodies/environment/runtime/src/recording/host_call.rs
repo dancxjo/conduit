@@ -21,12 +21,31 @@ pub struct RecordedRange {
 #[derive(Clone)]
 pub struct RecordingCommitObserver(Rc<CommittedGeneration>);
 struct CommittedGeneration {
-    range: Cell<Option<RecordedRange>>,
+    content: Cell<Option<CommittedContent>>,
     reference: Vec<u8>,
+    content_bytes: usize,
+}
+#[derive(Clone, Copy)]
+struct CommittedContent {
+    range: RecordedRange,
+    digest: [u8; 32],
 }
 impl RecordingCommitObserver {
     pub fn committed(&self) -> Option<RecordedRange> {
-        self.0.range.get()
+        self.0.content.get().map(|content| content.range)
+    }
+    /// Match the exact original chunk only after this Back's output commits.
+    /// Matching sequence ranges, references or a successful service completion
+    /// cannot substitute for this process-local observation of kernel commit.
+    /// This bounded digest comparison allocates nothing and grants no storage,
+    /// disclosure or Body authority. It is not a portable commit receipt.
+    pub fn committed_content_matches(&self, bytes: &[u8]) -> bool {
+        bytes.len() == self.0.content_bytes
+            && self
+                .0
+                .content
+                .get()
+                .is_some_and(|content| content.digest == content_digest(bytes))
     }
     /// Exact generation selected when this Back was prepared. Identity data
     /// alone acknowledges nothing; only `committed()` observes kernel commit.
@@ -36,15 +55,15 @@ impl RecordingCommitObserver {
 }
 #[derive(Clone, Copy)]
 enum Staged {
-    Requested(RecordedRange),
-    Published(RecordedRange),
+    Requested(CommittedContent),
+    Published(CommittedContent),
 }
 pub struct RecordingSnapshotBack {
     call: HostCallBack,
     reader: PreparedRecordingReader,
     samples: usize,
     content_bytes: usize,
-    pending: Option<RecordedRange>,
+    pending: Option<CommittedContent>,
     staged: Option<Staged>,
     observer: RecordingCommitObserver,
     cancelled: bool,
@@ -88,8 +107,9 @@ impl RecordingSnapshotBack {
             reference,
         )?;
         let observer = RecordingCommitObserver(Rc::new(CommittedGeneration {
-            range: Cell::new(None),
+            content: Cell::new(None),
             reference: snapshot.expected_reference().to_vec(),
+            content_bytes,
         }));
         Ok((
             Self {
@@ -157,10 +177,13 @@ impl<const P: usize> StepBack<P> for RecordingSnapshotBack {
                 .sample(self.samples - 1)
                 .expect("selected sample count")
                 .sequence;
-            staged = Some(Staged::Requested(RecordedRange {
-                first_sequence,
-                last_sequence,
-                samples: self.samples,
+            staged = Some(Staged::Requested(CommittedContent {
+                range: RecordedRange {
+                    first_sequence,
+                    last_sequence,
+                    samples: self.samples,
+                },
+                digest: content_digest(bytes),
             }));
         }
         let outcome = self.call.step(io, input);
@@ -175,7 +198,7 @@ impl<const P: usize> StepBack<P> for RecordingSnapshotBack {
             Some(Staged::Requested(range)) => self.pending = Some(range),
             Some(Staged::Published(range)) => {
                 self.pending = None;
-                self.observer.0.range.set(Some(range));
+                self.observer.0.content.set(Some(range));
             }
             None => {}
         }
@@ -187,6 +210,9 @@ impl<const P: usize> StepBack<P> for RecordingSnapshotBack {
         self.staged = None;
         // A later cancellation cannot erase an already committed publication.
     }
+}
+fn content_digest(bytes: &[u8]) -> [u8; 32] {
+    conduit_core::semantic_digest("conduit.environment/recording-chunk@1", bytes)
 }
 fn fail(code: FailureCode, detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure {
