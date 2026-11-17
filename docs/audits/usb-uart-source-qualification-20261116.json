@@ -1,0 +1,11 @@
+{
+  "source_identity": "b341d1c6191d4e5bdafe593fb75b4efd5ec4313c",
+  "passed": true,
+  "test_count": 19,
+  "failed": 0,
+  "usb_uart_no_dtr_physical_usb_binding": true,
+  "pty_rejected": true,
+  "scope": "New no-modem UsbUart policy; unchanged original exclusive FD plus actual sysfs serial lookup; real PTY negative and synthetic bounded attribute lookup. No positive hardware attachment, Return or Play proof.",
+  "hardware_positive_verified": false,
+  "terminal_log_sha256": "a4e5a9e56309b0d750d85d456f45b110e75ea4e320031af3aab7dc5fef840929"
+}

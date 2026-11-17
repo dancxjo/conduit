@@ -1,0 +1,39 @@
+{
+  "at_utc": "2026-11-17T01:51:28.139071+00:00",
+  "body_id": "28fb79351715c5837393add72c705a7dda8e7a4abd81468ece08380adaf21d3a",
+  "root_source": "b341d1c6191d4e5bdafe593fb75b4efd5ec4313c",
+  "root_pid": 385793,
+  "root_boot": "boot/installed/64fad02f7bf6e6eff6cde13e2ccaf9bbca9622dbef77c0c61842b557b581c4a7",
+  "root_state": "Lulled",
+  "realization": null,
+  "recovered_source_hold": false,
+  "same_face": "67933fc497b6907c422f97834a7ab19497c0fe21ce4b3e457271fa75dc83a355",
+  "face_revision": 731,
+  "viewers": {
+    "motherbrain": {
+      "pid": 4053,
+      "show_ack": true,
+      "physical_capture": true,
+      "contact_root": "64fad0"
+    },
+    "threebee": {
+      "pid": 3932,
+      "show_ack": true,
+      "physical_capture": false,
+      "capture_refusal": "primary changed during readback; guards retained",
+      "contact_root": "64fad0"
+    }
+  },
+  "wake_available": false,
+  "wake_reason": "retained-local-fore-unavailable",
+  "selected_entries": [
+    "yellow-sampling",
+    "yellow-mask",
+    "yellow-output"
+  ],
+  "ambient_installed": false,
+  "ambient_or_sound_play_proved": false,
+  "speaker_declaration_staged_not_deployed": "motherbrain actual vc4hdmi1/device0/107c706400.hdmi",
+  "user_priority": "Wake actual ambient wallpaper and sound on both Pis; #6886 actual Started chime completion reserved next queue slot",
+  "mcu_next_attempt_held": true
+}

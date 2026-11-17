@@ -1,0 +1,93 @@
+{
+  "schema": "conduit.evidence/hch-wake-ambient-readonly-audit@1",
+  "read_only": true,
+  "effects_performed": false,
+  "root": {
+    "pid": 385793,
+    "boot": "boot/installed/64fad02f7bf6e6eff6cde13e2ccaf9bbca9622dbef77c0c61842b557b581c4a7",
+    "source": "b341d1c6191d4e5bdafe593fb75b4efd5ec4313c",
+    "body_state": "Lulled",
+    "realization": null,
+    "current_member_offer_count": 0,
+    "remote_carrier_availability": "unobserved",
+    "source_claim_present": false,
+    "selected_entries": [
+      "yellow-sampling",
+      "yellow-mask",
+      "yellow-output"
+    ],
+    "selected_adapter_hosts": [
+      "esp32/efuse/b0a732286178"
+    ],
+    "wake_action": {
+      "identity": "body/action/wake/64",
+      "face_revision": 729,
+      "intent": "conduit.intent/wake@1",
+      "availability": "Unavailable",
+      "reason_code": "retained-local-fore-unavailable"
+    },
+    "observed_root_log": "retained-local-fore-unavailable: selected local adapter Host has no current offer",
+    "wake_request_observation": "No successful Wake request/Started observed in current Root log. This log is not a complete control-request audit; absence does not prove no click/request occurred."
+  },
+  "pis": {
+    "motherbrain": {
+      "pid": 1162,
+      "active": true,
+      "restarts": 0,
+      "installed_source": "43113a43dc9502c19f8783470a78fd3e4f0568f2",
+      "selected_owner_boot_prefix": "43496b36",
+      "logs": "member contact returned changed, expired or unbounded evidence; previous pixels historical",
+      "checked_capabilities": [
+        "display/scanout",
+        "serial/text",
+        "speech/recognizer",
+        "storage/protected-file",
+        "timer/monotonic",
+        "speech/recognize-clip",
+        "time/tick"
+      ],
+      "checked_audio_output": false,
+      "aplay_available": true,
+      "alsa_devices": [
+        "HDMI0",
+        "HDMI1"
+      ]
+    },
+    "threebee": {
+      "pid": 702,
+      "active": true,
+      "restarts": 0,
+      "installed_source": "43113a43dc9502c19f8783470a78fd3e4f0568f2",
+      "selected_owner_boot_prefix": "43496b36",
+      "logs": "ConnectionRefused and changed/expired/unbounded evidence; previous pixels historical",
+      "checked_capabilities": [
+        "display/scanout",
+        "serial/text",
+        "storage/protected-file",
+        "timer/monotonic",
+        "time/tick"
+      ],
+      "checked_audio_output": false,
+      "aplay_available": true,
+      "alsa_devices": [
+        "Headphones",
+        "USB audio",
+        "HDMI"
+      ]
+    }
+  },
+  "dispatch": {
+    "wake_readiness": "body_owner/wake_readiness.rs projects Wake unavailable when require_retained_local_fore fails; retained_local_fore.rs caches exact authenticated planning evidence and refuses missing current selected adapter offers.",
+    "native_contact": "durable_host_presentation/native.rs retires old input route before reconnect; failed authenticated contact retains only historical pixels.",
+    "wake_handler": "Validated typed Wake resolves to ClockAction::Start, then start_owned_body and general start_service_run; it starts retained workset, not an ambient selection. No Wake/control action was invoked by this audit."
+  },
+  "ambient_source_status": "Ambient isolated provider/clock/Home work is not the selected b341 Root workset. Latest owner note explicitly says full two-Plot wallpaper acquisition/pixel rendering/weather-to-Face/standing lifecycle and coordinated physical same-Body Shows remain open.",
+  "requirements": [
+    "Primary releases fresh64fa peer/contact descriptors to owning display lane for sequential authenticated same-Body Pi refresh.",
+    "Adopt actual desired Ambient/sound checked Source through ordinary existing-Body Source transition; current retained workset is Blue instrumentation.",
+    "Qualify/register actual Ambient providers and graphical image resource handling through original IMAGE/Back/Mask custody; do not substitute UI overlay or external sidecar.",
+    "Select actual hosted audio playback implementation/device and sound Plot with original PCM/runtime/operation grants. ALSA/aplay presence or microphone recognition does not offer audio output.",
+    "Require current offers, complete Plan/admission/Started, both physical Show acknowledgments and actual audible output; do not label cached pixels/input delivery as execution."
+  ],
+  "ownership": "No builds/deployments/source edits. Display activation stays with01a1ca05 after primary release; isolated Ambient source stays with01a1e2bc. MCU path held by latest human priority."
+}

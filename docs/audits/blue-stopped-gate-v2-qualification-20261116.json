@@ -1,0 +1,15 @@
+{
+  "schema": "conduit.evidence/blue-stopped-gate-operator-revision@2",
+  "staged_only": true,
+  "live_effects": false,
+  "original_operator_preserved_sha256": "4063b045543b567c1922999eb8c16b2518fd60f5b24ca38113984f2b606b7ea3",
+  "revised_operator_sha256": "468a56dbb6cdc2ae52a5e5b2c84b0836c6284d473321b46deb7e3f1ea6f83773",
+  "finish_controller_sha256": "27daa45cdbc521ad16901cb09b85ca8111053d3bb18410fc1c1b4efeea81c3dc",
+  "transaction_cases_passed": 24,
+  "os_scope_model_cases_passed": 8,
+  "actual_stopped_observation_passed": true,
+  "actual_locks_acquired": false,
+  "all_process_fd_visibility_claimed": false,
+  "trusted_scope": "Stopped actual Root + ordinary exclusive locks + exact state baseline; unreadable systemd/PAM/SSH infrastructure accepted under trusted local OS assumptions; unknown Conduit custody refuses.",
+  "finish_gate": "Exact original failure before locks/archive; claim/full old state unchanged; noarchive/noinstall; separate concrete finish review and primary release required."
+}

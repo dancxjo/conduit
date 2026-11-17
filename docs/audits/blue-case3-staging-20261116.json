@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.evidence/blue-ff9-manual-reset-case-staging@3",
+  "staged_only": true,
+  "live_effects": false,
+  "new_build_by_worker": false,
+  "case_sha256": "2b81eab9f484a130d5a8beb87a7f644dfba8e43240246bb6e255be0f47cd6d3d",
+  "operator_sha256": "3e2359f27bccd2536eb1a228a74ccb8e937d23bb77867f65b7ebc3a64f79aaa8",
+  "controller_sha256": "ee8c6a8a3e6f31728ebe101bf97a358484681f94fb92c50bf376e9cfd013fcac",
+  "new_source_required": "b341d1c6191d4e5bdafe593fb75b4efd5ec4313c",
+  "transaction_cases_passed": 24,
+  "actual_history_prefix_and_corruption_cases_passed": 7,
+  "synthetic_reset_refusals_passed": 8,
+  "actual_post_attempt_reset_performed": false,
+  "actual_reset_receipt_exists": false,
+  "scope": "Exact current first-Return failure claim; required future qualified UsbUart artifact/tests/observed prepare. Qualified MAC reset after this attempt, archive-before-release, ordinary release-onlyCAS and fresh BIO publication polling.",
+  "history_policy": "Original record/event/receipt prefixes preserved with only normal membership suffixes; no full BIO byte-equality after restart; no journal erase or new recording assertion."
+}
