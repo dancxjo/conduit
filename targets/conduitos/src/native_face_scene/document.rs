@@ -7,6 +7,8 @@ use conduit_face::{
     FaceActionAvailability, FaceDisclosureLevel, FacePropertyValue, FaceRole,
     FaceUtteranceProvenance as Provenance, plan_face_utterances, readable_finite_text_choices,
 };
+#[path = "document/hierarchy.rs"]
+mod hierarchy;
 
 pub(super) struct Item {
     pub text: String,
@@ -435,6 +437,7 @@ pub(super) fn prepare(
             }
         }
     }
+    hierarchy::arrange_primary(face, &mut primary);
     Ok((primary, details))
 }
 
