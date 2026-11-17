@@ -99,7 +99,12 @@ fn root_preparation_shares_loaned_counter_and_retires_without_early_refund() {
     drop(prepared);
     assert!(used.load(Ordering::Acquire) >= 64_000);
     drop(retained);
-    assert_eq!(used.load(Ordering::Acquire), 0);
+    // The observation Arc still owns the counter allocation itself. All
+    // prepared value/Root charges retire; this real backing is not yet freed.
+    assert_eq!(
+        used.load(Ordering::Acquire),
+        crate::kernel_preparation::StagedImageMemory::counter_backing_bytes()
+    );
 }
 
 #[test]
