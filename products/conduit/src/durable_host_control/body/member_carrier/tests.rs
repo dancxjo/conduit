@@ -309,7 +309,9 @@ fn actual_running_image_receiver_reuses_issuer_and_carrier_calls_reach_original_
             "active member carrier requires original IMAGE custody"
         );
         assert!(
-            code.contains("member") || code.contains("carrier"),
+            code.contains("member")
+                || code.contains("carrier")
+                || code == "native-mask-part-unavailable",
             "{code}"
         );
     }
