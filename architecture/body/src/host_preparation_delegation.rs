@@ -32,3 +32,11 @@ impl HostPreparationDelegation {
         self.maximum_assignment_bytes != 0 && self.maximum_runtime_state_bytes != 0
     }
 }
+
+/// Request on an already selected carrier; this grants no authority.
+pub const HOST_PREPARATION_REQUEST: &[u8] = b"conduit.body/prepare-fragments@1";
+
+#[cfg(feature = "authenticated-admission")]
+mod check;
+#[cfg(feature = "authenticated-admission")]
+pub use check::*;
