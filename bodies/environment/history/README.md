@@ -72,3 +72,19 @@ scheduler, sensor acquisition, Body birth or transport service.
 without discarding recorded samples or advancing recovery. Samples outside the
 view remain counted. This sample budget does not replace admission of the full
 composed Face against the selected Host byte limits.
+
+### Local kernel-committed content
+
+`PreparedCommittedHistoryFace` binds each selected immutable generation to the
+actual `RecordingSnapshotBack` observer and its original content digest. A
+successful storage service response does not advance the view: the matching
+kernel output must commit first. Refusals preserve the previous visible chunk.
+This process-local observation grants no storage or disclosure authority and is
+not a portable commit receipt, Body admission, or fresh-process recovery proof.
+
+`cargo xtask prove environment history-commit` exercises recording publication
+and the committed-history tests, including Linux immutable-file publication,
+occupied-generation refusal, stale authority, and reopening under a new Boot.
+Those tests use explicit CPU routing/authority fixtures and the production
+kernel. They do not establish an installed recorder, power-loss safety, MCU
+operation, or physical scanout.

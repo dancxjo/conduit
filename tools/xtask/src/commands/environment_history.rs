@@ -4,6 +4,7 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
     match args {
         [name] if name == "quantity-rounding" => Some(quantity_rounding(root)),
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-commit" => Some(committed(root)),
         [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-root-startup" => Some(root_startup(root)),
         [name] if name == "history-target" => Some(target(root)),
@@ -156,4 +157,9 @@ fn quantity_rounding(root: &Path) -> Result<(), Box<dyn Error>> {
         super::execute(&mut command)?;
     }
     Ok(())
+}
+
+fn committed(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::specifications(&["recording".into()])?;
+    prove(root)
 }
