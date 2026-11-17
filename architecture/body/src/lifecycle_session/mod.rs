@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "authenticated-admission")]
 mod browser_admission;
+#[cfg(feature = "authenticated-admission")]
+pub use browser_admission::StagedMemberReturn;
 mod continuity;
 mod flow;
 mod local_birth;

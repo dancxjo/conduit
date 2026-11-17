@@ -11,6 +11,8 @@ use admission_custody::AdmissionUpdate;
 mod archive;
 #[path = "state_execution_custody.rs"]
 mod execution_custody;
+#[path = "state_transaction.rs"]
+mod transaction;
 #[path = "state_workset_sources.rs"]
 mod workset_sources;
 #[cfg(test)]
@@ -333,17 +335,17 @@ fn retain_inner(
         biography.body_id.as_str(),
         last_execution,
     )?;
-    let transaction = Transaction {
-        schema: "conduit.body/owner-transaction@1".into(),
-        biography: biography.clone(),
-        installation,
-        last_execution: last_execution.cloned(),
-        execution_custody: Some(execution_custody),
-        admissions: admissions.manager.cloned(),
-        admission_custody: admissions.custody,
-        source: source.single().map(Vec::from),
-        workset_sources: source.workset().cloned(),
-        archives: archives.to_vec(),
+    let transaction = transaction::View {
+        schema: "conduit.body/owner-transaction@1",
+        biography,
+        installation: &installation,
+        last_execution,
+        execution_custody: Some(&execution_custody),
+        admissions: admissions.manager,
+        admission_custody: admissions.custody.as_ref(),
+        source: source.single(),
+        workset_sources: source.workset(),
+        archives,
     };
     if serde_json::to_vec(&transaction)
         .map_err(|e| e.to_string())?
