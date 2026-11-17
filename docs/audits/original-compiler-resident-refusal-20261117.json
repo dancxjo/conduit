@@ -1,0 +1,32 @@
+{
+  "schema": "conduit.preparation/compiler-source-compatibility@1",
+  "result": "REFUSED",
+  "compiler_sha256": "be1d3978922f1e9b208674e76dfaa0d27b35d2f2745e1ff24a391811b0f347e3",
+  "source_sha256": "b68c324a8bd5f3e1254417c7d2a040665bc0b557f1fe014d8e4bbfbb5285e93f",
+  "command": "retained compiler check <resident.conduit> --json",
+  "exit_code": 1,
+  "diagnostics": [
+    {
+      "schema_version": 1,
+      "code": "CND-FRM-053",
+      "severity": "error",
+      "summary": "structured runtime Port profile exceeds canonical bounds",
+      "source_document_id": "7bc7450764ac1a83e27c5068b486bba70338975ec3f15001f849491b47f493df",
+      "content_hash": "7bc7450764ac1a83e27c5068b486bba70338975ec3f15001f849491b47f493df",
+      "primary_span": {
+        "start": 563,
+        "end": 585,
+        "line": 14,
+        "column": 22,
+        "end_line": 14,
+        "end_column": 44
+      },
+      "related": [],
+      "public_arguments": {},
+      "redacted_arguments": [],
+      "notes": []
+    }
+  ],
+  "implication": "Proposed Root Host intent checks, but its retained compiler cannot check this new Source. Pin a qualified updated compiler artifact in the Host definition and refabricate/requalify original bounded Source preparation before live Source adoption.",
+  "limits": "Ordinary effect-free check command, not the bounded subprocess protocol. Exact diagnostic is established; missing language features versus catalog differences are not independently isolated. No grant/budget change or live effects."
+}
