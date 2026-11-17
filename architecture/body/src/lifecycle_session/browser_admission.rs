@@ -7,6 +7,9 @@ use crate::{
 use alloc::vec::Vec;
 use conduit_core::{BootId, HostAdvertisement, HostId};
 
+mod return_stage;
+pub use return_stage::StagedMemberReturn;
+
 impl BodyLifecycleSession {
     fn require_lulled_admission(&self, host: &HostId, boot: &BootId) -> Result<(), Error> {
         self.require_host(host, boot)?;
@@ -79,32 +82,14 @@ impl BodyLifecycleSession {
         authority_host: &HostId,
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, Error> {
-        self.require_lulled_admission(authority_host, authority_boot)?;
-        let mut next = self.clone();
-        next.make_membership_room(1)?;
-        let sequence = next.next_sequence()?;
-        let mut membership = next.evidence.membership.clone();
-        let prior = membership.events.len();
-        let mut manager = admissions.clone();
-        let credential = manager
-            .complete_return(
-                &mut membership,
-                advertisement,
-                proof,
-                now_millis,
-                sign(authority_host, authority_boot, sequence),
-            )
-            .map_err(Error::Admission)?;
-        let events = membership.events[prior..]
-            .iter()
-            .map(|event| (event.change_id.clone(), sequence))
-            .collect::<Vec<_>>();
-        if events.len() != 1 {
-            return Err(Error::Biography(BodyBiographyError::InvalidEvidence));
-        }
-        next.evidence
-            .append_membership_events(membership, &events)
-            .map_err(Error::Biography)?;
+        let staged = self.stage_returning_host_custody(
+            alloc::borrow::Cow::Borrowed(admissions),
+            advertisement,
+            proof,
+            now_millis,
+            (authority_host, authority_boot),
+        )?;
+        let (next, manager, credential) = staged.into_parts();
         *self = next;
         *admissions = manager;
         Ok(credential)

@@ -214,3 +214,6 @@ fn pending_realization_refuses_browser_admission_without_resetting_it() {
     );
     assert_eq!(session.realization, before);
 }
+
+#[path = "tests/return_stage.rs"]
+mod return_stage;

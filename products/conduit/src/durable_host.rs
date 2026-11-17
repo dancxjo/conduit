@@ -6,7 +6,6 @@ use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
     fs,
-    io::Read,
     path::{Component, Path},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -969,17 +968,10 @@ fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+#[path = "durable_host/bounded_reader.rs"]
+mod bounded_reader;
 fn bounded_read(path: &Path, maximum: u64) -> Result<Vec<u8>, String> {
-    let metadata =
-        fs::metadata(path).map_err(|error| format!("inspect {}: {error}", path.display()))?;
-    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > maximum {
-        return Err(format!("{} violates its finite file bound", path.display()));
-    }
-    let mut bytes = Vec::with_capacity(metadata.len() as usize);
-    fs::File::open(path)
-        .and_then(|mut file| file.read_to_end(&mut bytes))
-        .map_err(|error| format!("read {}: {error}", path.display()))?;
-    Ok(bytes)
+    bounded_reader::read(path, maximum)
 }
 
 pub(crate) fn fresh_identity(prefix: &str, basis: &str) -> String {
