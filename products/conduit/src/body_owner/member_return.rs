@@ -16,9 +16,11 @@ pub(super) struct PendingMemberReturn {
     challenge: PartReturnChallenge,
     prior: MembershipCredential,
     completed: Option<(PartReturnProof, MembershipCredential)>,
+    #[cfg(test)]
     completed_offer_digest: Option<[u8; 32]>,
     advertisement: HostAdvertisement,
-    image_projection: Option<images::PendingImageReturn>,
+    #[cfg(test)]
+    image_projection: Option<images::fixture::PendingImageReturn>,
     deadline: Instant,
     attempts: u8,
 }
@@ -117,7 +119,9 @@ impl Owner {
             advertisement: advertisement.clone(),
             prior: credential.clone(),
             completed: None,
+            #[cfg(test)]
             completed_offer_digest: None,
+            #[cfg(test)]
             image_projection: None,
             attempts: 0,
             deadline: now + Duration::from_secs(10),
@@ -241,12 +245,14 @@ impl Owner {
         {
             return Err("member return observed-offer pressure".into());
         }
-        let advertisement_bytes =
-            serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?;
-        let digest = crate::durable_host::digest(&advertisement_bytes);
+        let digest = crate::durable_host::digest(
+            &serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?,
+        );
+        #[cfg(test)]
         let completed_offer_digest: [u8; 32] = {
             use sha2::{Digest, Sha256};
-            Sha256::digest(&advertisement_bytes).into()
+            Sha256::digest(serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?)
+                .into()
         };
         let observed =
             super::native_mask_route::InvitedMaskOffer::observed(&pending.advertisement, digest);
@@ -266,7 +272,10 @@ impl Owner {
             .pending_member_return
             .as_mut()
             .ok_or("member return pending custody lost")?;
-        pending.completed_offer_digest = Some(completed_offer_digest);
+        #[cfg(test)]
+        {
+            pending.completed_offer_digest = Some(completed_offer_digest);
+        }
         pending.completed = Some((proof.clone(), credential.clone()));
         Ok(credential)
     }

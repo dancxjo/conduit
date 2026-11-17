@@ -111,14 +111,15 @@ impl Fixture {
     pub fn begin(&mut self) -> Result<PartReturnChallenge, String> {
         let presentation = self.presentation();
         self.owner
-            .begin_image_member_return(presentation, &self.images)
+            .fixture_begin_image_member_return(presentation, &self.images)
     }
     pub fn complete(
         &mut self,
         challenge: &PartReturnChallenge,
     ) -> Result<SignedPortableAdmissionReceipt, String> {
         let proof = self.proof(challenge);
-        self.owner.complete_image_member_return(&self.root, &proof)
+        self.owner
+            .fixture_complete_image_member_return(&self.root, &proof)
     }
     pub fn proof(&self, challenge: &PartReturnChallenge) -> PartReturnProof {
         PartReturnProof {

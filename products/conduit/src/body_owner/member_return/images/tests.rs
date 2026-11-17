@@ -59,7 +59,7 @@ fn core_persistence_failure_produces_no_attested_receipt_or_membership_change() 
     let proof = f.proof(&challenge);
     assert!(f
         .owner
-        .complete_image_member_return(&blocked, &proof)
+        .fixture_complete_image_member_return(&blocked, &proof)
         .is_err());
     assert_eq!(f.owner.session.evidence(), &before);
     assert_eq!(f.owner.admissions, manager);
@@ -109,13 +109,16 @@ fn same_decoded_offers_cannot_replace_cached_signed_images_or_grant_order() {
     let mut projection = f.projection.clone();
     projection.capability_images[0] = Sha256::digest(&images[0]).into();
     let changed = f.signed(projection);
-    assert!(f.owner.begin_image_member_return(changed, &images).is_err());
+    assert!(f
+        .owner
+        .fixture_begin_image_member_return(changed, &images)
+        .is_err());
     let mut projection = f.projection.clone();
     projection.authority_grants = f.grants();
     let changed = f.signed(projection);
     assert!(f
         .owner
-        .begin_image_member_return(changed, &f.images)
+        .fixture_begin_image_member_return(changed, &f.images)
         .is_err());
     assert!(
         f.owner
@@ -135,7 +138,7 @@ fn same_decoded_offers_cannot_replace_cached_signed_images_or_grant_order() {
     let changed = f.signed(projection);
     assert!(f
         .owner
-        .begin_image_member_return(changed, &f.images)
+        .fixture_begin_image_member_return(changed, &f.images)
         .is_err());
 }
 #[test]
@@ -166,7 +169,7 @@ fn signatures_and_all_image_extents_refuse_before_decode_or_partial_pending_admi
     let images = vec![vec![0]]; // Even malformed image data is not decoded before signature verification.
     let error = f
         .owner
-        .begin_image_member_return(bad, &images)
+        .fixture_begin_image_member_return(bad, &images)
         .err()
         .unwrap();
     assert!(error.starts_with("member image presentation:"));
@@ -177,14 +180,20 @@ fn signatures_and_all_image_extents_refuse_before_decode_or_partial_pending_admi
         let mut p = f.projection.clone();
         p.capability_images[0] = Sha256::digest(&images[0]).into();
         let changed = f.signed(p);
-        assert!(f.owner.begin_image_member_return(changed, &images).is_err());
+        assert!(f
+            .owner
+            .fixture_begin_image_member_return(changed, &images)
+            .is_err());
         assert!(f.owner.pending_member_return.is_none());
     }
     let huge = vec![vec![1; MAX_IMAGE_BYTES + 1]];
     let mut p = f.projection.clone();
     p.capability_images[0] = Sha256::digest(&huge[0]).into();
     let changed = f.signed(p);
-    assert!(f.owner.begin_image_member_return(changed, &huge).is_err());
+    assert!(f
+        .owner
+        .fixture_begin_image_member_return(changed, &huge)
+        .is_err());
     assert!(f.owner.pending_member_return.is_none());
     // Three individually bounded expanded claims must also respect the
     // aggregate ceiling before any decoder allocation.
@@ -201,7 +210,10 @@ fn signatures_and_all_image_extents_refuse_before_decode_or_partial_pending_admi
         .map(|image| Sha256::digest(image).into())
         .collect();
     let changed = f.signed(p);
-    assert!(f.owner.begin_image_member_return(changed, &images).is_err());
+    assert!(f
+        .owner
+        .fixture_begin_image_member_return(changed, &images)
+        .is_err());
     assert!(f.owner.pending_member_return.is_none());
     f.owner.member_carrier_identity = None;
     assert!(f.begin().is_err());
@@ -268,7 +280,7 @@ fn oversized_signed_projection_refuses_before_pending_or_core_mutation() {
     let manager = f.owner.admissions.clone();
     let error = f
         .owner
-        .begin_image_member_return(presentation, &f.images)
+        .fixture_begin_image_member_return(presentation, &f.images)
         .err()
         .unwrap();
     assert!(error.contains("receipt carriage bound"));
@@ -322,9 +334,60 @@ fn signed_invalid_native_incarnation_refuses_before_pending_mutation() {
         let before = f.owner.session.evidence().clone();
         assert!(f
             .owner
-            .begin_image_member_return(signed, &f.images)
+            .fixture_begin_image_member_return(signed, &f.images)
             .is_err());
         assert!(f.owner.pending_member_return.is_none());
         assert_eq!(f.owner.session.evidence(), &before);
     }
+}
+
+#[test]
+fn production_requires_workspace_before_decode_or_core_for_image_and_unbounded_hosts() {
+    for image_bound in [false, true] {
+        let mut f = Fixture::new("image-return-no-workspace");
+        if image_bound {
+            let actual = f.owner.host.advertisement();
+            let host = crate::durable_host_control::startup_member::test_fixture::selected_host(
+                actual.host_id.as_str(),
+                actual.boot_id.as_str(),
+                false,
+            );
+            f.owner.host = crate::durable_host::owner::controller::OwnerHost::new(host);
+        }
+        let before = f.owner.session.evidence().clone();
+        let manager = f.owner.admissions.clone();
+        let presentation = f.presentation();
+        // Deliberately malformed bytes must never enter the image decoder.
+        let error = f
+            .owner
+            .begin_image_member_return(presentation, &[vec![0]])
+            .err()
+            .unwrap();
+        assert_eq!(error, super::super::WORKSPACE_REFUSAL);
+        assert!(f.owner.pending_member_return.is_none());
+        assert_eq!(f.owner.session.evidence(), &before);
+        assert_eq!(f.owner.admissions, manager);
+    }
+}
+#[test]
+fn production_cannot_complete_fixture_pending_work_without_workspace() {
+    let mut f = Fixture::new("image-return-no-completion-workspace");
+    let challenge = f.begin().unwrap();
+    let before = f.owner.session.evidence().clone();
+    let proof = f.proof(&challenge);
+    let error = f
+        .owner
+        .complete_image_member_return(&f.root, &proof)
+        .err()
+        .unwrap();
+    assert_eq!(error, super::super::WORKSPACE_REFUSAL);
+    assert!(f
+        .owner
+        .pending_member_return
+        .as_ref()
+        .unwrap()
+        .completed
+        .is_none());
+    assert_eq!(f.owner.session.evidence(), &before);
+    assert!(!f.root.join("body/member-return-receipts").exists());
 }
