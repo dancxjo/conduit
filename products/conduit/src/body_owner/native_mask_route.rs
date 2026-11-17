@@ -18,13 +18,26 @@ mod member_leave;
 #[path = "native_mask_route/profile.rs"]
 mod profile;
 pub(super) use profile::InvitedMaskOffer;
+#[path = "native_mask_route/context.rs"]
+mod context;
+#[path = "native_mask_route/selection.rs"]
+mod selection;
+pub(crate) use context::PreparedNativeContexts;
+
+#[derive(Clone, Copy)]
+enum NativeComponentSelection {
+    Todo(
+        conduit_face::ComponentMaskLook,
+        conduit_face::TodoComponentRecipe,
+    ),
+    Ambient(conduit_face::AmbientClockEncounter),
+}
 
 enum SelectedRemoteMask<'a> {
-    Native(
-        Option<(
-            conduit_face::ComponentMaskLook,
-            conduit_face::TodoComponentRecipe,
-        )>,
+    Native(Option<NativeComponentSelection>),
+    Ambient(
+        &'a PreparedNativeContexts,
+        conduit_face::AmbientClockEncounter,
     ),
     Terminal(&'a LineOffer),
     Spoken(&'a RemoteSpokenTemplateSelection),
@@ -32,10 +45,7 @@ enum SelectedRemoteMask<'a> {
 
 #[derive(Clone)]
 pub(super) struct NativeMaskRoute {
-    component_selection: Option<(
-        conduit_face::ComponentMaskLook,
-        conduit_face::TodoComponentRecipe,
-    )>,
+    component_selection: Option<NativeComponentSelection>,
     credential: MembershipCredential,
     host_offer: conduit_core::HostAdvertisement,
     face_line: LineOffer,
@@ -188,11 +198,24 @@ impl Owner {
         expires_at_millis: u64,
         selection: SelectedRemoteMask<'_>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
-        let (component_selection, interaction_line, spoken) = match selection {
-            SelectedRemoteMask::Native(component) => (component, None, None),
-            SelectedRemoteMask::Terminal(line) => (None, Some(line), None),
-            SelectedRemoteMask::Spoken(selection) => (None, None, Some(selection)),
+        let (component_selection, interaction_line, spoken, prepared_context) = match selection {
+            SelectedRemoteMask::Native(component) => (component, None, None, None),
+            SelectedRemoteMask::Ambient(prepared, encounter) => (
+                Some(NativeComponentSelection::Ambient(encounter)),
+                None,
+                None,
+                Some(prepared),
+            ),
+            SelectedRemoteMask::Terminal(line) => (None, Some(line), None, None),
+            SelectedRemoteMask::Spoken(selection) => (None, None, Some(selection), None),
         };
+        if matches!(
+            component_selection,
+            Some(NativeComponentSelection::Ambient(_))
+        ) && prepared_context.is_none()
+        {
+            return Err("native-mask-context-preparation-required".into());
+        }
         if super::super::super::current_time_millis()? >= expires_at_millis {
             return Err("native-mask-return-expired".into());
         }
@@ -262,10 +285,22 @@ impl Owner {
                 return_line,
                 interaction_line,
             )?
+        } else if let Some(NativeComponentSelection::Ambient(encounter)) = component_selection {
+            prepared_context
+                .ok_or("native-mask-context-preparation-required")?
+                .plan_for(self, native_offer, &face, encounter)?
+                .clone()
         } else {
+            let component = match component_selection {
+                Some(NativeComponentSelection::Todo(look, recipe)) => Some((look.into(), recipe)),
+                None => None,
+                Some(NativeComponentSelection::Ambient(_)) => {
+                    return Err("native-mask-context-preparation-required".into());
+                }
+            };
             conduit_conduitos_mask_offer::prepare_advertised_native_stage_from_offer(
                 native_offer,
-                component_selection.map(|(look, recipe)| (look.into(), recipe)),
+                component,
             )
             .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
             .planned_mask
@@ -320,44 +355,6 @@ impl Owner {
             return Err(error);
         }
         Ok(seal)
-    }
-
-    pub(crate) fn select_native_component_mask(
-        &mut self,
-        request: &OwnerFaceSnapshotRequest,
-        show: &MaskShow,
-        receipt: &PortableAdmissionReceipt,
-        look: conduit_face::ComponentMaskLook,
-        recipe: conduit_face::TodoComponentRecipe,
-    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
-        self.validate_native_mask_show(request, show)?;
-        let previous_route = self
-            .pending_native_mask
-            .clone()
-            .ok_or("native-mask-route-not-selected")?;
-        if previous_route.credential != receipt.credential
-            || previous_route.host_offer != receipt.host_advertisement
-        {
-            return Err("native-mask-route-credential-mismatch".into());
-        }
-        let previous_wardrobe = self.face_wardrobe.clone();
-        let result = self
-            .seal_native_mask_route_with_selection(
-                receipt,
-                &previous_route.face_line,
-                &previous_route.return_line,
-                previous_route.expires_at_millis,
-                SelectedRemoteMask::Native(Some((look, recipe))),
-            )
-            .and_then(|route| {
-                self.select_component_face_route(&route)?;
-                Ok(route)
-            });
-        if result.is_err() {
-            self.pending_native_mask = Some(previous_route);
-            self.face_wardrobe = previous_wardrobe;
-        }
-        result
     }
 
     pub(crate) fn acknowledge_native_mask_show(
