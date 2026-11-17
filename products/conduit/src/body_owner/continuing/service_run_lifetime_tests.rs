@@ -204,8 +204,13 @@ fn actual_resident_service_uses_face_runner_until_lull_but_explicit_start_stays_
     );
     let mut owner = Owner::open(host, resident, None, "Resident service fixture").unwrap();
     owner.set_resident_plot_name(&plot).unwrap();
-    owner.persist(&root).unwrap();
-    std::fs::write(root.join("body/source.conduit"), text).unwrap();
+    let sources = state::WorksetSources::checked(
+        owner.session.evidence(),
+        vec![(text, "ambient-resident".into())],
+    )
+    .unwrap();
+    state::retain_session_with_workset_sources(&root, &mut owner.session, &sources, None, None)
+        .unwrap();
     let mut worker = owner.start_service_run_from_wake(&root, 25).unwrap();
     let deadline = Instant::now() + Duration::from_secs(10);
     let mut play = None;
