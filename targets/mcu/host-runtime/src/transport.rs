@@ -8,6 +8,8 @@ pub const WRITE_TIMEOUT_MILLIS: u32 = 2_000;
 /// Platform-owned IO. Every read/write must enforce the passed local deadline.
 /// Cancellation must stop using the borrowed buffer before its future returns
 /// or is dropped. Empty writes terminate USB packets; UART may treat them as no-op.
+/// Empty reads may represent USB ZLPs. Link yields before retrying them, so an
+/// immediately-ready read cannot starve the caller's whole-exchange deadline.
 #[allow(async_fn_in_trait)]
 pub trait Carrier {
     type Error;
@@ -56,6 +58,10 @@ impl<C: Carrier> Link<C> {
                 .read(&mut packet, READ_TIMEOUT_MILLIS)
                 .await
                 .map_err(|_| Refusal::Carrier)?;
+            if n == 0 {
+                yield_once().await;
+                continue;
+            }
             let bytes = packet.get(..n).ok_or(Refusal::OutputExtent)?;
             self.decoder
                 .accept_bytes(bytes)
@@ -81,6 +87,10 @@ impl<C: Carrier> Link<C> {
                 .read(&mut packet, READ_TIMEOUT_MILLIS)
                 .await
                 .map_err(|_| Refusal::Carrier)?;
+            if n == 0 {
+                yield_once().await;
+                continue;
+            }
             let bytes = packet.get(..n).ok_or(Refusal::OutputExtent)?;
             self.decoder
                 .accept_bytes(bytes)
@@ -145,4 +155,19 @@ impl<C: Carrier> DocumentTransport for Link<C> {
     ) -> Result<(), Self::Error> {
         Link::receive_document(self, document).await
     }
+}
+
+// One allocation-free scheduling boundary, not a retry budget or another timer.
+async fn yield_once() {
+    let mut yielded = false;
+    core::future::poll_fn(move |cx| {
+        if yielded {
+            core::task::Poll::Ready(())
+        } else {
+            yielded = true;
+            cx.waker().wake_by_ref();
+            core::task::Poll::Pending
+        }
+    })
+    .await;
 }
