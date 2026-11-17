@@ -160,3 +160,84 @@ fn full_payload_and_following_header_fit_funded_wire_backing() {
     assert_eq!(ready(link.receive(&mut output)).unwrap(), payload);
     assert_eq!(ready(link.receive(&mut output)).unwrap(), &[9]);
 }
+
+#[test]
+fn empty_read_yields_before_retry_and_preserves_the_next_frame() {
+    let mut link = Link::new(Packets {
+        input: vec![vec![], frame(b"fresh")].into(),
+        ..Default::default()
+    });
+    let mut output = [0xa5; 32];
+    {
+        let mut receive = core::pin::pin!(link.receive(&mut output));
+        assert!(receive
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+            .is_pending());
+        assert_eq!(ready(receive).unwrap(), b"fresh");
+    }
+    assert_eq!(link.carrier.reads, [READ_TIMEOUT_MILLIS; 2]);
+}
+#[test]
+fn empty_document_read_yields_and_preserves_the_next_document_frame() {
+    let mut encoded = [0; 64];
+    let payload = b"document";
+    let (length, next) =
+        conduit_wire::encode_bounded_document_chunk(&mut encoded, payload, 0, &[3; 32]).unwrap();
+    assert_eq!(next, payload.len());
+    let mut link = Link::new(Packets {
+        input: vec![vec![], frame(&encoded[..length])].into(),
+        ..Default::default()
+    });
+    let mut backing = [0xa5; 32];
+    let mut document = conduit_wire::BorrowedBoundedDocumentAssembly::new(&mut backing, 2);
+    {
+        let mut receive = core::pin::pin!(link.receive_document(&mut document));
+        assert!(receive
+            .as_mut()
+            .poll(&mut Context::from_waker(Waker::noop()))
+            .is_pending());
+        ready(receive).unwrap();
+    }
+    assert_eq!(link.carrier.reads, [READ_TIMEOUT_MILLIS; 2]);
+    assert_eq!(document.completed().unwrap().0, payload);
+}
+
+struct AlwaysEmpty;
+impl Carrier for AlwaysEmpty {
+    type Error = ();
+    async fn connected(&mut self) {}
+    async fn read(&mut self, _: &mut [u8], _: u32) -> Result<usize, ()> {
+        Ok(0)
+    }
+    async fn write(&mut self, _: &[u8], _: u32) -> Result<(), ()> {
+        Ok(())
+    }
+}
+#[test]
+fn repeated_empty_reads_remain_cancellable_at_each_poll_in_both_paths() {
+    let mut link = Link::new(AlwaysEmpty);
+    let mut output = [0xa5; 32];
+    {
+        let mut receive = core::pin::pin!(link.receive(&mut output));
+        for _ in 0..3 {
+            assert!(receive
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending());
+        }
+    }
+    assert_eq!(output, [0xa5; 32]);
+    let mut document = conduit_wire::BorrowedBoundedDocumentAssembly::new(&mut output, 2);
+    {
+        let mut receive = core::pin::pin!(link.receive_document(&mut document));
+        for _ in 0..3 {
+            assert!(receive
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending());
+        }
+    }
+    assert!(document.completed().is_none());
+    assert_eq!(output, [0xa5; 32]);
+}
