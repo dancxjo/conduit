@@ -33,6 +33,9 @@ impl Drop for ImageMemoryCharge {
     }
 }
 impl ImageMemoryLease {
+    pub(super) fn belongs_to(&self, used: &Arc<AtomicUsize>) -> bool {
+        Arc::ptr_eq(used, &self.inner.used)
+    }
     pub(crate) fn owned_backing_bytes() -> usize {
         core::mem::size_of::<ImageMemoryCharge>() + 2 * core::mem::size_of::<usize>()
     }

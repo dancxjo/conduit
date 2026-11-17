@@ -11,6 +11,7 @@ use std::{collections::BTreeSet, io::Write};
 mod initial_bases;
 mod playback;
 mod recognition;
+mod root_preparation;
 pub(crate) use initial_bases::InitialBases;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub(crate) use playback::prepare_playback_on;

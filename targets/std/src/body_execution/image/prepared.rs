@@ -8,6 +8,24 @@ pub struct ImagePreparedValue<T> {
     value: T,
     memory: ImageMemoryLease,
 }
+/// Affine preparation before the final Host exists. Verified inputs stay
+/// borrowed and the final initializer must consume the same staged counter.
+/// This carries memory custody, not provider readiness or Host authority.
+pub struct ImageRootPreparationStage<'a, T> {
+    pub(crate) value: ImagePreparedValue<T>,
+    pub(crate) memory: crate::kernel_preparation::StagedImageMemory<'a>,
+    pub(crate) config: &'a crate::StdHostConfig,
+    pub(crate) image: &'a conduit_host_make::HostImage,
+}
+
+impl<T> ImageRootPreparationStage<'_, T> {
+    /// Borrow cold preparation without detaching it from the original charge.
+    /// Reading the result supplies no initialized provider or Host authority.
+    pub fn prepared_value(&self) -> &ImagePreparedValue<T> {
+        &self.value
+    }
+}
+
 /// Retains the original memory charge without retaining the prepared value.
 /// Consumers must still own their data. This witness supplies neither access
 /// nor authority and cannot reserve, enlarge or relabel the original budget.
@@ -74,6 +92,16 @@ impl<'a> ImageRootPreparation<'a> {
 }
 
 impl<T> ImagePreparedValue<T> {
+    pub(crate) fn verify_staged_owner(
+        &self,
+        staged: &crate::kernel_preparation::StagedImageMemory<'_>,
+    ) -> Result<(), String> {
+        if staged.owns(&self.memory) {
+            Ok(())
+        } else {
+            Err("pre-host prepared value belongs to another original IMAGE counter".into())
+        }
+    }
     pub fn value(&self) -> &T {
         &self.value
     }

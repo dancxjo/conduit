@@ -6,6 +6,7 @@ use crate::kernel_preparation::ImageMemoryLease;
 mod prepared;
 pub use prepared::{
     ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation, ImageRootPreparationOwner,
+    ImageRootPreparationStage,
 };
 
 pub struct ImageBodyRunReport {

@@ -54,7 +54,7 @@ mod image;
 mod startup;
 pub use image::{
     ImageBodyRunReport, ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation,
-    ImageRootPreparationOwner,
+    ImageRootPreparationOwner, ImageRootPreparationStage,
 };
 use startup::StartupAcknowledgmentValue;
 pub use startup::{BodyStartedAcknowledgment, CommittedBodyStartup, StartupChimeCallReceipt};

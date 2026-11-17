@@ -41,6 +41,9 @@ impl<'a> StagedImageMemory<'a> {
     pub(crate) fn reserve(&self, bytes: usize) -> Result<ImageMemoryLease, String> {
         reserve_image_memory(&self.used, self.limit, bytes)
     }
+    pub(crate) fn owns(&self, lease: &ImageMemoryLease) -> bool {
+        lease.belongs_to(&self.used)
+    }
     /// Initial ledger construction only. Existing leases keep exactly the same
     /// counter; binding neither resets their charge nor reserves them again.
     pub(crate) fn bind(
