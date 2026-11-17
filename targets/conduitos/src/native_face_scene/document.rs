@@ -299,7 +299,9 @@ pub(super) fn prepare(
                 continue;
             }
             if let FacePropertyValue::TypedValue { contract, bytes } = &property.value {
-                let value = conduit_face::display_typed_value(contract, bytes);
+                let Some(value) = conduit_face::display_typed_content(contract, bytes) else {
+                    continue;
+                };
                 if subject.role == FaceRole::Info {
                     append(item(property.name.clone(), GraphicsTextRole::Label));
                     append(item(value, GraphicsTextRole::Value));

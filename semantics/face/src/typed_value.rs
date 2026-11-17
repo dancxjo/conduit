@@ -26,10 +26,25 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
     if validate(contract, bytes).is_err() {
         return "Invalid typed value".into();
     }
+    human_wording(contract, bytes, spoken).unwrap_or_else(|| {
+        format!(
+            "{}: {} canonical bytes",
+            contract.value_kind.as_str(),
+            bytes.len()
+        )
+    })
+}
+/// Human content for a recognized semantic value. Opaque canonical storage
+/// remains exact inspectable evidence, rather than a primary display label.
+pub fn display_typed_content(contract: &CheckedValueContract, bytes: &[u8]) -> Option<String> {
+    validate(contract, bytes).ok()?;
+    human_wording(contract, bytes, false)
+}
+fn human_wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Option<String> {
     let primitive = primitive_info_kind(contract.value_kind.as_str());
     if primitive == Some(PrimitiveInfoKind::Unit) {
         let unit = Unit::decode(bytes).expect("validated canonical unit");
-        return unit.canonical_symbol();
+        return Some(unit.canonical_symbol());
     }
     if matches!(
         primitive,
@@ -54,13 +69,9 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
             (Unit::Fahrenheit, true) => "degrees Fahrenheit".into(),
             (unit, _) => unit.canonical_symbol(),
         };
-        return format!("{number} {unit}");
+        return Some(format!("{number} {unit}"));
     }
-    format!(
-        "{}: {} canonical bytes",
-        contract.value_kind.as_str(),
-        bytes.len()
-    )
+    None
 }
 fn decimal(quantity: Quantity) -> String {
     let coefficient = quantity.coefficient();

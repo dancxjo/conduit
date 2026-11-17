@@ -234,7 +234,7 @@ fn retained_live_face_keeps_current_readings_on_the_first_page() {
     let encoded = std::fs::read(path).unwrap();
     let envelope: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
     let face: Face = serde_json::from_value(envelope["face"].clone()).unwrap();
-    let scene = NativeFaceScene::prepare(face.clone(), 1024, 600).unwrap();
+    let scene = NativeFaceScene::prepare(face.clone(), 800, 600).unwrap();
     let first_page = scene
         .primary
         .iter()
@@ -245,6 +245,13 @@ fn retained_live_face_keeps_current_readings_on_the_first_page() {
     assert!(first_page.contains("Date and time"), "{first_page}");
     assert!(first_page.contains("America/Los_Angeles"), "{first_page}");
     assert!(first_page.contains("Weather unavailable"), "{first_page}");
+    assert!(!first_page.contains("canonical bytes"), "{first_page}");
+    assert!(
+        scene
+            .details
+            .iter()
+            .any(|row| row.text.contains("canonical bytes"))
+    );
     assert!(
         scene
             .frame()

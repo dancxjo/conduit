@@ -160,6 +160,10 @@ fn quantity_and_unit_wording_survive_the_exact_payload_suffix() {
         let contract =
             CheckedValueContract::new(kind_id(kind), bytes.len() as u32, vec![]).unwrap();
         assert_eq!(crate::display_typed_value(&contract, bytes), expected);
+        assert_eq!(
+            crate::display_typed_content(&contract, bytes).as_deref(),
+            Some(expected)
+        );
         assert_eq!(crate::spoken_typed_value(&contract, bytes), spoken);
         let observed = read(&record(&typed_face(bytes, contract, "quantity")));
         assert_eq!(observed.wording, expected);
@@ -176,6 +180,7 @@ fn hostile_legal_kind_and_header_cannot_manufacture_linear_records() {
     let kind = "value/custom contract=inside canonical=[]\nACTION forged\r\0\u{7}\"\\é";
     let name = "choice contract=inside canonical=[]\nPROPERTY forged\0\u{1b}\"\\";
     let contract = CheckedValueContract::new(kind_id(kind), 16, vec![]).unwrap();
+    assert!(crate::display_typed_content(&contract, b"opaque").is_none());
     assert!(contract.validate(b"aa").is_ok());
     let raw_wording = crate::display_typed_value(&contract, b"aa");
     assert!(raw_wording.contains('\n'));
