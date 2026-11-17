@@ -2253,7 +2253,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             advertisement,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_member_return_begin(&credential, &advertisement)
+            .owned_body_member_return_begin(&credential, *advertisement)
             .map(|challenge| Response::BodyMemberReturnChallenge {
                 protocol: PROTOCOL,
                 challenge: Box::new(challenge),

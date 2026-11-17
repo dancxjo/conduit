@@ -67,7 +67,7 @@ impl Owner {
         let maximum = preflight(&presentation.projection, images)?;
         let advertisement = resolve(&presentation.projection, images, maximum)?;
         let bound = PendingImageReturn::bind(presentation.projection, &advertisement)?;
-        let challenge = self.begin_member_return(&presentation.credential, &advertisement)?;
+        let challenge = self.begin_member_return_owned(&presentation.credential, advertisement)?;
         let pending = self
             .pending_member_return
             .as_mut()

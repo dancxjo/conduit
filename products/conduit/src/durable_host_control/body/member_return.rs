@@ -6,12 +6,12 @@ impl DurableHostRuntime {
     pub(in crate::durable_host_control) fn owned_body_member_return_begin(
         &mut self,
         credential: &MembershipCredential,
-        advertisement: &HostAdvertisement,
+        advertisement: HostAdvertisement,
     ) -> Result<PartReturnChallenge, String> {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        owner.begin_member_return(credential, advertisement)
+        owner.begin_member_return_owned(credential, advertisement)
     }
     pub(in crate::durable_host_control) fn owned_body_member_return_complete(
         &mut self,

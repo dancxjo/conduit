@@ -8,6 +8,7 @@ use conduit_body::{
 };
 use conduit_core::HostAdvertisement;
 use std::{
+    borrow::Cow,
     path::Path,
     time::{Duration, Instant},
 };
@@ -34,6 +35,7 @@ impl PendingMemberReturn {
 }
 
 impl Owner {
+    #[cfg(test)]
     pub(crate) fn begin_member_return(
         &mut self,
         credential: &MembershipCredential,
@@ -43,7 +45,18 @@ impl Owner {
         self.begin_member_return_at(credential, advertisement, Instant::now(), at)
     }
 
+    /// Transfer an already owned offer into pending custody without cloning it.
+    pub(crate) fn begin_member_return_owned(
+        &mut self,
+        credential: &MembershipCredential,
+        advertisement: HostAdvertisement,
+    ) -> Result<PartReturnChallenge, String> {
+        let at = crate::durable_host::current_time_millis()?;
+        self.begin_member_return_custody(credential, Cow::Owned(advertisement), Instant::now(), at)
+    }
+
     // Both clock observations belong to this request, including pending replay.
+    #[cfg(test)]
     pub(super) fn begin_member_return_at(
         &mut self,
         credential: &MembershipCredential,
@@ -51,6 +64,17 @@ impl Owner {
         now: Instant,
         at: u64,
     ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_return_custody(credential, Cow::Borrowed(advertisement), now, at)
+    }
+
+    fn begin_member_return_custody(
+        &mut self,
+        credential: &MembershipCredential,
+        offer_owner: Cow<'_, HostAdvertisement>,
+        now: Instant,
+        at: u64,
+    ) -> Result<PartReturnChallenge, String> {
+        let advertisement = offer_owner.as_ref();
         if self.host.is_playing() {
             return Err("body-play-active".into());
         }
@@ -116,7 +140,7 @@ impl Owner {
             .map_err(|e| format!("member return: {e:?}"))?;
         self.pending_member_return = Some(PendingMemberReturn {
             challenge: challenge.clone(),
-            advertisement: advertisement.clone(),
+            advertisement: offer_owner.into_owned(),
             prior: credential.clone(),
             completed: None,
             #[cfg(test)]
@@ -283,3 +307,7 @@ impl Owner {
 
 #[path = "member_return/images.rs"]
 mod images;
+
+#[cfg(test)]
+#[path = "member_return/ownership_tests.rs"]
+mod ownership_tests;
