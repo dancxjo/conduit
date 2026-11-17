@@ -2141,8 +2141,15 @@ dependencies = [
 name = "conduit-host-esp32-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
+ "conduit-embedded-build",
  "conduit-host-make",
+ "conduit-mcu-host-runtime",
  "conduit-mcu-source-build",
+ "conduit-monotonic-wait",
+ "conduit-pulse-capture",
+ "conduit-resource-snapshot",
+ "conduit-tm1637-wire",
  "serde",
  "serde_json",
  "sha2 0.10.9",

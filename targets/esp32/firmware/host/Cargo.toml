@@ -50,7 +50,7 @@ conduit-mcu-source-build = { path = "../../../mcu/source-build" }
 conduit-embedded-build = { path = "../../../../make/embedded-build" }
 conduit-plot = { path = "../../../../architecture/plot" }
 conduit-host-make = { path = "../../../../make/host" }
-conduit-host-esp32-make = { path = "../../make" }
+conduit-host-esp32-make = { path = "../../make", features = ["source-emission"] }
 sha2 = "0.10"
 [profile.release]
 codegen-units = 1
