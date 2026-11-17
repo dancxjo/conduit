@@ -260,3 +260,6 @@ mod tests;
 
 #[cfg(test)]
 mod creche_quarantine_tests;
+
+mod image_memory;
+pub(crate) use image_memory::{BodyMemoryReceipt, ImageMemoryLease};

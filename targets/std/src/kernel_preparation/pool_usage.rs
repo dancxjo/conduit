@@ -20,6 +20,13 @@ pub(super) struct PoolUsage {
 }
 
 impl PoolUsage {
+    pub(super) fn tick_clone_backing_bytes(&self) -> Option<usize> {
+        if self.compute.is_some() || !self.groups.is_empty() {
+            return None;
+        }
+        self.pool_id.0.len().checked_add(self.class_id.0.len())
+    }
+
     pub(super) fn new(offer: &ResourceOffer) -> Result<Self, String> {
         if offer.pool_id.as_str().is_empty()
             || offer.class_id.as_str().is_empty()

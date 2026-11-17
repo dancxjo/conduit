@@ -3,6 +3,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct KernelResourceLedger {
+    pub(super) image_memory: Option<std::sync::Arc<std::sync::atomic::AtomicUsize>>,
     pub(super) image_bounds: Option<conduit_host_make::HostBounds>,
     // Exact charged tokens retained after uncertain platform retirement.
     // Terminal quarantine: there is deliberately no automatic recovery API.
@@ -24,6 +25,10 @@ pub(crate) struct KernelResourceReservation {
 }
 
 impl KernelResourceLedger {
+    pub(super) fn counter_backing_bytes() -> usize {
+        core::mem::size_of::<std::sync::atomic::AtomicUsize>() + 2 * core::mem::size_of::<usize>()
+    }
+
     /// Retain already charged tokens without releasing, cloning or allocating.
     /// Process drop is not proof that an external provider has quiesced; a
     /// replacement Host requires its own real provider admission.
@@ -74,6 +79,7 @@ impl KernelResourceLedger {
         }
         Ok(Self {
             image_bounds: None,
+            image_memory: None,
             retirement_hold: None,
             identity: (
                 advertisement.host_id.clone(),

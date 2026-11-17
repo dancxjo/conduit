@@ -35,6 +35,7 @@ impl StdHost {
             terminal,
             None,
             started,
+            None,
         )
     }
 
@@ -61,19 +62,68 @@ impl StdHost {
         terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         mut started: F,
+        custody: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
-        let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
-        self.kernel_resources.preflight_image_workset(
+        let funded = if custody.is_some() {
+            if correlation.is_some()
+                || execution_bounds.is_some()
+                || live.is_some()
+                || checkpoint.is_some()
+                || terminal.is_some()
+                || creche.is_some()
+                || fore
+                    .as_ref()
+                    .is_some_and(|(inputs, sequential, _)| !inputs.is_empty() || *sequential)
+            {
+                return Err("funded IMAGE supports direct Tick with bounded output only".into());
+            }
+            let layout = crate::installed_std::body_kernel::funded::TickPreparationLayout::prepare(
+                &request,
+                &self.advertisement,
+                &self.kernel_resources,
+                timer,
+                fore.is_some(),
+            )?;
+            let lease = self
+                .kernel_resources
+                .fund_tick_preparation(layout.peak_bytes)?;
+            Some((layout, lease))
+        } else {
+            None
+        };
+        let prospective_play = if funded.is_some() {
             request
                 .plan
-                .plots
-                .iter()
-                .flat_map(|part| part.plan.fragments.iter()),
-        )?;
+                .validate_for_borrowed(request.wake)
+                .map_err(|error| format!("Body Plan validation: {error:?}"))?;
+            self.next_kernel_play_sequence
+                .checked_add(1)
+                .ok_or("Body Play sequence exhausted")?;
+            BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence)
+        } else {
+            self.prospective_body_play(request.wake, request.plan)?
+        };
+        if funded.is_some() {
+            self.kernel_resources.preflight_image_shape(
+                request
+                    .plan
+                    .plots
+                    .iter()
+                    .flat_map(|part| &part.plan.fragments),
+            )?;
+        } else {
+            self.kernel_resources.preflight_image_workset(
+                request
+                    .plan
+                    .plots
+                    .iter()
+                    .flat_map(|part| &part.plan.fragments),
+            )?;
+        }
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {
@@ -103,7 +153,14 @@ impl StdHost {
         // exact child pool must be prepared and correlated before Play start;
         // a preparation refusal leaves the Host sequence untouched.
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
-        let mut kernel = if let Some((queue, _)) = &live {
+        let mut kernel = if let Some((layout, _)) = &funded {
+            BodyKernel::prepare_funded(
+                &request.plan.plots,
+                &prospective_play.active_play_id,
+                has_fore_output,
+                layout,
+            )?
+        } else if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(
                 &request.plan.plots,
                 request.keyboard.is_some(),
@@ -143,15 +200,47 @@ impl StdHost {
             kernel.attach_creche(owner, request.plan, &prospective_play, &self.advertisement)?;
         }
         kernel.require_supported_execution()?;
-        let reservations = self.kernel_resources.prepare_and_reserve_plans(
-            &self.advertisement,
-            &request
-                .plan
-                .plots
-                .iter()
-                .map(|part| (&part.plan, false))
-                .collect::<Vec<_>>(),
-        )?;
+        let prepared_lifecycle = if funded.is_some() {
+            Some(image::prepare_lifecycle(
+                &request,
+                &prospective_play,
+                &self.advertisement,
+            )?)
+        } else {
+            None
+        };
+        let first = &request.plan.plots[0].plan;
+        let mut plans = [(first, false); conduit_body::MAX_BODY_PLOTS];
+        for (target, part) in plans.iter_mut().zip(&request.plan.plots) {
+            *target = (&part.plan, false);
+        }
+        let plans = &plans[..request.plan.plots.len()];
+        let reservations = if let Some((layout, lease)) = &funded {
+            let (wake, sign) = prepared_lifecycle.as_ref().unwrap();
+            let lifecycle = crate::installed_std::body_kernel::memory::lifecycle_bytes(
+                &prospective_play,
+                wake,
+                sign,
+            )?;
+            let receipt = kernel.prepare_memory(
+                timer,
+                &self.advertisement.host_id,
+                &self.advertisement.boot_id,
+                lifecycle,
+                layout.clock_identity_bytes,
+            )?;
+            let reserved = self.kernel_resources.reserve_funded_body(
+                &self.advertisement,
+                plans,
+                &receipt,
+                lease,
+            )?;
+            kernel.attach_image_memory(lease);
+            reserved
+        } else {
+            self.kernel_resources
+                .prepare_and_reserve_plans(&self.advertisement, plans)?
+        };
         let result = (|| {
             let sequence = self.next_kernel_play_sequence;
             self.next_kernel_play_sequence = sequence
@@ -174,11 +263,21 @@ impl StdHost {
                     sequence,
                 )
             };
-            let wake_at_start = request
-                .wake
-                .body_plan_ready(request.plan, sign(0).sign_id)
-                .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
-                .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+            let (wake_at_start, prepared_terminal_sign) =
+                if let Some((wake, sign)) = prepared_lifecycle {
+                    (wake, Some(sign))
+                } else {
+                    (
+                        request
+                            .wake
+                            .body_plan_ready(request.plan, sign(0).sign_id)
+                            .and_then(|wake| {
+                                wake.body_play_started(request.plan, &play, sign(1).sign_id)
+                            })
+                            .map_err(|error| format!("Body start lifecycle: {error:?}"))?,
+                        None,
+                    )
+                };
             if let Err(error) = started(&play, &wake_at_start) {
                 if let Some(queue) = live_queue {
                     queue.mark_play_terminal();
@@ -191,7 +290,7 @@ impl StdHost {
             if let Some(queue) = live_queue {
                 queue.mark_play_started();
             }
-            let terminal_sign = sign(2);
+            let terminal_sign = prepared_terminal_sign.unwrap_or_else(|| sign(2));
             let fore_output = if let Some((_, adapter)) = live {
                 Some(adapter)
             } else {
@@ -257,6 +356,12 @@ impl StdHost {
                 release_errors.push(error);
             }
         }
-        finish_body_release(result, release_errors)
+        let report = finish_body_release(result, release_errors)?;
+        if let Some((_, mut lease)) = funded {
+            let retained = crate::installed_std::body_kernel::memory::result_bytes(&report)?;
+            lease.retain_result(retained);
+            *custody.ok_or("funded result custody missing")? = Some(lease);
+        }
+        Ok(report)
     }
 }

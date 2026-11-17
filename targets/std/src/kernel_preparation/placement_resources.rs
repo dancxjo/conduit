@@ -10,7 +10,26 @@ impl KernelResourceLedger {
         lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     ) -> Result<KernelResourceReservation, String> {
         self.preflight_image_workset(core::iter::once(fragment))?;
-        let mut instances = Vec::new();
+        self.reserve_placement_resources(advertisement, fragment, lowered)
+    }
+
+    pub(super) fn reserve_funded_placement_resources(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+    ) -> Result<KernelResourceReservation, String> {
+        self.preflight_image_shape(core::iter::once(fragment))?;
+        self.reserve_placement_resources(advertisement, fragment, lowered)
+    }
+
+    fn reserve_placement_resources(
+        &mut self,
+        advertisement: &HostAdvertisement,
+        fragment: &PlanFragment,
+        lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+    ) -> Result<KernelResourceReservation, String> {
+        let mut instances = Vec::with_capacity(self.instances.len());
         for (id, used) in &mut self.instances {
             let requested = u16::try_from(
                 fragment

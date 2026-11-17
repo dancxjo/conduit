@@ -162,3 +162,5 @@ fn selected_image_reconfiguration_refuses_without_losing_current_providers() {
 
 mod execution_refusal;
 mod reconfiguration;
+
+mod funded_execution;
