@@ -270,6 +270,8 @@ mod configured_mask;
 pub use configured_mask::*;
 mod visual_expression_info;
 pub use visual_expression_info::*;
+mod image_resource_source;
+pub use image_resource_source::image_resource_source_catalog;
 mod ambient_clock_component;
 pub use ambient_clock_component::*;
 mod component_layout_contract;
