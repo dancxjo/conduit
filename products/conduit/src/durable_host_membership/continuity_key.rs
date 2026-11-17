@@ -125,58 +125,128 @@ pub(crate) fn sign_member_carrier_challenge(
     challenge: &conduit_body::FederationChallenge,
     now: u64,
 ) -> Result<[u8; 64], String> {
-    let installation = super::read_installation(&state.join("installation.json"))?;
+    prepare_member_carrier_signer(state, credential, actual)?.sign(context, challenge, now)
+}
+
+/// One locally checked member identity prepared before opening a timed carrier.
+/// Its private authority remains single-use and every installed custody byte is
+/// rechecked at signing; expensive equipment reconstruction is preparation work.
+pub(crate) struct PreparedMemberCarrierSigner<'a> {
+    state: &'a Path,
+    credential: &'a MembershipCredential,
+    actual: &'a HostAdvertisement,
+    installation_digest: String,
+    credential_path: std::path::PathBuf,
+    credential_digest: String,
+    key: SpawnInvitationSecret,
+}
+
+pub(crate) fn prepare_member_carrier_signer<'a>(
+    state: &'a Path,
+    credential: &'a MembershipCredential,
+    actual: &'a HostAdvertisement,
+) -> Result<PreparedMemberCarrierSigner<'a>, String> {
+    let path = state.join("installation.json");
+    let before = super::digest(&super::bounded_read(&path, 64 * 1024)?);
+    let installation = super::read_installation(&path)?;
+    if super::digest(&super::bounded_read(&path, 64 * 1024)?) != before {
+        return Err("carrier installation changed during preparation".into());
+    }
     if super::load_joined_credential(state, &installation)? != *credential {
         return Err("carrier credential differs from installed membership".into());
     }
     validate_member_scope(state, credential)?;
+    let binding = installation
+        .joined_body_state
+        .as_ref()
+        .ok_or("carrier membership absent")?;
     let record = read(&state.join("body").join(PATH))?;
     let key = SpawnInvitationSecret::from_csprng_bytes(record.secret)
         .map_err(|_| "invalid retained continuity key")?;
-    let ids = [
-        credential.credential_id.as_str(),
-        credential.body_id.as_str(),
-        credential.part_id.as_str(),
-        actual.host_id.as_str(),
-        actual.boot_id.as_str(),
-        context.receiver.host_id.as_str(),
-        context.receiver.boot_id.as_str(),
-        context.session.as_str(),
-        context.line.as_str(),
-    ];
-    if ids.iter().any(|v| v.is_empty() || v.len() > 256)
-        || actual.protocol_version != conduit_core::PROTOCOL_VERSION
-        || actual.offer_generation.0 == 0
-        || credential.host_id != actual.host_id
-        || credential.boot_id != actual.boot_id
-        || challenge.initiator.host_id != actual.host_id
-        || challenge.initiator.boot_id != actual.boot_id
-        || challenge.initiator.offer_generation != actual.offer_generation
-        || challenge.initiator.verifying_key != key.verifying_key()
-        || challenge.responder != *context.receiver
-        || context.receiver.offer_generation.0 == 0
-        || context.receiver.verifying_key == [0; 32]
-        || challenge.session_id != *context.session
-        || challenge.line_id != *context.line
-        || challenge.line_security != context.security
-        || context.security == conduit_core::LineSecurity::PlaintextNetwork
-    {
-        return Err("carrier challenge differs from retained member and trusted encounter".into());
+    Ok(PreparedMemberCarrierSigner {
+        state,
+        credential,
+        actual,
+        installation_digest: before,
+        credential_path: binding.credential_path.clone().into(),
+        credential_digest: binding.credential_sha256.clone(),
+        key,
+    })
+}
+
+impl PreparedMemberCarrierSigner<'_> {
+    pub(crate) fn sign(
+        self,
+        context: &MemberCarrierSigningContext<'_>,
+        challenge: &conduit_body::FederationChallenge,
+        now: u64,
+    ) -> Result<[u8; 64], String> {
+        if super::digest(&super::bounded_read(
+            &self.state.join("installation.json"),
+            64 * 1024,
+        )?) != self.installation_digest
+            || super::digest(&super::bounded_read(&self.credential_path, 64 * 1024)?)
+                != self.credential_digest
+        {
+            return Err("carrier installed custody changed after preparation".into());
+        }
+        validate_member_scope(self.state, self.credential)?;
+        let current = read(&self.state.join("body").join(PATH))?;
+        let current_key = SpawnInvitationSecret::from_csprng_bytes(current.secret)
+            .map_err(|_| "invalid retained continuity key")?;
+        if current_key.verifying_key() != self.key.verifying_key() {
+            return Err("carrier private custody changed after preparation".into());
+        }
+        let credential = self.credential;
+        let actual = self.actual;
+        let key = &self.key;
+        let ids = [
+            credential.credential_id.as_str(),
+            credential.body_id.as_str(),
+            credential.part_id.as_str(),
+            actual.host_id.as_str(),
+            actual.boot_id.as_str(),
+            context.receiver.host_id.as_str(),
+            context.receiver.boot_id.as_str(),
+            context.session.as_str(),
+            context.line.as_str(),
+        ];
+        if ids.iter().any(|v| v.is_empty() || v.len() > 256)
+            || actual.protocol_version != conduit_core::PROTOCOL_VERSION
+            || actual.offer_generation.0 == 0
+            || credential.host_id != actual.host_id
+            || credential.boot_id != actual.boot_id
+            || challenge.initiator.host_id != actual.host_id
+            || challenge.initiator.boot_id != actual.boot_id
+            || challenge.initiator.offer_generation != actual.offer_generation
+            || challenge.initiator.verifying_key != key.verifying_key()
+            || challenge.responder != *context.receiver
+            || context.receiver.offer_generation.0 == 0
+            || context.receiver.verifying_key == [0; 32]
+            || challenge.session_id != *context.session
+            || challenge.line_id != *context.line
+            || challenge.line_security != context.security
+            || context.security == conduit_core::LineSecurity::PlaintextNetwork
+        {
+            return Err(
+                "carrier challenge differs from retained member and trusted encounter".into(),
+            );
+        }
+        if context.maximum_frames == 0
+            || challenge.maximum_frames == 0
+            || challenge.maximum_frames > context.maximum_frames
+            || context.maximum_millis == 0
+            || challenge.nonce == [0; 32]
+            || now >= challenge.expires_at_millis
+            || challenge.expires_at_millis.saturating_sub(now) > u64::from(context.maximum_millis)
+        {
+            return Err("carrier challenge exceeds current encounter bounds".into());
+        }
+        let transcript: [u8; 32] = conduit_body::challenge_transcript(challenge)
+            .try_into()
+            .map_err(|_| "invalid canonical federation transcript")?;
+        Ok(key.sign(&transcript))
     }
-    if context.maximum_frames == 0
-        || challenge.maximum_frames == 0
-        || challenge.maximum_frames > context.maximum_frames
-        || context.maximum_millis == 0
-        || challenge.nonce == [0; 32]
-        || now >= challenge.expires_at_millis
-        || challenge.expires_at_millis.saturating_sub(now) > u64::from(context.maximum_millis)
-    {
-        return Err("carrier challenge exceeds current encounter bounds".into());
-    }
-    let transcript: [u8; 32] = conduit_body::challenge_transcript(challenge)
-        .try_into()
-        .map_err(|_| "invalid canonical federation transcript")?;
-    Ok(key.sign(&transcript))
 }
 
 pub(super) fn validate_member_scope(

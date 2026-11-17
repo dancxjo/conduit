@@ -163,6 +163,18 @@ pub(crate) fn resume(
     encounter: &MemberEncounter,
     line: &mut SecureWebSocketClientLine,
 ) -> Result<FederationInspection, String> {
+    let signer =
+        crate::durable_host::membership::prepare_member_carrier_signer(state, credential, actual)?;
+    resume_prepared(credential, actual, encounter, line, signer)
+}
+
+pub(crate) fn resume_prepared(
+    credential: &MembershipCredential,
+    actual: &HostAdvertisement,
+    encounter: &MemberEncounter,
+    line: &mut SecureWebSocketClientLine,
+    signer: crate::durable_host::membership::PreparedMemberCarrierSigner<'_>,
+) -> Result<FederationInspection, String> {
     if credential.body_id != encounter.body_id
         || credential.part_id != encounter.part_id
         || credential.host_id != encounter.host_id
@@ -207,9 +219,7 @@ pub(crate) fn resume(
         maximum_millis: SESSION_MILLIS,
     };
     let now = current_time_millis()?;
-    let signature = crate::durable_host::membership::sign_member_carrier_challenge(
-        state, credential, actual, &context, &challenge, now,
-    )?;
+    let signature = signer.sign(&context, &challenge, now)?;
     // Both signatures are checked before using any returned authentication facts.
     conduit_body::FederatedReceivingSession::establish(
         (*challenge).clone(),

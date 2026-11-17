@@ -7,6 +7,7 @@ use conduit_std_host::browser_admission::{
 };
 use std::{cell::RefCell, path::Path};
 
+mod authentication;
 #[path = "member_carrier_client/presence_deadline.rs"]
 mod presence_deadline;
 use presence_deadline::PresenceDeadline;
@@ -114,41 +115,12 @@ impl MemberRoute {
         actual: &conduit_core::HostAdvertisement,
         encounter: &crate::durable_host::routed_join::MemberEncounter,
     ) -> Result<(Self, Snapshot), String> {
-        use crate::durable_host::routed_join::{current_member, MEMBER_ROUTE_SCHEMA};
-        let started = Instant::now();
-        let candidate = &encounter.candidate;
-        if encounter.schema != MEMBER_ROUTE_SCHEMA
-            || encounter.body_id != credential.body_id
-            || encounter.part_id != credential.part_id
-            || encounter.host_id != credential.host_id
-            || actual.host_id != credential.host_id
-            || actual.boot_id != credential.boot_id
-            || candidate.line_family != conduit_body::RendezvousLineFamily::AuthenticatedTlsStream
-            || candidate.expires_at_millis <= crate::durable_host::current_time_millis()?
-            || !(1..=30_000).contains(&candidate.attempt_timeout_millis)
-            || !(1..=2).contains(&candidate.maximum_attempts)
-        {
-            return Err(
-                "current-member encounter differs from credential and actual Host/Boot".into(),
-            );
-        }
-        let deadline = started + Duration::from_secs(60);
-        let authentication_deadline =
-            started + Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000)));
-        let mut line = connect(
-            candidate,
-            Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000))),
-        )?;
-        line.replace_io_deadline(authentication_deadline.min(deadline))
-            .map_err(|e| format!("member authentication deadline:{e:?}"))?;
-        line.set_read_timeout(Some(
-            deadline
-                .saturating_duration_since(Instant::now())
-                .min(Duration::from_secs(2)),
-        ))
-        .map_err(|e| format!("member carrier timeout:{e:?}"))?;
-        let anchor = Instant::now();
-        current_member::resume(state, credential, actual, encounter, &mut line)?;
+        let authenticated = authentication::connect(state, credential, actual, encounter)?;
+        let (line, anchor, deadline) = (
+            authenticated.line,
+            authenticated.anchor,
+            authenticated.deadline,
+        );
         let mut carrier = Carrier {
             line,
             presence: PresenceDeadline::initial(anchor),
