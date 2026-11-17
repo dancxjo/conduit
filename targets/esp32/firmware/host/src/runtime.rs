@@ -149,6 +149,9 @@ pub fn observe_receipt(_digest: Option<[u8; 32]>) {}
 pub fn allocator_peak() -> Option<usize> {
     None
 }
+pub fn untouched_stack_mark_bytes() -> Option<usize> {
+    None
+}
 
 /// Fixed, once-per-stage startup diagnostic; never execution authority.
 #[inline(always)]

@@ -42,6 +42,12 @@ mod runtime {
     pub fn allocator_used() -> usize {
         crate::accounting::used()
     }
+    pub fn allocator_peak() -> Option<usize> {
+        Some(crate::accounting::peak())
+    }
+    pub fn untouched_stack_mark_bytes() -> Option<usize> {
+        None
+    }
     pub fn now_ms() -> u64 {
         crate::cpu_time::now_ms()
     }

@@ -131,6 +131,11 @@ pub fn observe_receipt(digest: Option<[u8; 32]>) {
 pub fn allocator_peak() -> Option<usize> {
     Some(crate::heap::usage().1)
 }
+pub fn untouched_stack_mark_bytes() -> Option<usize> {
+    // Read-only scan on explicit inspection, after continuing work has run.
+    // It includes inspection overhead and is evidence, never a stack grant.
+    crate::stack_probe::spare_bytes()
+}
 
 /// Fixed, once-per-stage startup diagnostic; never execution authority.
 #[inline(always)]
