@@ -22,8 +22,7 @@
       "existing_ignored": 1,
       "native_sync": 21
     },
-    "240c1ed10e": "Make strict all-target PASS; unhashed code subset unchanged by following source-only fixes",
-    "7df7922eef": "runtime strict execution/all-target PASS; unpublished intermediate later corrected to preserve optional workspace mutation"
+    "240c1ed10e": "Make strict all-target PASS; unhashed code subset unchanged by following source-only fixes"
   },
   "limits": "compiler 2GiB/512MiB/jobs1/debug0; checked Host runtime bounds unchanged",
   "log_sha256": {
@@ -34,7 +33,8 @@
     "target/cpu-generator-extraction/runtime-library.log": "f2d25fb4c4f02736cfac882e5584c3bea89a4067d6182559b2358db2125b5c67",
     "target/cpu-generator-extraction/native-sync.log": "c1628d2d6e9b70828bcbd4616ec83c87e480bc0575a2a1f97dbd34adfc532794",
     "target/cpu-generator-extraction/make-strict-qualified.log": "5befdbea5c7b1671b51dca53bf7e8a08d5f33fa585b3b52fa61e1191d43df45e",
-    "target/cpu-generator-extraction/runtime-strict-verified.log": "3d09c3790d63825447f5c9c9e2ffd5d4ed35e5ef66d8ad603c18cefff99d7d73"
+    "target/cpu-generator-extraction/runtime-strict-verified.log": "3d09c3790d63825447f5c9c9e2ffd5d4ed35e5ef66d8ad603c18cefff99d7d73",
+    "target/cpu-generator-extraction/runtime-strict-stop.log": "58faaa68c952bb4d5fc23fe6499a5f475f3627e89f8ee1c4c35711b739d3ac5e"
   },
   "remaining": [
     "refreshed current-dev minimum execution/interface union",
@@ -45,5 +45,11 @@
   ],
   "live_effects": false,
   "captured_image_committed": false,
-  "source_warning": "Historical owning results retain their exact cohorts. Fresh final recipe is not a complete final-tree unit or lint rerun. No ready firmware or completed Return claim."
+  "source_warning": "Historical owning results retain their exact cohorts. Fresh final recipe is not a complete final-tree unit or lint rerun. No ready firmware or completed Return claim.",
+  "final_runtime_strict": {
+    "code_source": "93f6acfa2451708c760559e5997453ad6cd3be4e",
+    "result": "PASS",
+    "seconds": 1.43,
+    "scope": "execution/all-targets, pinned1.98.1; independent from 2GiB full CPU recipe scope"
+  }
 }
