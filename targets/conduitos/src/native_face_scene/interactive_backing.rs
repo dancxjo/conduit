@@ -67,7 +67,7 @@ fn typed_text_bytes(
     // Unit spelling (UNIT_MAX_SOURCE_BYTES=128), or kind+byte-count fallback.
     add(contract.value_kind.as_str().len(), 512)
 }
-fn document_text_bytes(face: &Face) -> Result<(usize, usize), FaceSceneError> {
+pub(super) fn document_text_bytes(face: &Face) -> Result<(usize, usize), FaceSceneError> {
     use conduit_face::{FaceActionAvailability as Availability, FacePropertyValue as Value};
     let (mut primary, mut details) = (0, 0);
     for subject in &face.subjects {
@@ -221,22 +221,22 @@ fn document_text_bytes(face: &Face) -> Result<(usize, usize), FaceSceneError> {
 // Standard and visual-fallback rows share the same immutable documents. Scale,
 // fixed typography and density alter wrapping, never the <=one-row-per-byte
 // limit. Both Vec capacities and retained row text are charged here.
+pub(super) fn row_vector_backing_bytes(text: usize) -> Result<usize, FaceSceneError> {
+    mul(
+        mul(
+            text.min(layout::MAX_DOCUMENT_BYTES)
+                .clamp(4, layout::MAX_ROWS),
+            2,
+        )?,
+        size_of::<layout::Row>(),
+    )
+}
 fn row_document_backing_bytes(
     primary_text: usize,
     details_text: usize,
 ) -> Result<(usize, usize), FaceSceneError> {
-    let row_bytes = |text: usize| {
-        mul(
-            mul(
-                text.min(layout::MAX_DOCUMENT_BYTES)
-                    .clamp(4, layout::MAX_ROWS),
-                2,
-            )?,
-            size_of::<layout::Row>(),
-        )
-    };
-    let primary_rows = row_bytes(primary_text)?;
-    let details_rows = row_bytes(details_text)?;
+    let primary_rows = row_vector_backing_bytes(primary_text)?;
+    let details_rows = row_vector_backing_bytes(details_text)?;
     let documents = add(
         add(primary_rows, details_rows)?,
         add(

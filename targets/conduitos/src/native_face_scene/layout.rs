@@ -6,6 +6,7 @@ use alloc::string::String;
 #[path = "layout/mechanical.rs"]
 mod mechanical;
 pub(super) use mechanical::admit_viewport as admit_mechanical;
+pub(super) use mechanical::memory_bounds as mechanical_memory_bounds;
 #[path = "layout/surfaces.rs"]
 mod surfaces;
 pub(super) use surfaces::append_region_surfaces;

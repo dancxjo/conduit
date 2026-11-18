@@ -12,6 +12,7 @@ use conduitos::{
 };
 
 mod completion;
+mod configured;
 mod interactive;
 mod invocation;
 use interactive::PreparedSelectedScene;
@@ -24,6 +25,7 @@ pub(super) struct PreparedReadOnlyBinding {
     width: u16,
     height: u16,
     images: Option<std::sync::Arc<images::NativeMaskImages>>,
+    configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
 }
 impl PreparedReadOnlyBinding {
     pub(super) fn prepare(
@@ -31,7 +33,15 @@ impl PreparedReadOnlyBinding {
         provider: &NativeSurfaceProvider,
         raster: PreparedCompositorBacking,
         images: Option<std::sync::Arc<images::NativeMaskImages>>,
+        configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
     ) -> Result<Self, String> {
+        if let Some(configuration) = &configuration {
+            configured::validate_binding(configuration, &plan)?;
+            // This new branch is not advertised/installed until its independent
+            // decoder/Look factory envelope is qualified. Never silently render
+            // the generic fallback for an authored configured selection.
+            return Err("native configured Mask decoding envelope is not qualified".into());
+        }
         let fragment = plan
             .plan
             .fragments
@@ -59,6 +69,7 @@ impl PreparedReadOnlyBinding {
             width,
             height,
             images,
+            configuration,
         })
     }
     pub(super) fn plan(&self) -> &PlannedMaskPlot {
@@ -68,6 +79,11 @@ impl PreparedReadOnlyBinding {
         native_mask_plan_backing_bytes(&self.plan)
             .and_then(|bytes| bytes.checked_add(self.compositor.ordinary_retained_backing_bytes()?))
             .and_then(|bytes| bytes.checked_add(self.base.0.capacity()))
+            .and_then(|bytes| {
+                bytes.checked_add(configured::configuration_bytes(
+                    self.configuration.as_ref(),
+                )?)
+            })
             .and_then(|bytes| bytes.checked_sub(fixed_raster))
             .ok_or_else(|| "native Mask unsupported or overflowing binding owners".into())
     }
@@ -91,6 +107,7 @@ impl PreparedReadOnlyBinding {
             last_play: None,
             scene: None,
             images: self.images,
+            configuration: self.configuration,
         })
     }
 }
@@ -161,6 +178,7 @@ pub(super) struct BoundReadOnlyMask {
     failed: bool,
     last_play: Option<u64>,
     images: Option<std::sync::Arc<images::NativeMaskImages>>,
+    configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
     pub(super) scene: Option<conduitos::native_face_scene::NativeFaceScene>,
 }
 impl BoundReadOnlyMask {

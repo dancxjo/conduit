@@ -9,18 +9,25 @@ use conduitos::native_face_scene::{FaceFrame, FaceSceneError, FaceSceneInput, Na
 pub(super) enum PreparedSelectedScene {
     ReadOnly(PreparedStaticNativeFaceScene),
     Interactive(NativeFaceScene),
+    Configured(NativeFaceScene),
 }
 impl PreparedSelectedScene {
     pub(super) fn prepare(
-        face: Face,
+        face: &Face,
         width: u16,
         height: u16,
         interactive: bool,
         expression: Option<&conduit_face::AdmittedVisualExpression>,
+        configured: Option<&configured::PreparedConfiguredScene<'_>>,
     ) -> Result<Self, FaceSceneError> {
+        if let Some(configured) = configured {
+            return configured
+                .scene(width, height, interactive)
+                .map(Self::Configured);
+        }
         if interactive {
             NativeFaceScene::prepare_visual_fallback(
-                face,
+                face.clone(),
                 width,
                 height,
                 true,
@@ -28,14 +35,16 @@ impl PreparedSelectedScene {
             )
             .map(Self::Interactive)
         } else {
-            PreparedStaticNativeFaceScene::prepare(face, width, height).map(Self::ReadOnly)
+            PreparedStaticNativeFaceScene::prepare(face.clone(), width, height).map(Self::ReadOnly)
         }
     }
     pub(super) fn restore_reading_position(
         &mut self,
         positions: Option<super::super::reading::SelectedReadingPositions>,
     ) {
-        if let (Self::Interactive(scene), Some(positions)) = (self, positions) {
+        if let (Self::Interactive(scene) | Self::Configured(scene), Some(positions)) =
+            (self, positions)
+        {
             // A passive cookie is only a reading wish. Fresh layout/actions are
             // resolved before the new Show is prepared and acknowledged.
             if positions
@@ -52,18 +61,19 @@ impl PreparedSelectedScene {
     pub(super) fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {
         match self {
             Self::ReadOnly(scene) => scene.frame(),
-            Self::Interactive(scene) => scene.frame(),
+            Self::Interactive(scene) | Self::Configured(scene) => scene.frame(),
         }
     }
     pub(super) fn retained_backing_bytes(&self) -> Option<usize> {
         match self {
             Self::ReadOnly(scene) => scene.retained_backing_bytes(),
             Self::Interactive(scene) => scene.standard_interactive_retained_backing_bytes(),
+            Self::Configured(scene) => scene.configured_interactive_retained_backing_bytes(),
         }
     }
     pub(super) fn into_interactive(self) -> Option<NativeFaceScene> {
         match self {
-            Self::Interactive(scene) => Some(scene),
+            Self::Interactive(scene) | Self::Configured(scene) => Some(scene),
             Self::ReadOnly(_) => None,
         }
     }

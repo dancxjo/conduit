@@ -1,6 +1,6 @@
 //! Actual heap payload for the closed local native Mask profile, not wire size.
 //! Unsupported owners refuse; empty vectors still retain their spare allocation.
-use crate::PlannedMaskPlot;
+use crate::{ConfiguredMaskConfiguration, PlannedMaskPlot};
 use alloc::{string::String, vec::Vec};
 use conduit_core::*;
 use core::mem::size_of;
@@ -53,7 +53,7 @@ pub fn native_mask_plan_backing_bytes(mask: &PlannedMaskPlot) -> Option<usize> {
         &p.checked_plot_id.0,
         &p.expanded_plot_id.0,
     ])?;
-    n.absent(&p.realization_backs)?;
+    plot_backs(&mut n, &p.realization_backs)?;
     n.absent(&p.activations)?;
     n.absent(&p.activation_preparations)?;
     n.vector(&p.fragments)?;
@@ -67,7 +67,7 @@ pub fn native_mask_plan_backing_bytes(mask: &PlannedMaskPlot) -> Option<usize> {
             &f.host_id.0,
             &f.boot_id.0,
         ])?;
-        n.absent(&f.realization_backs)?;
+        plot_backs(&mut n, &f.realization_backs)?;
         n.absent(&f.execution_regions)?;
         n.absent(&f.execution_fusions)?;
         n.absent(&f.states)?;
@@ -190,6 +190,7 @@ fn config_value(n: &mut Bytes, value: &ConfigurationValue) -> Option<()> {
             Some(())
         }
         ConfigurationValue::Text(text) => n.add(text.capacity()),
+        ConfigurationValue::Structured(value) => n.add(value.owned_backing_bytes()?),
         _ => None,
     }
 }
@@ -205,6 +206,7 @@ fn semantic_contract(n: &mut Bytes, contract: &KindSemanticContract) -> Option<(
             | KindConfigurationRule::DurationMillis { .. }
             | KindConfigurationRule::TextBytes { .. }
             | KindConfigurationRule::DataLabel { .. } => (),
+            KindConfigurationRule::Structured { profile } => n.add(profile.0.capacity())?,
             _ => return None,
         }
     }
@@ -308,4 +310,49 @@ fn gear_backing(n: &mut Bytes, g: &PlannedGear) -> Option<()> {
         ])?;
     }
     Some(())
+}
+
+// Plot Back provenance contains only owned strings. It remains a description,
+// never a Source/checking witness or permission to choose a different Back.
+fn plot_backs(n: &mut Bytes, backs: &Vec<PlotBack>) -> Option<()> {
+    n.vector(backs)?;
+    for back in backs {
+        n.ids(&[
+            &back.invocation_path,
+            &back.kind_id.0,
+            &back.kind_contract_revision.0,
+            &back.source_document_id.0,
+            &back.checked_plot_id.0,
+        ])?;
+    }
+    Some(())
+}
+
+/// Complete owned payload capacities of the selected configuration. Inline
+/// Self, allocator overhead, compiler workspace, Plans and scenes are separate.
+/// The value's checked provenance and renderer admission remain unchanged.
+pub fn configured_mask_configuration_backing_bytes(
+    configuration: &ConfiguredMaskConfiguration,
+) -> Option<usize> {
+    let mut n = Bytes::default();
+    n.ids(&[
+        &configuration.component.source_document_id.0,
+        &configuration.component.checked_plot_id.0,
+        &configuration.component.fore_id,
+        &configuration.placement_id.0,
+        &configuration.host_id.0,
+        &configuration.boot_id.0,
+        &configuration.execution_profile_id.0,
+        &configuration.implementation_id.0,
+    ])?;
+    n.vector(&configuration.invocation_path)?;
+    for segment in &configuration.invocation_path {
+        n.add(segment.capacity())?;
+    }
+    n.add(configuration.recipe.owned_backing_bytes()?)?;
+    n.add(configuration.look.owned_backing_bytes()?)?;
+    if let Some(layout) = &configuration.layout {
+        n.add(layout.owned_backing_bytes()?)?;
+    }
+    Some(n.0)
 }

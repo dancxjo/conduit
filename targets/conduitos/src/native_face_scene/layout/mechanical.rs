@@ -10,6 +10,9 @@ use conduit_face::{
     ComponentLayoutAlignment as Alignment, ComponentLayoutBreak as Break, ComponentLayoutCandidate,
     ComponentLayoutChild, ComponentLayoutNode, PreparedComponentLayout,
 };
+#[path = "mechanical/backing.rs"]
+mod backing;
+pub(in crate::native_face_scene) use backing::memory_bounds;
 #[path = "mechanical/compose.rs"]
 mod compose;
 #[path = "mechanical/fragment.rs"]

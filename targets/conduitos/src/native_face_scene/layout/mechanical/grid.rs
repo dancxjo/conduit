@@ -79,6 +79,10 @@ struct Cell {
     fragment: Fragment,
 }
 
+pub(super) fn cell_inline_bytes() -> usize {
+    core::mem::size_of::<Cell>()
+}
+
 pub(super) fn arrange(
     context: &Context<'_>,
     candidate: &ComponentLayoutCandidate,

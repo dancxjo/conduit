@@ -95,16 +95,30 @@ impl FaceArrival {
         display: &mut impl PixelTarget,
     ) -> Result<(), &'static str> {
         let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_with_owner_route(
-            context.host_id.clone(),
-            context.boot_id.clone(),
-            context.generation,
-            &context.build_id,
-            context.display_base_id.clone(),
-            "conduitos/creche/face",
-            &context.provider,
-            fresh.route(),
-        )
+        let mut replacement = if let Some(route) = fresh.route() {
+            NativeFaceMask::prepare_with_owner_face(
+                context.host_id.clone(),
+                context.boot_id.clone(),
+                context.generation,
+                &context.build_id,
+                context.display_base_id.clone(),
+                "conduitos/creche/face",
+                &context.provider,
+                route,
+                fresh.face(),
+            )
+        } else {
+            NativeFaceMask::prepare_with_owner_route(
+                context.host_id.clone(),
+                context.boot_id.clone(),
+                context.generation,
+                &context.build_id,
+                context.display_base_id.clone(),
+                "conduitos/creche/face",
+                &context.provider,
+                None,
+            )
+        }
         .map_err(|error| error.as_str())?;
         replacement
             .set_visual_user_constraints(preferences.0, true, preferences.1)

@@ -168,7 +168,7 @@ mod look;
 mod native_mask_backing;
 mod retained_backing;
 pub use local_look::*;
-pub use native_mask_backing::native_mask_plan_backing_bytes;
+pub use native_mask_backing::{native_mask_plan_backing_bytes, configured_mask_configuration_backing_bytes};
 mod look_selection;
 mod manifestation;
 mod manifestation_set;
@@ -331,3 +331,9 @@ pub use collections::{
     prepare_face_collection, FaceCollectionPage, FaceCollectionRefusal, PreparedFaceCollection,
     MAX_PREPARED_COLLECTION_ITEMS,
 };
+
+mod ambient_clock_component;
+pub use ambient_clock_component::*;
+
+/// Exact linked image schema bytes for allocation-free preparation accounting.
+pub use generated::IMAGERESOURCE_SEMANTIC_TYPE;

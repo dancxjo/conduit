@@ -405,21 +405,7 @@ impl Builder {
         role: &str,
         name: &str,
     ) -> Result<Self, AmbientFaceRefusal> {
-        for identity in [
-            basis.checked_plot_id.as_str(),
-            basis.plan_id.as_str(),
-            basis.active_play_id.as_str(),
-        ] {
-            if identity.is_empty() || identity.len() > conduit_face::MAX_FACE_ID_BYTES {
-                return Err(AmbientFaceRefusal::InvalidBasis);
-            }
-        }
-        let digest = conduit_core::semantic_digest(
-            "ambient-face-subject@1",
-            format!("{:?}", (&basis, role)).as_bytes(),
-        );
-        let suffix: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
-        let root = crate::projection_memory::subject_identity(&suffix, role);
+        let root = crate::subject_identity::subject_root(&basis, role)?;
         Ok(Self {
             root: root.clone(),
             fragment: FaceFragment {
@@ -450,10 +436,7 @@ impl Builder {
         })
     }
     fn child(&mut self, key: &str, name: &str, role: &str) -> Result<String, AmbientFaceRefusal> {
-        let mut subject = String::with_capacity(crate::projection_memory::IDENTITY_BYTES);
-        subject.push_str(&self.root);
-        subject.push('/');
-        subject.push_str(key);
+        let subject = crate::subject_identity::child_identity(&self.root, key);
         self.fragment.subjects.push(FaceSubject {
             identity: subject.clone(),
             role: FaceRole::Semantic(kind_id(role)),

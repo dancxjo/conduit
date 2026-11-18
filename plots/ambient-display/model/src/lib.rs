@@ -21,6 +21,8 @@ mod availability;
 mod civil;
 mod contributor;
 mod face;
+mod subject_identity;
+pub use subject_identity::{ambient_clock_subject_refs, AmbientClockSubjectRefs};
 mod home;
 mod observation_source;
 pub use contributor::*;

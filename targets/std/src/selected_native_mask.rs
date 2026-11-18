@@ -1,5 +1,6 @@
 //! Checked selected read-only Mask: actual stores and driver custody, no local
 //! forwarding Plot, fabricated publication, membership or Show acknowledgment.
+mod container;
 #[cfg(test)]
 mod encounter_fixture;
 mod images;
@@ -42,35 +43,9 @@ pub use render::{
 
 pub(crate) const SURFACE: &str = "selected/native-mask";
 
-/// Trusted cooperative hosted carrier adapter. Implementations must retain and
-/// recheck authenticated membership, pinned peer, exact Face/route/Host binding
-/// and their current finite lifetime. Received wire data alone is insufficient.
-/// This is an explicit hosted TCB seam, not a hostile-code capability boundary.
-pub trait NativeMaskEncounter {
-    fn validate_current(
-        &self,
-        face: &Face,
-        route: &RemoteOwnerMaskRouteSeal,
-        local_offer: &HostAdvertisement,
-    ) -> Result<(), String>;
-}
-fn validate_encounter(
-    encounter: &impl NativeMaskEncounter,
-    route: &RemoteOwnerMaskRouteSeal,
-    local: &HostAdvertisement,
-    face: &Face,
-) -> Result<(), String> {
-    route
-        .validate_mask_host_offer(local)
-        .map_err(|error| format!("selected native local route: {error:?}"))?;
-    if route.face_id != face.identity
-        || route.face_revision != face.revision
-        || route.face_basis != face.basis
-    {
-        return Err("selected native Face differs from exact owner route".into());
-    }
-    encounter.validate_current(face, route, local)
-}
+mod encounter;
+pub use encounter::NativeMaskEncounter;
+use encounter::{validate_encounter, validate_presentation_encounter};
 
 /// Fixed managed kernel/value/Sign/raster and actual scanout CPU stores only.
 /// Source/registry metadata, SDL/GPU allocation, stack, allocator overhead and
@@ -327,6 +302,7 @@ impl SelectedNativeMaskBase {
             &self.provider,
             raster,
             self.images.clone(),
+            None, // Existing initialized offer is the generic renderer only.
         )?;
         let metadata_bytes = prepared
             .metadata_bytes(self.receipt.compositor_bytes)?

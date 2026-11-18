@@ -23,15 +23,35 @@ pub(super) fn checked_invocation_bytes(
     front: &str,
     display_base: &HostBaseId,
 ) -> Result<usize, String> {
+    let scene = NativeFaceScene::visual_fallback_memory_bounds(face)
+        .map_err(|error| format!("native Scene bound:{error:?}"))?
+        .lifetime_peak_bytes()
+        .ok_or("native Scene bound overflow")?;
+    checked_invocation_bytes_with_scene(
+        planned,
+        face,
+        front,
+        display_base,
+        scene,
+        conduit_face::PHOSPHOR_LOOK_ID.len(),
+    )
+}
+
+/// Use only a separately qualified Scene lifetime peak. This arithmetic grants
+/// no reservation and does not cover the caller's decoded structure/Look phase.
+pub(super) fn checked_invocation_bytes_with_scene(
+    planned: &PlannedMaskPlot,
+    face: &Face,
+    front: &str,
+    display_base: &HostBaseId,
+    scene: usize,
+    expression_identity_bytes: usize,
+) -> Result<usize, String> {
     if !cfg!(target_os = "linux") {
         return Err("bounded interactive invocation requires Linux".into());
     }
     let plan = conduitos::product_bases::native_mask_plan_backing_bytes(planned)
         .ok_or("unsupported native invocation Plan owners")?;
-    let scene = NativeFaceScene::visual_fallback_memory_bounds(face)
-        .map_err(|error| format!("native Scene bound:{error:?}"))?
-        .lifetime_peak_bytes()
-        .ok_or("native Scene bound overflow")?;
     let face_bytes = face
         .retained_backing_bytes()
         .ok_or("native Face bound unsupported")?;
@@ -172,8 +192,7 @@ pub(super) fn checked_invocation_bytes(
         compositor,
         // Local admitted expression, surface selection, surface receipt and
         // caller receipt each own one identity clone. No expression is grown.
-        conduit_face::PHOSPHOR_LOOK_ID
-            .len()
+        expression_identity_bytes
             .checked_mul(4)
             .ok_or("native expression ownership overflow")?,
         completion,

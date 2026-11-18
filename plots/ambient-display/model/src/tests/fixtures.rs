@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use super::*;
 use conduit_core::{
     kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,

@@ -44,6 +44,20 @@ impl BoundReadOnlyMask {
         if format.width != u32::from(self.width) || format.height != u32::from(self.height) {
             return Err("native Mask actual output geometry changed".into());
         }
+        let physical_container = conduit_face::LayoutRect {
+            x: 0,
+            y: 0,
+            width: self.width,
+            height: self.height,
+        };
+        validate_presentation_encounter(
+            encounter,
+            route,
+            &host.advertisement,
+            face,
+            physical_container,
+            physical_container,
+        )?;
         if !interactive {
             face.validate()
                 .map_err(|error| format!("native Face validation: {error:?}"))?;
@@ -115,11 +129,12 @@ impl BoundReadOnlyMask {
                 None
             };
             let mut scene = PreparedSelectedScene::prepare(
-                face.clone(),
+                face,
                 self.width,
                 self.height,
                 interactive,
                 expression.as_ref(),
+                None, // Configured construction is fenced before binding above.
             )
             .map_err(|error| format!("native semantic scene: {error:?}"))?;
             scene.restore_reading_position(reading);
@@ -213,16 +228,37 @@ impl BoundReadOnlyMask {
             };
             drop(frame);
             // Recheck the actual authenticated encounter after preparation.
-            validate_encounter(encounter, route, &host.advertisement, face)?;
+            validate_presentation_encounter(
+                encounter,
+                route,
+                &host.advertisement,
+                face,
+                physical_container,
+                physical_container,
+            )?;
             // No kernel Step or physical effect precedes the actual owner lease.
             let pending = cold
                 .start()
                 .map_err(|error| format!("native Mask activation: {error:?}"))?;
-            validate_encounter(encounter, route, &host.advertisement, face)?;
+            validate_presentation_encounter(
+                encounter,
+                route,
+                &host.advertisement,
+                face,
+                physical_container,
+                physical_container,
+            )?;
             self.compositor
                 .compose_frame(output)
                 .map_err(|error| format!("native Mask compose: {error:?}"))?;
-            validate_encounter(encounter, route, &host.advertisement, face)?;
+            validate_presentation_encounter(
+                encounter,
+                route,
+                &host.advertisement,
+                face,
+                physical_container,
+                physical_container,
+            )?;
             output
                 .commit_frame()
                 .map_err(|error| format!("native Mask physical commit: {error:?}"))?;
@@ -242,7 +278,14 @@ impl BoundReadOnlyMask {
                 self.compositor
                     .compose_frame(output)
                     .map_err(|error| format!("native focus compose:{error:?}"))?;
-                validate_encounter(encounter, route, &host.advertisement, face)?;
+                validate_presentation_encounter(
+                    encounter,
+                    route,
+                    &host.advertisement,
+                    face,
+                    physical_container,
+                    physical_container,
+                )?;
                 output
                     .commit_frame()
                     .map_err(|error| format!("native focus commit:{error:?}"))?;

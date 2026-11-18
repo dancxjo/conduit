@@ -491,3 +491,6 @@ mod interactive_backing;
 pub use interactive_backing::StandardNativeSceneBounds;
 #[path = "native_face_scene/pointer_gesture.rs"]
 mod pointer_gesture;
+
+#[path = "native_face_scene/configured_backing.rs"]
+mod configured_backing;
