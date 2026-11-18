@@ -1,0 +1,294 @@
+# Electrical geometry, independent of a sensor or a selected physical pin.
+# Integer timing coordinates use the selected Base's microsecond clock.
+type PulseReadRequest = {
+    hold_low_us: U32
+    skip_high_pulses: U8
+    sample_after_rise_us: U16
+    octets: U8
+    capture_timeout_us: U32
+}
+type PulseReadCapture = {
+    length: U8
+    wire: collection U8 = 8
+}
+type PulseReadResult =
+    completed PulseReadCapture
+    | timed-out PulseReadCapture
+    | provider-failed
+    | geometry-refused
+
+
+# The DHT11 protocol supplies electrical geometry, never an attachment or GPIO.
+# After release, skip the response's high pulse; sample 40 data highs at 40µs.
+# The selected electrical Base enforces its own finite envelope before effects.
+plot dht11-capture-request (
+    begin: Empty...| >> request: PulseReadRequest...|
+) = ({ hold_low_us: 20000, skip_high_pulses: 1, sample_after_rise_us: 40, octets: 5, capture_timeout_us: 10000 })
+
+
+# Five received octets, most-significant bit first within each octet.
+# A short capture retains its actual length; unused storage is not a sample.
+# GPIO, pulse capture, clocks, cadence and attachment belong to the selected Host.
+type Dht11Capture = {
+    length: U8
+    wire: collection U8 = 5
+}
+type Dht11Observation = {
+    temperature: Temperature
+    humidity: Ratio
+}
+# Repr choices: the Type remains Temperature or Ratio in every representation.
+form device/dht11-temperature = Temperature as i16le(°C, -1)
+form device/dht11-humidity = Ratio as u16le(%, -1)
+type Dht11DecodedFrame = {
+    temperature: I128
+    humidity: I128
+}
+type Dht11Failure =
+    short-frame U8
+    | malformed-length U8
+    | checksum
+    | invalid-payload
+type Dht11Result =
+    observation Dht11Observation
+    | unavailable Dht11Failure
+
+# The checksum uses the low eight bits of the sum, not checked U8 addition.
+# Decimal nibbles are tenths. Bit 7 of the temperature's fractional octet is
+# the negative flag; its integral component follows the DHT11 negative encoding.
+# Reserved bits, invalid decimal digits, and readings outside the extended
+# DHT11 measurement range refuse rather than producing numeric observations.
+type Dht11DecodedResult =
+    frame Dht11DecodedFrame
+    | unavailable Dht11Failure
+
+plot dht11-decode (
+    capture: Dht11Capture...| >> result: Dht11DecodedResult...|
+) = (.length < 5 ? unavailable(short-frame(.length)) : .length > 5 ? unavailable(malformed-length(.length)) : ((value/u64(.wire.0) + value/u64(.wire.1) + value/u64(.wire.2) + value/u64(.wire.3)) & 255) != value/u64(.wire.4) ? unavailable(checksum(empty)) : (.wire.1 > 9 || (.wire.3 & 112) != 0 || (.wire.3 & 15) > 9 || .wire.0 < 5 || .wire.0 > 95 || (.wire.0 == 95 && .wire.1 != 0) || ((.wire.3 & 128) == 0 && (.wire.2 > 60 || (.wire.2 == 60 && (.wire.3 & 15) != 0))) || ((.wire.3 & 128) != 0 && .wire.2 > 19)) ? unavailable(invalid-payload(empty)) : frame({ temperature: ((.wire.3 & 128) != 0 ? -10 - value/i128(.wire.2) * 10 : value/i128(.wire.2) * 10) + value/i128(.wire.3 & 15), humidity: value/i128(.wire.0) * 10 + value/i128(.wire.1) }))
+
+
+# Preserve electrical outcomes independently of frame/checksum/value failures.
+plot dht11-pulse-frame (
+    capture: PulseReadCapture...| >> frame: Dht11Capture...|
+) = ({ length: .length, wire: [.wire.0, .wire.1, .wire.2, .wire.3, .wire.4] })
+
+# One admitted trigger requests one bounded electrical read. Cadence, ownership,
+# retention and manifestation are composed by the enclosing Body workload.
+plot dht11-read (
+    >> begin: Empty...|
+    decoded: Dht11DecodedResult...| >>
+    timed_out: PulseReadCapture...| >>
+    provider_failed: PulseReadAbsence...| >>
+    geometry_refused: PulseReadAbsence...| >>
+) {
+    read: machine/pulse/read
+    begin >> dht11-capture-request() >> read.request
+    read.result >> select(PulseReadResult.completed, unmatched=drop) >> dht11-pulse-frame() >> dht11-decode() >> decoded
+    read.result >> select(PulseReadResult.timed-out, unmatched=drop) >> timed_out
+    read.result >> select(PulseReadResult.provider-failed, unmatched=drop) >> provider_failed
+    read.result >> select(PulseReadResult.geometry-refused, unmatched=drop) >> geometry_refused
+}
+
+
+# The public observation retains first-class Temperature and Ratio quantities.
+# The decoder's integer coordinates are internal representation material; the
+# admitted conversion Back applies the checked Forms from dht11.conduit.
+plot dht11-observe (
+    >> begin: Empty...|
+    observed: Dht11Result...| >>
+    timed_out: PulseReadCapture...| >>
+    provider_failed: PulseReadAbsence...| >>
+    geometry_refused: PulseReadAbsence...| >>
+) {
+    read: dht11-read
+    observation: device/dht11-observation
+    begin >> read.begin
+    read.decoded >> observation.decoded
+    observation.result >> observed
+    read.timed_out >> timed_out
+    read.provider_failed >> provider_failed
+    read.geometry_refused >> geometry_refused
+}
+
+
+# Time belongs to the workload, independently of the sensor's electrical timing.
+# 960 samples one minute apart cover sixteen hours; the source then closes.
+plot environment-sampling (
+    count: Count = 960
+    period-ms: Count = 60000
+    observed: Dht11Result...| >>
+    timed_out: PulseReadCapture...| >>
+    provider_failed: PulseReadAbsence...| >>
+    geometry_refused: PulseReadAbsence...| >>
+) {
+    cadence: time/tick(count, period-ms)
+    trigger: time/tick-trigger
+    sensor: dht11-observe
+    cadence.tick >> trigger.tick
+    trigger.begin >> sensor.begin
+    sensor.observed >> observed
+    sensor.timed_out >> timed_out
+    sensor.provider_failed >> provider_failed
+    sensor.geometry_refused >> geometry_refused
+}
+
+
+# One finite workload; current semantic state remains inspectable after closure.
+# Host offers choose capture, monotonic time, and publication implementations.
+plot environmental-appliance (
+    count: Count = 960
+    period-ms: Count = 60000
+) {
+    sampling: environment-sampling(count, period-ms)
+    observation: environment/observe-dht11
+    timeout: environment/observe-capture-timeout
+    unavailable: environment/observe-provider-failure
+    refused: environment/observe-geometry-refusal
+    sampling.observed >> observation.value
+    sampling.timed_out >> timeout.value
+    sampling.provider_failed >> unavailable.value
+    sampling.geometry_refused >> refused.value
+}
+
+
+# Command meaning belongs to Source. Selected open-drain GPIO supplies edges,
+# ACK observation, electrical ownership and finite timeouts, outside this Plot.
+type Tm1637Frame = {
+    registers: collection U8 = 6
+    brightness: U8
+    enabled: Boolean
+}
+type Tm1637Packet = {
+    length: U8
+    wire: collection U8 = 7
+}
+type Tm1637Packets = {
+    packets: collection Tm1637Packet = 3
+}
+type Tm1637PacketResult =
+    packets Tm1637Packets
+    | invalid-brightness
+plot tm1637-packets (
+    frame: Tm1637Frame...| >> result: Tm1637PacketResult...|
+) = (.brightness > 7 ? invalid-brightness(empty) : packets({ packets: [{ length: 1, wire: [64, 0, 0, 0, 0, 0, 0] }, { length: 7, wire: [192, .registers.0, .registers.1, .registers.2, .registers.3, .registers.4, .registers.5] }, { length: 1, wire: [(.enabled ? 136 : 128) | .brightness, 0, 0, 0, 0, 0, 0] }] }))
+
+
+# The Mask supplies mapped registers. This Plot owns command encoding; the
+# selected output Back owns electrical effects and exact resource authority.
+plot environment-display-output (
+    >> frame: Tm1637Frame...|
+    invalid_brightness: Tm1637Absence...| >>
+) {
+    encode: tm1637-packets
+    write: machine/tm1637/write
+    frame >> encode.frame
+    encode.result >> select(Tm1637PacketResult.packets, unmatched=drop) >> write.packets
+    encode.result >> select(Tm1637PacketResult.invalid-brightness, unmatched=drop) >> invalid_brightness
+}
+
+
+# An ordinary Mask-role Plot. The selected renderer owns the admitted finite
+# Look and seven-segment Show payload; this Source selects no controller or pin.
+plot seven-segment (
+    >> face: Face
+    interaction: FaceInteraction...| >>
+    show: Show >>
+) {
+    spread: face/tee("Environmental Face")
+    render: face/renderer("Environmental display")
+    human: face/interaction("Display interaction")
+
+    face >> spread.source
+    spread.face >> render.face
+    spread.face >> human.face
+    render.show >> human.show
+    render.show >> show
+    human.interaction >> interaction
+}
+
+
+plot yellow-sampling (
+    >> read_index: Count...|
+    read_result: RecordReadResult...| <= 837B >>
+    append_status: RecordAppendResult...| >>
+) {
+    sample: recorded-environmental-appliance
+    read_index >> sample.read_index
+    sample.read_result >> read_result
+    sample.append_status >> append_status
+}
+plot yellow-mask (
+    >> face: Face
+    interaction: FaceInteraction...| >>
+    show: Show >>
+) {
+    display: seven-segment
+    face >> display.face
+    display.interaction >> interaction
+    display.show >> show
+}
+plot yellow-output (
+    >> frame: Tm1637Frame...|
+    invalid_brightness: Tm1637Absence...| >>
+) {
+    output: environment-display-output
+    frame >> output.frame
+    output.invalid_brightness >> invalid_brightness
+}
+
+
+plot blue-sampling (
+    >> read_index: Count...|
+    read_result: RecordReadResult...| <= 837B >>
+    append_status: RecordAppendResult...| >>
+) {
+    sample: recorded-environmental-appliance
+    read_index >> sample.read_index
+    sample.read_result >> read_result
+    sample.append_status >> append_status
+}
+plot blue-mask (
+    >> face: Face
+    interaction: FaceInteraction...| >>
+    show: Show >>
+) {
+    display: seven-segment
+    face >> display.face
+    display.interaction >> interaction
+    display.show >> show
+}
+plot blue-output (
+    >> frame: Tm1637Frame...|
+    invalid_brightness: Tm1637Absence...| >>
+) {
+    output: environment-display-output
+    frame >> output.frame
+    output.invalid_brightness >> invalid_brightness
+}
+
+# One finite workload; current semantic state remains inspectable after closure.
+# Host offers choose capture, monotonic time, and publication implementations.
+plot recorded-environmental-appliance (
+    count: Count = 960
+    period-ms: Count = 60000
+    >> read_index: Count...|
+    read_result: RecordReadResult...| <= 837B >>
+    append_status: RecordAppendResult...| >>
+) {
+    sampling: environment-sampling(count, period-ms)
+    observation: environment/observe-dht11
+    timeout: environment/observe-capture-timeout
+    unavailable: environment/observe-provider-failure
+    refused: environment/observe-geometry-refusal
+    encode: environment/encode-recording
+    append: resource/record-service
+    sampling.observed >> select(Dht11Result.observation, unmatched=drop) >> encode.observation
+    encode.record >> append.record
+    read_index >> append.read-index
+    append.read-result >> read_result
+    append.index >> append_status
+    sampling.observed >> observation.value
+    sampling.timed_out >> timeout.value
+    sampling.provider_failed >> unavailable.value
+    sampling.geometry_refused >> refused.value
+}
