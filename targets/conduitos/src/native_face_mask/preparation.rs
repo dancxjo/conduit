@@ -1,10 +1,14 @@
 //! Host preparation of the exact checked Mask and its compositor custody.
 use super::*;
 
+#[path = "preparation/owner.rs"]
+mod owner;
+
 enum Selection<'a> {
     Ordinary,
     OrdinaryCollection,
     Owner(&'a RemoteOwnerMaskRouteSeal),
+    OwnerFace(&'a RemoteOwnerMaskRouteSeal, &'a Face),
     Creche(
         conduit_face::CrecheComponentRecipe,
         conduit_face::ComponentVisualSelection,
@@ -92,6 +96,32 @@ impl NativeFaceMask {
             surface_id,
             provider,
             route.map_or(Selection::Ordinary, Selection::Owner),
+        )
+    }
+
+    /// Reconstruct a sealed owner Mask from the authenticated original Face.
+    /// Source preparation does not change that Face or admit another Body Play.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_owner_face(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        build_id: &str,
+        display_base_id: HostBaseId,
+        surface_id: &str,
+        provider: &NativeSurfaceProvider,
+        route: &RemoteOwnerMaskRouteSeal,
+        face: &Face,
+    ) -> Result<Self, NativeFaceMaskError> {
+        Self::prepare_selected(
+            host_id,
+            boot_id,
+            offer_generation,
+            build_id,
+            display_base_id,
+            surface_id,
+            provider,
+            Selection::OwnerFace(route, face),
         )
     }
 
@@ -284,41 +314,22 @@ impl NativeFaceMask {
         )
         .map_err(NativeFaceMaskError::Producer)?;
         let mut component_configuration = None;
+        let owner_face = match &selection {
+            Selection::OwnerFace(_, face) => Some(*face),
+            _ => None,
+        };
         let mask = match selection {
-            Selection::Owner(route) => {
-                let offer = crate::product_bases::native_mask_host_advertisement(
+            Selection::Owner(route) | Selection::OwnerFace(route, _) => {
+                let (stage, configuration) = owner::prepare(
                     &host_id,
                     &boot_id,
-                    offer_generation.0,
+                    offer_generation,
                     provider,
-                );
-                route
-                    .validate_mask_host_offer(&offer)
-                    .map_err(|_| NativeFaceMaskError::Plan)?;
-                let selected = conduit_face::ComponentVisualSelection::from_todo_root(
-                    &route.planned_mask.mask.plot_name,
-                );
-                let local = if let Some((selection, recipe)) = selected {
-                    let (stage, configuration) =
-                        conduit_conduitos_mask_offer::prepare_selected_component_stage_from_offer(
-                            &offer, selection, recipe,
-                        )
-                        .map_err(|_| NativeFaceMaskError::Plan)?;
-                    component_configuration = Some(configuration);
-                    stage
-                } else {
-                    conduit_conduitos_mask_offer::prepare_stage_from_offer(
-                        conduit_conduitos_mask_offer::Adapter::Native,
-                        &offer,
-                    )
-                    .map_err(|_| NativeFaceMaskError::Plan)?
-                };
-                if route.planned_mask != local.planned_mask {
-                    return Err(NativeFaceMaskError::Plan);
-                }
-                MaskStage {
-                    planned_mask: route.planned_mask.clone(),
-                }
+                    route,
+                    owner_face,
+                )?;
+                component_configuration = configuration;
+                stage
             }
             Selection::Creche(recipe, selection, typography, navy, profile) => {
                 let offer = conduit_conduitos_mask_offer::native_layout_host_advertisement(

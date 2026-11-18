@@ -197,7 +197,7 @@ fn run_controller(
         .and(owner_route);
     let mut current_owner_face = owner_face.clone();
     let mut face_arrival = Progress::result(Phase::MaskPreparation, "arrival", || {
-        FaceArrival::prepare(
+        FaceArrival::prepare_with_face(
             host_id.clone(),
             boot_id.clone(),
             generation,
@@ -205,6 +205,7 @@ fn run_controller(
             framebuffer_basis.base_id.clone(),
             &surface_provider,
             owner_face.as_ref().and_then(|face| face.route()),
+            owner_face.as_ref().map(|face| face.face()),
         )
     })?;
     let mut face_workspace = Progress::result(Phase::MaskPreparation, "workspace", || {

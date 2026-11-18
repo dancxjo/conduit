@@ -322,3 +322,8 @@ pub use collections::{
     prepare_face_collection, FaceCollectionPage, FaceCollectionRefusal, PreparedFaceCollection,
     MAX_PREPARED_COLLECTION_ITEMS,
 };
+
+mod native_mask_backing;
+pub use native_mask_backing::{
+    configured_mask_configuration_backing_bytes, native_mask_plan_backing_bytes,
+};

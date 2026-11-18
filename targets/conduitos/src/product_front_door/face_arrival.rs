@@ -17,6 +17,8 @@ use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{Face, FaceInteraction, MaskShow, RemoteOwnerMaskRouteSeal};
 use conduit_human::KeyEvent;
 
+#[path = "face_arrival/preparation.rs"]
+mod preparation;
 #[path = "face_arrival/selection.rs"]
 mod selection;
 pub(super) use selection::OwnerSelectionError;
@@ -58,66 +60,6 @@ impl FaceArrival {
     /// Continue their publication sequences so active Play IDs do not repeat.
     pub(super) const fn next_publication_sequences(&self) -> (u64, u64) {
         (self.next_observation, self.next_play)
-    }
-
-    pub(super) fn prepare(
-        host_id: HostId,
-        boot_id: BootId,
-        generation: OfferGeneration,
-        build_id: &str,
-        display_base_id: HostBaseId,
-        provider: &NativeSurfaceProvider,
-        owner_route: Option<&RemoteOwnerMaskRouteSeal>,
-    ) -> Result<Self, &'static str> {
-        let mask = if owner_route.is_some() {
-            NativeFaceMask::prepare_with_owner_route(
-                host_id.clone(),
-                boot_id.clone(),
-                generation,
-                build_id,
-                display_base_id.clone(),
-                "conduitos/creche/face",
-                provider,
-                owner_route,
-            )
-        } else {
-            NativeFaceMask::prepare_collection_creche(
-                host_id.clone(),
-                boot_id.clone(),
-                generation,
-                build_id,
-                display_base_id.clone(),
-                "conduitos/creche/face",
-                provider,
-                conduit_face::CrecheComponentRecipe::ResponsiveColumns,
-                conduit_face::ComponentVisualSelection::default(),
-                conduit_face::VisualTypography::Editorial,
-                false,
-            )
-        }
-        .map_err(|error| error.as_str())?;
-        let basis = mask.birth_basis("conduitos/creche/current");
-        Ok(Self {
-            mask,
-            basis,
-            next_observation: 1,
-            next_play: 1,
-            next_interaction: 1,
-            owner_face: None,
-            preparation: NativeMaskPreparation {
-                host_id,
-                boot_id,
-                generation,
-                build_id: build_id.into(),
-                display_base_id,
-                provider: provider.clone(),
-                minimum_text_scale_percent: 100,
-                forced_colors: false,
-                selected: None,
-                owner_host: owner_route.map(|route| route.owner_host.clone()),
-                route_plan_id: owner_route.map(|route| route.route_plan_id.clone()),
-            },
-        })
     }
 
     pub(super) fn suspend(&mut self) -> Result<(), &'static str> {

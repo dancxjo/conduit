@@ -12,6 +12,8 @@ pub enum AmbientClockComponentRefusal {
     DuplicateSubject,
     Encoding,
     UnsupportedEncounter,
+    MissingSubject,
+    AmbiguousSubject,
 }
 
 /// Explicit encounter policy, not a Host offer or permission to realize it.
@@ -107,4 +109,29 @@ pub fn ambient_clock_mask_source(
         remaining = &remaining[offset + length..];
     }
     Ok(source)
+}
+
+/// Bind the unique exact semantic roles in an authenticated Face. Scoped
+/// identities are preserved; names and declaration order never select them.
+/// Ordinary checked bound-slot validation remains independently required.
+pub fn ambient_clock_mask_source_for_face(
+    face: &crate::Face,
+) -> Result<String, AmbientClockComponentRefusal> {
+    let unique = |role: &str| {
+        let mut matches = face.subjects.iter().filter(
+            |subject| matches!(&subject.role, crate::FaceRole::Semantic(kind) if kind.0 == role),
+        );
+        let subject = matches
+            .next()
+            .ok_or(AmbientClockComponentRefusal::MissingSubject)?;
+        if matches.next().is_some() {
+            return Err(AmbientClockComponentRefusal::AmbiguousSubject);
+        }
+        Ok(subject.identity.as_str())
+    };
+    ambient_clock_mask_source(
+        unique("time/civil-observation")?,
+        unique("weather/conditions")?,
+        unique("media/image")?,
+    )
 }
