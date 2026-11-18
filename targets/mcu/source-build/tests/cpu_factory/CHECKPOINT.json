@@ -1,0 +1,49 @@
+{
+  "status": "source checkpoint, not deployment or goal completion",
+  "fresh_cpu_recipe_source": "8fb6d626387344742ec71c6aa67f2e1c37554948",
+  "recipe_success": true,
+  "generated_inputs_exact": 11,
+  "fresh_cpu": {
+    "authenticated_start": true,
+    "samples": 6,
+    "frames": 154,
+    "electrical_acks": 1386,
+    "page_changes_between_samples": 148,
+    "transport_timeouts": 1,
+    "requested_heap_peak": 105647,
+    "heap_limit": 118784
+  },
+  "negative": "actual unchanged authored demand1 / observed available0; refused before Start/provider effects; ledger unchanged",
+  "prior_owning_cohorts": {
+    "ab99468432": {
+      "make_emission": 16,
+      "make_default": 12,
+      "runtime_library": 136,
+      "existing_ignored": 1,
+      "native_sync": 21
+    },
+    "240c1ed10e": "Make strict all-target PASS; unhashed code subset unchanged by following source-only fixes",
+    "7df7922eef": "runtime strict execution/all-target PASS; unpublished intermediate later corrected to preserve optional workspace mutation"
+  },
+  "limits": "compiler 2GiB/512MiB/jobs1/debug0; checked Host runtime bounds unchanged",
+  "log_sha256": {
+    "target/cpu-generator-extraction/finish-recipe/factory/run.log": "3c963c05d56b02f16305cb354a31ae9e45c56434556aa6efd39c18371d895223",
+    "target/cpu-generator-extraction/finish-recipe/shortage/run.log": "98b99242a85ffc7cb95e115ff9d32577e197eae0cb77f1cd42e78f5d977b94b5",
+    "target/cpu-generator-extraction/make-emission.log": "359945466f18a538749a69bce7548847a69837a37a582dfd19299f70bc9c2780",
+    "target/cpu-generator-extraction/make-default.log": "ac17763df279215992d87ddbd91eb357c8a16381b289c334e7cb7bca7e81028d",
+    "target/cpu-generator-extraction/runtime-library.log": "f2d25fb4c4f02736cfac882e5584c3bea89a4067d6182559b2358db2125b5c67",
+    "target/cpu-generator-extraction/native-sync.log": "c1628d2d6e9b70828bcbd4616ec83c87e480bc0575a2a1f97dbd34adfc532794",
+    "target/cpu-generator-extraction/make-strict-qualified.log": "5befdbea5c7b1671b51dca53bf7e8a08d5f33fa585b3b52fa61e1191d43df45e",
+    "target/cpu-generator-extraction/runtime-strict-verified.log": "3d09c3790d63825447f5c9c9e2ffd5d4ed35e5ef66d8ad603c18cefff99d7d73"
+  },
+  "remaining": [
+    "refreshed current-dev minimum execution/interface union",
+    "complete cold/Return constructor and error/capture/catalog/lifetime funding",
+    "actual Root paired CPU/Source initializer same-stage adapter",
+    "loan-safe ingress currentness or fully routed actual-idle-Host ingress",
+    "physical MCU admission/heap/stack/retirement/restart/history acceptance"
+  ],
+  "live_effects": false,
+  "captured_image_committed": false,
+  "source_warning": "Historical owning results retain their exact cohorts. Fresh final recipe is not a complete final-tree unit or lint rerun. No ready firmware or completed Return claim."
+}

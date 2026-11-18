@@ -21,3 +21,11 @@ That lower-level entry requires the existing CONDUIT_HOST_CONFIGURATION / HOST_I
 Generated resident adapter code is shared with the ESP32 caller through Source composition. CPU diagnostics use the shared preparation_trace codec. No firmware-directory file is imported by the CPU proof or Make generator.
 
 Receipts retain exact input hashes, generated non-Source hashes, dependency features, fixture/template hashes, positive and shortage outcomes. Whole-Play aggregate retirement, power-cycle/history continuity, physical MCU fit and installed Body Return funding remain separate obligations.
+
+## Stop checkpoint, 17 November 2026
+
+The final source-only recipe passed at code8fb6d62638, reproducing all eleven calibrated inputs and the full positive/shortage CPU cases. CHECKPOINT.json pins scope and log hashes. Owning Make16/default12, runtime136 withoneexistingignore and native-sync21 passed on the earlier ab994 cohort; later strict results retain their own cohorts. This is not a full final-tree/current-dev or physical qualification.
+
+The compiler-cache selector now identifies the successful emitter binary by exact bytes; it does not select a Clippy-only fingerprint merely because feature names match. Initial ambiguous-cache refusal and lint diagnostics remain retained. The captured public IMAGE stays outside Git as an explicit checked Make input; no generated Rust, rlibs, secrets or device image is committed.
+
+User requested source/issue handoff and stop. Further implementation/deployment is paused. Complete Return/cold funding, actual Root paired Source initializer and physical MCU lifecycle proof remain open; no live Root/Pi/MCU changes were made by this work.
