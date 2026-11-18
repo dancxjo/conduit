@@ -109,7 +109,10 @@ fn fixture_decode_borrowed(
             images: serde_json::from_str(images.get())?,
         }),
         BorrowedCommand::Complete { proof } => Ok(Command::Complete {
-            proof: Box::new(serde_json::from_str(proof.get())?),
+            proof: Box::new(
+                crate::durable_host_control::image_return_ingress::proof::inspect(proof.get())?
+                    .decode()?,
+            ),
         }),
     }
 }

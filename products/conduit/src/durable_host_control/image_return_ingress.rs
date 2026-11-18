@@ -322,6 +322,9 @@ pub(super) fn inspect<'a>(
 
 #[path = "image_return_ingress/images.rs"]
 mod images;
+#[cfg(feature = "member-return-prototype")]
+#[path = "image_return_ingress/proof.rs"]
+pub(super) mod proof;
 #[cfg(test)]
 #[path = "image_return_ingress/tests.rs"]
 mod tests;
