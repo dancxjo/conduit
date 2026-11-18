@@ -147,7 +147,9 @@ fn exact_queue_geometry_refuses_short_storage_before_back_transfer() {
 #[test]
 fn independent_queue_slots_preserve_step_pressure_order_evidence_and_no_allocations() {
     let binds = Cell::new(0);
-    let mut prepared = prepare::<3>(&binds, usize::MAX).unwrap();
+    let prepared = prepare::<3>(&binds, usize::MAX).unwrap();
+    #[cfg(feature = "execution-workspace")]
+    let mut prepared = prepared;
     #[cfg(feature = "execution-workspace")]
     {
         prepared.prepare_execution_workspace().unwrap();
