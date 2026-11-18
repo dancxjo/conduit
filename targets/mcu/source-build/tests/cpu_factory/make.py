@@ -82,8 +82,14 @@ def main():
     generated = output / "generated"
     run("generate", [str(cache / "examples/emit-source"), str(generated)])
     fingerprints = []
+    executable_digest = digest(cache / "examples/emit-source")
     for path in (cache / ".fingerprint").glob("conduit-host-esp32-make-*/example-emit-source.json"):
-        if json.loads(path.read_text())["features"] == '["source-emission"]':
+        # Clippy/check may retain another fingerprint with the same features.
+        # Bind to the binary from the successful build, never the newest file
+        # or an unrelated cached graph. Cargo hashes its Rust crate filename.
+        binary = cache / "examples" / ("emit_source-" + path.parent.name.rsplit("-", 1)[1])
+        if (json.loads(path.read_text())["features"] == '["source-emission"]'
+                and binary.is_file() and digest(binary) == executable_digest):
             fingerprints.append(path)
     if len(fingerprints) != 1:
         raise ValueError("require one completed emitter graph; use an isolated cohort cache")
