@@ -172,5 +172,5 @@ fn union_packet_preserves_polyline_value_and_explicit_rectangle_together() {
     assert_eq!(MAX_GRAPHICS_COMMANDS, 48);
     assert_eq!(MAX_GRAPHICS_TEXT_BYTES, 192);
     assert_eq!(MAX_GRAPHICS_SCENE_BYTES, 10226);
-    assert_eq!(GRAPHICS_SCENE_KIND, "face/graphics-scene@2");
+    assert_eq!(GRAPHICS_SCENE_KIND, "face/graphics-scene@3");
 }

@@ -27,7 +27,7 @@ impl NativeCompositor {
             surface_id,
             display_base_id,
             scene,
-            RasterMode::Available,
+            (RasterMode::Available, None),
         )
     }
     /// Stage a still-pending ordinary Mask renderer, without granting input ownership.
@@ -51,9 +51,35 @@ impl NativeCompositor {
             &show.show.target_subject,
             display_base_id,
             scene,
-            RasterMode::Pending,
+            (RasterMode::Pending, None),
         )
     }
+    /// Stage an ordinary Mask with independently admitted image views. The
+    /// exact Show/surface checks and scanout acknowledgement remain unchanged.
+    pub fn update_pending_mask_surface_with_images(
+        &mut self,
+        face: &Face,
+        show: &conduit_face::MaskShow,
+        display_base_id: &HostBaseId,
+        scene: &GraphicsScene,
+        images: &dyn crate::display::ImageResolver,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        show.validate(face)
+            .map_err(|_| NativeCompositorError::ManifestationInvalid)?;
+        if show.show.lifecycle != ManifestationLifecycle::Prepared {
+            return Err(NativeCompositorError::StaleIdentity);
+        }
+        self.validate_surface_binding(&show.show, &show.show.target_subject, display_base_id)?;
+        self.raster_surface(
+            face,
+            &show.show,
+            &show.show.target_subject,
+            display_base_id,
+            scene,
+            (RasterMode::Pending, Some(images)),
+        )
+    }
+
     /// Stage an admitted expression on this exact pending Mask occurrence.
     /// A different Plan or unchanged Face revision requires old-surface retirement.
     pub fn update_pending_configured_mask_surface(
@@ -64,7 +90,15 @@ impl NativeCompositor {
         scene: &GraphicsScene,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
-        self.update_pending_component_surface(face, show, display_base_id, scene, expression, None)
+        self.update_pending_component_surface(
+            face,
+            show,
+            display_base_id,
+            scene,
+            expression,
+            None,
+            None,
+        )
     }
     pub fn update_pending_look_mask_surface(
         &mut self,
@@ -89,8 +123,31 @@ impl NativeCompositor {
             scene,
             &look.visual,
             Some(&look.selected),
+            None,
         )
     }
+    /// Combine the independently admitted visual expression and image reads.
+    #[allow(clippy::too_many_arguments)]
+    pub fn update_pending_visual_mask_surface(
+        &mut self,
+        face: &Face,
+        show: &conduit_face::MaskShow,
+        display: &HostBaseId,
+        scene: &GraphicsScene,
+        expression: Option<&conduit_face::AdmittedVisualExpression>,
+        images: Option<&dyn crate::display::ImageResolver>,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        if let Some(expression) = expression {
+            self.update_pending_component_surface(
+                face, show, display, scene, expression, None, images,
+            )
+        } else if let Some(images) = images {
+            self.update_pending_mask_surface_with_images(face, show, display, scene, images)
+        } else {
+            self.update_pending_mask_surface(face, show, display, scene)
+        }
+    }
+    #[allow(clippy::too_many_arguments)]
     fn update_pending_component_surface(
         &mut self,
         face: &Face,
@@ -99,6 +156,7 @@ impl NativeCompositor {
         scene: &GraphicsScene,
         expression: &conduit_face::AdmittedVisualExpression,
         look: Option<&conduit_face::LookInfo>,
+        images: Option<&dyn crate::display::ImageResolver>,
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
         if !(100..=200).contains(&expression.expression.text_scale_percent) {
             return Err(NativeCompositorError::Display(DisplayError::InvalidExtent));
@@ -136,7 +194,7 @@ impl NativeCompositor {
             &show.show.target_subject,
             display_base_id,
             scene,
-            RasterMode::Pending,
+            (RasterMode::Pending, images),
         )
     }
 
@@ -162,9 +220,35 @@ impl NativeCompositor {
             &show.show.target_subject,
             display_base_id,
             scene,
-            RasterMode::Repaint,
+            (RasterMode::Repaint, None),
         )
     }
+    /// Repaint local navigation under the same acknowledged Show while
+    /// retaining independent, current access to every image generation.
+    pub fn repaint_mask_surface_with_images(
+        &mut self,
+        face: &Face,
+        show: &conduit_face::MaskShow,
+        display_base_id: &HostBaseId,
+        scene: &GraphicsScene,
+        images: &dyn crate::display::ImageResolver,
+    ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        show.validate(face)
+            .map_err(|_| NativeCompositorError::ManifestationInvalid)?;
+        if show.show.lifecycle != ManifestationLifecycle::Available {
+            return Err(NativeCompositorError::StaleIdentity);
+        }
+        self.validate_surface_binding(&show.show, &show.show.target_subject, display_base_id)?;
+        self.raster_surface(
+            face,
+            &show.show,
+            &show.show.target_subject,
+            display_base_id,
+            scene,
+            (RasterMode::Repaint, Some(images)),
+        )
+    }
+
     fn raster_surface(
         &mut self,
         face: &Face,
@@ -172,8 +256,16 @@ impl NativeCompositor {
         surface_id: &str,
         display_base_id: &HostBaseId,
         scene: &GraphicsScene,
-        mode: RasterMode,
+        raster: (RasterMode, Option<&dyn crate::display::ImageResolver>),
     ) -> Result<&CompositionReceipt, NativeCompositorError> {
+        let (mode, images) = raster;
+        // Revalidate every current read lease even when retained scene pixels
+        // are reusable. An unchanged key never grants continued access.
+        for command in scene.commands() {
+            if let Some(key) = command.image_key() {
+                images.ok_or(DisplayError::ImageUnsupported)?.resolve(key)?;
+            }
+        }
         let surface = self
             .surfaces
             .iter_mut()
@@ -217,19 +309,38 @@ impl NativeCompositor {
             let expression = surface.visual_expression.as_ref();
             let look = surface.visual_look.as_ref();
             super::raster_reuse::raster(&mut surface.buffer, scene, previous, |buffer, replay| {
-                crate::display::typography::render_scene_selected(
-                    buffer,
-                    replay,
-                    |_, command| command.text_role().into(),
-                    expression.map_or(100, |value| value.expression.text_scale_percent),
-                    typography,
-                    |role| super::paint::visual_look_paint(format, role, expression, look),
-                )
+                if let Some(images) = images {
+                    crate::display::typography::render_scene_selected_with_images(
+                        buffer,
+                        replay,
+                        |_, command| command.text_role().into(),
+                        expression.map_or(100, |value| value.expression.text_scale_percent),
+                        typography,
+                        |role| super::paint::visual_look_paint(format, role, expression, look),
+                        images,
+                    )
+                } else {
+                    crate::display::typography::render_scene_selected(
+                        buffer,
+                        replay,
+                        |_, command| command.text_role().into(),
+                        expression.map_or(100, |value| value.expression.text_scale_percent),
+                        typography,
+                        |role| super::paint::visual_look_paint(format, role, expression, look),
+                    )
+                }
             })?
         };
         #[cfg(not(feature = "native-compositor-core"))]
         let display =
-            super::raster_reuse::raster(&mut surface.buffer, scene, previous, render_scene)?;
+            super::raster_reuse::raster(&mut surface.buffer, scene, previous, |buffer, replay| {
+                match images {
+                    Some(images) => {
+                        crate::display::render_scene_with_images(buffer, replay, images)
+                    }
+                    None => render_scene(buffer, replay),
+                }
+            })?;
         surface.raster_scene = cacheable.then_some(*scene);
         surface.binding = Some(SurfaceBinding {
             manifestation_id: manifestation.manifestation_id.clone(),
@@ -322,3 +433,7 @@ mod paint_tests;
 #[cfg(all(test, feature = "native-compositor-core"))]
 #[path = "surface_update/metric_consumer_tests.rs"]
 mod metric_consumer_tests;
+
+#[cfg(all(test, feature = "native-compositor-core"))]
+#[path = "surface_update/image_tests.rs"]
+mod image_tests;
