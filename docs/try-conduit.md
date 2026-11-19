@@ -6,6 +6,40 @@ to see the project before building it. The ten-step journey captures a real
 QEMU session from zero-Body Crèche arrival through Birth, Play, Patchbay Face
 inspection, its live diagram, and Stop.
 
+## Start Conduit on Linux
+
+On a systemd-based Linux x86-64 machine, unpack the reviewed Host release
+bundle and run this from its directory as the account that will own the Host:
+
+```sh
+sh ./install-linux-x86_64.sh
+```
+
+The installer verifies the release, starts the durable Host immediately, and
+enables `conduit-host.service` for future user sessions. To have it start at
+machine boot before anyone logs in, enable lingering for that account once
+(administrator authorization may be required):
+
+```sh
+loginctl enable-linger "$(id -un)"
+```
+
+Lingering applies to the account's user services. After reboot, check the
+service and the retained Host identity from the bundle directory:
+
+```sh
+systemctl --user is-active conduit-host.service
+./conduit-linux-x86_64 host service status --state-dir "${XDG_STATE_HOME:-$HOME/.local/state}/conduit"
+```
+
+Keep the same state directory across launches. Use
+`systemctl --user disable --now conduit-host.service` to stop automatic
+startup while keeping that state. Starting the Host runs its background
+service. Opening a full-screen Face still requires a configured display
+and a Body that presents one.
+
+## Try Conduit from source
+
 The commands below run from a checkout. You do not need an installed `conduit`
 binary or `just`. See [contributor setup](../CONTRIBUTING.md) for prerequisites.
 The first invocation compiles repository tooling; browser and ConduitOS builds
