@@ -4,7 +4,7 @@ use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_linear_framebuffer_make::CheckedNativeMaskInitialization;
 
 pub(crate) struct InitialNativeMask {
-    viewer_temperature: Option<conduit_core::Unit>,
+    viewer_temperature: Option<&'static conduit_core::Unit>,
     pub provider: NativeSurfaceProvider,
     pub width: u32,
     pub height: u32,
@@ -207,7 +207,12 @@ impl StdHost {
         if checked.configuration_id() != parameters.configuration_id() {
             return Err("selected native Mask parameters belong to another Source".into());
         }
-        let viewer_temperature = crate::hosted_region::viewer_temperature(checked)?;
+        let viewer_temperature = match crate::hosted_region::viewer_temperature(checked)? {
+            Some(conduit_core::Unit::Celsius) => Some(&conduit_core::Unit::Celsius),
+            Some(conduit_core::Unit::Fahrenheit) => Some(&conduit_core::Unit::Fahrenheit),
+            None => None,
+            Some(_) => return Err("unsupported regional temperature coordinate".into()),
+        };
         let recognition = recognizer
             .map(|adapter| {
                 crate::image_initialization::InitialWhisper::prepare(

@@ -106,7 +106,7 @@ enum Stores {
 /// Retained actual driver-provider key and fixed stores. This prepares a Back;
 /// only successful current-route admission and physical commit produce a Show.
 pub struct SelectedNativeMaskBase {
-    viewer_temperature: Option<conduit_core::Unit>,
+    viewer_temperature: Option<&'static conduit_core::Unit>,
     stores: Stores,
     provider: NativeSurfaceProvider,
     backing: BaseBackingReservation,

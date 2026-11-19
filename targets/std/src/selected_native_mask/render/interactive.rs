@@ -17,7 +17,7 @@ impl PreparedSelectedScene {
         height: u16,
         interactive: bool,
         expression: Option<&conduit_face::AdmittedVisualExpression>,
-        viewer_temperature: Option<conduit_core::Unit>,
+        viewer_temperature: Option<&'static conduit_core::Unit>,
     ) -> Result<Self, FaceSceneError> {
         if interactive {
             NativeFaceScene::prepare_visual_fallback_with_temperature(
@@ -26,7 +26,7 @@ impl PreparedSelectedScene {
                 height,
                 true,
                 expression.ok_or(FaceSceneError::UnsupportedInput)?,
-                viewer_temperature,
+                viewer_temperature.copied(),
             )
             .map(Self::Interactive)
         } else {
