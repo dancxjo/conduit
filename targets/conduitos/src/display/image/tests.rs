@@ -96,6 +96,37 @@ fn admitted_generation_scales_and_clips_without_touching_other_pixels() {
 }
 
 #[test]
+fn full_viewport_center_cover_preserves_pixels_on_both_crop_axes() {
+    let viewport = LayoutRect {
+        x: 0,
+        y: 0,
+        width: 4,
+        height: 3,
+    };
+    let key = gallery().key;
+    let commands = scene(key, viewport, viewport);
+    let command = &commands.commands()[0];
+    for (width, height, expected) in [
+        (8, 3, [2, 3, 4, 5, 10, 11, 12, 13, 18, 19, 20, 21]),
+        (4, 7, [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]),
+    ] {
+        // Each source pixel has its own value. Stretching the frame or
+        // cropping from the origin would yield a different exact raster.
+        let rgba: alloc::vec::Vec<_> = (0..width * height)
+            .flat_map(|i| [0, 0, i as u8, 255])
+            .collect();
+        let image = OpaqueRgbaImage::prepare(width, height, &rgba).unwrap();
+        let mut target = Surface {
+            pixels: [u32::MAX; 12],
+        };
+        let mut receipt = DisplayReceipt::default();
+        raster(&mut target, command, image, &mut receipt).unwrap();
+        assert_eq!(receipt.pixels_written, 12);
+        assert_eq!(target.pixels, expected);
+    }
+}
+
+#[test]
 fn absent_changed_and_denied_generations_never_render() {
     let mut gallery = gallery();
     let bounds = LayoutRect {
