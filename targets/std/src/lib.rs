@@ -106,6 +106,8 @@ pub use reluctant_replan::{
     StdReluctantReplanRequest, STD_REPLAN_PREVIOUS_EVIDENCE_CAPACITY,
 };
 pub mod hosted_audio;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub(crate) mod hosted_region;
 mod hosted_body_conversation_context;
 pub use hosted_body_conversation_context::{
     BodyConversationContextReplacement, BodyConversationContextSource,

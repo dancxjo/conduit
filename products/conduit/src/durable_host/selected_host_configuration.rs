@@ -66,6 +66,10 @@ impl Selection {
         for base in &self.checked()?.configuration().bases {
             if base.initialization.is_some()
                 && !(scanout_prepared && base.kind == "display/scanout")
+                && !(scanout_prepared
+                    && base.kind == "locale/regional-preferences"
+                    && base.implementation.as_deref()
+                        == Some("hosted/linux-regional-preferences@1"))
                 && !(recognizer_prepared && base.kind == "speech/recognizer")
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")

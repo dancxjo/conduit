@@ -21,6 +21,7 @@ mod linux_builder;
 mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
+mod regional_initialization;
 mod source_check_initialization;
 mod text_file_initialization;
 mod tls_listener_initialization;
@@ -196,6 +197,10 @@ fn package_catalog() -> PackageCatalogContribution {
     }
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                regional_initialization::IMPLEMENTATION.into(),
+                regional_initialization::contract(),
+            ),
             (CPU_IMPLEMENTATION.into(), cpu_initialization_contract()),
             (
                 conduit_std_offers::AMBIENT_SOURCE_IMPLEMENTATION.into(),
@@ -348,6 +353,7 @@ impl HostMakePackage for HostedMakePackage {
                 creche_initialization::offer(),
                 source_check_initialization::offer(),
                 tls_listener_initialization::offer(),
+                regional_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),
                 microphone_initialization::offer(),

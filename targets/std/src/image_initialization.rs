@@ -390,6 +390,9 @@ impl StdHost {
                             && source.definition.base.implementation_id.as_str() == base.driver
                     })
                     && !initial.matches_text_file_base(&base.id, &base.kind, &base.driver)
+                    && !(initial.has_native_mask()
+                        && base.kind == "locale/regional-preferences"
+                        && base.driver == "hosted/linux-regional-preferences@1")
                     && !(initial.has_scanout()
                         && base.kind == "display/scanout"
                         && base.driver == "display/linear-framebuffer@1")
