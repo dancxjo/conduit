@@ -111,7 +111,7 @@ pub struct TerminalFaceMask {
 }
 impl TerminalFaceMask {
     pub fn prepare(face: Face, columns: usize, rows: usize) -> Result<Self, TerminalError> {
-        Self::prepare_with_interactions(face, columns, rows, true)
+        Self::prepare_for_viewer(face, columns, rows, true, None)
     }
 
     /// Render an authoritative Face whose typed interaction return route has
@@ -122,20 +122,22 @@ impl TerminalFaceMask {
         columns: usize,
         rows: usize,
     ) -> Result<Self, TerminalError> {
-        Self::prepare_with_interactions(face, columns, rows, false)
+        Self::prepare_for_viewer(face, columns, rows, false, None)
     }
 
-    fn prepare_with_interactions(
+    /// Resolve primary temperature labels using a previously observed viewer preference.
+    pub fn prepare_for_viewer(
         face: Face,
         columns: usize,
         rows: usize,
         interaction_admitted: bool,
+        preferences: Option<&crate::hosted_region::RegionalPreferences>,
     ) -> Result<Self, TerminalError> {
         face.validate().map_err(|_| TerminalError::InvalidFace)?;
         if !(40..=240).contains(&columns) || !(8..=100).contains(&rows) {
             return Err(TerminalError::InvalidExtent);
         }
-        let (document, inspect_document) = document::prepare(&face, columns - 4)?;
+        let (document, inspect_document) = document::prepare(&face, columns - 4, preferences)?;
         // Draft vectors have exact declared argument counts. Byte buffers are
         // allocated while editing, with a total 8192-byte cap; this is host UI
         // preparation, not growth hidden inside a running kernel Step.

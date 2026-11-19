@@ -24,7 +24,8 @@ pub(crate) fn run(
     output: &mut impl Write,
 ) -> Result<(), String> {
     let (mut face, mut host) = crate::durable_host_control::local_face_snapshot(state_dir)?;
-    let (mut mask, mut execution) = prepare(&face, &host)?;
+    let preferences = crate::durable_host::viewer_preferences(state_dir)?;
+    let (mut mask, mut execution) = prepare(&face, &host, preferences.as_ref())?;
     present(&mut mask, &mut execution, output, &host)?;
     writeln!(output, "Commands: next, previous, page down, page up, inspect, control next, control previous, type TEXT, apply, refresh, help, quit. Available controls follow the current Face; refresh after lifecycle changes.")
         .map_err(io_error)?;
@@ -88,7 +89,7 @@ pub(crate) fn run(
                 execution.close_without_input().map_err(debug_error)?;
                 face = current_face;
                 host = current_host;
-                (mask, execution) = prepare(&face, &host)?;
+                (mask, execution) = prepare(&face, &host, preferences.as_ref())?;
                 present(&mut mask, &mut execution, output, &host)?;
             }
             "next" | "previous" | "page down" | "page up" | "inspect" | "control next"
@@ -138,7 +139,7 @@ pub(crate) fn run(
                             }
                         }
                         (face, host) = crate::durable_host_control::local_face_snapshot(state_dir)?;
-                        (mask, execution) = prepare(&face, &host)?;
+                        (mask, execution) = prepare(&face, &host, preferences.as_ref())?;
                         present(&mut mask, &mut execution, output, &host)?;
                     }
                     Ok(_) => writeln!(output, "No action was submitted.").map_err(io_error)?,
@@ -184,17 +185,15 @@ pub(crate) fn run(
 fn prepare(
     face: &Face,
     host: &HostAdvertisement,
+    preferences: Option<&conduit_std_host::hosted_region::RegionalPreferences>,
 ) -> Result<(TerminalFaceMask, HostedTerminalMaskExecution), String> {
     let admitted = face.actions.iter().any(|action| {
         crate::durable_host::owner::is_clock_control_intent(&action.intent)
             && action.availability.is_available()
     });
-    let mask = if admitted {
-        TerminalFaceMask::prepare(face.clone(), COLUMNS, ROWS)
-    } else {
-        TerminalFaceMask::prepare_read_only(face.clone(), COLUMNS, ROWS)
-    }
-    .map_err(debug_error)?;
+    let mask =
+        TerminalFaceMask::prepare_for_viewer(face.clone(), COLUMNS, ROWS, admitted, preferences)
+            .map_err(debug_error)?;
     let execution = HostedTerminalMaskExecution::new(host).map_err(debug_error)?;
     Ok((mask, execution))
 }
