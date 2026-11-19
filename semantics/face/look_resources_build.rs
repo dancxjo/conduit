@@ -34,7 +34,7 @@ pub fn picture_definition() -> String {
     };
     assert_eq!(name.text, "look");
     format!(
-        "plot look/picture-frame (look: LookInfo = {}) {{}}",
+        "plot look/picture-frame (\n    look: LookInfo = {}\n) {{\n}}",
         value.text
     )
 }
