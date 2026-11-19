@@ -120,6 +120,7 @@ impl BoundReadOnlyMask {
                 self.height,
                 interactive,
                 expression.as_ref(),
+                self.viewer_temperature,
             )
             .map_err(|error| format!("native semantic scene: {error:?}"))?;
             scene.restore_reading_position(reading);
