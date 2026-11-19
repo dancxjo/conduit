@@ -1,7 +1,7 @@
 use super::summary;
 use crate::native_face_scene::tests::face;
 use alloc::vec;
-use conduit_core::{kind_id, CheckedValueContract, Quantity, Unit, TEMPERATURE_INFO_ID};
+use conduit_core::{CheckedValueContract, Quantity, TEMPERATURE_INFO_ID, Unit, kind_id};
 use conduit_face::{Face, FaceProperty, FacePropertyValue, FaceRole, FaceSubject, FaceText};
 
 fn reading(availability: &str) -> Face {

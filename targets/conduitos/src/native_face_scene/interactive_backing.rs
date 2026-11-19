@@ -137,6 +137,18 @@ fn document_text_bytes(face: &Face) -> Result<(usize, usize), FaceSceneError> {
                 add(property.name.len(), add(value, 32)?)?,
             )?,
         )?;
+        // The local graphical weather summary may use these facts even when
+        // the owner supplies no summary text. Its finite decimal and literals
+        // replace the temperature property row (already bounded below).
+        if let Value::Text(value) = &property.value
+            && matches!(property.name.as_str(), "location" | "conditions" | "attribution")
+            && face.subjects.iter().any(|subject| {
+                subject.identity == property.subject
+                    && matches!(&subject.role, FaceRole::Semantic(kind) if kind.as_str() == "weather/conditions")
+            })
+        {
+            primary = add(primary, value.len())?;
+        }
         if let Value::TypedValue { contract, .. } = &property.value {
             // Ordinary typed Info uses two rows; other roles one joined row.
             // Current-value and chart-series suppression can only reduce it.
