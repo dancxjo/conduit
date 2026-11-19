@@ -207,13 +207,23 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<Self, FaceSceneError> {
+        let typography = if expression.expression.identity == conduit_face::PICTURE_FRAME_LOOK_ID {
+            Typography::with_made_look_metrics(
+                expression.expression.typography,
+                conduit_face::picture_frame_text_metrics(),
+                200,
+            )
+            .map_err(|_| FaceSceneError::InvalidExtent)?
+        } else {
+            Typography::new(expression.expression.typography)
+        };
         Self::prepare_visual_typography(
             face,
             width,
             height,
             interaction_admitted,
             expression,
-            SelectedMetrics::legacy(Typography::new(expression.expression.typography)),
+            SelectedMetrics::legacy(typography),
         )
     }
     /// Realize the selected immutable Look's existing typed size/leading tokens.

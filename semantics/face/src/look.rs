@@ -4,12 +4,14 @@ use crate::*;
 use conduit_plot::rust_binding::NativeBindingRefusal;
 
 mod field_instrument;
+mod picture_frame;
 pub use field_instrument::{
     field_instrument_day_look, field_instrument_night_look, FIELD_INSTRUMENT_DAY_LOOK_ID,
     FIELD_INSTRUMENT_LOOKS_SOURCE, FIELD_INSTRUMENT_NIGHT_LOOK_ID,
     FIELD_INSTRUMENT_PATCHBAY_MASK_ROOTS, FIELD_INSTRUMENT_PATCHBAY_MASK_SOURCE,
     FIELD_INSTRUMENT_TODO_MASK_ROOTS, FIELD_INSTRUMENT_TODO_MASK_SOURCE,
 };
+pub use picture_frame::*;
 
 pub const MAX_LOOK_BYTES: usize = 65_536;
 pub const PHOSPHOR_LOOK_ID: &str = "conduit.look/phosphor@1";
