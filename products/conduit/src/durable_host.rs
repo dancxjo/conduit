@@ -40,6 +40,8 @@ mod installation_configured;
 use installation_configured::install_configured;
 use installation_configured::install_configured_with_todo;
 
+#[path = "durable_host/linux_direct_display.rs"]
+mod linux_direct_display;
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
@@ -159,6 +161,13 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
                 installation.host_id, installation.release_bundle_sha256
             );
         }),
+        HostServiceCommand::PrepareDirectDisplay {
+            manifest,
+            state_dir,
+            output,
+            user,
+            tty,
+        } => linux_direct_display::prepare(&manifest, &state_dir, &output, &user, tty),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
         HostServiceCommand::OwnBody {

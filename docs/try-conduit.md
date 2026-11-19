@@ -38,6 +38,29 @@ startup while keeping that state. Starting the Host runs its background
 service. Opening a full-screen Face still requires a configured display
 and a Body that presents one.
 
+### Use a dedicated Linux display at boot
+
+For a Linux Host with a native-display release and a checked display/scanout
+IMAGE, the installed executable can prepare a console session on a dedicated
+virtual terminal. Record whether the ordinary service is active and enabled
+before stopping it. From the account that owns the installation, run:
+
+```sh
+systemctl --user is-active conduit-host.service
+systemctl --user is-enabled conduit-host.service
+systemctl --user stop conduit-host.service
+/path/to/installed/conduit host service prepare-direct-display /path/to/release-manifest.json \
+  --state-dir /path/to/host-state --output ./display-setup --user "$(id -un)" --tty 1
+```
+
+Use the release executable retained under the Host state's `releases/`
+directory. Review `display-setup/REVIEW.md` for the commands to enable the
+console service now and at boot, check its journal, and restore the previous
+session. If preparation fails, restart the previously active user service with
+`systemctl --user start conduit-host.service`. The console service runs Conduit directly on SDL KMSDRM. A current Body
+Face on screen also requires a release that receives and presents admitted
+Shows. For a background-only installation, keep the ordinary user service.
+
 ## Try Conduit from source
 
 The commands below run from a checkout. You do not need an installed `conduit`

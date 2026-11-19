@@ -22,5 +22,4 @@ input, display reconnection or actual Mask/Body lifecycle integration.
 
 The production preparation entrance requires `kmsdrm` and refuses fallback to
 X11, Wayland or a diagnostic renderer. No new ready Host offer is advertised.
-The native graphical client, systemd boot service and SD payload remain work;
-this library alone is not the completed appliance image.
+For an installed Linux Host, see [dedicated display startup](../../../docs/try-conduit.md#use-a-dedicated-linux-display-at-boot). Physical Show delivery and reboot continuity require a running Body and an admitted presentation on the target.
