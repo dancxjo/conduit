@@ -30,7 +30,7 @@ impl PreparedSelectedScene {
                 viewer_temperature.copied(),
             )?;
             if picture_frame {
-                scene.enable_picture_frame(viewer_temperature.copied())?;
+                scene.enable_picture_frame()?;
             }
             Ok(Self::Interactive(scene))
         } else {
