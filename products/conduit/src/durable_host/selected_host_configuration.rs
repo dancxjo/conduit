@@ -353,6 +353,10 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 ) => {
                     text_file::parameters(&checked)?;
                 }
+                // Make validated the exact initialization contract. Installation
+                // only retains it; the native Mask resolves the preference at Boot.
+                Some("hosted/linux-regional-preferences@1")
+                    if base.kind == "locale/regional-preferences" => {}
                 Some("display/linear-framebuffer@1") => {
                     conduit_workspace_make::CheckedScanoutInitialization::from_configuration(
                         &checked,

@@ -403,3 +403,42 @@ fn image_bound_release_update_validates_before_commit_and_retains_host_identity(
     read_installation(&installation_path).unwrap();
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
+
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[test]
+fn replacement_for_release_retains_checked_regional_base_without_initializing_it() {
+    let (_, state) = super::super::tests::fixture();
+    fs::create_dir_all(&state).unwrap();
+    let source = SOURCE.replace(
+        "  limits =",
+        r#"  base = {kind: "locale/regional-preferences", implementation: "hosted/linux-regional-preferences@1", initialization: {temperature: "fahrenheit"}}
+  limits ="#,
+    );
+    let source_path = state.join("viewer.host.conduit");
+    fs::write(&source_path, &source).unwrap();
+    let checked = check(&source).unwrap();
+    let revision = "commit:regional-replacement";
+    let image = conduit_host_make::build_default_host_image(
+        checked.profile().clone(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+        &conduit_host_make::BuildInputs {
+            source_identity: revision.into(),
+            toolchain_available: true,
+        },
+    ).unwrap().0;
+    let image_path = state.join("viewer.image.json");
+    write_json_atomic(&image_path, &image).unwrap();
+    let replace = || replacement_for_release(
+        None, Some(&source_path), Some(&image_path), revision,
+        br#"{"target_id":"std/x86_64/computer"}"#,
+    );
+    let retained = replace().unwrap().unwrap();
+    assert_eq!(retained.host_image(), Some(&image));
+    assert!(retained.require_timer_image_initialization().is_err());
+    fs::write(&source_path, source.replace("fahrenheit", "celsius")).unwrap();
+    assert!(replace().is_err(), "another valid unit still requires its own IMAGE");
+    fs::write(&source_path, source.replace("fahrenheit", "freeform")).unwrap();
+    assert!(replace().is_err());
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
