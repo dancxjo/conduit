@@ -45,6 +45,7 @@ mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
 #[path = "durable_host/selected_host_configuration.rs"]
 mod selected_host_configuration;
+pub(crate) use selected_host_configuration::viewer_preferences;
 #[path = "durable_host/selected_model.rs"]
 mod selected_model;
 #[path = "durable_host/selected_speech.rs"]

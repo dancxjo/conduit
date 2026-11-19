@@ -84,6 +84,7 @@ pub use reluctant_replan::{
 };
 pub mod hosted_audio;
 mod hosted_body_conversation_context;
+pub mod hosted_region;
 pub use hosted_body_conversation_context::{
     BodyConversationContextReplacement, BodyConversationContextSource,
     BodyConversationContextUpdateRefusal,

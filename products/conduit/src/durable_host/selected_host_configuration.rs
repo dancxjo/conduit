@@ -17,6 +17,9 @@ mod image;
 mod microphone;
 #[path = "selected_host_configuration/playback.rs"]
 mod playback;
+#[path = "selected_host_configuration/regional.rs"]
+mod regional;
+pub(crate) use regional::viewer_preferences;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
@@ -103,6 +106,10 @@ impl Selection {
                     let adapter = microphone::initialize(initialization, implementation)?;
                     host.attach_microphone(adapter)?;
                 }
+                // The local viewer initializes its regional Base when the terminal opens.
+                Some(regional::IMPLEMENTATION) => {
+                    regional::parameters(initialization).map(|_| ())?
+                }
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     let selected = playback::initialize(initialization, host)?;
                     host.attach_selected_playback(selected)?;
@@ -152,6 +159,10 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     implementation @ (conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
                     | conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION),
                 ) => microphone::validate(initialization, implementation)?,
+                // The local viewer initializes its regional Base when the terminal opens.
+                Some(regional::IMPLEMENTATION) => {
+                    regional::parameters(initialization).map(|_| ())?
+                }
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     playback::validate(initialization)?
                 }

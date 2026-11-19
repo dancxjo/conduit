@@ -224,3 +224,26 @@ fn semantic_choice_actions_include_their_exact_group_name() {
         .iter()
         .any(|row| row.text == "Auto · Requested setpoint"));
 }
+
+#[cfg(all(target_os = "linux", target_env = "gnu"))]
+#[test]
+fn regional_terminal_frame_keeps_owner_coordinates_in_inspection() {
+    let original = control_face();
+    let regional = crate::hosted_region::RegionalPreferences::observe(Some(
+        TemperatureDisplayUnit::Fahrenheit,
+    ));
+    let mut mask =
+        TerminalFaceMask::prepare_for_viewer(original.clone(), 80, 24, true, Some(&regional))
+            .unwrap();
+    assert!(document::frame(&mask).contains("72.5 °F"));
+    assert_eq!(mask.face(), &original);
+    mask.inspect = true;
+    assert!(mask
+        .inspect_document
+        .iter()
+        .any(|row| row.text.contains("22.5 °C")));
+    assert!(mask
+        .inspect_document
+        .iter()
+        .any(|row| row.text.contains("Viewer time zone")));
+}

@@ -11,6 +11,7 @@ mod linux_builder;
 mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
+mod regional_initialization;
 pub use builder::*;
 #[cfg(target_os = "linux")]
 pub use linux_builder::*;
@@ -102,6 +103,10 @@ fn package_catalog() -> PackageCatalogContribution {
         .collect();
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                regional_initialization::IMPLEMENTATION.into(),
+                regional_initialization::contract(),
+            ),
             (
                 conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION.into(),
                 recognition_initialization::whisper_initialization_contract(),
@@ -209,6 +214,7 @@ impl HostMakePackage for HostedMakePackage {
                 ),
             ],
             offers: vec![
+                regional_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),
                 microphone_initialization::offer(),
