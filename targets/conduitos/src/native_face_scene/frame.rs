@@ -8,6 +8,9 @@ impl NativeFaceScene {
     }
 
     pub fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {
+        if let Some(page) = self.picture_page()? {
+            return Ok(page);
+        }
         let mut chrome = chrome::Chrome::prepare_selected(
             self.screen,
             self.text_scale_percent,
@@ -37,7 +40,7 @@ impl NativeFaceScene {
         if self.page == 0
             && !self.showing_details
             && !self.showing_diagram
-            && let Some(image) = self.image
+            && let Some((image, _)) = self.image
         {
             push(
                 &mut scene,

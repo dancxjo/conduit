@@ -85,6 +85,7 @@ impl NativeFaceScene {
             } else {
                 None
             },
+            picture_frame: None,
             image: image::prepare(&face)?,
             face,
             screen,
@@ -441,6 +442,7 @@ impl NativeFaceScene {
             primary,
             details,
             graph_reading: graph_reading::GraphReading::prepare(face)?,
+            picture_frame: None,
             image: image::prepare(face)?,
             face: face.clone(),
             screen,

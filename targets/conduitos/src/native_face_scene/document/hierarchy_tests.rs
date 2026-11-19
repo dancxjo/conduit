@@ -115,6 +115,13 @@ fn composed_face() -> Face {
             bytes: image.canonical_bytes().unwrap(),
         },
     });
+    for (name, value) in [("local-date", "2026-11-17"), ("local-time", "00:30:00")] {
+        face.properties.push(FaceProperty {
+            subject: "clock".into(),
+            name: name.into(),
+            value: FacePropertyValue::Text(value.into()),
+        });
+    }
     Face::new_with_semantics(
         face.revision,
         face.basis,
@@ -262,4 +269,49 @@ fn retained_live_face_keeps_current_readings_on_the_first_page() {
             .any(|command| command.image_key().is_some())
     );
     assert_eq!(scene.face(), &face);
+}
+
+#[test]
+fn photograph_covers_display_and_preserves_original_reader_and_face() {
+    for (width, height) in [(1024, 600), (640, 480)] {
+        let face = composed_face();
+        let mut scene = NativeFaceScene::prepare(face.clone(), width, height).unwrap();
+        let old_pages = scene.pages();
+        scene.enable_picture_frame().unwrap();
+        scene.enable_picture_frame().unwrap();
+        assert_eq!(scene.pages(), old_pages + 1);
+        let frame = scene.frame().unwrap();
+        let commands = frame.scene.commands();
+        assert!(commands[0].image_key().is_some());
+        assert_eq!(commands[0].bounds, scene.bounds());
+        assert_eq!(commands[0].clip, scene.bounds());
+        for (text, role) in [
+            ("00:30:00", GraphicsTextRole::Value),
+            ("2026-11-17", GraphicsTextRole::Label),
+            (
+                "Seattle: 8 °C, cloudy. Weather is current.",
+                GraphicsTextRole::Body,
+            ),
+            ("Next page", GraphicsTextRole::Label),
+        ] {
+            assert!(
+                commands
+                    .iter()
+                    .any(|c| c.payload() == text && c.text_role() == role),
+                "{text}"
+            );
+        }
+        assert!(frame.hits.is_empty());
+        scene.turn_page(true);
+        assert_eq!(scene.frame().unwrap().page, 1);
+        assert!(
+            scene.frame().unwrap().scene.commands()[0]
+                .image_key()
+                .is_none()
+        );
+        scene.show_details(true);
+        assert!(scene.showing_details());
+        scene.show_details(false);
+        assert_eq!(scene.face(), &face);
+    }
 }

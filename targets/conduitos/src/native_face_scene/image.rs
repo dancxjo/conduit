@@ -3,13 +3,13 @@ use super::*;
 use conduit_core::{BoundedResourceRef, validate_canonical_structured_value};
 use conduit_face::{FacePropertyValue, GraphicsImageKey, ImageResource};
 
-pub(super) fn prepare(face: &Face) -> Result<Option<GraphicsImageKey>, FaceSceneError> {
+pub(super) fn prepare(face: &Face) -> Result<Option<(GraphicsImageKey, usize)>, FaceSceneError> {
     let ty = ImageResource::semantic_type().map_err(|_| FaceSceneError::InvalidFace)?;
     let profile = ty.profile().map_err(|_| FaceSceneError::InvalidFace)?;
     let schema = ty
         .canonical_bytes()
         .map_err(|_| FaceSceneError::InvalidFace)?;
-    for property in &face.properties {
+    for (index, property) in face.properties.iter().enumerate() {
         let FacePropertyValue::TypedValue { contract, bytes } = &property.value else {
             continue;
         };
@@ -37,7 +37,7 @@ pub(super) fn prepare(face: &Face) -> Result<Option<GraphicsImageKey>, FaceScene
             .map_err(|_| FaceSceneError::InvalidFace)?;
         // The first semantic image is the current visual contribution. Its
         // exact generation still requires the renderer's independent lease.
-        return Ok(Some(key));
+        return Ok(Some((key, index)));
     }
     Ok(None)
 }

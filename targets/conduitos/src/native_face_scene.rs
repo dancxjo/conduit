@@ -40,6 +40,8 @@ mod document;
 mod expression;
 #[path = "native_face_scene/frame.rs"]
 mod frame;
+#[path = "native_face_scene/picture.rs"]
+mod picture;
 #[path = "native_face_scene/graph_reading.rs"]
 mod graph_reading;
 #[path = "native_face_scene/image.rs"]
@@ -136,7 +138,8 @@ impl FaceFrame<'_> {
 /// it cannot reinterpret, replace, or mutate its retained semantic Face.
 pub struct NativeFaceScene {
     face: Face,
-    image: Option<conduit_face::GraphicsImageKey>,
+    image: Option<(conduit_face::GraphicsImageKey, usize)>,
+    picture_frame: Option<picture::PicturePage>,
     screen: LayoutRect,
     text_scale_percent: u16,
     /// Admitted physical content origin shared by stored rows and frame chrome.

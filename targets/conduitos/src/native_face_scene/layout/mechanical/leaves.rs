@@ -219,6 +219,7 @@ fn arrange_content(
                 row: Row {
                     continuation: None,
                     text: remaining[..end].into(),
+                    whole_wording: end == item.text.len(),
                     role: item.role,
                     paint: item.paint,
                     control: item.control,
