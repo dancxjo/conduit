@@ -1,0 +1,51 @@
+# Read-only projections over one timestamped observation. The source Host owns
+# acquisition. Weather freshness does not gate civil date or time.
+plot ambient-clock-display (
+    >> observations: AmbientHomeObservation... <= 8192B
+) {
+    date: ambient-local-date()
+    calendar: face/text("Local date")
+    time: ambient-local-time()
+    show: face/text("Local time")
+    observations >> date.value
+    date.result >> calendar.text
+    observations >> time.value
+    time.result >> show.text
+}
+
+plot ambient-local-date (
+    >> value: AmbientHomeObservation
+    result: Text >>
+) = (.clock_weather.local_date)
+
+plot ambient-local-time (
+    >> value: AmbientHomeObservation
+    result: Text >>
+) = (.clock_weather.local_time)
+
+plot ambient-weather-display (
+    >> observations: AmbientHomeObservation... <= 8192B
+) {
+    conditions: ambient-weather-wording()
+    show: face/text("Weather")
+    observations >> conditions.value
+    conditions.result >> show.text
+}
+
+plot ambient-weather-wording (
+    >> value: AmbientHomeObservation
+    result: Text >>
+) = (.clock_weather.weather is fresh ? .clock_weather.weather.fresh.reading.conditions : (.clock_weather.weather is stale ? "Stale weather" : "Weather unavailable"))
+
+# Clock and weather consume the same timestamped observation independently.
+plot ambient-readings {
+    cadence: time/every(1s)
+    observe: ambient/resident-observation("America/Los_Angeles")
+    wallpaper: face/resident-ambient-wallpaper("Wallpaper")
+    clock: ambient-clock-display
+    weather: ambient-weather-display
+    cadence.tick >> observe.tick
+    observe.observation >> wallpaper.observation
+    observe.observation >> clock.observations
+    observe.observation >> weather.observations
+}
