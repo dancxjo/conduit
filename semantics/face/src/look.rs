@@ -4,6 +4,8 @@ use crate::*;
 use conduit_plot::rust_binding::NativeBindingRefusal;
 
 mod field_instrument;
+mod picture_frame;
+pub use picture_frame::*;
 pub use field_instrument::{
     field_instrument_day_look, field_instrument_night_look, FIELD_INSTRUMENT_DAY_LOOK_ID,
     FIELD_INSTRUMENT_LOOKS_SOURCE, FIELD_INSTRUMENT_NIGHT_LOOK_ID,

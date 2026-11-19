@@ -242,8 +242,17 @@ impl NativeFaceScene {
         expression: &conduit_face::AdmittedVisualExpression,
         preferred: Option<conduit_core::Unit>,
     ) -> Result<Self, FaceSceneError> {
-        let mut metrics =
-            SelectedMetrics::legacy(Typography::new(expression.expression.typography));
+        let typography = if expression.expression.identity == conduit_face::PICTURE_FRAME_LOOK_ID {
+            Typography::with_made_look_metrics(
+                expression.expression.typography,
+                conduit_face::picture_frame_text_metrics(),
+                200,
+            )
+            .map_err(|_| FaceSceneError::InvalidExtent)?
+        } else {
+            Typography::new(expression.expression.typography)
+        };
+        let mut metrics = SelectedMetrics::legacy(typography);
         metrics.temperature = preferred;
         Self::prepare_visual_typography(
             face,
