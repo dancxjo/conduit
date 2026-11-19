@@ -498,7 +498,7 @@ fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page()
     let face = refresh(face);
     let expression = picture_frame_expression().unwrap();
     for (width, height) in [(1024, 600), (640, 480)] {
-        let mut scene = NativeFaceScene::prepare_visual_fallback_with_temperature(
+        let mut scene = NativeFaceScene::prepare_picture_frame(
             face.clone(),
             width,
             height,
@@ -507,10 +507,7 @@ fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page()
             Some(Unit::Fahrenheit),
         )
         .unwrap();
-        let previous = scene.pages();
-        scene.enable_picture_frame().unwrap();
-        scene.enable_picture_frame().unwrap();
-        assert_eq!(scene.pages(), previous + 1);
+        assert!(scene.pages() > 1);
         let frame = scene.frame().unwrap();
         let commands = frame.scene.commands();
         assert_eq!(

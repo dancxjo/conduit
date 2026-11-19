@@ -27,9 +27,31 @@ fn property_text(face: &Face, index: usize) -> Option<&str> {
 }
 
 impl NativeFaceScene {
+    /// Prepare the graphical viewer selected by the Host. A Face without a
+    /// compatible photograph, clock and weather opens in the usual reader.
+    pub fn prepare_picture_frame(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_face::AdmittedVisualExpression,
+        preferred_temperature: Option<conduit_core::Unit>,
+    ) -> Result<Self, FaceSceneError> {
+        let mut scene = Self::prepare_visual_fallback_with_temperature(
+            face,
+            width,
+            height,
+            interaction_admitted,
+            expression,
+            preferred_temperature,
+        )?;
+        scene.enable_picture_frame()?;
+        Ok(scene)
+    }
+
     /// Open an admitted photograph as a cover page. All original reading pages,
     /// disclosure and action mappings remain reachable through ordinary paging.
-    pub fn enable_picture_frame(&mut self) -> Result<(), FaceSceneError> {
+    fn enable_picture_frame(&mut self) -> Result<(), FaceSceneError> {
         if self.picture_frame.is_none()
             && let Some(image) = image::prepare(&self.face)?
             && let Some(prepared) = self.prepare_picture(image)
