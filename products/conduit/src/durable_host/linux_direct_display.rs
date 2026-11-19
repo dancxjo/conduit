@@ -1,0 +1,290 @@
+//! Prepare an optional Linux console session and switch it on at install time.
+use std::path::Path;
+
+pub(super) fn prepare(
+    manifest: &Path,
+    state: &Path,
+    output: &Path,
+    user: &str,
+    tty: u8,
+) -> Result<(), String> {
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    {
+        linux::prepare(manifest, state, output, user, tty).map(drop)
+    }
+    #[cfg(not(all(target_os = "linux", feature = "native-display")))]
+    {
+        let _ = (manifest, state, output, user, tty);
+        Err("direct display preparation requires the installed Linux product with native-display; ordinary user-service startup remains available".into())
+    }
+}
+
+pub(super) fn lock_for_install(
+    state: &Path,
+) -> Result<
+    (
+        super::owner_lock::OwnershipLock,
+        super::owner_lock::OwnershipLock,
+    ),
+    String,
+> {
+    if !cfg!(all(target_os = "linux", feature = "native-display")) {
+        return Err(
+            "console installation requires a Linux release built with native-display".into(),
+        );
+    }
+    std::fs::create_dir_all(state).map_err(|e| format!("create display Host state: {e}"))?;
+    super::restrict_directory(state)?;
+    Ok((
+        super::owner_lock::acquire(state)?,
+        super::owner_lock::body(state)?,
+    ))
+}
+
+pub(super) fn activate(manifest: &Path, state: &Path, tty: u8) -> Result<(), String> {
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    {
+        linux::activate(manifest, state, tty)
+    }
+    #[cfg(not(all(target_os = "linux", feature = "native-display")))]
+    {
+        let _ = (manifest, state, tty);
+        Err("console installation requires native-display".into())
+    }
+}
+
+#[cfg(all(target_os = "linux", any(test, feature = "native-display")))]
+fn validate_session(user: &str, tty: u8) -> Result<(), String> {
+    if !(1..=63).contains(&tty)
+        || user.is_empty()
+        || user.len() > 32
+        || !user
+            .bytes()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, b'_' | b'-'))
+        || user.starts_with('-')
+        || user == "root"
+    {
+        return Err("direct display requires an unprivileged local account name and a dedicated tty from 1 through 63".into());
+    }
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", any(test, feature = "native-display")))]
+fn shell_argument(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\\''"))
+}
+
+#[cfg(all(target_os = "linux", any(test, feature = "native-display")))]
+fn definition(executable: &Path, state: &Path, user: &str, tty: u8) -> Result<String, String> {
+    validate_session(user, tty)?;
+    // The colon prefix disables systemd dollar expansion, preserving literal paths.
+    let executable = super::systemd_exec_argument(executable)?;
+    let state = super::systemd_exec_argument(state)?;
+    Ok(format!(
+        "[Unit]\nDescription=Conduit optional direct display session\nAfter=systemd-user-sessions.service systemd-logind.service\nRequires=systemd-logind.service\nConflicts=getty@tty{tty}.service\nConditionPathExists=/dev/tty{tty}\n\n[Service]\nUser={user}\nPAMName=login\nTTYPath=/dev/tty{tty}\nStandardInput=tty\nStandardOutput=journal\nStandardError=journal\nTTYReset=yes\nTTYVHangup=yes\nTTYVTDisallocate=yes\nUtmpIdentifier=tty{tty}\nEnvironment=XDG_SESSION_TYPE=tty XDG_SEAT=seat0 XDG_VTNR={tty}\nExecStart=:{executable} host service run --state-dir {state}\nRestart=on-failure\nRestartSec=5s\nUMask=0077\n\n[Install]\nWantedBy=multi-user.target\n"
+    ))
+}
+
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+mod linux {
+    use super::super::{
+        bounded_read, owner_lock, read_installation, validate_manifest, verify_installed_release,
+        ReleaseManifest,
+    };
+    use super::*;
+    use std::{
+        fs,
+        os::unix::fs::{DirBuilderExt, MetadataExt},
+        process::Command,
+    };
+
+    pub(super) fn prepare(
+        manifest: &Path,
+        state: &Path,
+        output: &Path,
+        user: &str,
+        tty: u8,
+    ) -> Result<String, String> {
+        validate_session(user, tty)?;
+        let state = fs::canonicalize(state).map_err(|e| format!("resolve installed state: {e}"))?;
+        let _host = owner_lock::acquire(&state)?;
+        let _body = owner_lock::body(&state)?;
+        let installation = read_installation(&state.join("installation.json"))?;
+        let selection = installation
+            .selected_host_configuration
+            .as_ref()
+            .ok_or("direct display requires retained checked Host configuration")?;
+        selection
+            .scanout_parameters()?
+            .ok_or("checked Host configuration does not select initialized display/scanout")?;
+        let manifest: ReleaseManifest =
+            serde_json::from_slice(&bounded_read(manifest, 256 * 1024)?)
+                .map_err(|e| format!("release manifest: {e}"))?;
+        validate_manifest(&manifest)?;
+        if manifest.bundle_sha256 != installation.release_bundle_sha256
+            || manifest.source_identity != installation.release_source_identity
+        {
+            return Err("release manifest differs from the installed Host release".into());
+        }
+        let executable = fs::canonicalize(&installation.product_executable)
+            .map_err(|e| format!("resolve installed executable: {e}"))?;
+        let current = fs::canonicalize(std::env::current_exe().map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())?;
+        let release = executable
+            .parent()
+            .ok_or("installed executable has no release directory")?;
+        let product = manifest
+            .files
+            .iter()
+            .find(|file| Path::new(&file.path).file_name() == executable.file_name())
+            .ok_or("installed executable is absent from the exact release manifest")?;
+        if current != executable
+            && super::super::digest(&bounded_read(
+                &current,
+                super::super::MAXIMUM_RELEASE_FILE_BYTES,
+            )?) != product.sha256
+        {
+            return Err("use the executable from this verified native-display release".into());
+        }
+        verify_installed_release(release, &manifest.files)?;
+        let identity = Command::new("/usr/bin/id")
+            .args(["-u", "--", user])
+            .output()
+            .map_err(|e| format!("inspect session account: {e}"))?;
+        let uid = String::from_utf8_lossy(&identity.stdout)
+            .trim()
+            .parse::<u32>()
+            .map_err(|_| "session account has no numeric uid")?;
+        if !identity.status.success()
+            || uid == 0
+            || fs::metadata(&state).map_err(|e| e.to_string())?.uid() != uid
+        {
+            return Err("session account must be unprivileged and own installed Host state".into());
+        }
+        let unit = definition(&executable, &state, user, tty)?;
+        fs::DirBuilder::new()
+            .mode(0o700)
+            .create(output)
+            .map_err(|e| format!("create new private review directory: {e}"))?;
+        let output = fs::canonicalize(output).map_err(|e| e.to_string())?;
+        fs::write(output.join("conduit-direct-display.service"), &unit)
+            .map_err(|e| e.to_string())?;
+        let source = shell_argument(
+            output
+                .join("conduit-direct-display.service")
+                .to_str()
+                .ok_or("review path is not UTF-8")?,
+        );
+        let review = format!(
+            include_str!("linux_direct_display_review.md"),
+            host = installation.host_id,
+            user = user,
+            tty = tty,
+            unit = source,
+        );
+        fs::write(output.join("REVIEW.md"), review).map_err(|e| e.to_string())?;
+        println!(
+            "prepared optional direct-display review artifacts at {}; activation and physical proof remain pending",
+            output.display()
+        );
+        Ok(unit)
+    }
+
+    pub(super) fn activate(manifest: &Path, state: &Path, tty: u8) -> Result<(), String> {
+        use std::io::Write;
+        use std::process::Stdio;
+        let account = Command::new("/usr/bin/id")
+            .arg("-un")
+            .output()
+            .map_err(|e| e.to_string())?;
+        if !account.status.success() {
+            return Err("cannot resolve the local display account".into());
+        }
+        let user = std::str::from_utf8(&account.stdout)
+            .map_err(|e| e.to_string())?
+            .trim();
+        let review = fs::canonicalize(state)
+            .map_err(|e| e.to_string())?
+            .join(super::super::fresh_identity("display-install", "review").replace('/', "-"));
+        let unit = prepare(manifest, state, &review, user, tty)?;
+        let mut child = Command::new("/bin/sh")
+            .arg("-c")
+            .arg(concat!(
+                include_str!("linux_direct_display_activate.sh"),
+                "\nactivate_display \"$@\""
+            ))
+            .arg("conduit-direct-display")
+            .arg(&review)
+            .arg(tty.to_string())
+            .stdin(Stdio::piped())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        let write = child
+            .stdin
+            .take()
+            .ok_or("missing service definition pipe")?
+            .write_all(unit.as_bytes());
+        let status = child.wait().map_err(|e| e.to_string())?;
+        if !status.success() {
+            return Err(format!(
+                "direct display activation failed ({status}); review {}",
+                review.display()
+            ));
+        }
+        write.map_err(|e| e.to_string())?;
+        println!("enabled conduit-direct-display.service on tty{tty}");
+        Ok(())
+    }
+}
+
+#[cfg(all(test, not(all(target_os = "linux", feature = "native-display"))))]
+#[test]
+fn preparation_refuses_without_compiled_native_display_before_writing() {
+    let error = prepare(
+        Path::new("missing-manifest"),
+        Path::new("missing-state"),
+        Path::new("must-not-be-created"),
+        "conduit",
+        7,
+    )
+    .unwrap_err();
+    assert!(error.contains("requires the installed Linux product with native-display"));
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+    #[test]
+    fn session_refuses_privilege_and_unit_injection() {
+        for user in ["root", "", "-user", "user\nExecStart=evil", "user%u", "a b"] {
+            assert!(validate_session(user, 7).is_err());
+        }
+        assert!(validate_session("conduit-user", 7).is_ok());
+        assert!(validate_session("conduit", 0).is_err());
+        assert!(validate_session("conduit", 64).is_err());
+    }
+    #[test]
+    fn definition_keeps_exact_paths_and_explicit_session() {
+        let unit = definition(
+            Path::new("/opt/Conduit $bin/%x"),
+            Path::new("/srv/body state/%h"),
+            "conduit",
+            7,
+        )
+        .unwrap();
+        assert!(unit.contains("ExecStart=:\"/opt/Conduit $bin/%%x\" host service run --state-dir \"/srv/body state/%%h\""));
+        assert!(unit.contains("PAMName=login\nTTYPath=/dev/tty7"));
+        assert!(unit.contains("User=conduit\n"));
+        assert!(unit.contains("WantedBy=multi-user.target"));
+        assert!(!unit.contains("SupplementaryGroups"));
+        assert!(definition(Path::new("/bad\npath"), Path::new("/state"), "conduit", 7).is_err());
+    }
+    #[test]
+    fn recipe_quotes_shell_metacharacters_as_data() {
+        assert_eq!(shell_argument("/a'b/$(secret)"), "'/a'\\''b/$(secret)'");
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "linux_direct_display/session_tests.rs"]
+mod session_tests;
