@@ -7,10 +7,10 @@ own the accepted drawing vocabulary.
 
 ## Semantic identity and packet version
 
-The combined vocabulary is `face/graphics-scene@2`. Graphics transforms declare
-`conduit.std/graphics-scene@2`; the terminal declares
-`conduit.std/face-graphics@2`. These revisions cover legacy commands together
-with Polyline, Value text and explicit rectangle metrics, as one atomic domain.
+The combined vocabulary is `face/graphics-scene@3`. Graphics transforms declare
+`conduit.std/graphics-scene@3`; the terminal declares
+`conduit.std/face-graphics@3`. These revisions cover legacy commands together
+with Polyline, Value text, explicit rectangle metrics and exact image keys, as one atomic domain.
 A historical reader accepting only a subset cannot truthfully offer this domain.
 Matching packet framing or artifact identity does not prove semantic compatibility.
 
@@ -28,6 +28,7 @@ extents within the existing coordinate limits.
 | --- | --- |
 | No explicit rectangle metrics, including Polyline and Value | 2 |
 | At least one rectangle with explicit metrics, including radius zero | 3 |
+| At least one image with an exact identity and version | 4 |
 
 Legacy-shaped commands retain their existing version-two bytes. Version two
 with explicit metrics and version three without metrics both refuse. Only the
