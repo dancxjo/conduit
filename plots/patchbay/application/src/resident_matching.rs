@@ -38,19 +38,24 @@ impl PatchbayApplicationPort {
         actions_admitted: bool,
     ) -> Result<bool, super::PatchbayFaceProjectionError> {
         let base = self.face_fragment_with_graph(basis, body, actions_admitted, false)?;
-        if face.is_some_and(|face| !contains(face, &base)) {
+        let Some(index) = self.selected_plot else {
+            return Ok(face.is_none_or(|face| contains(face, &base)));
+        };
+        // Cheap unindexed refusals precede the one invocation-local index.
+        // The same exact-value index checks both base and appended graph facts.
+        if face.is_some_and(|face| !contains_other(face, &base)) {
             return Ok(false);
         }
-        let Some(index) = self.selected_plot else {
-            return Ok(true);
-        };
-        // Reject mismatched base contributions before preparing graph lookup.
-        // Fixed comparison scratch belongs to this call's stack; it retains no
-        // graph or heap index. Complete Face/Show validation stays independent.
         let indexed = face
             .map(ContentIndex::new)
             .transpose()
             .map_err(super::PatchbayFaceProjectionError::InvalidFragment)?;
+        if indexed
+            .as_ref()
+            .is_some_and(|index| !contains_indexed(index, &base))
+        {
+            return Ok(false);
+        }
         let mut counts = [
             base.relationships.len(),
             base.properties.len(),
@@ -91,19 +96,27 @@ impl PatchbayApplicationPort {
                             && checked_plot_id == plot.graph.checked_plot_id.as_str()
                     })
                 };
-                let before_filter = content.subjects.len();
-                content
-                    .subjects
-                    .retain(|subject| !planned(&subject.identity));
-                // append_checkpointed appends subjects and never changes prior
-                // entries: after its initial plot checkpoint, named Gear,
-                // Composition, Port and Cord emitters only append gear/, port/
-                // or cord/ identities (or reuse an unchanged existing entry).
-                // Consequently planned plot/ filtering can remove entries only
-                // at the first checkpoint. Fail closed if that contract changes.
-                if checked_subjects != 0 && before_filter != content.subjects.len() {
-                    bounds_error = Some(FaceFragmentError::InvalidIdentity);
-                    return false;
+                #[cfg(test)]
+                lookup_work::subject_checkpoint(content.subjects.len());
+                let mut planned_subject = |subject: &conduit_face::FaceSubject| {
+                    #[cfg(test)]
+                    lookup_work::subject_query();
+                    planned(&subject.identity)
+                };
+                if checked_subjects == 0 {
+                    content.subjects.retain(|subject| !planned_subject(subject));
+                } else {
+                    // The emitter only appends or reuses unchanged subjects.
+                    // Prior retained entries were already filtered and checked;
+                    // a planned identity in the new tail still fails closed.
+                    let Some(tail) = content.subjects.get(checked_subjects..) else {
+                        bounds_error = Some(FaceFragmentError::InvalidIdentity);
+                        return false;
+                    };
+                    if tail.iter().any(&mut planned_subject) {
+                        bounds_error = Some(FaceFragmentError::InvalidIdentity);
+                        return false;
+                    }
                 }
                 content
                     .disclosures
@@ -221,6 +234,37 @@ fn validate_subject_tail(
         }
     }
     Ok(())
+}
+fn contains_indexed(index: &ContentIndex<'_>, fragment: &FaceFragment) -> bool {
+    index.subjects.contains_all(&fragment.subjects)
+        && index.relationships.contains_all(&fragment.relationships)
+        && index.properties.contains_all(&fragment.properties)
+}
+fn contains_other(face: &Face, fragment: &FaceFragment) -> bool {
+    macro_rules! included {
+        ($field:ident) => {
+            fragment
+                .$field
+                .iter()
+                .all(|item| face.$field.contains(item))
+        };
+    }
+    included!(composition)
+        && included!(text)
+        && included!(actions)
+        && included!(disclosures)
+        && included!(temporal_references)
+        && included!(temporal_facts)
+        && face
+            .actions
+            .iter()
+            .filter(|action| {
+                fragment
+                    .subjects
+                    .iter()
+                    .any(|s| s.identity == action.target)
+            })
+            .all(|action| fragment.actions.contains(action))
 }
 fn contains(face: &Face, fragment: &FaceFragment) -> bool {
     macro_rules! included {
@@ -353,3 +397,6 @@ mod tests {
         assert_eq!(port.validate_projection_bounds(basis, &body), Err(full));
     }
 }
+
+#[cfg(test)]
+mod base_index_tests;

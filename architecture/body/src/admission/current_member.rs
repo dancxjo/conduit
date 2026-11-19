@@ -81,3 +81,7 @@ impl AdmissionManager {
         })
     }
 }
+
+#[cfg(feature = "member-return-images")]
+#[path = "member_return_images.rs"]
+mod member_return_images;

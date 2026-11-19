@@ -2,6 +2,8 @@
 
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod backs;
+#[cfg(test)]
+mod history_tests;
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod interaction;
 #[cfg(any(test, feature = "native-compositor-core"))]

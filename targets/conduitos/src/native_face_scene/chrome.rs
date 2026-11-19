@@ -6,7 +6,7 @@ use crate::display::{
 };
 use conduit_face::{GraphicsTextRole, LayoutRect};
 
-/// Background, heading, page marker, two separators and footer text.
+/// Four common chrome commands plus either separator/footer or two page labels.
 pub(super) const COMMANDS: usize = 6;
 const EDGE: u16 = 8;
 pub(super) const HEADER: u16 = 56;

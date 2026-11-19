@@ -16,7 +16,11 @@ pub(super) struct PendingMemberReturn {
     challenge: PartReturnChallenge,
     prior: MembershipCredential,
     completed: Option<(PartReturnProof, MembershipCredential)>,
+    #[cfg(all(test, feature = "member-return-prototype"))]
+    completed_offer_digest: Option<[u8; 32]>,
     advertisement: HostAdvertisement,
+    #[cfg(all(test, feature = "member-return-prototype"))]
+    image_projection: Option<images::fixture::PendingImageReturn>,
     deadline: Instant,
     attempts: u8,
 }
@@ -115,6 +119,10 @@ impl Owner {
             advertisement: advertisement.clone(),
             prior: credential.clone(),
             completed: None,
+            #[cfg(all(test, feature = "member-return-prototype"))]
+            completed_offer_digest: None,
+            #[cfg(all(test, feature = "member-return-prototype"))]
+            image_projection: None,
             attempts: 0,
             deadline: now + Duration::from_secs(10),
         });
@@ -238,6 +246,12 @@ impl Owner {
         let digest = crate::durable_host::digest(
             &serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?,
         );
+        #[cfg(all(test, feature = "member-return-prototype"))]
+        let completed_offer_digest: [u8; 32] = {
+            use sha2::{Digest, Sha256};
+            Sha256::digest(serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?)
+                .into()
+        };
         let observed =
             super::native_mask_route::InvitedMaskOffer::observed(&pending.advertisement, digest);
         let host_id = pending.advertisement.host_id.clone();
@@ -252,10 +266,19 @@ impl Owner {
         self.session = next;
         self.admissions = Some(manager);
         self.invited_mask_offers.insert(host_id, observed);
-        self.pending_member_return
+        let pending = self
+            .pending_member_return
             .as_mut()
-            .ok_or("member return pending custody lost")?
-            .completed = Some((proof.clone(), credential.clone()));
+            .ok_or("member return pending custody lost")?;
+        #[cfg(all(test, feature = "member-return-prototype"))]
+        {
+            pending.completed_offer_digest = Some(completed_offer_digest);
+        }
+        pending.completed = Some((proof.clone(), credential.clone()));
         Ok(credential)
     }
 }
+
+#[cfg(all(test, feature = "member-return-prototype"))]
+#[path = "member_return/images.rs"]
+mod images;

@@ -9,6 +9,9 @@ use conduit_core::{LineSecurity, PlanId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+#[cfg(feature = "member-return-prototype")]
+mod image_return;
+
 const MAX_ID_BYTES: usize = 256;
 const MAX_AUTH_TTL_MILLIS: u64 = 30_000;
 

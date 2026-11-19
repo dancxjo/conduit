@@ -57,6 +57,11 @@ use startup::StartupAcknowledgmentValue;
 pub use startup::{BodyStartedAcknowledgment, CommittedBodyStartup, StartupChimeCallReceipt};
 mod owner_identity;
 pub use owner_identity::{StartupOwnerChallenge, StartupOwnerIdentity};
+mod member_return_workspace;
+pub use member_return_workspace::{
+    CapturedMemberReturnFrame, MemberReturnFrame, MemberReturnFrameRefusal,
+    MEMBER_RETURN_FRAME_BYTES,
+};
 mod startup_control_workspace;
 pub use startup_control_workspace::{
     StartupMemberControlWorkspace, STARTUP_MEMBER_CONTROL_FRAME_BYTES,

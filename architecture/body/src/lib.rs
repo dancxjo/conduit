@@ -39,6 +39,8 @@ mod admission_receipt_attestation;
 pub use admission_receipt_attestation::*;
 #[cfg(feature = "authenticated-admission")]
 pub mod admission_advertisement_wire;
+#[cfg(feature = "member-return-images")]
+mod authority_grant_descriptions;
 mod biography;
 mod body_time_plan;
 mod candidate;
@@ -63,8 +65,20 @@ mod lifecycle;
 mod lifecycle_session;
 #[cfg(feature = "authenticated-admission")]
 mod member_bootstrap;
+#[cfg(feature = "member-return-images")]
+mod member_return_acknowledgement;
+#[cfg(feature = "member-return-images")]
+pub use member_return_acknowledgement::*;
+#[cfg(feature = "member-return-images")]
+mod member_return_images;
+#[cfg(feature = "member-return-images")]
+mod member_return_proof_document;
 #[cfg(feature = "authenticated-admission")]
 pub use member_bootstrap::*;
+#[cfg(feature = "member-return-images")]
+pub use member_return_images::*;
+#[cfg(feature = "member-return-images")]
+pub use member_return_proof_document::*;
 mod membership;
 mod offers;
 #[cfg(feature = "authenticated-admission")]
