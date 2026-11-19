@@ -9,6 +9,8 @@ use conduit_face::{
 };
 #[path = "document/hierarchy.rs"]
 mod hierarchy;
+#[path = "document/weather.rs"]
+mod weather;
 
 pub(super) struct Item {
     pub text: String,
@@ -67,6 +69,14 @@ pub(super) fn omit_encounter_heading(
 pub(super) fn prepare(
     face: &Face,
     interaction_admitted: bool,
+) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
+    prepare_for_viewer(face, interaction_admitted, None)
+}
+
+pub(super) fn prepare_for_viewer(
+    face: &Face,
+    interaction_admitted: bool,
+    preferred: Option<conduit_core::Unit>,
 ) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
     let plan = plan_face_utterances(face).map_err(|_| FaceSceneError::DocumentBound)?;
     let mut primary = Vec::new();
@@ -256,9 +266,19 @@ pub(super) fn prepare(
         if !named_control {
             append(heading);
         }
-        // The source-supplied Body status follows its name. This presents the
-        // owner's exact wording; the Mask derives no lifecycle fact.
-        {
+        let summary = weather::summary(face, subject, preferred);
+        let localized = summary.is_some();
+        if let Some(summary) = summary {
+            append(item(summary, GraphicsTextRole::Body));
+            if let Some(source) = weather::text_fact(face, subject, "attribution") {
+                append(item(
+                    format!("Weather source: {source}."),
+                    GraphicsTextRole::Body,
+                ));
+            }
+        } else {
+            // The source-supplied Body status follows its name. This presents the
+            // owner's exact wording; the Mask derives no lifecycle fact.
             for text in face
                 .text
                 .iter()
@@ -295,6 +315,9 @@ pub(super) fn prepare(
                     && subject.role == FaceRole::TextEntry
                     && property.name == "current-value")
         }) {
+            if localized && property.name == "temperature" {
+                continue;
+            }
             if has_chart && super::measurement_chart::is_series(property) {
                 continue;
             }

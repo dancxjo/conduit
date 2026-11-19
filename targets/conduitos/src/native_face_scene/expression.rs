@@ -2,6 +2,7 @@
 use super::*;
 
 struct SelectedMetrics {
+    temperature: Option<conduit_core::Unit>,
     typography: Typography,
     row_gap: u16,
     control: Option<layout::RowInsets>,
@@ -13,6 +14,7 @@ impl SelectedMetrics {
     fn legacy(typography: Typography) -> Self {
         Self {
             typography,
+            temperature: None,
             row_gap: SPACE_SM,
             control: None,
             panel: None,
@@ -221,13 +223,35 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<Self, FaceSceneError> {
+        Self::prepare_visual_fallback_with_temperature(
+            face,
+            width,
+            height,
+            interaction_admitted,
+            expression,
+            None,
+        )
+    }
+
+    /// Apply the local viewer's admitted temperature preference during scene preparation.
+    pub fn prepare_visual_fallback_with_temperature(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_face::AdmittedVisualExpression,
+        preferred: Option<conduit_core::Unit>,
+    ) -> Result<Self, FaceSceneError> {
+        let mut metrics =
+            SelectedMetrics::legacy(Typography::new(expression.expression.typography));
+        metrics.temperature = preferred;
         Self::prepare_visual_typography(
             face,
             width,
             height,
             interaction_admitted,
             expression,
-            SelectedMetrics::legacy(Typography::new(expression.expression.typography)),
+            metrics,
         )
     }
     /// Realize the selected immutable Look's existing typed size/leading tokens.
@@ -263,6 +287,7 @@ impl NativeFaceScene {
             return Err(FaceSceneError::InvalidExtent);
         }
         Ok(SelectedMetrics {
+            temperature: None,
             typography,
             row_gap,
             focus_marker_width: *visual.tokens().focus_width_px(),
@@ -286,7 +311,8 @@ impl NativeFaceScene {
     ) -> Result<Self, FaceSceneError> {
         let typography = metrics.typography;
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        let (mut primary, details) =
+            document::prepare_for_viewer(&scene.face, interaction_admitted, metrics.temperature)?;
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
         let viewport = layout::Viewport::for_face(
