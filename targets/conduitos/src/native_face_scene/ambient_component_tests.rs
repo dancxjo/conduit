@@ -496,16 +496,7 @@ fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page()
         },
     });
     let face = refresh(face);
-    let expression = admit_visual_expression(
-        Ok(VisualExpression::phosphor()),
-        VisualUserConstraints {
-            forced_colors: false,
-            reduced_motion: true,
-            minimum_text_scale_percent: 100,
-            maximum_supported_text_scale_percent: 200,
-        },
-    )
-    .unwrap();
+    let expression = picture_frame_expression().unwrap();
     for (width, height) in [(1024, 600), (640, 480)] {
         let mut scene = NativeFaceScene::prepare_visual_fallback_with_temperature(
             face.clone(),
