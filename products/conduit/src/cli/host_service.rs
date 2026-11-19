@@ -3,6 +3,19 @@ use super::{InstalledModelOptions, InstalledSpeechOptions, InstalledTodoCheckpoi
 use clap::Subcommand;
 use std::path::PathBuf;
 
+#[derive(Debug, Default, clap::Args)]
+pub(crate) struct DisplayInstallOptions {
+    /// Install and enable a full-screen Linux console session on this dedicated VT.
+    #[arg(long, conflicts_with = "no_start", value_parser = clap::value_parser!(u8).range(1..=63))]
+    pub(crate) direct_display_tty: Option<u8>,
+    /// Checked display Host configuration for a new installation.
+    #[arg(long, requires_all = ["direct_display_tty", "display_image"])]
+    pub(crate) display_configuration: Option<PathBuf>,
+    /// Matching Make IMAGE for the display Host configuration.
+    #[arg(long, requires = "display_configuration")]
+    pub(crate) display_image: Option<PathBuf>,
+}
+
 #[derive(Debug, Subcommand)]
 // This one-shot command keeps its reviewed speech and model selections explicit
 // for Clap's flattened arguments; the enum is not retained in a running Play.
@@ -29,15 +42,8 @@ pub(crate) enum HostServiceCommand {
         /// Install without activating the service, for foreground Body ownership.
         #[arg(long)]
         no_start: bool,
-        /// Install and enable a full-screen Linux console session on this dedicated VT.
-        #[arg(long, conflicts_with = "no_start", value_parser = clap::value_parser!(u8).range(1..=63))]
-        direct_display_tty: Option<u8>,
-        /// Checked display Host configuration for a new installation.
-        #[arg(long, requires_all = ["direct_display_tty", "display_image"])]
-        display_configuration: Option<PathBuf>,
-        /// Matching Make IMAGE for the display Host configuration.
-        #[arg(long, requires = "display_configuration")]
-        display_image: Option<PathBuf>,
+        #[command(flatten)]
+        display: Box<DisplayInstallOptions>,
         #[command(flatten)]
         speech: InstalledSpeechOptions,
         #[command(flatten)]

@@ -135,14 +135,13 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             manifest,
             state_dir,
             no_start,
-            direct_display_tty,
-            display_configuration,
-            display_image,
+            display,
             speech,
             model,
             todo_checkpoint,
         } => {
-            let locks = direct_display_tty
+            let locks = display
+                .direct_display_tty
                 .map(|_| linux_direct_display::lock_for_install(&state_dir))
                 .transpose()?;
             let installation = install_with_equipment(
@@ -153,13 +152,13 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
                 selected_todo::change(todo_checkpoint)?,
             )?;
             drop(locks);
-            if let Some(tty) = direct_display_tty {
-                if display_configuration.is_some() {
+            if let Some(tty) = display.direct_display_tty {
+                if display.display_configuration.is_some() {
                     selected_host_configuration::configure_with_image(
                         &state_dir,
-                        display_configuration.as_deref(),
+                        display.display_configuration.as_deref(),
                         false,
-                        display_image.as_deref(),
+                        display.display_image.as_deref(),
                     )?;
                 }
                 linux_direct_display::activate(&manifest, &state_dir, tty)?;
@@ -1096,9 +1095,7 @@ mod tests {
             manifest: manifest.clone(),
             state_dir: state.clone(),
             no_start: true,
-            direct_display_tty: None,
-            display_configuration: None,
-            display_image: None,
+            display: Default::default(),
             speech: Default::default(),
             model: Default::default(),
             todo_checkpoint: Default::default(),
