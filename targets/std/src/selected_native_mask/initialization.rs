@@ -4,6 +4,7 @@ use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_linear_framebuffer_make::CheckedNativeMaskInitialization;
 
 pub(crate) struct InitialNativeMask {
+    viewer_temperature: Option<conduit_core::Unit>,
     pub provider: NativeSurfaceProvider,
     pub width: u32,
     pub height: u32,
@@ -55,7 +56,7 @@ impl InitialNativeMask {
         )
     }
     pub(crate) fn initialize(self, host: &mut StdHost) -> Result<SelectedNativeMaskBase, String> {
-        SelectedNativeMaskBase::initialize(
+        let mut base = SelectedNativeMaskBase::initialize(
             host,
             self.provider,
             self.width,
@@ -63,7 +64,9 @@ impl InitialNativeMask {
             self.scanout_cpu_bytes,
             self.input,
             self.images,
-        )
+        )?;
+        base.viewer_temperature = self.viewer_temperature;
+        Ok(base)
     }
 }
 impl StdHost {
@@ -204,6 +207,7 @@ impl StdHost {
         if checked.configuration_id() != parameters.configuration_id() {
             return Err("selected native Mask parameters belong to another Source".into());
         }
+        let viewer_temperature = crate::hosted_region::viewer_temperature(checked)?;
         let recognition = recognizer
             .map(|adapter| {
                 crate::image_initialization::InitialWhisper::prepare(
@@ -359,6 +363,7 @@ impl StdHost {
         }
         scanout.entry = provider.entry.clone();
         let intent = InitialNativeMask {
+            viewer_temperature,
             provider,
             width,
             height,

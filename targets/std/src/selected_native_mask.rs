@@ -106,6 +106,7 @@ enum Stores {
 /// Retained actual driver-provider key and fixed stores. This prepares a Back;
 /// only successful current-route admission and physical commit produce a Show.
 pub struct SelectedNativeMaskBase {
+    viewer_temperature: Option<conduit_core::Unit>,
     stores: Stores,
     provider: NativeSurfaceProvider,
     backing: BaseBackingReservation,
@@ -212,6 +213,7 @@ impl SelectedNativeMaskBase {
             })
             .transpose()?;
         Ok(Self {
+            viewer_temperature: None,
             images,
             stores: Stores::Unbound { kernel, raster },
             provider,
@@ -327,6 +329,7 @@ impl SelectedNativeMaskBase {
             &self.provider,
             raster,
             self.images.clone(),
+            self.viewer_temperature,
         )?;
         let metadata_bytes = prepared
             .metadata_bytes(self.receipt.compositor_bytes)?
