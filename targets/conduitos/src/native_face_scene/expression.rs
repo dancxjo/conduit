@@ -425,6 +425,7 @@ impl NativeFaceScene {
         let details =
             layout::admit_with_expression_selected(details, SPACE_XL, 1, spacing, &viewport)?;
         Ok(Self {
+            picture_frame: None,
             primary,
             details,
             graph_reading: graph_reading::GraphReading::prepare(face)?,
