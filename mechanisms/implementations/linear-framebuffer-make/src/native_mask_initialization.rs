@@ -9,6 +9,7 @@ use conduit_host_make::{CheckedHostConfiguration, ResourceBudget};
 #[derive(Clone)]
 pub struct CheckedNativeMaskInitialization {
     scanout: CheckedScanoutInitialization,
+    picture_frame: bool,
     surface: ResourceBudget,
     show: ResourceBudget,
     memory: ResourceBudget,
@@ -53,6 +54,7 @@ impl CheckedNativeMaskInitialization {
             return Err("native interaction requires one explicit single-slot input pool".into());
         }
         Ok(Self {
+            picture_frame: super::viewer_look::picture_frame(checked)?,
             scanout,
             surface,
             show,
@@ -62,6 +64,9 @@ impl CheckedNativeMaskInitialization {
     }
     pub fn configuration_id(&self) -> &str {
         self.scanout.configuration_id()
+    }
+    pub fn picture_frame(&self) -> bool {
+        self.picture_frame
     }
     pub fn scanout(&self) -> &CheckedScanoutInitialization {
         &self.scanout

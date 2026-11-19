@@ -18,6 +18,7 @@ use interactive::PreparedSelectedScene;
 pub use interactive::{SelectedNativeInteraction, SelectedNativeMaskInput};
 
 pub(super) struct PreparedReadOnlyBinding {
+    picture_frame: bool,
     viewer_temperature: Option<&'static conduit_core::Unit>,
     plan: PlannedMaskPlot,
     compositor: NativeCompositor,
@@ -33,6 +34,7 @@ impl PreparedReadOnlyBinding {
         raster: PreparedCompositorBacking,
         images: Option<std::sync::Arc<images::NativeMaskImages>>,
         viewer_temperature: Option<&'static conduit_core::Unit>,
+        picture_frame: bool,
     ) -> Result<Self, String> {
         let fragment = plan
             .plan
@@ -55,6 +57,7 @@ impl PreparedReadOnlyBinding {
             .bind(admission)
             .map_err(|error| format!("native Mask raster binding: {error:?}"))?;
         Ok(Self {
+            picture_frame,
             viewer_temperature,
             plan,
             compositor,
@@ -82,6 +85,7 @@ impl PreparedReadOnlyBinding {
             .bind(&self.plan)
             .map_err(|error| format!("native Mask exact kernel binding: {error:?}"))?;
         Ok(BoundReadOnlyMask {
+            picture_frame: self.picture_frame,
             viewer_temperature: self.viewer_temperature,
             plan: self.plan,
             compositor: self.compositor,
@@ -154,6 +158,7 @@ pub struct SelectedNativeMaskFrame {
     pub scanout_frame_sequence: u64,
 }
 pub(super) struct BoundReadOnlyMask {
+    picture_frame: bool,
     viewer_temperature: Option<&'static conduit_core::Unit>,
     plan: PlannedMaskPlot,
     compositor: NativeCompositor,

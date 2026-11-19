@@ -393,6 +393,9 @@ impl StdHost {
                     && !(initial.has_native_mask()
                         && base.kind == "locale/regional-preferences"
                         && base.driver == "hosted/linux-regional-preferences@1")
+                    && !(initial.has_native_mask()
+                        && base.kind == "viewer/visual-preferences"
+                        && base.driver == "hosted/native-visual-preferences@1")
                     && !(initial.has_scanout()
                         && base.kind == "display/scanout"
                         && base.driver == "display/linear-framebuffer@1")

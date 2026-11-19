@@ -4,6 +4,7 @@ use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_linear_framebuffer_make::CheckedNativeMaskInitialization;
 
 pub(crate) struct InitialNativeMask {
+    picture_frame: bool,
     viewer_temperature: Option<&'static conduit_core::Unit>,
     pub provider: NativeSurfaceProvider,
     pub width: u32,
@@ -65,6 +66,7 @@ impl InitialNativeMask {
             self.input,
             self.images,
         )?;
+        base.picture_frame = self.picture_frame;
         base.viewer_temperature = self.viewer_temperature;
         Ok(base)
     }
@@ -368,6 +370,7 @@ impl StdHost {
         }
         scanout.entry = provider.entry.clone();
         let intent = InitialNativeMask {
+            picture_frame: parameters.picture_frame(),
             viewer_temperature,
             provider,
             width,

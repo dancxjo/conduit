@@ -298,3 +298,34 @@ fn shipped_graphical_sources_declare_exact_native_mask_prerequisites() {
         }
     }
 }
+
+#[test]
+fn native_look_selection_preserves_geometry_and_requires_a_checked_value() {
+    use super::CheckedNativeMaskInitialization;
+    let packages = super::package_set();
+    let catalog = super::catalog();
+    let checked = |source: &str| {
+        check_host_configuration(
+            parse_host_configuration_conduit(source).unwrap(),
+            &catalog,
+            &packages,
+        )
+    };
+    let source =
+        include_str!("../../../targets/std/profiles/raspberry-pi-3-native-mask.host.conduit");
+    let ordinary =
+        CheckedNativeMaskInitialization::from_configuration(&checked(source).unwrap()).unwrap();
+    assert!(!ordinary.picture_frame());
+    let selected = source.replace("  limits =", r#"  base = {kind: "viewer/visual-preferences", implementation: "hosted/native-visual-preferences@1", initialization: {look: "picture-frame"}}
+  limits ="#);
+    let frame =
+        CheckedNativeMaskInitialization::from_configuration(&checked(&selected).unwrap()).unwrap();
+    assert!(frame.picture_frame());
+    assert_ne!(frame.configuration_id(), ordinary.configuration_id());
+    assert_eq!(
+        frame.scanout().surface_bytes(),
+        ordinary.scanout().surface_bytes()
+    );
+    assert_eq!(frame.memory(), ordinary.memory());
+    assert!(checked(&selected.replace("picture-frame", "unknown")).is_err());
+}

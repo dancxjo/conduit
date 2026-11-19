@@ -70,6 +70,9 @@ impl Selection {
                     && base.kind == "locale/regional-preferences"
                     && base.implementation.as_deref()
                         == Some("hosted/linux-regional-preferences@1"))
+                && !(scanout_prepared
+                    && base.kind == "viewer/visual-preferences"
+                    && base.implementation.as_deref() == Some("hosted/native-visual-preferences@1"))
                 && !(recognizer_prepared && base.kind == "speech/recognizer")
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
@@ -357,6 +360,8 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 // only retains it; the native Mask resolves the preference at Boot.
                 Some("hosted/linux-regional-preferences@1")
                     if base.kind == "locale/regional-preferences" => {}
+                Some("hosted/native-visual-preferences@1")
+                    if base.kind == "viewer/visual-preferences" => {}
                 Some("display/linear-framebuffer@1") => {
                     conduit_workspace_make::CheckedScanoutInitialization::from_configuration(
                         &checked,

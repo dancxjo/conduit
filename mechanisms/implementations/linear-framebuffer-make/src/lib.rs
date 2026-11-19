@@ -1,4 +1,5 @@
 mod initialization;
+mod viewer_look;
 pub use initialization::CheckedScanoutInitialization;
 mod native_mask_initialization;
 pub use native_mask_initialization::CheckedNativeMaskInitialization;
@@ -97,10 +98,13 @@ fn package_catalog() -> PackageCatalogContribution {
                 )],
             ),
         ]),
-        initialization_contracts: BTreeMap::from([(
-            "display/linear-framebuffer@1".into(),
-            initialization::contract(),
-        )]),
+        initialization_contracts: BTreeMap::from([
+            (viewer_look::DRIVER.into(), viewer_look::contract()),
+            (
+                "display/linear-framebuffer@1".into(),
+                initialization::contract(),
+            ),
+        ]),
         facilities: vec!["compositor/native@1".into()],
         mutually_exclusive_mechanisms: vec![
             ("compositor/native@1".into(), "browser/dom".into()),
@@ -128,24 +132,27 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
                 "conduitos/riscv64/virt".into(),
                 "conduitos/loongarch64/virt".into(),
             ],
-            offers: vec![ImplementationOffer {
-                base_kind: "display/scanout".into(),
-                implementation_id: "display/linear-framebuffer@1".into(),
-                implementation_revision: 1,
-                target_patterns: vec![
-                    "std/x86_64/computer".into(),
-                    "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
-                    "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb".into(),
-                    "conduitos/x86_64/pc".into(),
-                    "conduitos/aarch64/virt".into(),
-                    "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
-                    "conduitos/ia32/pc".into(),
-                    "conduitos/riscv64/virt".into(),
-                    "conduitos/loongarch64/virt".into(),
-                ],
-                prerequisites: Vec::new(),
-                build_feature: Some("base-linear-framebuffer".into()),
-            }],
+            offers: vec![
+                viewer_look::offer(),
+                ImplementationOffer {
+                    base_kind: "display/scanout".into(),
+                    implementation_id: "display/linear-framebuffer@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec![
+                        "std/x86_64/computer".into(),
+                        "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
+                        "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb".into(),
+                        "conduitos/x86_64/pc".into(),
+                        "conduitos/aarch64/virt".into(),
+                        "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
+                        "conduitos/ia32/pc".into(),
+                        "conduitos/riscv64/virt".into(),
+                        "conduitos/loongarch64/virt".into(),
+                    ],
+                    prerequisites: Vec::new(),
+                    build_feature: Some("base-linear-framebuffer".into()),
+                },
+            ],
         })
     }
 }
