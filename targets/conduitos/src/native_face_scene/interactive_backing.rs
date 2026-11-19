@@ -409,10 +409,11 @@ impl NativeFaceScene {
     }
 
     /// Requested-backing bound for `prepare_visual_fallback`, with built-in
-    /// borrowed typography, text scale 100..200 and either admitted density.
+    /// fixed native typography, text scale 100..200 and either admitted density.
     /// Expression creation/identity copies belong to the caller, under its own
     /// existing reservation; this preflight takes no expression and allocates
-    /// nothing. Configured recipes, Look metrics/corners, local preferences and
+    /// nothing. The made picture-frame metrics and its borrowed row indices are
+    /// inline. Configured recipes, dynamic Look owners/corners, local preferences and
     /// general graph projections are outside this scoped construction path.
     pub fn visual_fallback_memory_bounds(
         face: &Face,
