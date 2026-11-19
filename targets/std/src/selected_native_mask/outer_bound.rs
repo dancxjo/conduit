@@ -174,6 +174,7 @@ pub(super) fn checked_invocation_bytes(
         // caller receipt each own one identity clone. No expression is grown.
         conduit_face::PHOSPHOR_LOOK_ID
             .len()
+            .max(conduit_face::PICTURE_FRAME_LOOK_ID.len())
             .checked_mul(4)
             .ok_or("native expression ownership overflow")?,
         completion,

@@ -18,17 +18,21 @@ impl PreparedSelectedScene {
         interactive: bool,
         expression: Option<&conduit_face::AdmittedVisualExpression>,
         viewer_temperature: Option<&'static conduit_core::Unit>,
+        picture_frame: bool,
     ) -> Result<Self, FaceSceneError> {
         if interactive {
-            NativeFaceScene::prepare_visual_fallback_with_temperature(
+            let mut scene = NativeFaceScene::prepare_visual_fallback_with_temperature(
                 face,
                 width,
                 height,
                 true,
                 expression.ok_or(FaceSceneError::UnsupportedInput)?,
                 viewer_temperature.copied(),
-            )
-            .map(Self::Interactive)
+            )?;
+            if picture_frame {
+                scene.enable_picture_frame(viewer_temperature.copied())?;
+            }
+            Ok(Self::Interactive(scene))
         } else {
             PreparedStaticNativeFaceScene::prepare(face, width, height).map(Self::ReadOnly)
         }

@@ -109,7 +109,12 @@ impl BoundReadOnlyMask {
                     .map_err(|error| format!("native Face validation: {error:?}"))?;
             }
             // Construct the preference only under the original invocation lease.
-            let expression = if interactive {
+            let picture_frame = interactive && self.picture_frame;
+            let expression = if picture_frame {
+                Some(conduit_face::picture_frame_expression().map_err(|error| {
+                    format!("native picture-frame visual constraints:{error:?}")
+                })?)
+            } else if interactive {
                 Some(super::outer_bound::interactive_expression()?)
             } else {
                 None
@@ -121,6 +126,7 @@ impl BoundReadOnlyMask {
                 interactive,
                 expression.as_ref(),
                 self.viewer_temperature,
+                picture_frame,
             )
             .map_err(|error| format!("native semantic scene: {error:?}"))?;
             scene.restore_reading_position(reading);
