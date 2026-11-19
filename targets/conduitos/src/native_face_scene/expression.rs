@@ -2,6 +2,7 @@
 use super::*;
 
 struct SelectedMetrics {
+    temperature: Option<conduit_core::Unit>,
     typography: Typography,
     row_gap: u16,
     control: Option<layout::RowInsets>,
@@ -12,6 +13,7 @@ struct SelectedMetrics {
 impl SelectedMetrics {
     fn legacy(typography: Typography) -> Self {
         Self {
+            temperature: None,
             typography,
             row_gap: SPACE_SM,
             control: None,
@@ -63,6 +65,7 @@ impl NativeFaceScene {
         )?;
         document::omit_encounter_heading(&mut primary, &face, &viewport.chrome, 100);
         Ok(Self {
+            picture_frame: None,
             primary: layout::admit_with_expression_selected(
                 primary, SPACE_XL, 1, spacing, &viewport,
             )?,
@@ -147,7 +150,8 @@ impl NativeFaceScene {
             .geometry_for_width(width)
             .map_err(|_| FaceSceneError::InvalidExtent)?;
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        let (mut primary, details) =
+            document::prepare_for_viewer(&scene.face, interaction_admitted, metrics.temperature)?;
         for item in &mut primary {
             item.region_order = item
                 .subject_index
@@ -207,6 +211,24 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<Self, FaceSceneError> {
+        Self::prepare_visual_fallback_with_temperature(
+            face,
+            width,
+            height,
+            interaction_admitted,
+            expression,
+            None,
+        )
+    }
+
+    pub fn prepare_visual_fallback_with_temperature(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_face::AdmittedVisualExpression,
+        preferred: Option<conduit_core::Unit>,
+    ) -> Result<Self, FaceSceneError> {
         let typography = if expression.expression.identity == conduit_face::PICTURE_FRAME_LOOK_ID {
             Typography::with_made_look_metrics(
                 expression.expression.typography,
@@ -217,13 +239,15 @@ impl NativeFaceScene {
         } else {
             Typography::new(expression.expression.typography)
         };
+        let mut metrics = SelectedMetrics::legacy(typography);
+        metrics.temperature = preferred;
         Self::prepare_visual_typography(
             face,
             width,
             height,
             interaction_admitted,
             expression,
-            SelectedMetrics::legacy(typography),
+            metrics,
         )
     }
     /// Realize the selected immutable Look's existing typed size/leading tokens.
@@ -259,6 +283,7 @@ impl NativeFaceScene {
             return Err(FaceSceneError::InvalidExtent);
         }
         Ok(SelectedMetrics {
+            temperature: None,
             typography,
             row_gap,
             focus_marker_width: *visual.tokens().focus_width_px(),
@@ -282,7 +307,8 @@ impl NativeFaceScene {
     ) -> Result<Self, FaceSceneError> {
         let typography = metrics.typography;
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        let (mut primary, details) =
+            document::prepare_for_viewer(&scene.face, interaction_admitted, metrics.temperature)?;
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
         let viewport = layout::Viewport::for_face(
