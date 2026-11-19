@@ -49,6 +49,9 @@ mod layout;
 #[path = "native_face_scene/reading_position.rs"]
 mod reading_position;
 pub use reading_position::NativeReadingPosition;
+#[path = "native_face_scene/paging.rs"]
+mod paging;
+pub use paging::NativePageControls;
 #[path = "native_face_scene/ports.rs"]
 mod ports;
 #[path = "native_face_scene/semantic_icons.rs"]
@@ -477,3 +480,11 @@ mod corner_tests;
 
 #[path = "native_face_scene/pointer_gesture.rs"]
 mod pointer_gesture;
+
+#[cfg(test)]
+#[path = "native_face_scene/paging_tests.rs"]
+mod paging_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/ambient_component_tests.rs"]
+mod ambient_component_tests;

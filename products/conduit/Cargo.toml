@@ -6,6 +6,8 @@ default-run = "conduit"
 
 [features]
 default = []
+# Explicit source-only prototype; installed IMAGE return remains refused.
+member-return-prototype = ["conduit-body/member-return-images", "conduit-wire/offer-images", "conduit-std-host/member-return-prototype"]
 native-display = ["dep:conduit-linux-display", "conduit-std-host/linux-display"]
 base-linear-framebuffer = ["native-display"]
 

@@ -1,11 +1,9 @@
+use conduit_dht11_observation::ObservationContract;
 mod common;
 use common::*;
 use conduit_core::Quantity;
 use conduit_environment_history::*;
-use conduit_environment_runtime::{
-    observation::ObservationContract,
-    recording::{RecordingHistoryRefusal, RecordingReadRefusal},
-};
+use conduit_environment_runtime::recording::{RecordingHistoryRefusal, RecordingReadRefusal};
 use conduit_face::{FaceFragment, FacePropertyValue as V};
 fn property<'a>(f: &'a FaceFragment, subject: &str, name: &str) -> Option<&'a V> {
     f.properties

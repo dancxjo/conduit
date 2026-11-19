@@ -245,3 +245,45 @@ fn provisional_press_preserves_focus_selection_and_frame_budget() {
     assert_eq!(mask.scene().unwrap().focused(), focus);
     assert_eq!(mask.scene().unwrap().frame().unwrap().scene, before_scene);
 }
+#[test]
+fn sampled_footer_page_repaints_without_consuming_the_current_show() {
+    let (mut mask, _, mut display) = prepare();
+    let show = mask.show().unwrap().clone();
+    let face = mask.scene().unwrap().face().clone();
+    let page = mask.scene().unwrap().page();
+    let controls = mask.scene().unwrap().page_controls().unwrap().unwrap();
+    let (bounds, expected) = if controls.can_next {
+        (controls.next, page + 1)
+    } else {
+        assert!(controls.can_previous);
+        (controls.previous, page - 1)
+    };
+    let x = (bounds.x + (bounds.width / 2) as i16) as u32;
+    let y = (bounds.y + (bounds.height / 2) as i16) as u32;
+    assert!(matches!(
+        mask.pointer_sample(x, y, true, true, 200, &mut display)
+            .unwrap(),
+        NativeFaceMaskInput::Redrawn(_)
+    ));
+    assert_eq!(mask.scene().unwrap().page(), page);
+    assert_eq!(mask.show(), Some(&show));
+    assert!(matches!(
+        mask.pointer_sample(x, y, true, false, 201, &mut display)
+            .unwrap(),
+        NativeFaceMaskInput::Unchanged
+    ));
+    assert!(matches!(
+        mask.pointer_sample(x, y, false, false, 202, &mut display)
+            .unwrap(),
+        NativeFaceMaskInput::Redrawn(_)
+    ));
+    assert_eq!(mask.scene().unwrap().page(), expected);
+    assert_eq!(mask.show(), Some(&show));
+    assert_eq!(mask.scene().unwrap().face(), &face);
+    assert!(matches!(
+        mask.pointer_sample(x, y, false, false, 203, &mut display)
+            .unwrap(),
+        NativeFaceMaskInput::Unchanged
+    ));
+    assert_eq!(mask.scene().unwrap().page(), expected);
+}

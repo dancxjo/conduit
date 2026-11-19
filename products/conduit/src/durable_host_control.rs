@@ -91,9 +91,13 @@ pub(crate) mod browser;
 #[cfg(unix)]
 #[path = "durable_host_control/client_frame.rs"]
 mod client_frame;
+// The complete typed original-counter ingress owner is not yet implemented.
+// Do not expose this preparation fixture as an installed decoder.
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
+#[cfg(test)]
+mod image_return_ingress;
 #[cfg(target_os = "linux")]
 #[path = "durable_host_control/notebook.rs"]
 pub(crate) mod notebook;
@@ -1043,6 +1047,12 @@ enum Request {
         token: Vec<u8>,
         encounter: Box<crate::durable_host::MemberEncounter>,
     },
+    #[cfg(all(test, feature = "member-return-prototype"))]
+    BodyMemberImageReturn {
+        protocol: u16,
+        token: Vec<u8>,
+        command: Box<body::image_member_return::Command>,
+    },
     BodyMemberReturnBegin {
         protocol: u16,
         token: Vec<u8>,
@@ -1330,6 +1340,11 @@ enum Response {
     BodyBrowserLeft {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
+    },
+    #[cfg(all(test, feature = "member-return-prototype"))]
+    BodyMemberImageReturn {
+        protocol: u16,
+        reply: Box<body::image_member_return::Reply>,
     },
     BodyMemberReturnChallenge {
         protocol: u16,
@@ -1917,6 +1932,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::ReleaseRemote { token, .. }
         | Request::InspectWorkerText { token, .. }
         | Request::CompleteWorkerText { token, .. } => token,
+        #[cfg(all(test, feature = "member-return-prototype"))]
+        Request::BodyMemberImageReturn { token, .. } => token,
         #[cfg(unix)]
         Request::BodyAttachedTerminalInteraction { token, .. } => token,
         #[cfg(unix)]
@@ -2226,6 +2243,16 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|credential| Response::BodyMemberReturned {
                 protocol: PROTOCOL,
                 credential,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        #[cfg(all(test, feature = "member-return-prototype"))]
+        Request::BodyMemberImageReturn {
+            protocol, command, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_image_member_return(*command)
+            .map(|reply| Response::BodyMemberImageReturn {
+                protocol: PROTOCOL,
+                reply: Box::new(reply),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberReturnBegin {

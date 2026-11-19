@@ -131,6 +131,9 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	# Standalone history preparation is a dev-only native composition fixture.
+	"bodies/environment/history",
+	"bodies/environment/runtime",
 	"mechanisms/io/pulse-capture",
 	"mechanisms/io/tm1637",
 	"plots/seven-segment-mask",

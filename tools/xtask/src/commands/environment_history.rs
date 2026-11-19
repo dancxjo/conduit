@@ -1,15 +1,31 @@
-//! Pure recorded-history Face and Mask preparation; no live Host claim.
+//! Recorded-history preparation and CPU native composition; no live Host claim.
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "quantity-rounding" => Some(quantity_rounding(root)),
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-commit" => Some(committed(root)),
+        [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-root-startup" => Some(root_startup(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn native(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_mask_play::history_tests",
+        "--",
+        "--test-threads=1",
+    ]))
 }
 fn root_startup(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([
@@ -141,4 +157,9 @@ fn quantity_rounding(root: &Path) -> Result<(), Box<dyn Error>> {
         super::execute(&mut command)?;
     }
     Ok(())
+}
+
+fn committed(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::specifications(&["recording".into()])?;
+    prove(root)
 }

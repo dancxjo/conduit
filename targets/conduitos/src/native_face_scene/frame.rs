@@ -191,6 +191,7 @@ impl NativeFaceScene {
             .then(|| chrome.creche_preferences_hint(self.text_scale_percent))
             .flatten()
             .map(String::from);
+        let show_look_hint = look_hint.is_some();
         let footer = self
             .local_notice
             .clone()
@@ -242,27 +243,31 @@ impl NativeFaceScene {
                     "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
                 }
             });
-        chrome.admit_footer(&footer, self.text_scale_percent)?;
-        push(
-            &mut scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: SPACE_XL as i16,
-                    y: (chrome.bottom + 2) as i16,
-                    width: self.screen.width - SPACE_XL * 2,
-                    height: 2,
-                },
-                self.screen,
-                GraphicsPaintRole::Border,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-        let bounds = chrome.footer;
-        push(
-            &mut scene,
-            GraphicsCommand::text(bounds, self.screen, GraphicsPaintRole::Muted, &footer)
-                .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
-        )?;
+        if let Some(controls) = self.page_controls()? {
+            self.append_page_controls(&mut scene, controls, chrome.compact, show_look_hint)?;
+        } else {
+            chrome.admit_footer(&footer, self.text_scale_percent)?;
+            push(
+                &mut scene,
+                GraphicsCommand::rect(
+                    LayoutRect {
+                        x: SPACE_XL as i16,
+                        y: (chrome.bottom + 2) as i16,
+                        width: self.screen.width - SPACE_XL * 2,
+                        height: 2,
+                    },
+                    self.screen,
+                    GraphicsPaintRole::Border,
+                    GraphicsShapeStyle::Fill,
+                ),
+            )?;
+            let bounds = chrome.footer;
+            push(
+                &mut scene,
+                GraphicsCommand::text(bounds, self.screen, GraphicsPaintRole::Muted, &footer)
+                    .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
+            )?;
+        }
         Ok(FaceFrame {
             continuation,
             scene,

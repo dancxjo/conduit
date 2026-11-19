@@ -3,6 +3,7 @@ extern crate std;
 use core::cell::Cell;
 
 std::thread_local! {
+    static SUBJECT_WORK: Cell<[usize; 3]> = const { Cell::new([0; 3]) };
     static WORK: Cell<[usize; 4]> = const { Cell::new([0; 4]) };
 }
 pub(super) fn query(identity: &str) {
@@ -19,6 +20,19 @@ pub(super) fn entry(identity: &str) {
         counts[2] += 1;
         counts[3] += usize::from(!identity.starts_with("plot/"));
         work.set(counts);
+    });
+}
+
+pub(super) fn subject_checkpoint(length: usize) {
+    SUBJECT_WORK.with(|work| {
+        let [queries, checkpoints, maximum] = work.get();
+        work.set([queries, checkpoints + 1, maximum.max(length)]);
+    });
+}
+pub(super) fn subject_query() {
+    SUBJECT_WORK.with(|work| {
+        let [queries, checkpoints, maximum] = work.get();
+        work.set([queries + 1, checkpoints, maximum]);
     });
 }
 
@@ -42,6 +56,7 @@ fn actual_checkpointed_matcher_never_scans_plots_for_non_plot_identities() {
         required_interaction_context: None,
     };
     WORK.with(|work| work.set([0; 4]));
+    SUBJECT_WORK.with(|work| work.set([0; 3]));
     // This is the same check_contribution path as publication matching, without
     // a received Face index. All actual subject/disclosure checkpoints run.
     port.validate_projection_bounds(basis, &body).unwrap();
@@ -57,4 +72,16 @@ fn actual_checkpointed_matcher_never_scans_plots_for_non_plot_identities() {
     // With this one-entry inventory, the former prefix-inside-scan algorithm
     // visits an entry for every query, including every retained non-plot ID.
     assert_eq!(entries, queries - non_plot_queries);
+    let [subject_queries, checkpoints, maximum_subjects] = SUBJECT_WORK.with(Cell::get);
+    std::eprintln!("subject planned checks={subject_queries} checkpoints={checkpoints} maximum subjects={maximum_subjects}");
+    assert!(
+        checkpoints > 2,
+        "actual repeated graph checkpoints required"
+    );
+    assert!(
+        maximum_subjects > 4,
+        "actual retained graph subjects required"
+    );
+    assert!(subject_queries <= 2 * maximum_subjects,
+        "planned-subject work must stay linear in emitted subjects, rather than rescanning the complete prefix at each checkpoint");
 }

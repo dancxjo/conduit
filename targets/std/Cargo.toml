@@ -5,6 +5,8 @@ edition = "2021"
 
 [features]
 default = []
+# Typed attestation prototype only; no Return workspace or admission.
+member-return-prototype = ["conduit-body/member-return-images"]
 linux-display = ["dep:conduit-linux-display", "conduit-linux-display/sdl", "dep:sdl2", "dep:conduit-linear-framebuffer-make", "dep:conduitos", "dep:conduit-conduitos-mask-offer"]
 burn-model = ["dep:conduit-burn-model"]
 burn-model-cuda = ["burn-model", "conduit-burn-model/cuda"]

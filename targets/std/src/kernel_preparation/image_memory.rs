@@ -49,6 +49,15 @@ impl ImageMemoryLease {
     }
 }
 impl KernelResourceLedger {
+    /// Fixed Return capture checks original ownership without allocating a
+    /// diagnostic inside its framing-only reservation.
+    pub(crate) fn member_return_frame_owner_is_current(&self, lease: &ImageMemoryLease) -> bool {
+        self.retirement_hold.is_none()
+            && self
+                .image_memory
+                .as_ref()
+                .is_some_and(|used| Arc::ptr_eq(used, &lease.inner.used))
+    }
     pub(crate) fn has_image_bounds(&self) -> bool {
         self.image_bounds.is_some()
     }
