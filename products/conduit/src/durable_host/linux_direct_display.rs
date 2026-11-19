@@ -1,4 +1,4 @@
-//! Optional Linux session preparation. Never installs or activates a service.
+//! Prepare an optional Linux console session and switch it on at install time.
 use std::path::Path;
 
 pub(super) fn prepare(
@@ -10,12 +10,46 @@ pub(super) fn prepare(
 ) -> Result<(), String> {
     #[cfg(all(target_os = "linux", feature = "native-display"))]
     {
-        linux::prepare(manifest, state, output, user, tty)
+        linux::prepare(manifest, state, output, user, tty).map(drop)
     }
     #[cfg(not(all(target_os = "linux", feature = "native-display")))]
     {
         let _ = (manifest, state, output, user, tty);
         Err("direct display preparation requires the installed Linux product with native-display; ordinary user-service startup remains available".into())
+    }
+}
+
+pub(super) fn lock_for_install(
+    state: &Path,
+) -> Result<
+    (
+        super::owner_lock::OwnershipLock,
+        super::owner_lock::OwnershipLock,
+    ),
+    String,
+> {
+    if !cfg!(all(target_os = "linux", feature = "native-display")) {
+        return Err(
+            "console installation requires a Linux release built with native-display".into(),
+        );
+    }
+    std::fs::create_dir_all(state).map_err(|e| format!("create display Host state: {e}"))?;
+    super::restrict_directory(state)?;
+    Ok((
+        super::owner_lock::acquire(state)?,
+        super::owner_lock::body(state)?,
+    ))
+}
+
+pub(super) fn activate(manifest: &Path, state: &Path, tty: u8) -> Result<(), String> {
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    {
+        linux::activate(manifest, state, tty)
+    }
+    #[cfg(not(all(target_os = "linux", feature = "native-display")))]
+    {
+        let _ = (manifest, state, tty);
+        Err("console installation requires native-display".into())
     }
 }
 
@@ -70,7 +104,7 @@ mod linux {
         output: &Path,
         user: &str,
         tty: u8,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         validate_session(user, tty)?;
         let state = fs::canonicalize(state).map_err(|e| format!("resolve installed state: {e}"))?;
         let _host = owner_lock::acquire(&state)?;
@@ -96,21 +130,24 @@ mod linux {
             .map_err(|e| format!("resolve installed executable: {e}"))?;
         let current = fs::canonicalize(std::env::current_exe().map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?;
-        if current != executable {
-            return Err("run prepare-direct-display through this Host's exact installed executable to verify its compiled native-display support".into());
-        }
         let release = executable
             .parent()
             .ok_or("installed executable has no release directory")?;
-        if !manifest
+        let product = manifest
             .files
             .iter()
-            .any(|file| Path::new(&file.path).file_name() == executable.file_name())
+            .find(|file| Path::new(&file.path).file_name() == executable.file_name())
+            .ok_or("installed executable is absent from the exact release manifest")?;
+        if current != executable
+            && super::super::digest(&bounded_read(
+                &current,
+                super::super::MAXIMUM_RELEASE_FILE_BYTES,
+            )?) != product.sha256
         {
-            return Err("installed executable is absent from the exact release manifest".into());
+            return Err("use the executable from this verified native-display release".into());
         }
         verify_installed_release(release, &manifest.files)?;
-        let identity = Command::new("id")
+        let identity = Command::new("/usr/bin/id")
             .args(["-u", "--", user])
             .output()
             .map_err(|e| format!("inspect session account: {e}"))?;
@@ -130,7 +167,7 @@ mod linux {
             .create(output)
             .map_err(|e| format!("create new private review directory: {e}"))?;
         let output = fs::canonicalize(output).map_err(|e| e.to_string())?;
-        fs::write(output.join("conduit-direct-display.service"), unit)
+        fs::write(output.join("conduit-direct-display.service"), &unit)
             .map_err(|e| e.to_string())?;
         let source = shell_argument(
             output
@@ -150,6 +187,52 @@ mod linux {
             "prepared optional direct-display review artifacts at {}; activation and physical proof remain pending",
             output.display()
         );
+        Ok(unit)
+    }
+
+    pub(super) fn activate(manifest: &Path, state: &Path, tty: u8) -> Result<(), String> {
+        use std::io::Write;
+        use std::process::Stdio;
+        let account = Command::new("/usr/bin/id")
+            .arg("-un")
+            .output()
+            .map_err(|e| e.to_string())?;
+        if !account.status.success() {
+            return Err("cannot resolve the local display account".into());
+        }
+        let user = std::str::from_utf8(&account.stdout)
+            .map_err(|e| e.to_string())?
+            .trim();
+        let review = fs::canonicalize(state)
+            .map_err(|e| e.to_string())?
+            .join(super::super::fresh_identity("display-install", "review").replace('/', "-"));
+        let unit = prepare(manifest, state, &review, user, tty)?;
+        let mut child = Command::new("/bin/sh")
+            .arg("-c")
+            .arg(concat!(
+                include_str!("linux_direct_display_activate.sh"),
+                "\nactivate_display \"$@\""
+            ))
+            .arg("conduit-direct-display")
+            .arg(&review)
+            .arg(tty.to_string())
+            .stdin(Stdio::piped())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        let write = child
+            .stdin
+            .take()
+            .ok_or("missing service definition pipe")?
+            .write_all(unit.as_bytes());
+        let status = child.wait().map_err(|e| e.to_string())?;
+        if !status.success() {
+            return Err(format!(
+                "direct display activation failed ({status}); review {}",
+                review.display()
+            ));
+        }
+        write.map_err(|e| e.to_string())?;
+        println!("enabled conduit-direct-display.service on tty{tty}");
         Ok(())
     }
 }
@@ -201,3 +284,7 @@ mod tests {
         assert_eq!(shell_argument("/a'b/$(secret)"), "'/a'\\''b/$(secret)'");
     }
 }
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "linux_direct_display/session_tests.rs"]
+mod session_tests;

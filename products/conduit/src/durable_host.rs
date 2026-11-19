@@ -135,32 +135,43 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             manifest,
             state_dir,
             no_start,
+            direct_display_tty,
+            display_configuration,
+            display_image,
             speech,
             model,
             todo_checkpoint,
-        } => (if no_start {
-            install_with_equipment(
+        } => {
+            let locks = direct_display_tty
+                .map(|_| linux_direct_display::lock_for_install(&state_dir))
+                .transpose()?;
+            let installation = install_with_equipment(
                 &manifest,
                 &state_dir,
                 selected_speech::change(speech)?,
                 selected_model::change(model)?,
                 selected_todo::change(todo_checkpoint)?,
-            )
-        } else {
-            install_and_activate_with_equipment(
-                &manifest,
-                &state_dir,
-                selected_speech::change(speech)?,
-                selected_model::change(model)?,
-                selected_todo::change(todo_checkpoint)?,
-            )
-        })
-        .map(|installation| {
+            )?;
+            drop(locks);
+            if let Some(tty) = direct_display_tty {
+                if display_configuration.is_some() {
+                    selected_host_configuration::configure_with_image(
+                        &state_dir,
+                        display_configuration.as_deref(),
+                        false,
+                        display_image.as_deref(),
+                    )?;
+                }
+                linux_direct_display::activate(&manifest, &state_dir, tty)?;
+            } else if !no_start {
+                activate_service(&state_dir)?;
+            }
             println!(
                 "installed durable host {} from {}",
                 installation.host_id, installation.release_bundle_sha256
             );
-        }),
+            Ok(())
+        }
         HostServiceCommand::PrepareDirectDisplay {
             manifest,
             state_dir,
@@ -260,24 +271,6 @@ pub(crate) fn install_and_activate(
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
     let installation = install_without_start(manifest, state_dir)?;
-    activate_service(state_dir)?;
-    Ok(installation)
-}
-
-fn install_and_activate_with_equipment(
-    manifest: &Path,
-    state_dir: &Path,
-    speech_change: selected_speech::Change,
-    model_change: selected_model::Change,
-    todo_change: selected_todo::Change,
-) -> Result<InstalledHostIdentity, String> {
-    let installation = install_with_equipment(
-        manifest,
-        state_dir,
-        speech_change,
-        model_change,
-        todo_change,
-    )?;
     activate_service(state_dir)?;
     Ok(installation)
 }
@@ -1103,6 +1096,9 @@ mod tests {
             manifest: manifest.clone(),
             state_dir: state.clone(),
             no_start: true,
+            direct_display_tty: None,
+            display_configuration: None,
+            display_image: None,
             speech: Default::default(),
             model: Default::default(),
             todo_checkpoint: Default::default(),

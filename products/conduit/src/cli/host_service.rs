@@ -29,6 +29,15 @@ pub(crate) enum HostServiceCommand {
         /// Install without activating the service, for foreground Body ownership.
         #[arg(long)]
         no_start: bool,
+        /// Install and enable a full-screen Linux console session on this dedicated VT.
+        #[arg(long, conflicts_with = "no_start", value_parser = clap::value_parser!(u8).range(1..=63))]
+        direct_display_tty: Option<u8>,
+        /// Checked display Host configuration for a new installation.
+        #[arg(long, requires_all = ["direct_display_tty", "display_image"])]
+        display_configuration: Option<PathBuf>,
+        /// Matching Make IMAGE for the display Host configuration.
+        #[arg(long, requires = "display_configuration")]
+        display_image: Option<PathBuf>,
         #[command(flatten)]
         speech: InstalledSpeechOptions,
         #[command(flatten)]
@@ -80,6 +89,43 @@ mod tests {
     use super::*;
     use crate::cli::{Cli, Command, HostCommand};
     use clap::Parser;
+    #[test]
+    fn direct_display_install_requires_a_tty_and_a_complete_equipment_pair() {
+        let args = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        let parse =
+            |opts: &[&str]| Cli::try_parse_from(args.into_iter().chain(opts.iter().copied()));
+        assert!(parse(&["--direct-display-tty", "1"]).is_ok());
+        assert!(parse(&[
+            "--direct-display-tty",
+            "1",
+            "--display-configuration",
+            "panel.host.conduit",
+            "--display-image",
+            "image.json"
+        ])
+        .is_ok());
+        for opts in [
+            &["--direct-display-tty", "0"][..],
+            &["--direct-display-tty", "1", "--no-start"],
+            &["--display-image", "image.json"],
+            &[
+                "--direct-display-tty",
+                "1",
+                "--display-configuration",
+                "panel.host.conduit",
+            ],
+        ] {
+            assert!(parse(opts).is_err());
+        }
+    }
     #[test]
     fn direct_display_is_explicit_and_requires_dedicated_session() {
         let base = [
