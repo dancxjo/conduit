@@ -5,6 +5,27 @@ This file records the constraints contributors and coding agents need when
 changing code. Keep routine work focused and explain the behavior and proof
 that matter to a reviewer.
 
+## Current product sprint: Archibold
+
+The current release-oriented goal is [Sprint Archibold](docs/sprints/archibold.md),
+owned by [#6984](https://github.com/dancxjo/conduit/issues/6984):
+download a reviewed release; enter Crib; create or join a Body with a selectable
+useful default workset; use Ambient Commons and Patchbay; then return to the
+same Body after closing the UI or restarting the Host. Prove this independently
+for browser, supported hosted Linux/Windows/macOS, and ConduitOS. This is a
+**planned acceptance target**, not a statement that every platform already
+passes. A sprint PR must identify which Archibold acceptance step it advances,
+which current code/owner it reuses, and which platform proof is still missing.
+
+**Delivery policy:** coordinate by *actual shared-file/contract/equipment*
+conflicts, not a global two-active-PR quota. Distinct independent work may run
+in parallel; one writer owns any shared code/equipment seam at a time and
+conflicting merge-ready changes need an agreed order. The integration shepherd
+owns cross-platform convergence, red-dev repair and source-matched release
+acceptance. Retain all existing safety, handoff, resource, CI and publication
+rules below. Do not turn deferred Look animation, GPIO or general settings
+architecture into prerequisites without a demonstrated Archibold blocker.
+
 ## Read the relevant contracts
 
 Before changing code, read the [canon](docs/conduit-canon.md),
