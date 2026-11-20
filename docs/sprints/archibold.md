@@ -1,0 +1,68 @@
+# Sprint Archibold: the first complete Conduit experience
+
+**Status:** current sprint goal, set 19 November 2026. This is a plan and acceptance contract, **not** a claim that five-platform product proof or release has already passed.
+
+**Product acceptance owner:** [#6984](https://github.com/dancxjo/conduit/issues/6984). [#6983](https://github.com/dancxjo/conduit/issues/6983) is the dependency/board index, not an alternate source of product truth.
+
+## North star
+
+> Download Conduit. Run Crib. Choose the resident Plots. Create or join a Body. Enter the Commons, with clock, wallpaper, weather, startup chime where admitted, and Patchbay. Close it, return or reboot, and re-enter **the same Body**.
+
+The underlying operating system should be an implementation detail of the encounter. A browser, hosted Linux, hosted Windows, hosted macOS and ConduitOS use the same Face/Mask/Look semantics, original actions, and navigation meaning. Native and browser outputs need coherent visual design, not bit-for-bit identical pixels or invented Host capabilities.
+
+## End-user journey and required behavior
+
+1. **Acquire:** the website offers verified reviewed release artifacts for the supported target variants: browser; hosted Linux x86-64; hosted Windows x86-64; hosted macOS Apple silicon; and ConduitOS x86-64 bootable image. Installation/boot formats may differ. A normal user must not require a repository checkout, Cargo, a compiler or `cargo xtask`. Do not represent an archive or image as a one-click installer unless it actually is one.
+2. **First entrance:** launching the published product reaches **Crib** when no Body is associated with the current durable Host. Establish/observe the actual Host and Boot identities. Offer **Create Body** or authenticated **Join existing Body**. Explicit Birth of a new Body admits this Host as its first Part; neither Seed preparation nor a rendezvous helper alone proves Boot or membership.
+3. **Select resident Plots:** the Crib chooser uses checked source/Root configuration to offer, default-on when feasible, **Startup Chime, Clock, Weather, Wallpaper**, and **Patchbay access**. Each is independently selectable before Birth, and changes must be persisted through the actual retained Body/configuration owner when promised. A user may build a clock-only, headless or sound-only Body; missing capabilities must be disclosed, not faked. No universal /etc-like configuration editor or all-purpose control panel is a prerequisite.
+4. **Commons:** once the Body is admitted and active, the ordinary graphical entrance opens on the **Ambient Place**. Provide a readable, consistent Clock/Date, weather condition/status, attributed photographic wallpaper, and accessible navigation to Patchbay/Body inspection. Different Hosts or surfaces may choose distinct eligible Masks/Looks and encounter focus; they share authoritative Face meaning and source actions, not global screen selection. Nonvisual/linear access retains the same meaningful subjects.
+5. **Time and failure:** a clock shown at minute precision advances at actual qualified civil-minute boundaries using admitted time evidence; a Host-local redraw does not require a Body-wide tick, repeated weather acquisition or restart of application Play. Weather outage/staleness must not stop the clock. Missing image/audio/graphics must trigger truthful fallback/refusal, not stop otherwise admitted work.
+6. **Chime:** existing Startup Chime is **Body Wake-scoped**, not necessarily an arbitrary process launch or every Host Boot. Retain that precise behavior unless a separately checked Boot-scoped Plot is explicitly authored and accepted. Browser autoplay restrictions, unavailable outputs and mute must remain observable.
+7. **Return:** closing the GUI or setup shell must not terminate an installed durable Host that promises continued service. Re-running the product should attach to that Host rather than minting another. After an actual Host reboot, expect a **new Boot identity** and re-admission of the same retained Host/Body identity; do not resurrect volatile Plans/Plays as if execution survived. The GUI returns to Commons where possible. Existing installations must not be overwritten or reborn by a second install.
+8. **Second Host:** prove one additional authenticated browser Host joining the same Body through the existing Crib/Womb/Seed path, with no new Body identity. Keep advanced cross-device provisioning separate from the first-Host entrance but include this as the multi-Host capstone.
+
+## Ordered issue stack and ownership
+
+| Slice | Primary issues or existing work | End-to-end output |
+|---|---|---|
+| A. Download, Host entrance and Crib | [#6911](https://github.com/dancxjo/conduit/issues/6911); [#6984](https://github.com/dancxjo/conduit/issues/6984); reuse completed [#3417](https://github.com/dancxjo/conduit/issues/3417), [#2096](https://github.com/dancxjo/conduit/issues/2096), [#4804](https://github.com/dancxjo/conduit/issues/4804) | First run, Birth/Join, correct Host/Boot/Part, repeat-run attach |
+| B. Default resident Body | [#6909](https://github.com/dancxjo/conduit/issues/6909); reuse completed [#3152](https://github.com/dancxjo/conduit/issues/3152) | One checked default selection offered in every supported Crib; admitted chime/clock/weather/wallpaper |
+| C. Native/graphical ambient and Commons | [#6909](https://github.com/dancxjo/conduit/issues/6909), [#5354](https://github.com/dancxjo/conduit/issues/5354), [#5363](https://github.com/dancxjo/conduit/issues/5363), [#6201](https://github.com/dancxjo/conduit/issues/6201); inspect [PR #6990](https://github.com/dancxjo/conduit/pull/6990) | Same checked Face/Look intent on actual browser/native Mask; Ambient initial Place; navigation to functional Patchbay |
+| D. Accessible, truthful alternatives | [#6916](https://github.com/dancxjo/conduit/issues/6916), [#5363](https://github.com/dancxjo/conduit/issues/5363) | Keyboard and linear access; no unsolicited speech on routine ticks/rotations; current Show/action correspondence |
+| E. Installation, return, release proof | [#6984](https://github.com/dancxjo/conduit/issues/6984) | Exact released artifact, first run, closed/reopened GUI, genuine restart and identity reconciliation per target |
+
+Implement the **smallest independently testable product delta** that closes a failing Archibold acceptance step. Do not reopen completed prerequisites merely to increase issue throughput. Do not re-implement old parked branches: reconcile current `dev`, [merged #6981](https://github.com/dancxjo/conduit/pull/6981), and active [#6990](https://github.com/dancxjo/conduit/pull/6990) before touching overlapping native Mask files.
+
+**Deferred unless a concrete acceptance test proves they are blocking:** generalized Control Panel [#6982](https://github.com/dancxjo/conduit/issues/6982), complete Look declaration language [#5377](https://github.com/dancxjo/conduit/issues/5377), advanced reactive styles/animations/PWM [#6994](https://github.com/dancxjo/conduit/issues/6994), full control vocabulary [#6038](https://github.com/dancxjo/conduit/issues/6038), VEML7700 and physical backlight qualification, and general Subject Graph/AI/MCU extensions. Manual existing Looks and immediate transitions are acceptable for the first usable product.
+
+## Execution and coordination: dependency-based, not a global two-lane cap
+
+Organize work into independent **Crib/distribution**, **ambient/native**, and **Commons/Face/Mask** slices, plus one named **integration shepherd**. Parallel PRs are permitted **only** with concrete disjoint file, resource, contract and equipment ownership. No arbitrary project-wide limit of two active implementation PRs. A PR altering shared core/CI/renderer contracts must coordinate with other writers and agree on merge order, with at most one conflicting merge-ready candidate for the same shared area. Protect active branches, ownership handoffs, resource leases, physical services and device proof. Never begin competing implementations of an issue already owned by another agent.
+
+One issue may have several small PRs; one PR should produce one independently observable outcome. A follow-on ticket needs a demonstrated failing case or named missing contract, not a speculative architecture prerequisite. When `dev` is red, repair or revert the cause before admitting more features. Preserve exact `dev` Candidate → Integration → publisher requirements and [CI proof classes](../contributing/ci.md). This change in coordination policy is not permission to bypass resource admission or release protection.
+
+Every owner/handoff reports: issue/acceptance step, current branch/head, exact modified files, test/proof class and result, remaining blocker, and next owner. The integration shepherd reconciles target evidence and maintains [#6983](https://github.com/dancxjo/conduit/issues/6983) as the small navigable dependency index. Do not turn the board into another implementation subsystem.
+
+## Sprint exit matrix
+
+For each target, record **downloaded released artifact identity**, actual entrance, checked Body/Host/Boot/Part identity, selected starter work, one real current Show (or documented unavailable modality), GUI close/re-entry, full supported reboot/reload, and current truthful release/proof receipts. Each target can fail independently; do not upgrade a browser test to native or physical proof.
+
+| Target | Entrance and initial Face | What return means |
+|---|---|---|
+| Browser | Static/reviewed browser product with Crib and Commons | Reload/return in same retained profile/storage; storage loss reported |
+| Linux x86-64 | Packaged native Host, ideally durable systemd service where offered | Closing UI preserves Host; reboot re-admits same Body; verify service/linger semantics |
+| Windows x86-64 | Reviewed native artifact and actual launch/install path | Verify reattach and durable startup mechanism; report absent service support |
+| macOS Apple silicon | Reviewed native artifact and actual launch/install path | Verify reattach and durable startup mechanism; report absent login/startup integration |
+| ConduitOS x86-64 | Reviewed boot image, actual native Crib/Commons | QEMU boot and re-entry; persistence only if an independently admitted durable store actually exists |
+
+**Release gate:** an unfamiliar person can follow a published, OS-appropriate entry point to a working Body and return to it without accidentally birthing another. The same core interaction and Look semantics remain available where offered. A missing mandatory target result is a visible outstanding Archibold acceptance step, never an invented green check.
+
+## First actions for coding agents
+
+1. Inspect current `dev`, release assets, active PR/branch owners, and each of the five entry paths. Record a five-target **red/green/unknown** evidence matrix before writing broad runtime changes; distinguish code build from packaged first use.
+2. Finish the first supported Crib → choice of resident Plots → admitted first Host/Body → Ambient Commons → re-entry vertical slice. Preserve the existing Create/Join and ordinary Face interaction authority; don't add a second setup engine.
+3. Integrate the reviewed native picture-frame delta from #6990 and the existing ambient producer; demonstrate image/clock/weather in a current selected Show and no repeated Body Play for local time changes.
+4. Exercise a true browser and native Commons/Patchbay interaction with typed Show and source action validity, including failure/keyboard/linear cases. Repair only proven missing control features.
+5. Run and document the five target-specific published-artifact acceptance journeys and a two-Host membership proof. Fix the smallest responsible seam for each outstanding refusal; do not claim this sprint complete from software fixtures alone.
+
+Archibold is a **product acceptance goal**, not a new kernel architecture, user-facing word to substitute for Crib, or a mandate to complete the whole backlog.
