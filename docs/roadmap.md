@@ -16,6 +16,25 @@ capabilities understandable and useful through real product experiences.
 names exact development, accepted-release, publication, lag, and proof-receipt
 identities; this roadmap does not substitute planned work for any of those.
 
+## Current sprint: Archibold (19 November 2026)
+
+The current product acceptance target is **[Archibold](sprints/archibold.md)**,
+tracked by [#6984](https://github.com/dancxjo/conduit/issues/6984).
+The goal is one complete released-user journey across the browser, hosted
+Linux/Windows/macOS and ConduitOS: download, enter Crib, select default resident
+Plots, create or join a Body, see an ambient Commons/Clock with Patchbay access,
+and return to the same Body after a supported restart. Each target's results
+must be independently qualified; existing release assets and individual UI
+proofs do not yet establish this whole journey.
+
+Archibold's issue stack and permitted independent workstreams are in its
+[sprint brief](sprints/archibold.md). Parallel development is now controlled by
+**actual overlapping files, contracts and equipment**, not an arbitrary global
+two-PR cap; one integration shepherd retains the exact-source release gate.
+Deferred reactive motion, GPIO brightness and generalized control-panel
+features do not block the basic Crib/Commons experience. The older sections
+below remain dated navigation/history rather than a competing sprint priority.
+
 ## How this roadmap relates to continuing Bodies
 
 A Body's identity is distinct from the Host or Boot currently doing its work.
