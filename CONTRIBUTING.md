@@ -32,6 +32,17 @@ Linux release set, including the Raspberry Pi OS AArch64 package, run
 `cargo xtask doctor linux-release`. The first invocation compiles the repository
 tooling, so allow time and disk space.
 
+## Current sprint: Archibold
+
+The active user-facing acceptance target is [Sprint Archibold](docs/sprints/archibold.md)
+([#6984](https://github.com/dancxjo/conduit/issues/6984)): a normal person
+downloads Conduit, enters Crib, chooses resident Plots, creates or joins a Body,
+uses the ambient Commons/Patchbay, and can return to the **same** Body on the
+appropriate browser, Linux, Windows, macOS or ConduitOS Host. Pick a small
+independently testable part of that journey. Do not make speculative architecture
+or completed legacy tickets blockers; identify actual platform gaps and exact
+proof classes. Sprint goals are plans, not claims that those paths already ship.
+
 ## Find your place
 
 | If you want to work on… | Begin with… |
@@ -72,12 +83,15 @@ A docs-only change does not retroactively establish a new proof class.
 
 Choose one independently verifiable child issue and check current `dev`, open
 PR ownership, and origin branches before branching. Salvage useful existing
-work with its discussion and proof intact. Keep at most two overlapping
-implementation PRs in review across the flow, with at most one merge-ready PR
-changing shared core contracts. Give each a named owner and disjoint scope.
-Other tickets stay unbranched until a slot opens or the owner explicitly hands
-off; when parallel preparation is requested, use isolated worktrees and hold
-prepared changes locally rather than expanding the PR queue.
+work with its discussion and proof intact. **There is no global two-PR
+implementation cap.** Parallel work is welcome when file ownership, core
+contracts, equipment and proof resources are genuinely independent. Give each
+active change a named owner and disjoint scope. Keep one active writer per
+overlapping shared code/equipment seam, coordinate merge order for competing
+core/CI changes, and avoid two simultaneously merge-ready candidates for
+the same shared contract. An active owner must hand off before another agent
+takes over that seam. Keep speculative tickets unbranched; isolated worktrees
+may prepare nonoverlapping work without creating competing PRs.
 
 Move a reviewed result through its required green merge/integration or an
 explicit handoff before admitting the next result. While checks run, continue
