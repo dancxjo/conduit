@@ -14,7 +14,13 @@ useful default workset; use Ambient Commons and Patchbay; then return to the
 same Body after closing the UI or restarting the Host. Prove this independently
 for browser, supported hosted Linux/Windows/macOS, and ConduitOS. This is a
 **planned acceptance target**, not a statement that every platform already
-passes. A sprint PR must identify which Archibold acceptance step it advances,
+passes. In particular, **freestanding ConduitOS standalone Body recovery after a
+cold boot is NOT implemented or proved**: its present storage path is read-only.
+Archibold cannot claim that target passes without a real admitted writable
+DISK Back and bounded committed Body continuity recovery, or explicitly report
+a distinct remote-Body rejoin proof and label standalone persistence blocked.
+A live ISO, new Boot, or fresh Birth cannot substitute for that evidence.
+A sprint PR must identify which Archibold acceptance step it advances,
 which current code/owner it reuses, and which platform proof is still missing.
 
 **Delivery policy:** coordinate by *actual shared-file/contract/equipment*
