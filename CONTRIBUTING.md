@@ -34,14 +34,20 @@ tooling, so allow time and disk space.
 
 ## Current sprint: Archibold
 
-The active user-facing acceptance target is [Sprint Archibold](docs/sprints/archibold.md)
-([#6984](https://github.com/dancxjo/conduit/issues/6984)): a normal person
-downloads Conduit, enters Crib, chooses resident Plots, creates or joins a Body,
-uses the ambient Commons/Patchbay, and can return to the **same** Body on the
-appropriate browser, Linux, Windows, macOS or ConduitOS Host. Pick a small
-independently testable part of that journey. Do not make speculative architecture
-or completed legacy tickets blockers; identify actual platform gaps and exact
-proof classes. Sprint goals are plans, not claims that those paths already ship.
+[Sprint Archibold](docs/sprints/archibold.md) ([#6984](https://github.com/dancxjo/conduit/issues/6984))
+prioritizes **one complete useful experience first**: download → Crib → select
+resident Plots → Body → Ambient Commons and Patchbay → return to the same Body
+on reviewed browser or installed hosted Linux machinery. A first vertical
+does not wait for new storage drivers or full Windows/macOS/native parity.
+Then expand to Stem's same-Body Seeds/second Host and additional supported
+entrances.
+
+The bare-metal ConduitOS Pi is Threebee, **Raspberry Pi 3 Model B+**,
+not the older ARMv6 B+. Direct firmware boot [#6859](https://github.com/dancxjo/conduit/issues/6859)
+and microSD durability [#6996](https://github.com/dancxjo/conduit/issues/6996)
+are separately owned **P2/deferred follow-ons**. A single-Boot ConduitOS
+experience can be useful without falsely claiming a local persistent Body.
+Keep current-target evidence and a real release trace for each acceptance.
 
 ## Find your place
 
