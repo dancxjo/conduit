@@ -159,13 +159,16 @@ test("an intentionally empty Body remains lulled without inventing a play", asyn
   await expect(page.getByRole("heading", { name: "No Plots installed", exact: true })).toBeVisible();
   await expect(page.locator("#plot-input")).toBeHidden();
   await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeHidden();
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(original.active_play_id).toBeUndefined();
-  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
+  await waitForWorkspacePreparation(page, { expectedState: "Lulled" });
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   const returned = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(original.body_id);
+  expect(returned.host_id).toBe(original.host_id);
+  expect(returned.boot_id).not.toBe(original.boot_id);
   expect(returned.active_play_id).toBeUndefined();
 });
 
