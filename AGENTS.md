@@ -7,39 +7,37 @@ that matter to a reviewer.
 
 ## Current product sprint: Archibold
 
-The current release-oriented goal is [Sprint Archibold](docs/sprints/archibold.md),
-owned by [#6984](https://github.com/dancxjo/conduit/issues/6984):
-download a reviewed release; enter Crib; create or join a Body with a selectable
-useful default workset; use Ambient Commons and Patchbay; then return to the
-same Body after closing the UI or restarting the Host. Prove this independently
-for browser, supported hosted Linux/Windows/macOS, and ConduitOS. This is a
-**planned acceptance target**, not a statement that every platform already
-passes. In particular, **freestanding ConduitOS standalone Body recovery after a
-cold boot is NOT implemented or proved**: its present storage path is read-only.
-Archibold cannot claim that target passes without a real admitted writable
-DISK Back and bounded committed Body continuity recovery, or explicitly report
-a distinct remote-Body rejoin proof and label standalone persistence blocked.
-A live ISO, new Boot, or fresh Birth cannot substitute for that evidence.
-**Physical target correction:** the current bare-metal Raspberry Pi is
-**Threebee, Raspberry Pi 3 Model B+ rev 1.3, direct AArch64 ConduitOS**.
-[#6859](https://github.com/dancxjo/conduit/issues/6859) owns its exact
-firmware/Host Boot; [#6996](https://github.com/dancxjo/conduit/issues/6996)
-owns microSD write/flush, bounded committed SOUL recovery and a witnessed
-physical cold reboot. Do not target the retired ARMv6 Model B+ as the physical
-Archibold Pi, borrow its BCM2835 SD assumptions, or confuse Raspberry Pi OS
-running on Threebee with native ConduitOS. x86_64 QEMU disk proofs and
-Pi3B+ physical storage proofs remain separate acceptance classes.
-A sprint PR must identify which Archibold acceptance step it advances,
-which current code/owner it reuses, and which platform proof is still missing.
+The current first-use acceptance goal is [Sprint Archibold](docs/sprints/archibold.md),
+tracked in [#6984](https://github.com/dancxjo/conduit/issues/6984) and ordered by
+[#6983](https://github.com/dancxjo/conduit/issues/6983). **NOW:** reviewed
+download → Crib Birth/Join → checked selected resident Plots → Ambient Commons
+and usable Patchbay → close and re-enter the **same Body** on an already durable
+browser/hosted Linux Host. Prove browser and installed-host reentry independently
+with exact current Body/Host/Boot, Plan/Play, Face/Show and released-artifact
+evidence. This is a *planned outcome*, not proof that it already ships.
+
+**NEXT:** Stem as a genuine Crib-catalog selectable ordinary Plot for same-Body
+member Seeds and a second browser Host; hosted Windows/macOS qualification;
+native ConduitOS x86_64 single-Boot Commons, with truthful ephemeral persistence
+if no selected storage Back exists.
+
+**LATER, not an upstream first-use dependency:** [#6859](https://github.com/dancxjo/conduit/issues/6859)
+direct AArch64 ConduitOS boot on **Threebee (Pi 3B+ rev 1.3)**, followed by
+[#6996](https://github.com/dancxjo/conduit/issues/6996) real microSD
+read/write/flush and safe committed Body continuity on disposable media.
+ConduitOS x86_64/QEMU durable disk recovery is separate. Do not claim physical
+Pi or virtual persistence from a successful browser/Linux return, nor prevent
+the first working vertical on an already durable Host because these drivers
+are unfinished. Raspberry Pi OS on Threebee is not bare-metal ConduitOS.
 
 **Delivery policy:** coordinate by *actual shared-file/contract/equipment*
 conflicts, not a global two-active-PR quota. Distinct independent work may run
-in parallel; one writer owns any shared code/equipment seam at a time and
-conflicting merge-ready changes need an agreed order. The integration shepherd
-owns cross-platform convergence, red-dev repair and source-matched release
-acceptance. Retain all existing safety, handoff, resource, CI and publication
-rules below. Do not turn deferred Look animation, GPIO or general settings
-architecture into prerequisites without a demonstrated Archibold blocker.
+in parallel; one writer owns each overlapping code/equipment seam at a time,
+with agreed order for conflicting merge-ready changes. An integration shepherd
+owns red-dev repair, cross-platform proof and source-matched release gates.
+Keep bounded checks, architecture, custody, security and publication safeguards
+below. Work from current source and fix demonstrated first-user failures
+before inventing broad architecture prerequisites.
 
 ## Read the relevant contracts
 
