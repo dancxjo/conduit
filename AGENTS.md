@@ -20,6 +20,15 @@ Archibold cannot claim that target passes without a real admitted writable
 DISK Back and bounded committed Body continuity recovery, or explicitly report
 a distinct remote-Body rejoin proof and label standalone persistence blocked.
 A live ISO, new Boot, or fresh Birth cannot substitute for that evidence.
+**Physical target correction:** the current bare-metal Raspberry Pi is
+**Threebee, Raspberry Pi 3 Model B+ rev 1.3, direct AArch64 ConduitOS**.
+[#6859](https://github.com/dancxjo/conduit/issues/6859) owns its exact
+firmware/Host Boot; [#6996](https://github.com/dancxjo/conduit/issues/6996)
+owns microSD write/flush, bounded committed SOUL recovery and a witnessed
+physical cold reboot. Do not target the retired ARMv6 Model B+ as the physical
+Archibold Pi, borrow its BCM2835 SD assumptions, or confuse Raspberry Pi OS
+running on Threebee with native ConduitOS. x86_64 QEMU disk proofs and
+Pi3B+ physical storage proofs remain separate acceptance classes.
 A sprint PR must identify which Archibold acceptance step it advances,
 which current code/owner it reuses, and which platform proof is still missing.
 
