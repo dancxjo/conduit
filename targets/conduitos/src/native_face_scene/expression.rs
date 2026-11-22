@@ -230,12 +230,10 @@ impl NativeFaceScene {
         preferred: Option<conduit_core::Unit>,
     ) -> Result<Self, FaceSceneError> {
         let typography = if expression.expression.identity == conduit_face::PICTURE_FRAME_LOOK_ID {
-            Typography::with_made_look_metrics(
-                expression.expression.typography,
-                conduit_face::picture_frame_text_metrics(),
-                200,
-            )
-            .map_err(|_| FaceSceneError::InvalidExtent)?
+            let look =
+                conduit_face::picture_frame_look().map_err(|_| FaceSceneError::InvalidExtent)?;
+            Typography::with_visual_look(expression.expression.typography, &look, 200)
+                .map_err(|_| FaceSceneError::InvalidExtent)?
         } else {
             Typography::new(expression.expression.typography)
         };

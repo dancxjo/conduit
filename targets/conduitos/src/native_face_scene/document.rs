@@ -446,6 +446,14 @@ pub(super) fn prepare_for_viewer(
     Ok((primary, details))
 }
 
+pub(super) fn weather_summary(
+    face: &Face,
+    subject: &conduit_face::FaceSubject,
+    preferred: Option<conduit_core::Unit>,
+) -> Option<String> {
+    weather::summary(face, subject, preferred)
+}
+
 fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
     if argument.contract.value_kind.as_str() == "value/bool" {
         return match (

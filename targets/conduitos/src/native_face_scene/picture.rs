@@ -45,16 +45,19 @@ impl NativeFaceScene {
             expression,
             preferred_temperature,
         )?;
-        scene.enable_picture_frame()?;
+        scene.enable_picture_frame(preferred_temperature)?;
         Ok(scene)
     }
 
     /// Open an admitted photograph as a cover page. All original reading pages,
     /// disclosure and action mappings remain reachable through ordinary paging.
-    fn enable_picture_frame(&mut self) -> Result<(), FaceSceneError> {
+    fn enable_picture_frame(
+        &mut self,
+        preferred_temperature: Option<conduit_core::Unit>,
+    ) -> Result<(), FaceSceneError> {
         if self.picture_frame.is_none()
             && let Some(image) = image::prepare(&self.face)?
-            && let Some(prepared) = self.prepare_picture(image)
+            && let Some(prepared) = self.prepare_picture(image, preferred_temperature)
         {
             for row in &mut self.primary {
                 row.page += 1;
@@ -67,6 +70,7 @@ impl NativeFaceScene {
     fn prepare_picture(
         &self,
         (key, index): (conduit_face::GraphicsImageKey, usize),
+        preferred_temperature: Option<conduit_core::Unit>,
     ) -> Option<PicturePage> {
         let face = &self.face;
         let semantic = |name: &str| {
@@ -88,13 +92,14 @@ impl NativeFaceScene {
         };
         let date = property("local-date")?;
         let time = property("local-time")?;
-        let (weather_subject, _) = semantic("weather/conditions")?;
+        let (weather_subject_index, weather_subject) = semantic("weather/conditions")?;
         // The first Body wording is the complete owner or localized weather
         // summary made by document::prepare. Attributions follow it.
         let weather = self.primary.iter().position(|r| {
-            r.subject_index == Some(weather_subject) && r.role == GraphicsTextRole::Body
+            r.subject_index == Some(weather_subject_index) && r.role == GraphicsTextRole::Body
         })?;
-        if !self.primary[weather].whole_wording {
+        let summary = document::weather_summary(face, weather_subject, preferred_temperature)?;
+        if self.primary[weather].text != summary {
             return None;
         }
         let texts = [

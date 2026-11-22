@@ -42,8 +42,6 @@ const INDENT_STEP: u16 = 14;
 pub(super) struct Row {
     pub continuation: Option<LayoutContinuation>,
     pub text: String,
-    /// This row owns the entire wording, including any freshness qualifier.
-    pub whole_wording: bool,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
@@ -274,7 +272,6 @@ pub(super) fn admit_with_expression_selected(
             rows.push(Row {
                 continuation: continuation.take(),
                 text: remaining[..end].into(),
-                whole_wording: end == item.text.len(),
                 role: item.role,
                 paint: item.paint,
                 control: item.control,
