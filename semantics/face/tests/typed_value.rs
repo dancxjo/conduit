@@ -279,3 +279,42 @@ fn physical_units_and_dimension_specific_quantities_have_semantic_wording() {
         "Invalid typed value"
     );
 }
+
+#[test]
+fn regional_temperature_changes_only_display_coordinates() {
+    use conduit_face::{display_typed_value_for_temperature as render, TemperatureDisplayUnit::*};
+    for (input, expected) in [
+        ("6.8°C", "44.2 °F"),
+        ("-40°C", "-40.0 °F"),
+        ("0°C", "32.0 °F"),
+        ("273.15K", "32.0 °F"),
+    ] {
+        let q = Quantity::parse_plot_literal(input).unwrap();
+        let c = contract(
+            conduit_core::TEMPERATURE_INFO_ID,
+            QUANTITY_ENCODED_LEN as u32,
+        );
+        let bytes = q.encode();
+        assert_eq!(render(&c, &bytes, Fahrenheit), expected);
+        assert_eq!(Quantity::decode(&bytes).unwrap(), q);
+    }
+    let c = contract(
+        conduit_core::TEMPERATURE_INFO_ID,
+        QUANTITY_ENCODED_LEN as u32,
+    );
+    assert_eq!(
+        render(
+            &c,
+            &Quantity::parse_plot_literal("32.81°F").unwrap().encode(),
+            Celsius
+        ),
+        "0.5 °C"
+    );
+    let f = contract(conduit_core::FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN as u32);
+    let bytes = Quantity::parse_plot_literal("1kHz").unwrap().encode();
+    assert_eq!(
+        render(&f, &bytes, Fahrenheit),
+        display_typed_value(&f, &bytes)
+    );
+    assert_eq!(render(&c, &bytes, Fahrenheit), "Invalid typed value");
+}

@@ -17,12 +17,33 @@ pub(crate) fn validate(contract: &CheckedValueContract, bytes: &[u8]) -> Result<
 }
 
 pub fn display_typed_value(contract: &CheckedValueContract, bytes: &[u8]) -> String {
-    wording(contract, bytes, false)
+    wording(contract, bytes, false, None)
 }
 pub fn spoken_typed_value(contract: &CheckedValueContract, bytes: &[u8]) -> String {
-    wording(contract, bytes, true)
+    wording(contract, bytes, true, None)
 }
-fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> String {
+/// Viewer-selected coordinates for absolute temperatures. Source values, action
+/// arguments and exact inspection retain their original representation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TemperatureDisplayUnit {
+    Celsius,
+    Fahrenheit,
+}
+
+pub fn display_typed_value_for_temperature(
+    contract: &CheckedValueContract,
+    bytes: &[u8],
+    unit: TemperatureDisplayUnit,
+) -> String {
+    wording(contract, bytes, false, Some(unit))
+}
+
+fn wording(
+    contract: &CheckedValueContract,
+    bytes: &[u8],
+    spoken: bool,
+    preferred: Option<TemperatureDisplayUnit>,
+) -> String {
     if validate(contract, bytes).is_err() {
         return "Invalid typed value".into();
     }
@@ -46,6 +67,22 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
         )
     ) {
         let quantity = Quantity::decode(bytes).expect("validated canonical quantity");
+        if let Some(preferred) = preferred {
+            let (unit, symbol) = match preferred {
+                TemperatureDisplayUnit::Celsius => (Unit::Celsius, "°C"),
+                TemperatureDisplayUnit::Fahrenheit => (Unit::Fahrenheit, "°F"),
+            };
+            if matches!(
+                quantity.unit(),
+                Unit::Celsius | Unit::Fahrenheit | Unit::Kelvin
+            ) {
+                if let Ok(tenths) = crate::rounded_quantity_coordinate(quantity, unit, 1) {
+                    let sign = if tenths < 0 { "-" } else { "" };
+                    let magnitude = tenths.unsigned_abs();
+                    return format!("{sign}{}.{:01} {symbol}", magnitude / 10, magnitude % 10);
+                }
+            }
+        }
         let number = decimal(quantity);
         let unit = match (quantity.unit(), spoken) {
             (Unit::Celsius, false) => "°C".into(),

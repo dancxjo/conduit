@@ -285,3 +285,23 @@ project-owned lifecycle labels.
 
 This note freezes the vocabulary, not a package manager, installer, dynamic
 module system, or body lifecycle redesign.
+
+### Regional preferences for the Linux terminal Mask
+
+A GNU/Linux Host can let its foreground terminal viewer use the user's
+measurement convention. Add this Base to the Host configuration:
+
+```conduit
+base = {kind: "locale/regional-preferences", implementation: "hosted/linux-regional-preferences@1", initialization: {temperature: "system"}}
+```
+
+Select `"fahrenheit"` or `"celsius"` to override the locale. With the Host
+stopped, install the checked configuration using
+`conduit host service configure local.host.conduit --state-dir STATE`.
+Use this configuration-only workflow on a Host without a selected IMAGE.
+After starting the Host, `conduit body terminal --state-dir STATE` applies
+the preference to typed absolute temperature values in primary disclosure
+rows. The inspector retains the source coordinates and shows the system time
+zone when Linux identifies it through its zoneinfo installation. An unavailable
+measurement convention leaves the original unit visible. Display-only
+conversion preserves Face identity, observation time and action arguments.

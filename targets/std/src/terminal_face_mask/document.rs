@@ -14,12 +14,16 @@ pub(super) struct Row {
     pub control: Option<TerminalControl>,
 }
 
-pub(super) fn prepare(face: &Face, width: usize) -> Result<(Vec<Row>, Vec<Row>), TerminalError> {
+pub(super) fn prepare(
+    face: &Face,
+    width: usize,
+    preferences: Option<&crate::hosted_region::RegionalPreferences>,
+) -> Result<(Vec<Row>, Vec<Row>), TerminalError> {
     let plan = plan_face_utterances(face).map_err(|_| TerminalError::DocumentPressure)?;
     let mut rows = if face.disclosures.is_empty() {
         Vec::new()
     } else {
-        primary_rows(face, &plan, width)?
+        primary_rows(face, &plan, width, preferences.and_then(|p| p.temperature))?
     };
     if face.disclosures.is_empty() {
         for (index, clause) in plan.clauses.iter().enumerate() {
@@ -72,6 +76,16 @@ pub(super) fn prepare(face: &Face, width: usize) -> Result<(Vec<Row>, Vec<Row>),
     }
     let linear = render_linear_face(face).map_err(|_| TerminalError::DocumentPressure)?;
     let mut inspect = Vec::new();
+    if let Some(preferences) = preferences {
+        let zone = preferences.timezone().unwrap_or("unavailable");
+        append(
+            &mut inspect,
+            &format!("Viewer time zone: {zone}"),
+            width,
+            None,
+            None,
+        )?;
+    }
     for line in linear.lines {
         append(&mut inspect, &line, width, None, None)?;
     }
@@ -86,6 +100,7 @@ fn primary_rows(
     face: &Face,
     plan: &FaceUtterancePlan,
     width: usize,
+    temperature: Option<conduit_face::TemperatureDisplayUnit>,
 ) -> Result<Vec<Row>, TerminalError> {
     let level = |subject: &str| {
         face.disclosures
@@ -169,7 +184,11 @@ fn primary_rows(
             &mut rows,
             &format!(
                 "{label}: {}",
-                conduit_face::display_typed_value(contract, bytes)
+                match temperature {
+                    Some(unit) =>
+                        conduit_face::display_typed_value_for_temperature(contract, bytes, unit),
+                    None => conduit_face::display_typed_value(contract, bytes),
+                }
             ),
             width,
             clause,

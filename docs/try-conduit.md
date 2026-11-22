@@ -38,6 +38,32 @@ startup while keeping that state. Starting the Host runs its background
 service. Opening a full-screen Face still requires a configured display
 and a Body that presents one.
 
+### Use a dedicated Linux display at boot
+
+From a separate terminal on a Linux console machine with systemd 256 or newer,
+install a **native-display** release with the Host configuration and IMAGE made
+for its display. For example, from an x86-64 release directory:
+
+```sh
+sh ./install-linux-x86_64.sh --direct-display-tty 1 \
+  --display-configuration ./panel.host.conduit --display-image ./panel.image.json
+```
+
+On another supported Linux architecture, pass the same options to the release
+executable's `host service install MANIFEST --state-dir STATE` command.
+On a configured installation, stop the Host first and omit the two equipment
+arguments to retain its existing selection. Run as the ordinary Host account.
+The installer checks the selected scanout and installed release, requests
+administrative authorization, then enables and starts the PAM/logind console
+service. Use an unoccupied VT and release the display from any running desktop.
+Check startup with `systemctl status conduit-direct-display.service`.
+
+The installer retains the previous service states and rollback instructions in
+a private review directory beneath the Host state. To preview the unit without
+activation, use `conduit host service prepare-direct-display --help`.
+The console runs SDL KMSDRM directly. Visible Body content requires the Host
+to receive and present a current admitted Show.
+
 ## Try Conduit from source
 
 The commands below run from a checkout. You do not need an installed `conduit`
