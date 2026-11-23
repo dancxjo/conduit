@@ -1,7 +1,7 @@
 //! Synthetic Pete inputs qualify live model grounding, without physical access.
 use super::*;
 
-fn bodily_frames() -> Vec<PeteCognitionFrame> {
+pub(super) fn bodily_frames() -> Vec<PeteCognitionFrame> {
     let unavailable = frame(4, "What is my battery charge percentage now?", false);
     vec![
         create_frame(1, "Remember my battery charge.", true),
@@ -81,14 +81,14 @@ fn execute(
     episodes
 }
 
-fn current(request: &serde_json::Value) -> serde_json::Value {
+pub(super) fn current(request: &serde_json::Value) -> serde_json::Value {
     common::model_projection::expanded_model_evidence(
         &request["current_experience"],
         request["observation"]["content"].as_str().unwrap(),
     )
 }
 
-fn homeostasis(evidence: &serde_json::Value) -> serde_json::Value {
+pub(super) fn homeostasis(evidence: &serde_json::Value) -> serde_json::Value {
     let item = evidence["evidence"]
         .as_array()
         .unwrap()
@@ -164,11 +164,7 @@ fn assert_percentage(answer: &str, expected: &[&str]) {
 #[ignore = "requires the explicitly selected installed loopback Ollama model"]
 fn live_qualification_separates_previous_current_and_unavailable_battery() {
     let model = ollama_episode_model();
-    live_model::receipt(
-        model.as_ref(),
-        PETE_PROGRAM,
-        "unchanged_pete_authored_persona",
-    );
+    instruction_contract::receipt(model.as_ref(), PETE_PROGRAM);
     let episodes = execute(model, bodily_frames());
     assert_eq!(episodes.len(), 4);
     assert_eq!(*episodes[1].recalled().get()[0].episode(), 1);
@@ -201,11 +197,7 @@ fn live_qualification_separates_previous_current_and_unavailable_battery() {
 #[ignore = "requires the explicitly selected installed loopback Ollama model"]
 fn live_qualification_grounds_a_direct_human_report() {
     let model = ollama_episode_model();
-    live_model::receipt(
-        model.as_ref(),
-        PETE_PROGRAM,
-        "unchanged_pete_authored_persona",
-    );
+    instruction_contract::receipt(model.as_ref(), PETE_PROGRAM);
     let episodes = execute(model, vec![human_report_frame()]);
     let [episode] = episodes.as_slice() else {
         panic!("expected one episode")

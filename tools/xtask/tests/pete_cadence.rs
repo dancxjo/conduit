@@ -415,3 +415,6 @@ mod cancellation;
 mod pete_replay;
 #[path = "pete_cadence/replay.rs"]
 mod replay;
+
+#[path = "pete_cadence/resumable.rs"]
+mod resumable;
