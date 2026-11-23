@@ -87,6 +87,10 @@ impl PreparedObservation {
             + self.timezone.capacity()
     }
 
+    pub(crate) fn encoded(&self) -> &[u8] {
+        self.record.encoded()
+    }
+
     pub(crate) fn compose(&mut self, reply: CivilClockReply<'_>) -> Result<&[u8], String> {
         let instant = reply.observed_at_unix_ms.to_le_bytes();
         let offset = i64::from(reply.utc_offset_minutes).to_le_bytes();

@@ -11,8 +11,8 @@ use conduit_core::{
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId,
-    HostedValueStore, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
+    PortId, RequestId, ValueRef, ValueStorage,
 };
 use conduit_semantic_catalog as catalog;
 
@@ -109,12 +109,9 @@ impl<const PORTS: usize> StepBack<PORTS> for ClockBack {
             let Ok(value) = self.observation.compose(reply) else {
                 return invalid();
             };
-            let Ok(value) = CanonicalValue::new(value) else {
-                return invalid();
-            };
             io.consume_host_completion()
                 .expect("observed clock completion");
-            io.send_canonical(PortId(0), value)
+            io.send_prepared(PortId(0), value.len() as u32)
                 .expect("ready clock output");
             self.pending = false;
             return StepOutcome::Progress;
@@ -149,6 +146,10 @@ impl<const PORTS: usize> StepBack<PORTS> for ClockBack {
             return StepOutcome::Complete;
         }
         StepOutcome::Await
+    }
+
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0)).then(|| self.observation.encoded())
     }
 
     fn cancel(&mut self) {
