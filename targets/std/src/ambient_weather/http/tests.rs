@@ -34,10 +34,10 @@ fn exact_request_and_both_finite_response_frames_allocate_nothing_during_read() 
         let probe = crate::allocation_probe::begin();
         let result = provider.read_into(&conduit_time::encode_tick(0), &mut output,
             Instant::now() + MAXIMUM_WAIT, || false);
-        let statistics = probe.finish_statistics();
+        let allocated_bytes = probe.finish_bytes();
         assert_eq!(result, Ok(2));
         assert_eq!(&output[..2], b"{}");
-        assert_eq!(statistics.requested_bytes, 0);
+        assert_eq!(allocated_bytes, 0);
         server.join().unwrap();
     }
 }
@@ -60,9 +60,9 @@ fn malformed_oversized_redirected_or_encoded_responses_refuse_without_output() {
         let probe = crate::allocation_probe::begin();
         let result = provider.read_into(&conduit_time::encode_tick(0), &mut output,
             Instant::now() + MAXIMUM_WAIT, || false);
-        let statistics = probe.finish_statistics();
+        let allocated_bytes = probe.finish_bytes();
         assert_eq!(result, Err(expected));
-        assert_eq!(statistics.requested_bytes, 0);
+        assert_eq!(allocated_bytes, 0);
         assert!(output.iter().all(|v| *v == 0xA5));
         server.join().unwrap();
     }
@@ -105,9 +105,9 @@ fn cancellation_deadline_and_invalid_tick_do_not_publish() {
         }
         cancelled.get()
     });
-    let statistics = probe.finish_statistics();
+    let allocated_bytes = probe.finish_bytes();
     assert_eq!(result, Err(E::Cancelled));
-    assert_eq!(statistics.requested_bytes, 0);
+    assert_eq!(allocated_bytes, 0);
     assert!(output.iter().all(|v| *v == 0xA5));
     finish.send(()).unwrap();
     server.join().unwrap();
@@ -132,9 +132,9 @@ fn live_seattle_http_acquisition_decodes_current_conditions() {
         Instant::now() + MAXIMUM_WAIT,
         || false,
     );
-    let statistics = probe.finish_statistics();
+    let allocated_bytes = probe.finish_bytes();
     let count = result.unwrap();
-    assert_eq!(statistics.requested_bytes, 0);
+    assert_eq!(allocated_bytes, 0);
     let weather = super::super::PreparedOpenMeteoWeather::prepare("Seattle", 900_000).unwrap();
     let reading = weather.decode_reading(&output[..count]).unwrap();
     let now = std::time::SystemTime::now()

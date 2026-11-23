@@ -13,7 +13,7 @@ fn mutable_wire_matches_independent_native_projection_without_growth() {
     let backing = wire.prepared_heap_bytes();
     let probe = crate::allocation_probe::begin();
     assert_eq!(wire.encode(0).unwrap(), unavailable);
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
     for (time, temp, code) in [
         (100, "-2.125", 63),
         (200, "1.234e1", 0),
@@ -28,7 +28,7 @@ fn mutable_wire_matches_independent_native_projection_without_growth() {
         let checked = native.decode_reading(body.as_bytes()).unwrap();
         let probe = crate::allocation_probe::begin();
         wire.refresh(body.as_bytes(), time * 1000).unwrap();
-        assert_eq!(probe.finish_statistics().requested_bytes, 0);
+        assert_eq!(probe.finish_bytes(), 0);
         for now in [
             time * 1000 - 1,
             time * 1000,
@@ -47,7 +47,7 @@ fn mutable_wire_matches_independent_native_projection_without_growth() {
             .unwrap();
             let probe = crate::allocation_probe::begin();
             assert_eq!(wire.encode(now).unwrap(), expected);
-            assert_eq!(probe.finish_statistics().requested_bytes, 0);
+            assert_eq!(probe.finish_bytes(), 0);
             assert_eq!(wire.prepared_heap_bytes(), backing);
         }
     }
@@ -117,7 +117,7 @@ fn rejected_refreshes_preserve_last_reading_without_error_allocations() {
         let probe = crate::allocation_probe::begin();
         assert_eq!(wire.refresh(body.as_bytes(), 100_000), Err(error));
         assert_eq!(wire.encode(105_001).unwrap(), expected);
-        assert_eq!(probe.finish_statistics().requested_bytes, 0);
+        assert_eq!(probe.finish_bytes(), 0);
     }
 }
 
@@ -143,7 +143,7 @@ fn validates_discarded_json_and_bounded_nesting() {
         let body = format!("{{\"ignored\":{ignored},{}", &text[1..]);
         let probe = crate::allocation_probe::begin();
         assert!(decode(body.as_bytes()).is_err());
-        assert_eq!(probe.finish_statistics().requested_bytes, 0);
+        assert_eq!(probe.finish_bytes(), 0);
     }
     let nested = format!(
         "{{\"ignored\":{}0{},{}",
@@ -177,7 +177,7 @@ fn every_condition_and_precision_lexeme_matches_checked_native_values() {
             let probe = crate::allocation_probe::begin();
             wire.refresh(body.as_bytes(), 100_000).unwrap();
             assert_eq!(wire.encode(100_000).unwrap(), expected);
-            assert_eq!(probe.finish_statistics().requested_bytes, 0);
+            assert_eq!(probe.finish_bytes(), 0);
         }
     }
 }
@@ -197,12 +197,12 @@ fn initial_refusal_and_exact_body_limit_remain_explicit_and_bounded() {
         Err(AmbientWeatherRefusal::MalformedResponse)
     );
     assert_eq!(wire.encode(100_000).unwrap(), expected);
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
     let mut body = BODY.to_vec();
     body.resize(4096, b' ');
     let probe = crate::allocation_probe::begin();
     wire.refresh(&body, 100_000).unwrap();
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
     let overflow = String::from_utf8(BODY.to_vec())
         .unwrap()
         .replace("\"time\":100", "\"time\":18446744073709551");
@@ -211,5 +211,5 @@ fn initial_refusal_and_exact_body_limit_remain_explicit_and_bounded() {
         wire.refresh(overflow.as_bytes(), u64::MAX),
         Err(AmbientWeatherRefusal::TimestampOverflow)
     );
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
 }

@@ -36,7 +36,7 @@ fn one_nonblocking_connection_preserves_the_exact_ipv4_or_ipv6_peer_without_allo
             0
         );
         drop(stream);
-        assert_eq!(probe.finish_statistics().requested_bytes, 0);
+        assert_eq!(probe.finish_bytes(), 0);
     }
 }
 #[test]
@@ -65,7 +65,7 @@ fn refused_cancelled_and_expired_connections_allocate_nothing() {
         connect(endpoint, Instant::now(), &|| false),
         Err(Error::Deadline)
     ));
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
 }
 
 // Linux's zero listen backlog admits one queued handshake. Keeping that slot
@@ -99,7 +99,7 @@ fn pending_connect_uses_the_original_total_deadline_and_checks_cancellation_with
     let result = provider.read_into(&tick, &mut output, began + MAXIMUM_WAIT, || {
         Instant::now() >= cancel_at
     });
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
     assert_eq!(result, Err(Error::Cancelled));
     assert!(output.iter().all(|b| *b == 0xA5));
     assert!(
@@ -114,7 +114,7 @@ fn pending_connect_uses_the_original_total_deadline_and_checks_cancellation_with
         began + Duration::from_millis(30),
         || false,
     );
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
     assert_eq!(result, Err(Error::Deadline));
     assert!(output.iter().all(|b| *b == 0xA5));
     let began = Instant::now();
@@ -146,7 +146,7 @@ fn a_single_connection_may_complete_after_the_old250ms_slice_within_the_same_two
     let began = Instant::now();
     let probe = crate::allocation_probe::begin();
     let result = connect(endpoint, began + Duration::from_secs(2), &|| false);
-    assert_eq!(probe.finish_statistics().requested_bytes, 0);
+    assert_eq!(probe.finish_bytes(), 0);
     assert!(
         result.is_ok(),
         "one pending connection should complete after backlog pressure releases: {result:?}"
