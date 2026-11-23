@@ -46,6 +46,8 @@ pub(crate) struct ProcessReport {
     pub stderr: CapturedOutput,
     pub elapsed_millis: u64,
     pub launched: bool,
+    /// The selected stdout bound established retirement before another cause.
+    pub stdout_bound_retired: bool,
 }
 const RETIREMENT: Duration = Duration::from_millis(100);
 const POLL: Duration = Duration::from_millis(2);
@@ -80,7 +82,35 @@ pub(crate) fn run_process_with_input_bound(
         request.stdin,
         cancelled,
         started,
+        false,
     )
+}
+
+/// A selected provider may separately admit a larger finite wire response.
+/// Ordinary/funded entrances keep their existing 131116-byte capture ceiling.
+pub(crate) fn run_process_with_input_and_output_bounds(
+    request: &ProcessRequest<'_>,
+    maximum_input_bytes: usize,
+    maximum_stdout_bytes: usize,
+    cancelled: impl Fn() -> bool,
+) -> Result<ProcessReport, ProcessError> {
+    PreparedProcess::validate_with_output_bound(
+        request,
+        maximum_input_bytes,
+        maximum_stdout_bytes,
+    )?;
+    let started = Instant::now();
+    if cancelled() {
+        return Ok(report(
+            ProcessTerminal::Cancelled,
+            CapturedOutput::default(),
+            CapturedOutput::default(),
+            started,
+            false,
+        ));
+    }
+    PreparedProcess::prepare_with_output_bound(request, maximum_input_bytes, maximum_stdout_bytes)?
+        .run_at(request.stdin, cancelled, started, true)
 }
 impl PreparedProcess {
     pub(crate) fn run(
@@ -88,13 +118,14 @@ impl PreparedProcess {
         payload: &[u8],
         cancelled: impl Fn() -> bool,
     ) -> Result<ProcessReport, ProcessError> {
-        self.run_at(payload, cancelled, Instant::now())
+        self.run_at(payload, cancelled, Instant::now(), false)
     }
     fn run_at(
         self,
         payload: &[u8],
         cancelled: impl Fn() -> bool,
         started: Instant,
+        stop_at_stdout_bound: bool,
     ) -> Result<ProcessReport, ProcessError> {
         if payload.len() > self.maximum_input_bytes || payload.is_empty() != self.input_is_empty {
             return Err(ProcessError::InvalidRequest(
@@ -149,6 +180,7 @@ impl PreparedProcess {
         }
         let mut terminal = None;
         let mut retired_at = None;
+        let mut stdout_bound_retired = false;
         loop {
             if terminal.is_none() {
                 if cancelled() {
@@ -219,6 +251,16 @@ impl PreparedProcess {
                     record_pipe_failure(&mut terminal, error, &mut diagnostic);
                 }
             }
+            if stop_at_stdout_bound
+                && terminal.is_none()
+                && out.observed_bytes > self.maximum_stdout_bytes as u64
+            {
+                stdout_bound_retired = true;
+                terminal = Some(ProcessTerminal::ProviderLost(prepared::provider_error(
+                    &mut diagnostic,
+                    format_args!("process stdout exceeded its admitted ceiling"),
+                )));
+            }
             if let Some(retired) = retired_at {
                 if out_eof && err_eof {
                     break;
@@ -239,13 +281,9 @@ impl PreparedProcess {
         // captured pipe handles also retires descriptors held by escaped descendants.
         let _ = child.wait();
         guard.1 = true;
-        Ok(report(
-            terminal.expect("terminal process"),
-            out,
-            err,
-            started,
-            true,
-        ))
+        let mut completed = report(terminal.expect("terminal process"), out, err, started, true);
+        completed.stdout_bound_retired = stdout_bound_retired;
+        Ok(completed)
     }
 }
 // Retirement can discover a broken pipe after cancellation or the deadline.
@@ -276,6 +314,7 @@ fn report(
         stderr,
         elapsed_millis: started.elapsed().as_millis().try_into().unwrap_or(u64::MAX),
         launched,
+        stdout_bound_retired: false,
     }
 }
 struct ChildGuard(Child, bool);

@@ -17,11 +17,19 @@ impl PreparedProcess {
         request: &ProcessRequest<'_>,
         maximum_input_bytes: usize,
     ) -> Result<(), ProcessError> {
+        Self::validate_with_output_bound(request, maximum_input_bytes, 131_116)
+    }
+    pub(super) fn validate_with_output_bound(
+        request: &ProcessRequest<'_>,
+        maximum_input_bytes: usize,
+        maximum_stdout_bytes: usize,
+    ) -> Result<(), ProcessError> {
         if maximum_input_bytes > 8 * 1024 * 1024
             || (!cfg!(unix) && maximum_input_bytes > 256)
             || !request.program.is_absolute()
             || request.stdin.len() > maximum_input_bytes
-            || request.maximum_stdout_bytes > 131_116
+            || maximum_stdout_bytes > 16 * 1024 * 1024
+            || request.maximum_stdout_bytes > maximum_stdout_bytes
             || request.maximum_stderr_bytes > 131_116
             || request.timeout.is_zero()
         {
@@ -100,7 +108,14 @@ impl PreparedProcess {
         request: &ProcessRequest<'_>,
         maximum_input_bytes: usize,
     ) -> Result<Self, ProcessError> {
-        Self::validate(request, maximum_input_bytes)?;
+        Self::prepare_with_output_bound(request, maximum_input_bytes, 131_116)
+    }
+    pub(super) fn prepare_with_output_bound(
+        request: &ProcessRequest<'_>,
+        maximum_input_bytes: usize,
+        maximum_stdout_bytes: usize,
+    ) -> Result<Self, ProcessError> {
+        Self::validate_with_output_bound(request, maximum_input_bytes, maximum_stdout_bytes)?;
         let mut command = Command::new(request.program);
         command
             .args(request.arguments)
