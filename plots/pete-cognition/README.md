@@ -213,6 +213,13 @@ identities count toward the existing request and checkpoint byte limits.
 source contract; broader clock transfer remains under
 [#6879](https://github.com/dancxjo/conduit/issues/6879).
 
+Deterministic tests use complete captured operator frames, a 64-byte zero-offset
+clock identity, both ordinary and cadenced resumable Plots, and one retained
+episode. Both two-episode cases fit the unchanged bounds: the largest model
+request was 3934/4096 bytes and checkpoint 3950/8192 bytes. Inference and UART
+were fenced; a separate real child-process test checks same-kernel clock
+identity. These results do not qualify larger inputs or a different model.
+
 For independent attention updates and explicit reflection positions, use the
 [three-Form composition](../pete-cognition-cadenced/README.md) with
 `--reflection-after`. Its source, model bounds, checkpoint retention, and
