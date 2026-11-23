@@ -33,6 +33,7 @@ pub(in crate::plot_runner) enum TourHostEffect {
     AudioIo(Box<TourAudioIoEffect>),
     PitchTone(Box<crate::plot_runner::audio::PitchToneEffect>),
     ClockObservation(Box<TourKeyEventEffect>),
+    CivilClockObservation(Box<TourKeyEventEffect>),
     Snapshot(Box<SnapshotEffect>),
     Manifestation(Box<TourEffect>),
     Timer(Box<TourTimerEffect>),
@@ -53,7 +54,9 @@ impl TourHostEffect {
             Self::AudioCue(effect) => effect.source_interaction = Some(source_interaction),
             Self::AudioIo(effect) => effect.source_interaction = Some(source_interaction),
             Self::PitchTone(effect) => effect.source_interaction = Some(source_interaction),
-            Self::ClockObservation(effect) => effect.source_interaction = Some(source_interaction),
+            Self::ClockObservation(effect) | Self::CivilClockObservation(effect) => {
+                effect.source_interaction = Some(source_interaction)
+            }
             Self::Snapshot(effect) => effect.source_interaction = Some(source_interaction),
             Self::Manifestation(effect) => effect.source_interaction = Some(source_interaction),
             Self::Timer(effect) => effect.source_interaction = Some(source_interaction),

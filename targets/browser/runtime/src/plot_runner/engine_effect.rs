@@ -13,6 +13,7 @@ pub(in crate::plot_runner) enum BrowserHostEffect {
     PcmPlayback { frame: Option<Vec<u8>> },
     PitchTone { hertz: u32 },
     ClockObservation,
+    CivilClockObservation,
     Timer { duration_millis: u64 },
     Snapshot { publish: bool },
     KeyEvent,

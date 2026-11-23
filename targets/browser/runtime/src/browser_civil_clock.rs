@@ -2,6 +2,7 @@
 
 use conduit_core::{LocalDate, LocalDateTime, LocalTime, TemporalScale, UtcOffsetSeconds};
 
+pub const CIVIL_CLOCK_OPERATION: &str = "conduit.host/browser-civil-clock@1";
 pub const CIVIL_CLOCK_REPLY_BYTES: usize = 28;
 
 #[derive(Debug, PartialEq, Eq)]
