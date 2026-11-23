@@ -37,7 +37,7 @@ fn prepares_opaque_png_and_jpeg_with_deterministic_identity() {
         &<[u8; 32]>::from(Sha256::digest(&bytes))
     );
     assert_eq!((first.width(), first.height()), (20, 10));
-    assert!(first.rgba().chunks_exact(4).all(|p| p[3] == 255));
+    assert!(first.rgba().as_chunks::<4>().0.iter().all(|p| p[3] == 255));
     assert_eq!(first.candidate().credit.as_deref(), Some("Credit"));
     assert_eq!(first.license(), None);
     let mut jpeg = Vec::new();
