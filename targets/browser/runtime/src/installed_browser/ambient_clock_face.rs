@@ -66,23 +66,58 @@ fn present(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, S
 pub(crate) fn text(input: &[u8]) -> Result<String, String> {
     let value = conduit_core::validate_canonical_structured_value(input)
         .map_err(|error| format!("decode ambient Face: {error:?}"))?;
-    let field = |name| {
-        value
-            .record_field(name)
-            .map_err(|error| format!("{error:?}"))?
-            .ok_or_else(|| format!("missing ambient Face field: {name}"))
-    };
-    let label = |name| {
-        let bytes = field(name)?
-            .primitive_bytes(conduit_core::TEXT_INFO_ID)
-            .map_err(|error| format!("{error:?}"))?;
-        core::str::from_utf8(bytes).map_err(|error| format!("{error:?}"))
-    };
-    let date = label("local_date")?;
-    let time = label("local_time")?;
-    let timezone = label("timezone")?;
-    let weather = field("weather")?
-        .variant_tag()
-        .map_err(|error| format!("{error:?}"))?;
-    Ok(format!("{date} · {time} · {timezone} · Weather {weather}"))
+    let date = label(field(value, "local_date")?)?;
+    let time = label(field(value, "local_time")?)?;
+    let timezone = label(field(value, "timezone")?)?;
+    let weather = weather_text(field(value, "weather")?)?;
+    Ok(format!("{date} · {time} · {timezone} · {weather}"))
+}
+
+type Observation<'a> = conduit_core::ValidatedCanonicalStructuredValue<'a>;
+
+fn field<'a>(value: Observation<'a>, name: &str) -> Result<Observation<'a>, String> {
+    value
+        .record_field(name)
+        .map_err(debug_error)?
+        .ok_or_else(|| format!("missing ambient Face field: {name}"))
+}
+
+fn label(value: Observation<'_>) -> Result<&str, String> {
+    let bytes = value
+        .primitive_bytes(conduit_core::TEXT_INFO_ID)
+        .map_err(debug_error)?;
+    core::str::from_utf8(bytes).map_err(debug_error)
+}
+
+fn weather_text(weather: Observation<'_>) -> Result<String, String> {
+    let status = weather.variant_tag().map_err(debug_error)?;
+    let payload = weather
+        .variant_payload(status)
+        .map_err(debug_error)?
+        .ok_or("missing weather variant payload")?;
+    match status {
+        "unavailable" => Ok(format!("Weather unavailable · {}", label(payload)?)),
+        "fresh" | "stale" => {
+            let reading = field(payload, "reading")?;
+            let location = label(field(reading, "location")?)?;
+            let conditions = label(field(reading, "conditions")?)?;
+            let provider = label(field(reading, "attribution")?)?;
+            let temperature = i64::from_le_bytes(
+                field(reading, "temperature_celsius_milli")?
+                    .primitive_bytes("value/i64")
+                    .map_err(debug_error)?
+                    .try_into()
+                    .map_err(debug_error)?,
+            );
+            let temperature = temperature as f64 / 1000.0;
+            Ok(format!(
+                "Weather {status} · {location} · {conditions} · {temperature} °C · {provider}"
+            ))
+        }
+        _ => Err("unknown ambient weather status".into()),
+    }
+}
+
+fn debug_error(error: impl core::fmt::Debug) -> String {
+    format!("{error:?}")
 }

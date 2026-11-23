@@ -61,7 +61,7 @@ fn resident_clock_samples_civil_time_and_manifests_through_the_browser_kernel() 
                 );
                 assert_eq!(
                     value.text.as_deref(),
-                    Some("2026-11-01 · 01:00:00 · America/Los_Angeles · Weather unavailable")
+                    Some("2026-11-01 · 01:00:00 · America/Los_Angeles · Weather unavailable · Weather provider unavailable")
                 );
                 assert_eq!(session.cancel().unwrap().disposition, "cancelled");
                 return;
