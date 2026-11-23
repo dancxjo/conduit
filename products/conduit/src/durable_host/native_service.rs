@@ -1,4 +1,4 @@
-//! Retain actual KMSDRM/Mask ownership beside the single selected speaker IMAGE.
+//! Retain actual KMSDRM/Mask ownership with optional IMAGE-selected playback.
 //! Initialization does not bind a Show or admit per-Plan native rendering.
 use super::*;
 use startup_trace::{Phase, Trace};
