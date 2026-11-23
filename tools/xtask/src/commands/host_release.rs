@@ -396,7 +396,7 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let product = root.join("conduit-linux-x86_64");
         let file = fs::File::create(&product).unwrap();
-        file.set_len(MAXIMUM_FILE_BYTES + 1).unwrap();
+        file.set_len(MAXIMUM_NATIVE_FILE_BYTES).unwrap();
         drop(file);
         let seal_product = |manifest_name| {
             seal(
@@ -417,7 +417,7 @@ mod tests {
         seal_product("release.json").unwrap();
         let manifest: serde_json::Value =
             serde_json::from_slice(&fs::read(root.join("release.json")).unwrap()).unwrap();
-        assert_eq!(manifest["files"][0]["bytes"], MAXIMUM_FILE_BYTES + 1);
+        assert_eq!(manifest["files"][0]["bytes"], MAXIMUM_NATIVE_FILE_BYTES);
 
         fs::OpenOptions::new()
             .write(true)
