@@ -32,6 +32,18 @@ fn read_exact(master: &mut std::fs::File, expected: &[u8]) {
     assert_eq!(observed, expected);
 }
 
+fn status(master: &mut std::fs::File, packet: u8, value: u8) {
+    read_exact(master, &[148, 1, packet]);
+    let checksum = 0_u8.wrapping_sub(
+        19_u8
+            .wrapping_add(2)
+            .wrapping_add(packet)
+            .wrapping_add(value),
+    );
+    master.write_all(&[19, 2, packet, value, checksum]).unwrap();
+    read_exact(master, &[150, 0]);
+}
+
 #[test]
 fn exact_std_path_runs_canonical_signal_and_finishes_indicator_off() {
     let mut pty = Pty::open();
@@ -40,8 +52,7 @@ fn exact_std_path_runs_canonical_signal_and_finishes_indicator_off() {
     let responder = std::thread::spawn(move || {
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[131]);
-        read_exact(&mut pty.master, &[142, 35]);
-        pty.master.write_all(&[2]).unwrap();
+        status(&mut pty.master, 35, 2);
         for sequence in 0..16 {
             let expected = if sequence % 2 == 0 {
                 [139, 0, 0, 0]
@@ -99,8 +110,7 @@ fn provider_loss_during_manifestation_retains_failed_cleanup() {
     let responder = std::thread::spawn(move || {
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[131]);
-        read_exact(&mut pty.master, &[142, 35]);
-        pty.master.write_all(&[2]).unwrap();
+        status(&mut pty.master, 35, 2);
         read_exact(&mut pty.master, &[139, 0, 0, 0]);
         // Dropping both PTY ends makes the next manifestation and the
         // mandatory terminal-off cleanup fail at the provider seam.
