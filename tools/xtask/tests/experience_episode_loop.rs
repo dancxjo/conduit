@@ -270,9 +270,9 @@ fn assert_pete_create_serial_play(first_sample: SerialSample) {
     let peer = master.map(|mut master| {
         std::thread::spawn(move || {
             for revision in 1..=2 {
-                let mut commands = [0; 6];
+                let mut commands = [0; 5];
                 master.read_exact(&mut commands).unwrap();
-                assert_eq!(commands, [128, 131, 148, 2, 0, 34]);
+                assert_eq!(commands, [128, 148, 2, 0, 34]);
                 let capacity = if first_sample == SerialSample::MissingCapacity && revision == 1 {
                     0
                 } else {
@@ -856,23 +856,9 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
     );
 }
 
-fn ollama_episode_model() -> Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>
-{
-    use conduit_ai::LocalModelKindProfile;
-    use conduit_std_host::hosted_local_model::OllamaDiscovery;
-
-    let model = std::env::var("CONDUIT_PETE_LIVE_MODEL").unwrap_or_else(|_| "gemma3:latest".into());
-    let memory_mib = std::env::var("CONDUIT_PETE_LIVE_MEMORY_MIB")
-        .unwrap_or_else(|_| "6144".into())
-        .parse()
-        .expect("CONDUIT_PETE_LIVE_MEMORY_MIB must be an integer");
-    println!("Live Pete model: {model}; admitted memory: {memory_mib} MiB");
-    let adapter = OllamaDiscovery::discover_at("http://127.0.0.1:11434", &model)
-        .unwrap()
-        .initialize(memory_mib, vec![LocalModelKindProfile::GenerateFlow])
-        .unwrap();
-    Box::new(adapter)
-}
+#[path = "experience_episode_loop/live_model.rs"]
+mod live_model;
+use live_model::ollama_episode_model;
 
 #[test]
 #[ignore = "requires a running loopback Ollama with gemma3:latest already installed"]
@@ -1214,3 +1200,6 @@ fn stale_battery_and_safety_do_not_become_current_homeostatic_facts() {
 
 #[path = "experience_episode_loop/provenance.rs"]
 mod retained_provenance;
+
+#[path = "experience_episode_loop/live_qualification.rs"]
+mod live_qualification;

@@ -32,6 +32,18 @@ fn read_exact(master: &mut std::fs::File, expected: &[u8]) {
     assert_eq!(observed, expected);
 }
 
+fn status(master: &mut std::fs::File, packet: u8, value: u8) {
+    read_exact(master, &[148, 1, packet]);
+    let checksum = 0_u8.wrapping_sub(
+        19_u8
+            .wrapping_add(2)
+            .wrapping_add(packet)
+            .wrapping_add(value),
+    );
+    master.write_all(&[19, 2, packet, value, checksum]).unwrap();
+    read_exact(master, &[150, 0]);
+}
+
 #[test]
 fn exact_std_path_runs_portable_plan_and_only_speaker_bytes() {
     let mut pty = Pty::open();
@@ -40,20 +52,15 @@ fn exact_std_path_runs_portable_plan_and_only_speaker_bytes() {
     let responder = std::thread::spawn(move || {
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[132]);
-        read_exact(&mut pty.master, &[142, 35]);
-        pty.master.write_all(&[3]).unwrap();
+        status(&mut pty.master, 35, 3);
         read_exact(&mut pty.master, &[140, 2, 4, 60, 32, 64, 32, 0, 12, 67, 40]);
         read_exact(&mut pty.master, &[141, 2]);
-        read_exact(&mut pty.master, &[142, 36]);
-        pty.master.write_all(&[2]).unwrap();
-        read_exact(&mut pty.master, &[142, 37]);
-        pty.master.write_all(&[1]).unwrap();
-        read_exact(&mut pty.master, &[142, 37]);
-        pty.master.write_all(&[0]).unwrap();
+        status(&mut pty.master, 36, 2);
+        status(&mut pty.master, 37, 1);
+        status(&mut pty.master, 37, 0);
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[131]);
-        read_exact(&mut pty.master, &[142, 35]);
-        pty.master.write_all(&[2]).unwrap();
+        status(&mut pty.master, 35, 2);
         // Keep both PTY ends alive until the command has consumed the final
         // byte. Closing the master immediately after writing can surface HUP
         // before the slave drains the response on Linux.
@@ -85,21 +92,16 @@ fn failed_safe_cleanup_is_never_reported_as_completed() {
     let responder = std::thread::spawn(move || {
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[132]);
-        read_exact(&mut pty.master, &[142, 35]);
-        pty.master.write_all(&[3]).unwrap();
+        status(&mut pty.master, 35, 3);
         read_exact(&mut pty.master, &[140, 2, 4, 60, 32, 64, 32, 0, 12, 67, 40]);
         read_exact(&mut pty.master, &[141, 2]);
-        read_exact(&mut pty.master, &[142, 36]);
-        pty.master.write_all(&[2]).unwrap();
-        read_exact(&mut pty.master, &[142, 37]);
-        pty.master.write_all(&[1]).unwrap();
-        read_exact(&mut pty.master, &[142, 37]);
-        pty.master.write_all(&[0]).unwrap();
+        status(&mut pty.master, 36, 2);
+        status(&mut pty.master, 37, 1);
+        status(&mut pty.master, 37, 0);
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[131]);
-        read_exact(&mut pty.master, &[142, 35]);
         // The device claims it remained FULL after the mandatory SAFE request.
-        pty.master.write_all(&[3]).unwrap();
+        status(&mut pty.master, 35, 3);
     });
     let evidence = execute(&args(path, temp_path("unused-cleanup-failure"))).unwrap();
     responder.join().unwrap();
@@ -122,13 +124,11 @@ fn failed_full_observation_still_restores_and_observes_safe() {
     let responder = std::thread::spawn(move || {
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[132]);
-        read_exact(&mut pty.master, &[142, 35]);
-        // This is a complete one-byte mode packet, but not a legal OI mode.
-        pty.master.write_all(&[0xff]).unwrap();
+        // This is a complete frame with an invalid mode payload.
+        status(&mut pty.master, 35, 0xff);
         read_exact(&mut pty.master, &[128]);
         read_exact(&mut pty.master, &[131]);
-        read_exact(&mut pty.master, &[142, 35]);
-        pty.master.write_all(&[2]).unwrap();
+        status(&mut pty.master, 35, 2);
         response_consumed_rx.recv().unwrap();
     });
     let error = match execute(&args(path, temp_path("unused-full-failure"))) {
@@ -172,4 +172,87 @@ fn evidence_publication_is_atomic_and_never_overwrites() {
     assert!(write_new_atomic(&path, b"replacement").is_err());
     assert_eq!(std::fs::read(&path).unwrap(), b"complete");
     std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn post_bound_status_failure_still_attempts_safe_and_retains_cleanup_failure() {
+    for safe_mode in [2, 3] {
+        let mut pty = Pty::open();
+        let path = pty.slave_path.clone();
+        let (consumed_tx, consumed_rx) = std::sync::mpsc::channel();
+        let responder = std::thread::spawn(move || {
+            read_exact(&mut pty.master, &[128]);
+            read_exact(&mut pty.master, &[132]);
+            status(&mut pty.master, 35, 3);
+            read_exact(&mut pty.master, &[140, 2, 4, 60, 32, 64, 32, 0, 12, 67, 40]);
+            read_exact(&mut pty.master, &[141, 2]);
+            status(&mut pty.master, 36, 2);
+            status(&mut pty.master, 37, 1);
+            // A queued packet-36 frame cannot become packet-37 status.
+            read_exact(&mut pty.master, &[148, 1, 37]);
+            pty.master.write_all(&[19, 2, 36, 0, 199]).unwrap();
+            read_exact(&mut pty.master, &[150, 0]);
+            read_exact(&mut pty.master, &[128]);
+            read_exact(&mut pty.master, &[131]);
+            status(&mut pty.master, 35, safe_mode);
+            consumed_rx.recv().unwrap();
+        });
+        let evidence = execute(&args(path, temp_path("post-bound-failure"))).unwrap();
+        consumed_tx.send(()).unwrap();
+        responder.join().unwrap();
+        assert_eq!(evidence.post_bound_song_playing, None);
+        let Outcome::Failed { stage, code } = evidence.outcome else {
+            panic!("failed observation cannot complete");
+        };
+        if safe_mode == 2 {
+            assert_eq!(stage, "post_bound_observation");
+            assert_eq!(code, "MalformedResponse");
+            assert!(evidence.safe_cleanup_completed);
+        } else {
+            assert_eq!(stage, "restore_safe");
+            assert!(code.contains("observed Full after Safe request"));
+            assert!(code.contains("prior failure at post_bound_observation: MalformedResponse"));
+            assert!(!evidence.safe_cleanup_completed);
+        }
+    }
+}
+
+#[test]
+fn status_failure_projection_refuses_failed_pause_and_retains_primary_categories() {
+    for primary in [
+        None,
+        Some(CreateOiFailure::MalformedFrame),
+        Some(CreateOiFailure::DeviceNoResponse),
+    ] {
+        assert_eq!(
+            map_status_failure(CreateStatusFailure {
+                primary,
+                pause_failure: Some(CreateOiFailure::WriteFailed)
+            }),
+            SerialFailure::ProviderLost
+        );
+    }
+    for (primary, expected) in [
+        (
+            CreateOiFailure::MalformedFrame,
+            SerialFailure::MalformedResponse,
+        ),
+        (
+            CreateOiFailure::TruncatedFrame,
+            SerialFailure::TruncatedResponse,
+        ),
+        (
+            CreateOiFailure::DeviceNoResponse,
+            SerialFailure::DeviceNoResponse,
+        ),
+        (CreateOiFailure::ReadFailed, SerialFailure::ProviderLost),
+    ] {
+        assert_eq!(
+            map_status_failure(CreateStatusFailure {
+                primary: Some(primary),
+                pause_failure: None
+            }),
+            expected
+        );
+    }
 }
