@@ -3,6 +3,8 @@
 use super::BrowserInstallation;
 
 pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &crate::installed_browser::ambient_clock::INSTALLATION,
+    &crate::installed_browser::ambient_clock_face::INSTALLATION,
     &crate::installed_browser::text_editor::INSTALLATION,
     &crate::installed_browser::text_state::DOCUMENT,
     &crate::installed_browser::saved_choice::INSTALLATION,

@@ -38,7 +38,7 @@ test("BrowserHost cannot be made outside the admitted Conduit entrance", async (
 
 test("external Body executor accepts semantic editing within its exact finite envelope", async () => {
   const { checkedBrowserExecutionCapabilities } = await import("./browser-sdk.mjs");
-  const installed = Array.from({ length: 116 }, (_, index) => `capability/installed-${index}`);
+  const installed = Array.from({ length: 118 }, (_, index) => `capability/installed-${index}`);
   installed.push("browser-thermostat-combine-v1", "browser/thermostat-scan@1",
     "browser/kernel-saved-choice@1", "browser/webaudio-continuous-pcm@1",
     "browser/kernel-text-edit-document@1", "browser/dom-text-editor@1",
@@ -49,9 +49,9 @@ test("external Body executor accepts semantic editing within its exact finite en
   assert(Object.isFrozen(accepted));
   assert.notEqual(accepted, installed);
   assert.equal(checkedBrowserExecutionCapabilities({ ...disclosure,
-    capability_ids: [...installed, "capability/final-admitted-slot"] }).length, 124);
+    capability_ids: [...installed, "capability/final-admitted-slot"] }).length, 126);
   for (const invalid of [
-    { ...disclosure, capability_ids: [...installed, "capability/124", "capability/125"] },
+    { ...disclosure, capability_ids: [...installed, "capability/126", "capability/127"] },
     { ...disclosure, schema: "wrong" },
     { ...disclosure, capability_ids: {} },
     ...[null, "", "x".repeat(257)].map(identity => ({ ...disclosure,

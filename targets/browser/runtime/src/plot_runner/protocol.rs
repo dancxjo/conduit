@@ -371,6 +371,13 @@ pub(super) fn decode_manifestation(
                 .map_err(|_| "planned count manifestation is not an exact Count")?;
             Ok((0, Vec::new(), Some(u64::from_le_bytes(encoded).to_string())))
         }
+        conduit_semantic_catalog::AMBIENT_CLOCK_FACE_KIND => Ok((
+            0,
+            Vec::new(),
+            Some(crate::installed_browser::ambient_clock_face::text(
+                &manifestation.canonical_value,
+            )?),
+        )),
         conduit_semantic_catalog::TICK_FACE_KIND => {
             let sequence = conduit_time::decode_tick(&manifestation.canonical_value)
                 .map_err(|error| error.to_string())?;

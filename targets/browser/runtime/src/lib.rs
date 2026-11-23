@@ -30,6 +30,7 @@ use conduit_signal::{
 };
 use std::{cell::RefCell, collections::BTreeMap};
 
+pub mod browser_civil_clock;
 pub mod browser_pointer;
 #[cfg(feature = "creche-surface")]
 mod creche;

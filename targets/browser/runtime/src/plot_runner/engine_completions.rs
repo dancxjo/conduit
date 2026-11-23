@@ -8,7 +8,10 @@ pub(in crate::plot_runner) fn complete_host_effect(
     if matches!(pending.effect, BrowserHostEffect::WombPrepare) {
         return Err("Womb requires its exact retained typed completion".into());
     }
-    if matches!(pending.effect, BrowserHostEffect::ClockObservation) {
+    if matches!(
+        pending.effect,
+        BrowserHostEffect::ClockObservation | BrowserHostEffect::CivilClockObservation
+    ) {
         return Err("clock observation requires an exact timestamp".into());
     }
     if matches!(pending.effect, BrowserHostEffect::Snapshot { .. }) {
@@ -41,6 +44,11 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
         }
         BrowserHostEffect::ClockObservation => {
             return attempt::complete_clock(scheduler, pending, output)
+        }
+        BrowserHostEffect::CivilClockObservation => {
+            crate::browser_civil_clock::CivilClockReply::decode(output)
+                .map_err(|error| format!("decode civil clock reply: {error:?}"))?;
+            crate::browser_civil_clock::CIVIL_CLOCK_REPLY_BYTES as u32
         }
         BrowserHostEffect::PointerEvent => {
             let value = conduit_core::StructuredInfoValue::from_canonical_bytes(output)
