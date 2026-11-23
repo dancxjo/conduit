@@ -32,6 +32,23 @@ Linux release set, including the Raspberry Pi OS AArch64 package, run
 `cargo xtask doctor linux-release`. The first invocation compiles the repository
 tooling, so allow time and disk space.
 
+## Current sprint: Archibold
+
+[Sprint Archibold](docs/sprints/archibold.md) ([#6984](https://github.com/dancxjo/conduit/issues/6984))
+prioritizes **one complete useful experience first**: download → Crib → select
+resident Plots → Body → Ambient Commons and Patchbay → return to the same Body
+on reviewed browser or installed hosted Linux machinery. A first vertical
+does not wait for new storage drivers or full Windows/macOS/native parity.
+Then expand to Stem's same-Body Seeds/second Host and additional supported
+entrances.
+
+The bare-metal ConduitOS Pi is Threebee, **Raspberry Pi 3 Model B+**,
+not the older ARMv6 B+. Direct firmware boot [#6859](https://github.com/dancxjo/conduit/issues/6859)
+and microSD durability [#6996](https://github.com/dancxjo/conduit/issues/6996)
+are separately owned **P2/deferred follow-ons**. A single-Boot ConduitOS
+experience can be useful without falsely claiming a local persistent Body.
+Keep current-target evidence and a real release trace for each acceptance.
+
 ## Find your place
 
 | If you want to work on… | Begin with… |
@@ -72,12 +89,15 @@ A docs-only change does not retroactively establish a new proof class.
 
 Choose one independently verifiable child issue and check current `dev`, open
 PR ownership, and origin branches before branching. Salvage useful existing
-work with its discussion and proof intact. Keep at most two overlapping
-implementation PRs in review across the flow, with at most one merge-ready PR
-changing shared core contracts. Give each a named owner and disjoint scope.
-Other tickets stay unbranched until a slot opens or the owner explicitly hands
-off; when parallel preparation is requested, use isolated worktrees and hold
-prepared changes locally rather than expanding the PR queue.
+work with its discussion and proof intact. **There is no global two-PR
+implementation cap.** Parallel work is welcome when file ownership, core
+contracts, equipment and proof resources are genuinely independent. Give each
+active change a named owner and disjoint scope. Keep one active writer per
+overlapping shared code/equipment seam, coordinate merge order for competing
+core/CI changes, and avoid two simultaneously merge-ready candidates for
+the same shared contract. An active owner must hand off before another agent
+takes over that seam. Keep speculative tickets unbranched; isolated worktrees
+may prepare nonoverlapping work without creating competing PRs.
 
 Move a reviewed result through its required green merge/integration or an
 explicit handoff before admitting the next result. While checks run, continue
