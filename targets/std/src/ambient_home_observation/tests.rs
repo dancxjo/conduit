@@ -324,8 +324,70 @@ impl crate::ExternalForeOutputAdapter for HomeCapture {
             .text
             .iter()
             .any(|text| text.text.contains("Seattle")));
+        verify_native_picture(contribution, scope);
         self.readings += 1;
         Ok(())
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn verify_native_picture(
+    fragment: conduit_face::FaceFragment,
+    scope: &crate::CommittedForeScope<'_>,
+) {
+    use conduit_face::{picture_frame_expression, Face, FaceBasis};
+    use conduitos::native_face_scene::NativeFaceScene;
+
+    let face = Face::new_with_semantics(
+        1,
+        FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: Some(scope.fragment.source_document_id.clone()),
+            checked_plot_id: Some(fragment.basis.checked_plot_id),
+            expanded_plot_id: Some(scope.fragment.expanded_plot_id.clone()),
+            plan_id: Some(fragment.basis.plan_id),
+            active_play_id: Some(fragment.basis.active_play_id),
+            sign_ids: Vec::new(),
+        },
+        fragment.subjects,
+        fragment.relationships,
+        fragment.properties,
+        fragment.text,
+        fragment.actions,
+        fragment.disclosures,
+    )
+    .and_then(|face| face.with_composition(fragment.composition))
+    .unwrap();
+    let expression = picture_frame_expression().unwrap();
+    for (width, height) in [(1024, 600), (640, 480)] {
+        let mut picture = NativeFaceScene::prepare_picture_frame(
+            face.clone(),
+            width,
+            height,
+            true,
+            &expression,
+            Some(conduit_core::Unit::Celsius),
+        )
+        .unwrap();
+        let frame = picture.frame().unwrap();
+        let commands = frame.scene.commands();
+        assert!(commands.iter().any(|command| command.image_key().is_some()));
+        assert!(commands
+            .iter()
+            .any(|command| command.payload().contains("Clear")));
+        assert!(commands.iter().all(|command| {
+            command.bounds.x >= 0
+                && command.bounds.y >= 0
+                && command.bounds.x as u16 + command.bounds.width <= width
+                && command.bounds.y as u16 + command.bounds.height <= height
+        }));
+        for _ in 1..picture.pages() {
+            picture.turn_page(true);
+        }
+        assert!(picture.page() > 0);
+        picture.turn_page(false);
+        assert_eq!(picture.frame().unwrap().page, picture.pages() - 2);
     }
 }
 
