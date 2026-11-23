@@ -120,10 +120,48 @@ partial text would change this comparison; none was done. Neither candidate
 passed all four new cases, so this campaign did not advance either to an
 additional run of the existing narrow recall/current/empty-history scenario.
 
-The already installed `gpt-oss:20b` artifact was considered but not invoked.
+The already installed `gpt-oss:20b` artifact was initially considered but not invoked.
 Its preflight measured 24,417,243,136 bytes available; a 20 GiB admission would
 leave 2,942,406,656 bytes. That did not meet the selected extra-headroom margin
 of 7 GiB (one quarter of the admission plus 2 GiB). The candidate was skipped
 without downloading models, evicting another model or changing its requested
 admission. The ignored preflight record retains the installed artifact digest,
 resident model inventory and measured memory.
+
+
+## Llama3.2 and the later GPT-OSS initialization attempt
+
+The identical cases next used `llama3.2:latest`, Ollama 0.34.1, 4096 MiB
+admitted memory and inventory digest
+`a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72`.
+Fresh available memory was 35,523,878,912 bytes and the resident inventory was
+empty after natural cache expiry. Its first results were:
+
+- Direct human report: passed with 72%.
+- Bodily timeline: correctly recalled 50.0% and answered current 9.0%, then
+  failed by answering remembered 50.0% when current charge was unavailable/null.
+- Generic contradictory and uncertain evidence: both returned `Truncated`.
+  Their partial text acknowledged the respective conflict or uncertainty, but
+  neither was accepted as a completed answer.
+
+No source, prompt, assertion or resource bound changed for this comparison.
+The result did not qualify this candidate.
+
+A later GPT-OSS preflight measured 32,761,171,968 bytes available, exceeding
+the same 20 GiB admission plus 7 GiB extra-headroom threshold. The installed
+`gpt-oss:20b` inventory digest was
+`17052f91a42e97930aa6e28a6c6c06a983e6a58dbb00434885a0cf5313e376f7`.
+Only the related Llama3.2 model was resident. This new resource check did not
+retry an inference: the earlier insufficient-headroom record remains intact.
+No model was downloaded or manually evicted.
+
+The first GPT-OSS case then stopped during the existing bounded initialization
+probe with `local model warmup produced no output`. No scenario response was
+produced. This is an initialization refusal, distinct from a completed answer's
+quality failure or native truncation. Initialization was not retried, and its
+remaining cases were not attempted.
+
+None of the evaluated candidates passed all four new cases. The additional
+unchanged narrow recall/current/empty-history and fault-injected provider-loss
+with live recovery scenarios therefore remained behind their qualification
+gate in this comparison. No default was promoted.
