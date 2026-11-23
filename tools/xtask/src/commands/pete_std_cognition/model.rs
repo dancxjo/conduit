@@ -10,7 +10,7 @@ pub(super) struct ModelArgs {
     /// Already installed Ollama model; no download is performed.
     #[arg(long, default_value = "gemma3:latest")]
     model: String,
-    /// Exact HTTP loopback origin of the local Ollama server.
+    /// Exact HTTP loopback origin; IPv6 requires an explicit port.
     #[arg(long, default_value = DEFAULT_OLLAMA_ENDPOINT)]
     model_endpoint: String,
     /// Finite memory admitted to the selected model realization, in MiB.
@@ -135,7 +135,7 @@ fn validate_endpoint(endpoint: &str) -> Result<(), String> {
     let valid = origin.is_some_and(|origin| {
         ["127.0.0.1", "localhost", "[::1]"].iter().any(|host| {
             origin.strip_prefix(host).is_some_and(|suffix| {
-                suffix.is_empty()
+                (suffix.is_empty() && *host != "[::1]")
                     || suffix.strip_prefix(':').is_some_and(|port| {
                         !port.is_empty()
                             && port.bytes().all(|byte| byte.is_ascii_digit())
@@ -145,7 +145,7 @@ fn validate_endpoint(endpoint: &str) -> Result<(), String> {
         })
     });
     if !valid {
-        return Err("--model-endpoint must be an HTTP loopback origin with an optional nonzero port and no path".into());
+        return Err("--model-endpoint must be an HTTP loopback origin without a path; IPv6 requires an explicit nonzero port".into());
     }
     Ok(())
 }
@@ -170,6 +170,7 @@ mod tests {
             "http://localhost:0",
             "http://localhost:65536",
             "http://localhost:word",
+            "http://[::1]",
             "http://localhost:11434/api",
             "http://localhost?query",
             "http://user@localhost:11434",

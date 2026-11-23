@@ -14,6 +14,7 @@ fn invalid_model_selection_refuses_before_serial_in_both_operator_modes() {
                 vec!["--model-endpoint", "http://remote:11434"],
                 "--model-endpoint",
             ),
+            (vec!["--model-endpoint", "http://[::1]"], "--model-endpoint"),
             (
                 vec!["--model-endpoint", "http://localhost:11434/api"],
                 "--model-endpoint",

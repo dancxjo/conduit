@@ -151,7 +151,8 @@ Select the local realization explicitly with `--model`, `--model-endpoint`,
 and `--model-memory-mib`. Both ordinary and `--reflection-after` sessions use
 the same selection path. Defaults remain `gemma3:latest`,
 `http://127.0.0.1:11434`, and 6144 MiB. The endpoint must be an HTTP loopback
-origin without a path; the selected model must already be installed and fit
+origin without a path; IPv6 requires an explicit port, such as
+`http://[::1]:11434`. The selected model must already be installed and fit
 the admitted memory. Discovery, an optional artifact-identity check, and the
 existing bounded initialization probe complete before the serial device opens.
 
