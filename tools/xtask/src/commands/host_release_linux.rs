@@ -135,7 +135,7 @@ pub(super) fn build_x86_64(
     compile_x86_64(output, native_display, true)?;
     seal_x86_64(output, source_identity)
 }
-pub(in crate::commands) fn seal_linux_installer(
+pub(super) fn seal_linux_installer(
     executable: &Path,
     output: &Path,
     source_identity: &str,

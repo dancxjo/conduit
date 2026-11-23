@@ -257,6 +257,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     json: opts.json,
                     quiet: opts.quiet,
                     native_display,
+                    retained_linux_executable: None,
                 },
             )
         }
@@ -264,7 +265,17 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             executable,
             output,
             source_identity,
-        } => host_release::seal_linux_installer(&executable, &output, &source_identity),
+        } => host_release::run(
+            &output,
+            host_release::ReleasePlatform::LinuxX86_64,
+            &source_identity,
+            &host_release::ReleaseOptions {
+                json: opts.json,
+                quiet: opts.quiet,
+                native_display: false,
+                retained_linux_executable: Some(executable),
+            },
+        ),
         HostCommand::ReleaseCatalog { root, generation } => {
             host_release_catalog::run(&root, generation, opts.dry_run, opts.json, opts.quiet)
         }

@@ -59,6 +59,7 @@ pub(crate) struct ReleaseOptions {
     pub(crate) json: bool,
     pub(crate) quiet: bool,
     pub(crate) native_display: bool,
+    pub(crate) retained_linux_executable: Option<PathBuf>,
 }
 
 pub(crate) fn validate_options(
@@ -91,12 +92,16 @@ pub(crate) fn run(
     opts: &ReleaseOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
     validate_options(platform, opts.native_display)?;
+    if opts.retained_linux_executable.is_some() && platform != ReleasePlatform::LinuxX86_64 {
+        return Err("retained installer executable requires linux-x86-64".into());
+    }
     match platform {
         ReleasePlatform::Browser => build_browser(output, source_identity)?,
         ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
-        ReleasePlatform::LinuxX86_64 => {
-            linux::build_x86_64(output, source_identity, opts.native_display)?
-        }
+        ReleasePlatform::LinuxX86_64 => match &opts.retained_linux_executable {
+            Some(executable) => linux::seal_linux_installer(executable, output, source_identity)?,
+            None => linux::build_x86_64(output, source_identity, opts.native_display)?,
+        },
         ReleasePlatform::LinuxAarch64 => {
             linux::build_aarch64(output, source_identity, opts.native_display)?
         }
@@ -115,8 +120,6 @@ pub(crate) fn run(
     }
     Ok(())
 }
-
-pub(super) use linux::seal_linux_installer;
 
 fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Refuse a missing optimizer before paying for the browser Rust build.
@@ -458,6 +461,7 @@ fn unsupported_native_release_refuses_before_output_or_external_commands() {
                 json: false,
                 quiet: true,
                 native_display: true,
+                retained_linux_executable: None,
             },
         )
         .unwrap_err();
