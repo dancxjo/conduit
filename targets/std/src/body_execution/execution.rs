@@ -42,6 +42,7 @@ impl StdHost {
             None,
             started,
             None,
+            None,
         )
     }
 
@@ -70,6 +71,7 @@ impl StdHost {
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         mut started: F,
         custody: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
+        face_observer: Option<&mut dyn BodyFaceContributionObserver>,
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<A, String>,
@@ -95,6 +97,7 @@ impl StdHost {
                 timer,
                 fore.is_some(),
                 self.playback.as_ref(),
+                self.native_source.as_ref(),
             )?;
             let lease = self
                 .kernel_resources
@@ -169,6 +172,16 @@ impl StdHost {
                 layout,
                 &self.advertisement,
                 self.playback.as_ref(),
+                self.native_source.as_mut().map(|owner| {
+                    crate::installed_std::body_kernel::native_source::NativeBodySource {
+                        owner,
+                        registry: &self.base_registry,
+                        host: &self.advertisement,
+                        wake: request.wake,
+                        plan: request.plan,
+                        play: &prospective_play,
+                    }
+                }),
             )?
         } else if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(
@@ -194,7 +207,15 @@ impl StdHost {
                 self.selected_text_file.as_ref(),
             )?
         };
-        if funded.is_none() {
+        if funded.is_some() {
+            kernel.prepare_home_face_routes(
+                request.wake,
+                request.plan,
+                &prospective_play,
+                &self.advertisement,
+                face_observer.is_some(),
+            )?;
+        } else {
             kernel.prepare_startup_outputs(&request.plan.plots, self.playback.as_ref())?;
         }
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
@@ -330,6 +351,7 @@ impl StdHost {
                 admitted_clock_quality,
                 terminal,
                 creche.as_deref_mut(),
+                face_observer,
             );
             if let Some(queue) = live_queue {
                 queue.mark_play_terminal();

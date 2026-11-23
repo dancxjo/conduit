@@ -6,6 +6,7 @@ use conduit_core::{
 use conduit_semantic_catalog::{ambient_home_observation_kind, AMBIENT_HOME_OBSERVATION_BYTES};
 
 pub const AMBIENT_HOME_SOURCE_IMPLEMENTATION: &str = "std/resident-ambient-observation-worker@1";
+pub const AMBIENT_HOME_SOURCE_BASE: &str = "ambient/resident-observation";
 pub const AMBIENT_HOME_SOURCE_PROFILE: &str = "conduit.std/linux-native-source-one-slot@1";
 pub const AMBIENT_HOME_SOURCE_CALL: &str = "conduit.host/resident-ambient-observation@1";
 pub const AMBIENT_HOME_SOURCE_AUTHORITY: &str = "conduit.authority/resident-ambient-observation@1";
@@ -34,6 +35,8 @@ pub fn ambient_home_source_offer() -> Result<CapabilityOffer, String> {
             include_str!("../../src/ambient_weather/wire.rs"),
             include_str!("../../src/ambient_weather/decimal.rs"),
             include_str!("../../src/selected_native_source/worker.rs"),
+            include_str!("../../src/selected_native_source/selection.rs"),
+            include_str!("../../src/installed_std/body_kernel/native_source.rs"),
             include_str!("../../../../semantics/catalog/src/ambient_home_observation.rs"),
             include_str!("../../../../plots/ambient-display/types.conduit")
         )

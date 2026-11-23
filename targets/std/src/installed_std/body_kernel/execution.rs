@@ -5,7 +5,7 @@ mod finish;
 pub(crate) mod state;
 impl BodyKernel<'_> {
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn run<W: Write, T: TimerAdapter>(
+    pub(crate) fn run<'observer, W: Write, T: TimerAdapter>(
         mut self,
         output: &mut W,
         clock: &mut T,
@@ -22,8 +22,12 @@ impl BodyKernel<'_> {
         admitted_clock_quality: Option<BodyTimeQuality>,
         mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
+        face_observer: Option<
+            &'observer mut dyn crate::body_execution::face_contribution::BodyFaceContributionObserver,
+        >,
     ) -> BodyKernelResult {
         let mut state = self.execution_state(input, admitted_clock_quality);
+        state.face_observer = face_observer;
         let result = loop {
             match self.drive(
                 &mut state,

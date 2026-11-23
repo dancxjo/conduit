@@ -103,6 +103,8 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
+            runtime_face_updates: 0,
+            runtime_face: None,
             todo_live: None,
             todo_verified: None,
             notebook: None,

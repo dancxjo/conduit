@@ -8,8 +8,10 @@ use conduit_semantic_catalog::{
 };
 
 pub const AMBIENT_HOME_FACE_IMPLEMENTATION: &str = "std/resident-ambient-home@1";
+pub const AMBIENT_HOME_FACE_BASE: &str = "face/ambient-home";
+pub const AMBIENT_HOME_FACE_DRIVER: &str = "std/ambient-home-projection@1";
 pub const AMBIENT_HOME_PROJECT_CALL: &str = "conduit.host/resident-ambient-home-project@1";
-pub const AMBIENT_HOME_CUSTODY_CALL: &str = "conduit.host/resident-ambient-home-custody@1";
+pub const AMBIENT_HOME_CUSTODY_CALL: &str = "conduit.host/resident-ambient-home-transfer-custody@1";
 
 pub fn resident_ambient_home_face_offer() -> Result<CapabilityOffer, String> {
     let kind = ambient_home_face_kind()?;
@@ -29,6 +31,12 @@ pub fn resident_ambient_home_face_offer() -> Result<CapabilityOffer, String> {
         AMBIENT_HOME_FACE_IMPLEMENTATION,
         concat!(
             include_str!("ambient_home_face.rs"),
+            include_str!("../../src/installed_std/ambient_home_back.rs"),
+            include_str!("../../src/installed_std/ambient_home_factory.rs"),
+            include_str!("../../src/installed_std/ambient_home_route.rs"),
+            include_str!("../../src/body_execution/face_contribution.rs"),
+            include_str!("../../src/body_execution/face_contribution/gate.rs"),
+            include_str!("../../src/body_execution/face_contribution/retention.rs"),
             include_str!("../../../../plots/ambient-display/model/src/face.rs"),
             include_str!("../../../../plots/ambient-display/model/src/home.rs"),
             include_str!("../../../../plots/ambient-display/model/src/civil.rs"),

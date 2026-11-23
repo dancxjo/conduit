@@ -264,6 +264,7 @@ installed_step_dispatch!(
     Recurrence,
     CalendarProposal,
     CalendarProvider,
+    AmbientHome,
     TickFace,
     BoolFace,
     OrbiumSeed,

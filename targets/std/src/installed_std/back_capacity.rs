@@ -6,6 +6,7 @@ impl InstalledBack {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
             Self::MeasurementPlot(back) => back.retained_backing_bytes(),
+            Self::AmbientHome(back) => back.retained_backing_bytes().unwrap_or(usize::MAX),
             Self::StartupChime(back) => back.retained_backing_bytes(),
             Self::StartupSource(_) => {
                 super::startup_source_back::StartupGate::backing_bytes().unwrap_or(usize::MAX)

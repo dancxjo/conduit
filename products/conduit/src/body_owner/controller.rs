@@ -54,6 +54,8 @@ mod member_leave;
 mod member_return;
 #[path = "planning.rs"]
 mod planning;
+#[path = "runtime_face.rs"]
+mod runtime_face;
 #[path = "workset_revision.rs"]
 mod workset_revision;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
@@ -135,6 +137,13 @@ impl OwnerHost {
             .as_ref()
             .map(StdHost::advertisement)
             .unwrap_or(&self.advertised)
+    }
+
+    pub(super) fn native_source_planning_grants(&self) -> &[conduit_core::AuthorityGrant] {
+        self.current
+            .as_ref()
+            .and_then(StdHost::native_source_planning_grant)
+            .map_or(&[], core::slice::from_ref)
     }
 
     pub(crate) fn take_for_play(&mut self) -> Result<StdHost, String> {
@@ -229,6 +238,8 @@ pub(crate) struct Owner {
     thermostat_live: Option<thermostat_face::ThermostatLive>,
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
+    runtime_face_updates: u64,
+    runtime_face: Option<conduit_std_host::body_execution::CommittedFaceContribution>,
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
@@ -340,6 +351,8 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
+            runtime_face_updates: 0,
+            runtime_face: None,
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -374,6 +387,8 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
+            runtime_face_updates: 0,
+            runtime_face: None,
             todo_live: None,
             todo_verified: None,
             notebook: None,

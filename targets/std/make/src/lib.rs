@@ -5,6 +5,7 @@ use conduit_host_make::{
 };
 use std::collections::BTreeMap;
 
+mod ambient_initialization;
 mod builder;
 #[cfg(target_os = "linux")]
 mod linux_builder;
@@ -75,6 +76,10 @@ fn package_catalog() -> PackageCatalogContribution {
             conduit_std_offers::startup_chime_offer(),
             conduit_std_offers::measurement_plot_std_offer(),
             conduit_std_offers::whisper_clip_speech_offer(),
+            conduit_std_offers::ambient_home_source_offer()
+                .expect("shipped Ambient Home observation descriptor"),
+            conduit_std_offers::resident_ambient_home_face_offer()
+                .expect("shipped Ambient Home Face descriptor"),
         ])
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
@@ -88,14 +93,36 @@ fn package_catalog() -> PackageCatalogContribution {
                     PrerequisiteNode::Resource(requirement.class_id.as_str().to_owned())
                 }))
                 .collect::<Vec<_>>();
+            if implementation == conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION {
+                prerequisites.push(PrerequisiteNode::Base(
+                    conduit_std_offers::AMBIENT_HOME_FACE_BASE.into(),
+                ));
+            }
+            if implementation == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION {
+                prerequisites.push(PrerequisiteNode::Base(
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_BASE.into(),
+                ));
+            }
             prerequisites.sort();
             prerequisites.dedup();
+            let targets = if matches!(
+                implementation.as_str(),
+                conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+            ) {
+                vec![
+                    HOSTED_TARGET_ID.into(),
+                    "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
+                ]
+            } else {
+                vec!["std/*/*".into()]
+            };
             (
                 implementation,
                 ImplementationMetadata {
                     kind: offer.kind_id.as_str().to_owned(),
                     contract_revision: offer.kind_contract_revision.as_str().to_owned(),
-                    targets: vec!["std/*/*".into()],
+                    targets,
                     prerequisites,
                 },
             )
@@ -103,6 +130,10 @@ fn package_catalog() -> PackageCatalogContribution {
         .collect();
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION.into(),
+                ambient_initialization::contract(),
+            ),
             (
                 regional_initialization::IMPLEMENTATION.into(),
                 regional_initialization::contract(),
@@ -227,6 +258,16 @@ impl HostMakePackage for HostedMakePackage {
                     "base-protected-file",
                 ),
                 offer("timer/monotonic", "hosted/monotonic-clock@1", "base-timer"),
+                offer(
+                    conduit_std_offers::AMBIENT_HOME_FACE_BASE,
+                    conduit_std_offers::AMBIENT_HOME_FACE_DRIVER,
+                    "base-ambient-home-face",
+                ),
+                offer(
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_BASE,
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION,
+                    "base-ambient-home-source",
+                ),
             ],
         })
     }

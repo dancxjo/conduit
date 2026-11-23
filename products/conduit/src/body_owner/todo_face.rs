@@ -114,7 +114,7 @@ impl Owner {
         }];
         let face = BodyFace::project_committed(
             &self.session.evidence().body,
-            self.session.evidence().last_sequence(),
+            self.projected_face_revision()?,
             FaceContext::Overview,
             FaceFocus::Body,
             FaceContribution::from_face(FaceContributionRole::Foreground, fragment),
@@ -221,7 +221,7 @@ impl Owner {
                 name,
             });
         let plot_names: Vec<_> = plot_name.into_iter().collect();
-        let contributions = todo
+        let mut contributions = todo
             .map(|(state, actions_admitted)| {
                 let fragment = todo_fragment(state, self.todo_basis()?, actions_admitted)
                     .map_err(|error| format!("Todo Face contribution refused: {error:?}"))?;
@@ -232,12 +232,18 @@ impl Owner {
             })
             .transpose()?
             .unwrap_or_default();
+        if let Some(fragment) = self.current_home_fragment() {
+            contributions.push(FaceContribution::from_face(
+                FaceContributionRole::Inspection,
+                fragment.clone(),
+            ));
+        }
         let face = BodyFace::project_with_names(
             &self.session.evidence().body,
             self.session
                 .realization()
                 .map(|realization| &realization.wake),
-            self.session.evidence().last_sequence(),
+            self.projected_face_revision()?,
             FaceContext::Overview,
             FaceFocus::Body,
             contributions,

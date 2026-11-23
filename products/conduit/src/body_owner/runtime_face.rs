@@ -1,0 +1,148 @@
+//! Bounded transfer of kernel-committed Home Faces to the installed owner.
+use super::Owner;
+use conduit_std_host::body_execution::{
+    BodyFaceContributionObserver, CommittedFaceContribution, FaceContributionRefusal,
+    ReturnedFaceContribution,
+};
+use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
+
+pub(super) struct RuntimeFaceSender(SyncSender<CommittedFaceContribution>);
+pub(super) struct RuntimeFaceReceiver(Receiver<CommittedFaceContribution>);
+
+pub(super) fn channel() -> (RuntimeFaceSender, RuntimeFaceReceiver) {
+    let (sender, receiver) = mpsc::sync_channel(1);
+    (RuntimeFaceSender(sender), RuntimeFaceReceiver(receiver))
+}
+
+impl BodyFaceContributionObserver for RuntimeFaceSender {
+    fn contribute(
+        &mut self,
+        contribution: CommittedFaceContribution,
+    ) -> Result<(), ReturnedFaceContribution> {
+        self.0.try_send(contribution).map_err(|error| match error {
+            TrySendError::Full(contribution) => ReturnedFaceContribution {
+                contribution,
+                refusal: FaceContributionRefusal::Pressure,
+            },
+            TrySendError::Disconnected(contribution) => ReturnedFaceContribution {
+                contribution,
+                refusal: FaceContributionRefusal::Revoked,
+            },
+        })
+    }
+}
+
+impl RuntimeFaceReceiver {
+    pub(super) fn progress(&self, owner: &mut Owner) -> Result<(), String> {
+        if let Ok(frame) = self.0.try_recv() {
+            if frame.scope().is_retired() {
+                return Ok(());
+            }
+            if !owner.runtime_face_scope_matches_current(&frame) {
+                return Err("Home Face differs from the current Body execution".into());
+            }
+            if owner.runtime_face.as_ref().is_some_and(|previous| {
+                !previous.scope().is_retired()
+                    && (previous.scope().placement() != frame.scope().placement()
+                        || previous.request() >= frame.request())
+            }) {
+                return Err("Home Face differs from its retained route or request order".into());
+            }
+            owner.advance_runtime_face_revision()?;
+            owner.runtime_face = Some(frame);
+        }
+        Ok(())
+    }
+}
+
+impl Owner {
+    pub(super) fn advance_runtime_face_revision(&mut self) -> Result<(), String> {
+        self.runtime_face_updates = self
+            .runtime_face_updates
+            .checked_add(1)
+            .ok_or("Home Face revision exhausted")?;
+        Ok(())
+    }
+
+    pub(super) fn projected_face_revision(&self) -> Result<u64, String> {
+        self.session
+            .evidence()
+            .last_sequence()
+            .checked_add(self.runtime_face_updates)
+            .ok_or_else(|| "Body Face revision exhausted".into())
+    }
+
+    pub(super) fn current_home_fragment(&self) -> Option<&conduit_face::FaceFragment> {
+        self.runtime_face
+            .as_ref()
+            .filter(|frame| {
+                !frame.scope().is_retired() && self.runtime_face_scope_matches_current(frame)
+            })
+            .map(CommittedFaceContribution::fragment)
+    }
+
+    pub(super) fn runtime_face_scope_matches_current(
+        &self,
+        frame: &CommittedFaceContribution,
+    ) -> bool {
+        if self.workset_recovery_required || self.execution_persistence_pending {
+            return false;
+        }
+        let scope = frame.scope();
+        let host = self.host.advertisement();
+        let Some(realization) = self.session.realization() else {
+            return false;
+        };
+        let Some(play) = &realization.play else {
+            return false;
+        };
+        if play != scope.body_play()
+            || self.session.evidence().body_id != play.body_id
+            || realization.wake.body_id != play.body_id
+            || realization.wake.wake_id != play.wake_id
+            || realization.plan.plan_id != play.plan_id
+            || realization
+                .plan
+                .validate_for_borrowed(&realization.wake)
+                .is_err()
+            || !play.validate_for_borrowed(&realization.plan)
+            || scope.host() != &host.host_id
+            || scope.boot() != &host.boot_id
+            || frame.fragment().basis.checked_plot_id != scope.plot().checked_plot_id
+            || frame.fragment().basis.plan_id != play.plan_id
+            || frame.fragment().basis.active_play_id != play.active_play_id
+            || frame
+                .fragment()
+                .basis
+                .required_interaction_context
+                .is_some()
+        {
+            return false;
+        }
+        realization.plan.plots.iter().any(|entry| {
+            entry.plan.plan_id == *scope.partition_plan()
+                && entry.plot.source_document_id == scope.plot().source_document_id
+                && entry.plot.checked_plot_id == scope.plot().checked_plot_id
+                && self
+                    .session
+                    .evidence()
+                    .body
+                    .workset
+                    .plots()
+                    .contains(&entry.plot)
+                && entry.plan.fragments.iter().any(|fragment| {
+                    fragment.fragment_id == *scope.fragment()
+                        && fragment.expanded_plot_id == scope.plot().expanded_plot_id
+                        && fragment.host_id == *scope.host()
+                        && fragment.boot_id == *scope.boot()
+                        && fragment.offer_generation == host.offer_generation
+                        && fragment.placements.iter().any(|placement| {
+                            placement.placement_id == *scope.placement()
+                                && placement.host_id == *scope.host()
+                                && placement.boot_id == *scope.boot()
+                                && placement.host_calls.get(scope.call().0 as usize).is_some()
+                        })
+                })
+        })
+    }
+}

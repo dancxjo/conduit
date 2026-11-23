@@ -8,6 +8,7 @@ use conduit_host_make::{
 };
 use std::{collections::BTreeSet, io::Write};
 
+mod ambient_face;
 mod initial_bases;
 mod playback;
 mod recognition;
@@ -64,8 +65,14 @@ impl StdHost {
         let has_native = initial.has_native();
         let bytes = image_frame(&config, image)?;
         let manifest = &image.manifest;
+        let ambient_face = ambient_face::prepare(&config, image, &initial)?;
         let supported = |id: &str| {
-            id == conduit_std_offers::TICK_IMPLEMENTATION
+            matches!(
+                id,
+                conduit_std_offers::TICK_IMPLEMENTATION
+                    | conduit_std_offers::TIME_EVERY_IMPLEMENTATION
+            ) || (ambient_face.is_some()
+                && id == conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION)
                 || initial.supports_native_implementation(id)
                 || (has_playback
                     && matches!(
@@ -78,7 +85,9 @@ impl StdHost {
             || manifest.implementations.is_empty()
             || manifest.implementations.iter().any(|id| !supported(id))
         {
-            return Err("selected IMAGE operation workset is unsupported: only explicit hosted time/tick is initialized".into());
+            return Err(
+                "selected IMAGE operation workset includes an uninitialized implementation".into(),
+            );
         }
         let mut timers = manifest.base_selections.iter().filter(|base| {
             base.kind == "timer/monotonic" && base.driver == "hosted/monotonic-clock@1"
@@ -91,6 +100,9 @@ impl StdHost {
                     && base.kind == "audio/speaker"
                     && base.driver == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION)
                     && !initial.supports_native_base(&base.id, &base.kind, &base.driver)
+                    && !ambient_face
+                        .as_ref()
+                        .is_some_and(|entry| entry.base_id.as_str() == base.id)
                     && !matches!(
                         (base.kind.as_str(), base.driver.as_str()),
                         ("timer/monotonic", "hosted/monotonic-clock@1")
@@ -115,7 +127,14 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
-            if initial.owns_native_pool(&budget.id) {
+            if initial.owns_native_pool(&budget.id)
+                || ambient_face.as_ref().is_some_and(|entry| {
+                    entry
+                        .resources
+                        .iter()
+                        .any(|pool| pool.pool_id.as_str() == budget.id)
+                })
+            {
                 continue;
             }
             if has_playback && budget.class == conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS {
@@ -148,6 +167,18 @@ impl StdHost {
         // std::time::Instant is this concrete hosted monotonic mechanism. It
         // needs no device discovery or caller-supplied physical bearer.
         let _current = std::time::Instant::now();
+        let capabilities = [
+            conduit_std_offers::tick_capability_offer(),
+            conduit_std_offers::time_every_offer(),
+        ]
+        .into_iter()
+        .filter(|offer| {
+            manifest
+                .implementations
+                .iter()
+                .any(|id| id == offer.implementation.implementation_id.as_str())
+        })
+        .collect();
         let entry = BaseProviderEntry {
             base_id: timer.id.as_str().into(),
             provider_instance_id: format!(
@@ -161,7 +192,7 @@ impl StdHost {
             mechanism_family: "timer/monotonic".into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
             lifecycle: BaseLifecycle::Ready,
-            capabilities: vec![conduit_std_offers::tick_capability_offer()],
+            capabilities,
             resources,
         };
         let mut registry = crate::empty_base_registry();
@@ -173,6 +204,19 @@ impl StdHost {
         let mut ready_resource_classes = BTreeSet::from([TIMER_RESOURCE_CLASS.into()]);
         let mut initialized_base_kinds = BTreeSet::from(["timer/monotonic".into()]);
         let mut initialized_driver_kinds = BTreeSet::from(["hosted/monotonic-clock@1".into()]);
+        if let Some(face) = ambient_face {
+            registry
+                .register(face.clone())
+                .map_err(|error| format!("Home Face registry: {error:?}"))?;
+            ready_resource_classes.extend(
+                face.resources
+                    .iter()
+                    .map(|pool| pool.class_id.as_str().to_owned()),
+            );
+            initialized_base_kinds.insert(face.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(face.implementation_id.as_str().into());
+            candidates.push(face);
+        }
         if let Some((selected, _)) = &playback {
             let mut speaker = selected
                 .checked_base_entry()
@@ -241,7 +285,7 @@ impl StdHost {
                     },
                     // The checked provider can offer grant-requiring Backs.
                     // Requirements remain on the offer; this creates no grant.
-                    authority_ready: playback.is_some() || has_native,
+                    authority_ready: playback.is_some() || has_native || initial.worker.is_some(),
                 },
             },
         )

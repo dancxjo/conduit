@@ -124,4 +124,7 @@ pub fn install_ambient_home_face_kind(
     profile.insert_kind(kind).map_err(debug_error)
 }
 
-pub use conduit_ambient_display::{ambient_home_workspace_bytes, PreparedAmbientFaces};
+pub use conduit_ambient_display::{
+    ambient_fragment_backing_bytes, ambient_home_fragment_backing_bound,
+    ambient_home_workspace_bytes, PreparedAmbientFaces,
+};

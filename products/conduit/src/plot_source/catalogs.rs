@@ -67,6 +67,9 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_ambient_display_types(&mut startup)?;
+    conduit_semantic_catalog::install_ambient_home_observation_kind(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_ambient_home_face_kind(&mut startup, &mut profiles)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_pulse_face_catalog(&mut startup, &mut profiles)?;

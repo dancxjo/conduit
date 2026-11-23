@@ -72,6 +72,35 @@ fn prepared_home_rotates_from_the_clock_observation_without_allocations() {
     }
 }
 
+#[test]
+fn home_keeps_the_clock_current_without_a_photo_deck() {
+    let mut home = PreparedAmbientHomeObservation::prepare_with_optional_deck(
+        "America/Los_Angeles",
+        "127.0.0.1:80".parse().unwrap(),
+        None,
+    )
+    .unwrap();
+    assert!(home.photos().is_none());
+    let mut clock =
+        PreparedAmbientClockWire::prepare("America/Los_Angeles", "Weather unavailable").unwrap();
+    for now in [100_000_u64, 400_000] {
+        let sample = clock.encode(now).unwrap();
+        home.clock_bytes[..sample.len()].copy_from_slice(sample);
+        let probe = crate::allocation_probe::begin();
+        let encoded = home.compose(sample.len()).unwrap();
+        assert_eq!(probe.finish_bytes(), 0);
+        let observation = canonical(encoded).unwrap();
+        let clock = observation.record_field("clock_weather").unwrap().unwrap();
+        let timestamp = clock.record_field("observed_at_unix_ms").unwrap().unwrap();
+        assert_eq!(
+            timestamp.primitive_bytes("value/u64").unwrap(),
+            now.to_le_bytes()
+        );
+        let wallpaper = observation.record_field("wallpaper").unwrap().unwrap();
+        assert!(wallpaper.variant_payload("unavailable").unwrap().is_some());
+    }
+}
+
 #[cfg(target_os = "linux")]
 #[test]
 fn ambient_home_worker_becomes_an_installed_offer_only_with_its_exact_grant_and_backing() {
@@ -147,11 +176,13 @@ fn ambient_home_worker_becomes_an_installed_offer_only_with_its_exact_grant_and_
         unsafe { host.install_native_source_worker(definition, budget, Box::new(provider)) }
             .expect_err("a stale grant must refuse before worker startup");
     assert!(!host.advertisement().capabilities.contains(&offer));
+    assert!(host.native_source_planning_grant().is_none());
     definition.grant.boot_id = correct_boot;
     let grant = definition.grant.clone();
     unsafe { host.install_native_source_worker(definition, budget, provider) }
         .unwrap_or_else(|(_, _, reason)| panic!("{reason}"));
     assert!(host.advertisement().capabilities.contains(&offer));
+    assert_eq!(host.native_source_planning_grant(), Some(&grant));
     let plan = plan_fixture(&host, grant);
     let placement = plan
         .fragments
@@ -393,6 +424,17 @@ fn verify_native_picture(
 
 #[cfg(target_os = "linux")]
 fn weather_fixture() -> (SocketAddr, std::thread::JoinHandle<()>) {
+    let (endpoint, worker, start) = weather_fixture_after_start();
+    start.send(()).unwrap();
+    (endpoint, worker)
+}
+
+#[cfg(target_os = "linux")]
+fn weather_fixture_after_start() -> (
+    SocketAddr,
+    std::thread::JoinHandle<()>,
+    std::sync::mpsc::SyncSender<()>,
+) {
     use std::{
         io::{Read, Write},
         net::TcpListener,
@@ -401,7 +443,11 @@ fn weather_fixture() -> (SocketAddr, std::thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();
     let endpoint = listener.local_addr().unwrap();
+    let (start, begun) = std::sync::mpsc::sync_channel(1);
     let worker = std::thread::spawn(move || {
+        if begun.recv().is_err() {
+            return;
+        }
         let deadline = Instant::now() + Duration::from_secs(15);
         let mut stream = loop {
             match listener.accept() {
@@ -442,7 +488,7 @@ fn weather_fixture() -> (SocketAddr, std::thread::JoinHandle<()>) {
         )
         .unwrap();
     });
-    (endpoint, worker)
+    (endpoint, worker, start)
 }
 
 #[test]
@@ -503,3 +549,7 @@ fn ambient_home_source_connects_the_typed_timer_observation_and_face() {
             && cord.sink_port_id.as_str() == "observation"
     }));
 }
+
+#[cfg(target_os = "linux")]
+#[path = "tests/funded_image.rs"]
+mod funded_image;

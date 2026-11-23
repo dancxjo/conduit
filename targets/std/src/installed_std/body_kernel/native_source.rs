@@ -1,0 +1,256 @@
+//! An actual retained immediate native owner beneath the ordinary Body kernel.
+use super::*;
+use crate::selected_native_source::{InitializedNativeSource, PreparedNativeSource};
+use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
+use conduit_core::{BaseRegistry, HostAdvertisement};
+
+pub(crate) struct NativeBodySource<'owner, 'context> {
+    pub owner: &'owner mut InitializedNativeSource,
+    pub registry: &'context BaseRegistry,
+    pub host: &'context HostAdvertisement,
+    pub wake: &'context Wake,
+    pub plan: &'context BodyPlan,
+    pub play: &'context BodyPlayIdentity,
+}
+pub(super) struct NativeSourceRoute<'a> {
+    source: PreparedNativeSource<'a>,
+    image_backed: bool,
+    budget: super::super::factory::BackBudget,
+    cancellation: Option<conduit_kernel::scheduler::HostCallCancellation>,
+}
+impl NativeSourceRoute<'_> {
+    pub(super) fn image_backing_bytes(&self) -> Option<usize> {
+        if !self.image_backed {
+            return None;
+        }
+        core::mem::size_of::<Option<Self>>().checked_add(self.source.retained_backing_bytes()?)
+    }
+    pub(super) fn node(&self) -> conduit_kernel::NodeId {
+        self.source.node
+    }
+    pub(super) fn input_bytes(&self) -> u32 {
+        self.source.input_bytes()
+    }
+    pub(super) fn budget(&self) -> &super::super::factory::BackBudget {
+        &self.budget
+    }
+    pub(super) fn matches_call(
+        &self,
+        node: conduit_kernel::NodeId,
+        call: conduit_kernel::HostCallId,
+    ) -> bool {
+        node == self.source.node && call == conduit_kernel::HostCallId(0)
+    }
+}
+pub(super) fn prepare<'a>(
+    native: Option<NativeBodySource<'a, '_>>,
+    fragments: &[&PlanFragment],
+    partitions: &[conduit_plan_lowering::lowering::LoweredPlanFragment],
+) -> Result<Option<NativeSourceRoute<'a>>, String> {
+    let Some(native) = native else {
+        return Ok(None);
+    };
+    let mut selected = fragments.iter().enumerate().flat_map(|(index, fragment)| {
+        fragment
+            .placements
+            .iter()
+            .filter(|gear| native.owner.matches(gear))
+            .map(move |gear| (index, *fragment, gear))
+    });
+    let Some((index, fragment, gear)) = selected.next() else {
+        return Ok(None);
+    };
+    if selected.next().is_some() {
+        return Err("Body native Source requires one exact retained owner".into());
+    }
+    let owner = native.owner;
+    let budget = owner.budget();
+    let image_backed = owner.has_image_backing();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
+        .map_err(|e| format!("Body native lowering: {e:?}"))?;
+    let mut source = owner
+        .prepare_body(
+            native.registry,
+            native.host,
+            fragment,
+            &lowered,
+            (native.wake, native.plan, native.play),
+        )?
+        .ok_or("Body native owner lost its selected placement")?;
+    let map = &partitions[index].identity;
+    if map.plan_id != fragment.plan_id || map.fragment_id != fragment.fragment_id {
+        return Err("Body native partition differs from its selected fragment".into());
+    }
+    // Numeric remapping is owned by this verified combined lowering. The
+    // operation retains its original fragment and containing Body Plan/Play.
+    source.node = map
+        .node_for_placement(&gear.placement_id)
+        .ok_or("Body native node was not lowered")?;
+    Ok(Some(NativeSourceRoute {
+        source,
+        budget,
+        image_backed,
+        cancellation: None,
+    }))
+}
+impl BodyKernel<'_> {
+    pub(super) fn begin_native_source(&mut self, request: HostCallRequest) -> Result<bool, String> {
+        let Some(native) = self
+            .native_source
+            .as_mut()
+            .filter(|s| s.matches_call(request.node, request.call))
+        else {
+            return Ok(false);
+        };
+        let maximum = self
+            .operations
+            .iter()
+            .find(|op| op.node == request.node && op.call == request.call)
+            .ok_or_else(|| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native request has no exact Host Call"),
+                )
+            })?
+            .binding
+            .maximum_output_bytes;
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|e| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native input: {e:?}"),
+                )
+            })?;
+        let bytes = native.source.read(request, input).map_err(|error| {
+            diagnostic::error(&mut self.error_diagnostic, format_args!("{error}"))
+        })?;
+        let Some(bytes) = bytes else {
+            return Ok(true);
+        };
+        let value = self.scheduler.store_host_value(bytes).map_err(|e| {
+            diagnostic::error(
+                &mut self.error_diagnostic,
+                format_args!("Body native output: {e:?}"),
+            )
+        })?;
+        self.scheduler
+            .complete_host_call(
+                request.node,
+                request.request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(BoundedValueRef::new(value, maximum).map_err(|e| {
+                        diagnostic::error(
+                            &mut self.error_diagnostic,
+                            format_args!("Body native bound: {e:?}"),
+                        )
+                    })?),
+                    failure: None,
+                },
+            )
+            .map_err(|e| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native completion: {e:?}"),
+                )
+            })?;
+        Ok(true)
+    }
+    pub(super) fn cancel_native_source(
+        &mut self,
+        cancellation: conduit_kernel::scheduler::HostCallCancellation,
+    ) -> Result<bool, String> {
+        let Some(native) = self
+            .native_source
+            .as_mut()
+            .filter(|s| s.matches_call(cancellation.node, cancellation.call))
+        else {
+            return Ok(false);
+        };
+        native.source.cancel();
+        if native.source.is_pending() {
+            native.cancellation = Some(cancellation);
+            return Ok(true);
+        }
+        self.scheduler
+            .complete_host_call(
+                cancellation.node,
+                cancellation.request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Cancelled,
+                    output: None,
+                    failure: None,
+                },
+            )
+            .map_err(|e| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native cancellation: {e:?}"),
+                )
+            })?;
+        Ok(true)
+    }
+}
+
+impl BodyKernel<'_> {
+    pub(super) fn native_source_pending(&self) -> bool {
+        self.native_source
+            .as_ref()
+            .is_some_and(|n| n.source.is_pending())
+    }
+    /// Poll the existing one-slot worker. Cancellation only completes after its
+    /// original pending operation is quiescent; its source owner keeps backing.
+    pub(super) fn poll_native_source(&mut self) -> Result<(), String> {
+        let Some(native) = self.native_source.as_mut() else {
+            return Ok(());
+        };
+        let ready = native.source.poll()?;
+        let completion = if let Some((request, bytes)) = ready {
+            let maximum = self
+                .operations
+                .iter()
+                .find(|op| op.node == request.node && op.call == request.call)
+                .ok_or("Body native completion lost its exact operation")?
+                .binding
+                .maximum_output_bytes;
+            let value = self
+                .scheduler
+                .store_host_value(bytes)
+                .map_err(|e| format!("Body native pending output: {e:?}"))?;
+            Some((
+                request.node,
+                request.request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(
+                        BoundedValueRef::new(value, maximum)
+                            .map_err(|e| format!("Body native pending bound: {e:?}"))?,
+                    ),
+                    failure: None,
+                },
+            ))
+        } else if !native.source.is_pending() {
+            native.cancellation.take().map(|cancel| {
+                (
+                    cancel.node,
+                    cancel.request,
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Cancelled,
+                        output: None,
+                        failure: None,
+                    },
+                )
+            })
+        } else {
+            None
+        };
+        if let Some((node, request, outcome)) = completion {
+            self.scheduler
+                .complete_host_call(node, request, outcome)
+                .map_err(|e| format!("Body native pending completion: {e:?}"))?;
+        }
+        Ok(())
+    }
+}

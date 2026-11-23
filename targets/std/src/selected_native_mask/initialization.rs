@@ -434,6 +434,7 @@ impl StdHost {
             catalog,
             crate::image_initialization::InitialBases {
                 memory: Some(memory),
+                worker: None,
                 playback,
                 recognition,
                 scanout: Some(Box::new(scanout)),

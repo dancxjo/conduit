@@ -15,6 +15,7 @@ impl<'a> BodyKernel<'a> {
             &'a crate::text_file::SelectedTextFileResidence,
         >,
         funding: Option<&funded::TickPreparationLayout>,
+        native: Option<native_source::NativeBodySource<'a, '_>>,
     ) -> Result<Self, String> {
         let mut fragments = Vec::with_capacity(partitions.len());
         for fragment in partitions.iter().map(|partition| {
@@ -88,6 +89,7 @@ impl<'a> BodyKernel<'a> {
                 has_fore_output,
             )?
         };
+        let native_source = native_source::prepare(native, &fragments, &lowered.partitions)?;
         for operation in lowered.partitions.iter().flat_map(|part| &part.host_calls) {
             if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                 if !has_keyboard {
@@ -105,6 +107,10 @@ impl<'a> BodyKernel<'a> {
                 && !todo_checkpoint_read(operation)
                 && !face(operation)
                 && !startup::supports(operation)
+                && !native_source
+                    .as_ref()
+                    .is_some_and(|source| source.matches_call(operation.node, operation.call))
+                && !(funding.is_some() && ambient_home::is_home_face_call(operation))
                 && operation.contract_id.as_str()
                     != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
@@ -130,9 +136,14 @@ impl<'a> BodyKernel<'a> {
                     each.partition == partition_index && each.owner == placement.placement_id
                 }) {
                     &each.budget
+                } else if let Some(source) = native_source.as_ref().filter(|source| {
+                    lowered.partitions[partition_index]
+                        .identity
+                        .node_for_placement(&placement.placement_id)
+                        == Some(source.node())
+                }) {
+                    source.budget()
                 } else {
-                    // Ordinary Backs are budgeted only after exact activation
-                    // owners have been consumed by the whole-Plan scan route.
                     ordinary = super::super::preparation::back_budget(placement)?;
                     &ordinary
                 };
@@ -186,10 +197,16 @@ impl<'a> BodyKernel<'a> {
             fragments.iter().zip(&lowered.partitions).enumerate()
         {
             for node in &part.nodes {
-                drivers[usize::from(node.node.0)] = if let Some(scan) =
-                    scans.iter_mut().find(|scan| {
-                        scan.partition == partition_index && scan.owner == node.placement_id
-                    }) {
+                drivers[usize::from(node.node.0)] = if let Some(source) = native_source
+                    .as_ref()
+                    .filter(|source| source.node() == node.node)
+                {
+                    InstalledBack::SelectedNativeSource(
+                        conduit_kernel::scheduler::HostCallBack::new(source.input_bytes()),
+                    )
+                } else if let Some(scan) = scans.iter_mut().find(|scan| {
+                    scan.partition == partition_index && scan.owner == node.placement_id
+                }) {
                     InstalledBack::BodyScan(Box::new(
                         scan.back
                             .take()
@@ -267,7 +284,13 @@ impl<'a> BodyKernel<'a> {
         let mut face_labels = vec![None; MAX_NODES];
         for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
             for placement in &fragment.placements {
-                if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+                // The exact funded Home route owns and accounts for its label.
+                if placement.implementation_id.as_str()
+                    != conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+                    && conduit_semantic_catalog::face_data_label_required(
+                        placement.kind_id.as_str(),
+                    )
+                {
                     let node = partition
                         .identity
                         .node_for_placement(&placement.placement_id)
@@ -326,6 +349,8 @@ impl<'a> BodyKernel<'a> {
             error_diagnostic: None,
             cleanup_diagnostic: None,
             creche: None,
+            home_face_routes: Vec::new(),
+            native_source,
             scheduler,
             face_labels,
             input_origin: None,

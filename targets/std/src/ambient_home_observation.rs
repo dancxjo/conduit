@@ -1,4 +1,5 @@
 //! Compose one bounded Home observation in the admitted native source worker.
+mod configuration;
 use crate::{
     ambient_clock::PreparedLiveClock,
     ambient_wallpaper::{
@@ -10,6 +11,7 @@ use conduit_core::{
     validate_canonical_structured_value as canonical, PreparedStructuredComposer as Composer,
     StructuredInfoTypeShape,
 };
+pub use configuration::{ambient_home_connection_limits, CheckedAmbientHomeSource};
 use std::net::SocketAddr;
 
 pub const HOME_OBSERVATION_BYTES: usize =
@@ -19,8 +21,8 @@ const CLOCK_OBSERVATION_BYTES: usize = 4096;
 pub struct PreparedAmbientHomeObservation {
     clock: PreparedLiveClock,
     clock_bytes: Box<[u8]>,
-    deck: PreparedDeck,
-    wallpaper: PreparedWallpaperSelectionWire,
+    deck: Option<PreparedDeck>,
+    wallpaper: Option<PreparedWallpaperSelectionWire>,
     unavailable_wallpaper: Box<[u8]>,
     home: Composer,
 }
@@ -32,6 +34,14 @@ impl PreparedAmbientHomeObservation {
         timezone: &str,
         endpoint: SocketAddr,
         deck: PreparedDeck,
+    ) -> Result<Self, String> {
+        Self::prepare_with_optional_deck(timezone, endpoint, Some(deck))
+    }
+
+    pub fn prepare_with_optional_deck(
+        timezone: &str,
+        endpoint: SocketAddr,
+        deck: Option<PreparedDeck>,
     ) -> Result<Self, String> {
         let types = conduit_semantic_catalog::prepare_ambient_display_types()?;
         let ty = &types
@@ -60,12 +70,8 @@ impl PreparedAmbientHomeObservation {
             .ok_or("missing wallpaper absence case")?;
         let text_type = unavailable.payload_type();
         let mut reason = Composer::new(text_type, 256).map_err(debug_error)?;
-        let reason = canonical(
-            reason
-                .leaf(b"Wallpaper selection time unavailable")
-                .map_err(debug_error)?,
-        )
-        .map_err(debug_error)?;
+        let reason = canonical(reason.leaf(b"Wallpaper unavailable").map_err(debug_error)?)
+            .map_err(debug_error)?;
         let mut absence =
             Composer::new(wallpaper_type, HOME_OBSERVATION_BYTES).map_err(debug_error)?;
         let unavailable_wallpaper = absence
@@ -75,22 +81,29 @@ impl PreparedAmbientHomeObservation {
         Ok(Self {
             clock: PreparedLiveClock::prepare(timezone, endpoint)?,
             clock_bytes: vec![0; CLOCK_OBSERVATION_BYTES].into_boxed_slice(),
-            wallpaper: PreparedWallpaperSelectionWire::prepare(&deck).map_err(debug_error)?,
+            wallpaper: deck
+                .as_ref()
+                .map(PreparedWallpaperSelectionWire::prepare)
+                .transpose()
+                .map_err(debug_error)?,
             deck,
             unavailable_wallpaper,
             home: Composer::new(ty, HOME_OBSERVATION_BYTES).map_err(debug_error)?,
         })
     }
 
-    pub fn photos(&self) -> &PreparedDeck {
-        &self.deck
+    pub fn photos(&self) -> Option<&PreparedDeck> {
+        self.deck.as_ref()
     }
 
     pub fn prepared_heap_bytes(&self) -> usize {
-        self.deck.retained_bytes()
+        self.deck.as_ref().map_or(0, PreparedDeck::retained_bytes)
             + self.clock.prepared_heap_bytes()
             + self.clock_bytes.len()
-            + self.wallpaper.prepared_heap_bytes()
+            + self
+                .wallpaper
+                .as_ref()
+                .map_or(0, PreparedWallpaperSelectionWire::prepared_heap_bytes)
             + self.unavailable_wallpaper.len()
             + self.home.prepared_heap_bytes()
     }
@@ -105,7 +118,8 @@ impl PreparedAmbientHomeObservation {
         let instant = u64::from_le_bytes(instant.try_into().map_err(|_| WorkerFailure::Provider)?);
         let wallpaper = self
             .wallpaper
-            .encode(instant)
+            .as_mut()
+            .and_then(|wallpaper| wallpaper.encode(instant).ok())
             .unwrap_or(&self.unavailable_wallpaper);
         let wallpaper = canonical(wallpaper).map_err(|_| WorkerFailure::Provider)?;
         self.home
