@@ -84,7 +84,7 @@ pub fn ambient_fragment_backing_bytes(f: &FaceFragment) -> Option<usize> {
             .checked_add(c.target.capacity())?;
     }
     for p in &f.properties {
-        n = n.checked_add(p.retained_backing_bytes()?)?;
+        n = n.checked_add(property_backing_bytes(p)?)?;
     }
     for t in &f.text {
         n = n
@@ -204,4 +204,24 @@ pub(crate) fn one<T>(capacity: usize, value: T) -> alloc::vec::Vec<T> {
     let mut values = alloc::vec::Vec::with_capacity(capacity);
     values.push(value);
     values
+}
+
+fn property_backing_bytes(property: &FaceProperty) -> Option<usize> {
+    let bytes = match &property.value {
+        FacePropertyValue::Identity(text) | FacePropertyValue::Text(text) => text.capacity(),
+        FacePropertyValue::BaseImplementationId(id) => id.0.capacity(),
+        FacePropertyValue::Count(_) | FacePropertyValue::Signed(_) | FacePropertyValue::Flag(_) => {
+            0
+        }
+        FacePropertyValue::ValueContract(contract) => contract.retained_backing_bytes()?,
+        FacePropertyValue::Content(bytes) => bytes.capacity(),
+        FacePropertyValue::TypedValue { contract, bytes } => contract
+            .retained_backing_bytes()?
+            .checked_add(bytes.capacity())?,
+    };
+    property
+        .subject
+        .capacity()
+        .checked_add(property.name.capacity())?
+        .checked_add(bytes)
 }

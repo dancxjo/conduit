@@ -6,6 +6,7 @@ pub use types::{
     install_ambient_display_types, prepare_ambient_display_types, AMBIENT_DISPLAY_TYPES_SOURCE,
 };
 
+mod availability;
 mod civil;
 mod face;
 mod home;
