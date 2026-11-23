@@ -1,4 +1,7 @@
 //! Deterministic operator capture proof; no model or physical serial device.
+#[path = "clock_model_budget_tests.rs"]
+mod clock_model_budget_tests;
+
 use super::super::clock::ClockSource;
 use super::*;
 use conduit_core::InfoDecodeError;
