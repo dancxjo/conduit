@@ -194,6 +194,7 @@ impl RetainedPixelTarget for Surface {
     }
 }
 #[test]
+#[cfg(feature = "native-compositor-core")]
 fn selected_typography_path_renders_only_independently_resolved_images() {
     use crate::display::typography::{
         Typography, render_scene_selected, render_scene_selected_with_images,
