@@ -558,6 +558,10 @@
           "specifier": "./browser-monotonic-timer.mjs"
         },
         {
+          "role": "browser-civil-clock",
+          "specifier": "./browser-civil-clock.mjs"
+        },
+        {
           "role": "browser-body-input",
           "specifier": "./browser-body-input.mjs"
         },
@@ -618,6 +622,13 @@
           "specifier": "./browser-application-storage.mjs"
         }
       ]
+    },
+    {
+      "role": "browser-civil-clock",
+      "kind": "module",
+      "path": "browser-civil-clock.mjs",
+      "maximum_bytes": 4096,
+      "dependencies": []
     },
     {
       "role": "browser-monotonic-timer",
