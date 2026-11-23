@@ -83,6 +83,9 @@ pub enum CreateCognitionCaptureError<E> {
 
 /// Capture one correlated sample and pause the stream before publishing it.
 /// The clock must be the provider's monotonic millisecond clock.
+/// This standalone sensor capture requests Passive mode, which permits charging;
+/// it must not share an active actuator session. Mode delivery and actual charging
+/// are not established by a successful host write.
 pub fn capture_pete_cognition_battery<P: crate::CreateUartProvider, E>(
     provider: &mut P,
     sign: PeteCognitionSign,
@@ -100,7 +103,7 @@ pub fn capture_pete_cognition_battery<P: crate::CreateUartProvider, E>(
         .map_err(Error::Clock)?
         .checked_add(u64::from(read_timeout_ms))
         .ok_or(Error::Deadline)?;
-    let mut session = crate::CreateObservationSession::new();
+    let mut session = crate::CreateObservationSession::new_passive();
     session.start(provider).map_err(Error::Start)?;
     let observation = session.read(provider, deadline);
     let captured_at = monotonic_millis();
