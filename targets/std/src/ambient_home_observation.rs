@@ -157,8 +157,7 @@ mod tests {
     };
     use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
 
-    #[test]
-    fn prepared_home_rotates_from_the_clock_observation_without_allocations() {
+    fn fixture_deck() -> PreparedDeck {
         let admission = PreparationAdmission::admit(
             chrono::NaiveDate::from_ymd_opt(2026, 11, 16).unwrap(),
             MAXIMUM_RETAINED_BYTES,
@@ -166,7 +165,7 @@ mod tests {
         )
         .unwrap();
         let mut number = 0;
-        let deck = prepare_deck(admission, |requested, maximum| {
+        prepare_deck(admission, |requested, maximum| {
             if maximum == MAXIMUM_APOD_RESPONSE_BYTES {
                 return Ok(serde_json::to_vec(&serde_json::json!({
                     "date": requested.rsplit('=').next().unwrap(),
@@ -183,11 +182,15 @@ mod tests {
                 .unwrap();
             Ok(pixels)
         })
-        .unwrap();
+        .unwrap()
+    }
+
+    #[test]
+    fn prepared_home_rotates_from_the_clock_observation_without_allocations() {
         let mut home = PreparedAmbientHomeObservation::prepare(
             "America/Los_Angeles",
             "127.0.0.1:80".parse().unwrap(),
-            deck,
+            fixture_deck(),
         )
         .unwrap();
         let mut clock =
@@ -215,5 +218,88 @@ mod tests {
                 .unwrap();
             assert_eq!(u64::from_le_bytes(observed.try_into().unwrap()), selected);
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn ambient_home_worker_becomes_an_installed_offer_only_with_its_exact_grant_and_backing() {
+        use crate::{NativeSourceDefinition, NativeWorkerBudget, StdHost, StdHostConfig};
+        use conduit_core::*;
+        use conduit_std_offers::*;
+        use std::time::Duration;
+
+        let mut host = StdHost::new_with_config(StdHostConfig {
+            host_id: "test/ambient-host".into(),
+            boot_id: "test/ambient-boot".into(),
+            offer_generation: OfferGeneration(1),
+        });
+        let offer = ambient_home_source_offer().unwrap();
+        let kind = conduit_semantic_catalog::ambient_home_observation_kind().unwrap();
+        let budget = NativeWorkerBudget {
+            requested_stack_bytes: 2 * 1024 * 1024,
+            maximum_stack_mapping_bytes: 2 * 1024 * 1024 + 64 * 1024,
+            capture_timeout: Duration::from_secs(3),
+            cancellation_timeout: Duration::from_millis(250),
+        };
+        let grant = AuthorityGrant {
+            grant_id: "test/ambient-grant".into(),
+            contract_id: AMBIENT_HOME_SOURCE_AUTHORITY.into(),
+            host_call_contract_id: AMBIENT_HOME_SOURCE_CALL.into(),
+            subject_kind: kind.kind_id.clone(),
+            host_id: host.advertisement().host_id.clone(),
+            boot_id: host.advertisement().boot_id.clone(),
+            capability_id: offer.capability_id.clone(),
+        };
+        let output_bytes = HOME_OBSERVATION_BYTES as u32;
+        let input_bytes = conduit_time::TICK_ENCODED_LEN;
+        let provider = PreparedAmbientHomeObservation::prepare(
+            "America/Los_Angeles",
+            "127.0.0.1:80".parse().unwrap(),
+            fixture_deck(),
+        )
+        .unwrap();
+        let backing = budget.backing_bytes(input_bytes, output_bytes).unwrap();
+        let mut definition = NativeSourceDefinition {
+            kind,
+            grant,
+            base: BaseProviderEntry {
+                base_id: "test/ambient-base".into(),
+                provider_instance_id: "test/ambient-session".into(),
+                provider_generation: 1,
+                implementation_id: AMBIENT_HOME_SOURCE_IMPLEMENTATION.into(),
+                mechanism_family: conduit_semantic_catalog::AMBIENT_HOME_OBSERVE_KIND.into(),
+                enforcement_class: BaseEnforcementClass::Cooperative,
+                lifecycle: BaseLifecycle::Ready,
+                capabilities: vec![offer.clone()],
+                resources: vec![
+                    resource_offer("test/ambient/source", AMBIENT_HOME_SOURCE_RESOURCE, 1),
+                    resource_offer(
+                        "test/ambient/backing",
+                        RUNTIME_MEMORY_RESOURCE_CLASS,
+                        backing,
+                    ),
+                ],
+            },
+            resource_generation: ResourceGenerationId("test/ambient/1".into()),
+            configuration: vec![ConfigurationEntry {
+                key: "timezone".into(),
+                value: ConfigurationValue::Text("America/Los_Angeles".into()),
+            }],
+            input_bytes,
+            output_bytes,
+            resource_bytes: u64::from(output_bytes),
+        };
+        let correct_boot = definition.grant.boot_id.clone();
+        definition.grant.boot_id = "test/stale-boot".into();
+        // The exact prepared fixture owns fixed local photo bytes and can only
+        // contact the declared loopback peer. No read is made by installation.
+        let (mut definition, provider, _) =
+            unsafe { host.install_native_source_worker(definition, budget, Box::new(provider)) }
+                .expect_err("a stale grant must refuse before worker startup");
+        assert!(!host.advertisement().capabilities.contains(&offer));
+        definition.grant.boot_id = correct_boot;
+        unsafe { host.install_native_source_worker(definition, budget, provider) }
+            .unwrap_or_else(|(_, _, reason)| panic!("{reason}"));
+        assert!(host.advertisement().capabilities.contains(&offer));
     }
 }
