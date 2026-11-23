@@ -87,3 +87,39 @@ pub fn install_ambient_home_observation_kind(
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
 }
+
+pub const AMBIENT_HOME_FACE_KIND: &str = "face/resident-ambient-home";
+pub const AMBIENT_HOME_FACE_REVISION: &str = "face/resident-ambient-home@1";
+
+pub fn ambient_home_face_kind() -> Result<Kind, String> {
+    let mut kind = ambient_home_observation_kind()?;
+    let contract = kind.semantic_contract().value_contracts()[0]
+        .contract
+        .clone();
+    let mut observation = kind.outputs.remove(0);
+    observation.direction = PortDirection::Input;
+    kind.kind_id = kind_id(AMBIENT_HOME_FACE_KIND);
+    kind.kind_contract_revision = AMBIENT_HOME_FACE_REVISION.into();
+    kind.inputs = vec![observation];
+    kind.configuration = crate::data_label_configuration();
+    kind.startup_parameters = crate::startup_front(&kind.configuration);
+    kind.semantic_laws[0] = KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+        location: FrontValueLocation::Input(port_id("observation")),
+        contract,
+    }]);
+    kind.validate().map_err(debug_error)?;
+    Ok(kind)
+}
+
+pub fn install_ambient_home_face_kind(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    let kind = ambient_home_face_kind()?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: AMBIENT_HOME_FACE_KIND.into(),
+        startup_parameters: crate::data_label_startup_signature(),
+    })?;
+    startup.insert_fore(AMBIENT_HOME_FACE_KIND, kind.checked_front())?;
+    profile.insert_kind(kind).map_err(debug_error)
+}
