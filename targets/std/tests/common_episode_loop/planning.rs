@@ -159,6 +159,12 @@ pub fn plan_host(
             ),
         ]
     };
+    // Cadenced resumable shares its entry name with ordinary cadence. Its
+    // declared checkpoint output explicitly requires resumable memory.
+    let resumable_memory = entry == "pete-cognition-resumable"
+        || fore.iter().any(|(port, direction, _)| {
+            *port == "checkpoints" && *direction == PortDirection::Output
+        });
     for &(mut kind, mut implementation) in expected {
         if matches!(
             entry,
@@ -172,7 +178,7 @@ pub fn plan_host(
                 implementation = conduit_std_offers::EPISODE_RETRIEVAL_PRODUCER_IMPLEMENTATION;
             }
         }
-        if entry == "pete-cognition-resumable" && kind == conduit_chat::EPISODE_MEMORY_KIND {
+        if resumable_memory && kind == conduit_chat::EPISODE_MEMORY_KIND {
             kind = conduit_chat::EPISODE_RESUMABLE_MEMORY_KIND;
             implementation = conduit_std_offers::EPISODE_RESUMABLE_MEMORY_IMPLEMENTATION;
         }
