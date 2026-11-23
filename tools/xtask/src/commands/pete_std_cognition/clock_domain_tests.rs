@@ -179,22 +179,22 @@ fn ambiguous_or_changed_namespace_never_publishes_a_domain() {
 #[test]
 fn prepared_sampler_refuses_changed_namespace_without_relabeling_ticks() {
     let sampled = Cell::new(0);
-    let mut sample = || {
+    let sample = || {
         sampled.set(sampled.get() + 1);
         Ok(100)
     };
-    assert_eq!(sample_in_domain(NS, || Ok(NS), &mut sample).unwrap(), 100);
+    assert_eq!(sample_in_domain(NS, || Ok(NS), sample).unwrap(), 100);
     assert_eq!(sampled.get(), 1);
-    assert!(sample_in_domain(NS, || Ok(OTHER_NS), &mut sample).is_err());
+    assert!(sample_in_domain(NS, || Ok(OTHER_NS), sample).is_err());
     assert_eq!(sampled.get(), 1, "no clock read on pre-sample mismatch");
     let mut sequence = [NS, OTHER_NS].into_iter();
-    assert!(sample_in_domain(NS, || Ok(sequence.next().unwrap()), &mut sample).is_err());
+    assert!(sample_in_domain(NS, || Ok(sequence.next().unwrap()), sample).is_err());
     assert_eq!(
         sampled.get(),
         2,
         "post-sample mismatch discards that one read"
     );
-    assert!(sample_in_domain(NS, || Err("namespace unavailable".into()), &mut sample).is_err());
+    assert!(sample_in_domain(NS, || Err("namespace unavailable".into()), sample).is_err());
     assert_eq!(sampled.get(), 2);
     assert!(sample_in_domain(NS, || Ok(NS), || Err("sample unavailable".into())).is_err());
 }

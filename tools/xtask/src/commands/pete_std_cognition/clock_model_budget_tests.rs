@@ -11,7 +11,6 @@ use conduit_std_host::{
 };
 use serde_json::Value;
 
-#[allow(dead_code)]
 #[path = "../../../../../targets/std/tests/common_episode_loop/mod.rs"]
 mod common;
 
