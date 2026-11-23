@@ -5,9 +5,7 @@ use conduit_core::StructuredInfoValue;
 use conduit_face::{FaceFragment, FaceRole};
 use conduit_plot::rust_binding::semantic_core as conduit_core;
 
-#[path = "tests/fixtures.rs"]
-mod fixtures;
-use fixtures::*;
+use crate::test_fixtures::*;
 
 fn semantic_subject<'a>(fragment: &'a FaceFragment, role: &str) -> &'a str {
     fragment

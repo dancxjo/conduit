@@ -4,8 +4,7 @@ use conduit_core::StructuredInfoValue;
 use conduit_face::{FaceContributionBasis, FaceFragment, FacePropertyValue};
 use conduit_plot::rust_binding::semantic_core as conduit_core;
 
-mod fixtures;
-use fixtures::*;
+use crate::test_fixtures::*;
 
 #[test]
 fn bundled_observation_reuses_both_exact_domain_contracts() {

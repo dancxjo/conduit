@@ -22,4 +22,6 @@ pub use projection_memory::{
 pub use subject_identity::{ambient_clock_subject_refs, AmbientClockSubjectRefs};
 
 #[cfg(test)]
+mod test_fixtures;
+#[cfg(test)]
 mod tests;
