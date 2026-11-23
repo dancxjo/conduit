@@ -24,3 +24,23 @@ Host Boot and Plan. A fenced model verifies that the next episode recalls
 the retained switch label. The application supplies the observation frames and
 handles the checkpoint Fore. This proof covers graceful replacement and
 synchronized checkpoint recovery within one Wake.
+
+The same entrance includes the finite checkpoint/trace turnover conformance
+from [#7029](https://github.com/dancxjo/conduit/issues/7029). One ordinary
+resumable Play receives 32 full synthetic frames and makes 32 fenced model
+calls. All 33 checkpoints preserve their owner and ordered completion count;
+surviving memories remain complete. Each byte eviction is checked against the
+nearest excluded suffix, encoded only in the test after Play. The first run of
+this corrected contract retained episodes 30–32 in 8154 bytes; adding episode 29
+required 10257 bytes, exceeding the unchanged 8192-byte limit. Maximum model
+request size was 3791/4096 bytes. The earlier exactly-four occupancy expectation
+was invalid, and its failed observations remain separate.
+
+The actual debug history retained 128 records and reported 692 evictions. Replay
+preserved the gap and unavailable parent ancestry with
+`exact_reconstruction=false`. This is deterministic finite turnover proof with
+a fenced model, not a timed soak, live model quality, physical sensing or
+stable-release acceptance. [#6878](https://github.com/dancxjo/conduit/issues/6878)
+still owns sustained load, slowdown, cancellation, recovery and independent
+cadence proof. Raw local records remain under ignored `target/pete-trace-horizon/`;
+durable publication is separate.

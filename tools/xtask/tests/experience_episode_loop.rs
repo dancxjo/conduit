@@ -1115,3 +1115,6 @@ mod live_qualification;
 
 #[path = "experience_episode_loop/instruction_contract.rs"]
 mod instruction_contract;
+
+#[path = "experience_episode_loop/trace_horizon.rs"]
+mod trace_horizon;
