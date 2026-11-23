@@ -23,11 +23,9 @@ jobs:
       contents: write
       pull-requests: write
       statuses: write
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      site-current: ${{ steps.release.outputs.site-current }}
+      pages-attempt: ${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -48,14 +46,30 @@ jobs:
         if: steps.release.outputs.site-current == 'true'
         uses: actions/upload-pages-artifact@v5.0.0
         with:
+          name: github-pages-${{ github.run_attempt }}
           path: ${{ steps.release.outputs.pages-site }}
-      - name: Deploy the tested website
-        if: steps.release.outputs.site-current == 'true'
-        id: deployment
-        uses: actions/deploy-pages@v5.0.1
       - name: Retain exact publication run custody
         uses: actions/upload-artifact@v7.0.1
         with:
           name: publication-receipt-${{ github.run_attempt }}
           path: target/publication-receipt.json
           if-no-files-found: error
+
+  deploy:
+    needs: publish
+    if: needs.publish.outputs.site-current == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy the tested website from the completed publication job
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1
+        with:
+          artifact_name: github-pages-${{ needs.publish.outputs.pages-attempt }}
