@@ -38,7 +38,7 @@ pub(super) fn temperature_millidegrees(body: &[u8]) -> Result<i64, AmbientWeathe
     magnitude = if scale >= 0 {
         magnitude.checked_mul(factor).ok_or_else(fail)?
     } else {
-        if magnitude % factor != 0 {
+        if !magnitude.is_multiple_of(factor) {
             return Err(fail());
         }
         magnitude / factor
