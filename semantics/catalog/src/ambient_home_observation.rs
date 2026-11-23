@@ -9,7 +9,7 @@ use conduit_core::{
 
 pub const AMBIENT_HOME_OBSERVE_KIND: &str = "ambient/resident-observation";
 pub const AMBIENT_HOME_OBSERVE_REVISION: &str = "ambient/resident-observation@1";
-pub const AMBIENT_HOME_OBSERVATION_BYTES: u32 = 8192;
+pub const AMBIENT_HOME_OBSERVATION_BYTES: u32 = conduit_ambient_display::AMBIENT_HOME_MAXIMUM_BYTES;
 
 pub fn ambient_home_observation_kind() -> Result<Kind, String> {
     let types = crate::prepare_ambient_display_types()?;
