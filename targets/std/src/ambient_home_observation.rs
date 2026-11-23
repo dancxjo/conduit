@@ -298,8 +298,106 @@ mod tests {
                 .expect_err("a stale grant must refuse before worker startup");
         assert!(!host.advertisement().capabilities.contains(&offer));
         definition.grant.boot_id = correct_boot;
+        let grant = definition.grant.clone();
         unsafe { host.install_native_source_worker(definition, budget, provider) }
             .unwrap_or_else(|(_, _, reason)| panic!("{reason}"));
         assert!(host.advertisement().capabilities.contains(&offer));
+        let plan = plan_fixture(&host, grant);
+        let placement = plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .find(|gear| gear.capability_id == offer.capability_id)
+            .unwrap();
+        assert_eq!(placement.host_calls, offer.host_calls);
+        assert_eq!(placement.authority[0].boot_id, host.advertisement().boot_id);
+    }
+
+    #[cfg(target_os = "linux")]
+    fn plan_fixture(
+        host: &crate::StdHost,
+        grant: conduit_core::AuthorityGrant,
+    ) -> conduit_core::Plan {
+        use conduit_core::*;
+        use conduit_planner::{
+            default_expanded_placements, plan_expanded_authoring_with_options, PlanningOptions,
+        };
+        use conduit_plot::{
+            check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+            ProfileCatalog, StartupCatalog,
+        };
+        use conduit_semantic_catalog as catalog;
+        use std::collections::BTreeMap;
+
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        catalog::install_ambient_display_types(&mut startup).unwrap();
+        catalog::install_ambient_home_observation_kind(&mut startup, &mut profile).unwrap();
+        startup
+            .insert_value_kind_alias("Tick", kind_id(conduit_time::TICK_VALUE_KIND))
+            .unwrap();
+        let checked = check_syntax_document(
+            &parse_syntax_document(
+                r#"
+plot home (
+    >> pulse: Tick...
+    current: AmbientHomeObservation... >>
+) {
+    source: ambient/resident-observation("America/Los_Angeles")
+    pulse >> source.tick
+    source.observation >> current
+}
+"#,
+            ),
+            &startup,
+        )
+        .unwrap();
+        let authored = expand_canonical_plot_for_authoring(&checked, "home", &profile).unwrap();
+        let hosts = [host.advertisement().clone()];
+        let placements = default_expanded_placements(&authored.expanded, &hosts).unwrap();
+        let boundaries = [
+            (
+                PortDirection::Input,
+                "pulse",
+                conduit_time::TICK_ENCODED_LEN,
+            ),
+            (
+                PortDirection::Output,
+                "current",
+                HOME_OBSERVATION_BYTES as u32,
+            ),
+        ]
+        .into_iter()
+        .map(|(direction, name, byte_capacity)| {
+            (
+                ForeBoundaryKey {
+                    direction,
+                    front_port_id: name.into(),
+                    track: ConnectionTrack::Payload,
+                },
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity,
+                },
+            )
+        })
+        .collect();
+        plan_expanded_authoring_with_options(
+            &authored,
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from("conduit.base/local@1")],
+            PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: HOME_OBSERVATION_BYTES as u32,
+                authority_grants: &[grant],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &boundaries,
+        )
+        .unwrap()
     }
 }
