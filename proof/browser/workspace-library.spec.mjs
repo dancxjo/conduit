@@ -427,7 +427,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
   });
 }
 
-test("reviewed resident civil clock Shows live time and returns to the same Body", async ({ page }) => {
+test("reviewed resident civil clock Shows live time and returns to the same Body", async ({ page }, testInfo) => {
   test.setTimeout(30_000 + 3 * BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
@@ -436,13 +436,25 @@ test("reviewed resident civil clock Shows live time and returns to the same Body
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await waitForWorkspacePreparation(page);
   const first = await current(page);
-  await page.getByRole("navigation", { name: "Your plots" })
-    .getByRole("button", { name: "Local Clock and Weather", exact: true }).click();
+  const resident = page.getByRole("navigation", { name: "Your plots" })
+    .getByRole("button", { name: "Local Clock and Weather", exact: true });
+  await resident.click();
   const clock = page.locator('[data-face-kind="face/ambient-clock-weather"]:visible');
   await expect(clock).toContainText(/\d{4}-\d{2}-\d{2} · \d{2}:\d{2}:\d{2} · America\/Los_Angeles · Weather unavailable/u);
   const firstShow = await clock.getAttribute("data-observation-sequence");
   expect(firstShow).toMatch(/^\d+$/u);
   await expect(clock).not.toHaveAttribute("data-observation-sequence", firstShow);
+  const show = () => clock.evaluate(element => ({
+    face_id: element.dataset.faceId,
+    plan_id: element.dataset.planId,
+    placement_id: element.dataset.placementId,
+    observation_sequence: element.dataset.observationSequence,
+    text: element.textContent,
+  }));
+  const beforeReload = await show();
+  expect(beforeReload.face_id).toBeTruthy();
+  const checkedPlotId = await resident.getAttribute("data-checked-plot-id");
+  expect(checkedPlotId).toBeTruthy();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await waitForWorkspacePreparation(page, { surfaceTitle: "Local Clock and Weather" });
@@ -451,4 +463,14 @@ test("reviewed resident civil clock Shows live time and returns to the same Body
   expect(after.body_id).toBe(first.body_id);
   expect(after.host_id).toBe(first.host_id);
   expect(after.boot_id).not.toBe(first.boot_id);
+  const afterReload = await show();
+  await expect(resident).toHaveAttribute("data-checked-plot-id", checkedPlotId);
+  await testInfo.attach("resident-clock-return", {
+    contentType: "application/json",
+    body: JSON.stringify({
+      checked_plot_id: checkedPlotId,
+      before: { body_id: first.body_id, host_id: first.host_id, boot_id: first.boot_id, show: beforeReload },
+      after: { body_id: after.body_id, host_id: after.host_id, boot_id: after.boot_id, show: afterReload },
+    }, null, 2),
+  });
 });
