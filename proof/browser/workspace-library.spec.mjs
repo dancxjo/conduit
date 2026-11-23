@@ -1,5 +1,6 @@
 import { enterMemoryText } from "./workspace-editor.mjs";
 import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
+import { observeRealAudio } from "./browser-audio-proof.mjs";
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { startStaticProduct } from "./static-product-server.mjs";
@@ -429,8 +430,10 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
 
 test("reviewed resident civil clock Shows live time and returns to the same Body", async ({ page }, testInfo) => {
   test.setTimeout(30_000 + 3 * BROWSER_COLD_PREPARATION_MS);
+  await observeRealAudio(page);
   await page.goto(entrance.url);
-  await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await expect(page.getByRole("checkbox", { name: "Startup Chime", exact: true })).toBeChecked();
+  await page.getByRole("checkbox", { name: "Patchbay", exact: true }).check();
   await page.getByRole("checkbox", { name: "Local Clock and Weather", exact: true }).check();
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
@@ -451,6 +454,9 @@ test("reviewed resident civil clock Shows live time and returns to the same Body
     observation_sequence: element.dataset.observationSequence,
     text: element.textContent,
   }));
+  await expect.poll(() => page.evaluate(() => globalThis.__cueAudio.ended)).toBe(1);
+  const audio = await page.evaluate(() => globalThis.__cueAudio);
+  expect(audio.starts).toEqual([{ frames: 57600, sampleRate: 48000, channels: 1, state: "running" }]);
   const beforeReload = await show();
   const checkedPlotId = await resident.getAttribute("data-checked-plot-id");
   expect(checkedPlotId).toBeTruthy();
@@ -471,10 +477,27 @@ test("reviewed resident civil clock Shows live time and returns to the same Body
   expect(afterReload.face_id).not.toBe(beforeReload.face_id);
   expect(afterReload.plan_id).not.toBe(beforeReload.plan_id);
   await expect(resident).toHaveAttribute("data-checked-plot-id", checkedPlotId);
+  await page.getByRole("navigation", { name: "Your plots" })
+    .getByRole("button", { name: "Patchbay", exact: true }).click();
+  const patchbay = page.locator('[data-plot-output] > output:not([hidden]) conduit-owner-face');
+  await expect(patchbay).toHaveAttribute("aria-busy", "false");
+  const menu = patchbay.locator("details[data-body-menu]");
+  await menu.locator(":scope > summary").click();
+  const inspect = menu.getByRole("button", { name: "Inspect Local Clock and Weather", exact: true });
+  const action = JSON.parse(await inspect.getAttribute("data-owner-focus"));
+  expect(action).toEqual([after.body_id, expect.stringMatching(/^patchbay\.plot\.\d+$/u), `plot/${checkedPlotId}`, "submit"]);
+  const initialFace = await patchbay.getAttribute("data-face-id");
+  await inspect.click();
+  await expect(patchbay).not.toHaveAttribute("data-face-id", initialFace);
+  const inspected = await current(page);
+  expect(inspected.body_id).toBe(after.body_id);
+  expect(inspected.active_play_id).toBe(after.active_play_id);
   await testInfo.attach("resident-clock-return", {
     contentType: "application/json",
     body: JSON.stringify({
       checked_plot_id: checkedPlotId,
+      audio,
+      inspection: { action, before_face: initialFace, after_face: await patchbay.getAttribute("data-face-id") },
       before: { body_id: first.body_id, host_id: first.host_id, boot_id: first.boot_id, show: beforeReload },
       after: { body_id: after.body_id, host_id: after.host_id, boot_id: after.boot_id, show: afterReload },
     }, null, 2),
