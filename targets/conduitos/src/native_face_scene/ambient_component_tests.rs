@@ -475,8 +475,7 @@ fn short_tile_keeps_clock_content_together_or_refuses_geometry() {
     }
 }
 
-#[test]
-fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page() {
+fn picture_fixture() -> Face {
     use conduit_core::{Quantity, TEMPERATURE_INFO_ID, Unit};
     let mut face = fixture();
     let value = Quantity::from_decimal(8400, -3, Unit::Celsius)
@@ -495,7 +494,14 @@ fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page()
             bytes: value.to_vec(),
         },
     });
-    let face = refresh(face);
+    refresh(face)
+}
+
+#[test]
+fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page() {
+    use conduit_core::Unit;
+
+    let face = picture_fixture();
     let expression = picture_frame_expression().unwrap();
     for (width, height) in [(1024, 600), (640, 480)] {
         let mut scene = NativeFaceScene::prepare_picture_frame(
@@ -516,7 +522,7 @@ fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page()
         );
         assert_eq!(commands[0].bounds, scene.bounds());
         assert_eq!(commands[0].clip, scene.bounds());
-        for value in ["Tue · Nov 17", "7:45", "PM", "Seattle: 47.1 °F, Cloudy."] {
+        for value in ["Tue · Nov 17", "7:45", "PM", "47°F · Cloudy"] {
             assert!(commands.iter().any(|c| c.payload() == value), "{value}");
         }
         assert!(commands.iter().all(|c| c.payload() != "19:45:12"));
@@ -551,6 +557,18 @@ fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page()
         );
         assert_eq!(scene.frame().unwrap().page, last - 1);
         scene.show_details(true);
+        assert!(
+            scene
+                .primary
+                .iter()
+                .any(|row| row.text == "Seattle: 47.1 °F, Cloudy.")
+        );
+        assert!(
+            scene
+                .primary
+                .iter()
+                .any(|row| row.text == "Weather source: Fixture weather source.")
+        );
         assert_eq!(scene.face(), &face);
     }
 
@@ -610,5 +628,52 @@ fn picture_clock_formats_only_valid_civil_observations() {
         "2026-1-01",
     ] {
         assert!(display_date(input).is_none(), "{input}");
+    }
+}
+
+#[test]
+fn picture_clock_continues_with_stale_or_missing_weather() {
+    use conduit_core::Unit;
+
+    let expression = picture_frame_expression().unwrap();
+    for (state, weather_line) in [
+        (Some("fresh"), "8°C · Cloudy"),
+        (Some("stale"), "Weather out of date"),
+        (Some("unavailable"), "Weather unavailable"),
+        (None, "Weather unavailable"),
+    ] {
+        let mut face = picture_fixture();
+        if let Some(state) = state {
+            face.properties
+                .iter_mut()
+                .find(|property| property.subject == WEATHER && property.name == "availability")
+                .unwrap()
+                .value = FacePropertyValue::Text(state.into());
+        } else {
+            // Keep the weather subject and its reader text, with no observation.
+            face.properties
+                .retain(|property| property.subject != WEATHER);
+        }
+        let face = refresh(face);
+        for (width, height) in [(1024, 600), (640, 480)] {
+            let scene = NativeFaceScene::prepare_picture_frame(
+                face.clone(),
+                width,
+                height,
+                true,
+                &expression,
+                Some(Unit::Celsius),
+            )
+            .unwrap();
+            let frame = scene.picture_page().unwrap().unwrap();
+            let commands = frame.scene.commands();
+            assert!(
+                commands.iter().any(|c| c.payload() == weather_line),
+                "{state:?}"
+            );
+            assert!(commands.iter().any(|c| c.payload() == "7:45"));
+            assert_eq!(commands[0].bounds, scene.bounds());
+            assert_eq!(scene.face(), &face);
+        }
     }
 }
