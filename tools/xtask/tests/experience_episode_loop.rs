@@ -1118,3 +1118,6 @@ mod instruction_contract;
 
 #[path = "experience_episode_loop/trace_horizon.rs"]
 mod trace_horizon;
+
+#[path = "experience_episode_loop/clock_boundary.rs"]
+mod clock_boundary;
