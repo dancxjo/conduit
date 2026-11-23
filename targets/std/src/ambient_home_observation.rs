@@ -93,6 +93,24 @@ impl PreparedAmbientHomeObservation {
             + self.unavailable_wallpaper.len()
             + self.home.prepared_heap_bytes()
     }
+    fn compose(&mut self, len: usize) -> Result<&[u8], WorkerFailure> {
+        let clock = canonical(&self.clock_bytes[..len]).map_err(|_| WorkerFailure::Provider)?;
+        let instant = clock
+            .record_field("observed_at_unix_ms")
+            .map_err(|_| WorkerFailure::Provider)?
+            .ok_or(WorkerFailure::Provider)?
+            .primitive_bytes("value/u64")
+            .map_err(|_| WorkerFailure::Provider)?;
+        let instant = u64::from_le_bytes(instant.try_into().map_err(|_| WorkerFailure::Provider)?);
+        let wallpaper = self
+            .wallpaper
+            .encode(instant)
+            .unwrap_or(&self.unavailable_wallpaper);
+        let wallpaper = canonical(wallpaper).map_err(|_| WorkerFailure::Provider)?;
+        self.home
+            .record(&[clock, wallpaper])
+            .map_err(|_| WorkerFailure::InvalidOutput)
+    }
 }
 
 fn debug_error(error: impl core::fmt::Debug) -> String {
@@ -109,23 +127,7 @@ unsafe impl NativeSourceWorkerProvider for PreparedAmbientHomeObservation {
         context: &NativeReadContext<'_>,
     ) -> Result<usize, WorkerFailure> {
         let len = self.clock.read(input, &mut self.clock_bytes, context)?;
-        let clock = canonical(&self.clock_bytes[..len]).map_err(|_| WorkerFailure::Provider)?;
-        let instant = clock
-            .record_field("observed_at_unix_ms")
-            .map_err(|_| WorkerFailure::Provider)?
-            .ok_or(WorkerFailure::Provider)?
-            .primitive_bytes("value/u64")
-            .map_err(|_| WorkerFailure::Provider)?;
-        let instant = u64::from_le_bytes(instant.try_into().map_err(|_| WorkerFailure::Provider)?);
-        let wallpaper = self
-            .wallpaper
-            .encode(instant)
-            .unwrap_or(&self.unavailable_wallpaper);
-        let wallpaper = canonical(wallpaper).map_err(|_| WorkerFailure::Provider)?;
-        let combined = self
-            .home
-            .record(&[clock, wallpaper])
-            .map_err(|_| WorkerFailure::InvalidOutput)?;
+        let combined = self.compose(len)?;
         if context.cancelled() {
             return Err(WorkerFailure::Cancelled);
         }
@@ -137,5 +139,80 @@ unsafe impl NativeSourceWorkerProvider for PreparedAmbientHomeObservation {
             .ok_or(WorkerFailure::InvalidOutput)?
             .copy_from_slice(combined);
         Ok(combined.len())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        ambient_clock::PreparedAmbientClockWire,
+        ambient_wallpaper::{
+            acquisition::{
+                prepare_deck, PreparationAdmission, MAXIMUM_RETAINED_BYTES, PREPARATION_BYTES,
+            },
+            MAXIMUM_APOD_RESPONSE_BYTES,
+        },
+    };
+    use image::{codecs::png::PngEncoder, ExtendedColorType, ImageEncoder};
+
+    #[test]
+    fn prepared_home_rotates_from_the_clock_observation_without_allocations() {
+        let admission = PreparationAdmission::admit(
+            chrono::NaiveDate::from_ymd_opt(2026, 11, 16).unwrap(),
+            MAXIMUM_RETAINED_BYTES,
+            PREPARATION_BYTES,
+        )
+        .unwrap();
+        let mut number = 0;
+        let deck = prepare_deck(admission, |requested, maximum| {
+            if maximum == MAXIMUM_APOD_RESPONSE_BYTES {
+                return Ok(serde_json::to_vec(&serde_json::json!({
+                    "date": requested.rsplit('=').next().unwrap(),
+                    "title": "Fixture photo",
+                    "media_type": "image",
+                    "hdurl": "https://apod.nasa.gov/fixture.png"
+                }))
+                .unwrap());
+            }
+            number += 1;
+            let mut pixels = Vec::new();
+            PngEncoder::new(&mut pixels)
+                .write_image(&[number, 2, 3, 255], 1, 1, ExtendedColorType::Rgba8)
+                .unwrap();
+            Ok(pixels)
+        })
+        .unwrap();
+        let mut home = PreparedAmbientHomeObservation::prepare(
+            "America/Los_Angeles",
+            "127.0.0.1:80".parse().unwrap(),
+            deck,
+        )
+        .unwrap();
+        let mut clock =
+            PreparedAmbientClockWire::prepare("America/Los_Angeles", "Weather unavailable")
+                .unwrap();
+        for (now, selected) in [(100_000, 100_000), (399_999, 100_000), (400_000, 400_000)] {
+            let sample = clock.encode(now).unwrap();
+            home.clock_bytes[..sample.len()].copy_from_slice(sample);
+            let probe = crate::allocation_probe::begin();
+            let encoded = home.compose(sample.len()).unwrap();
+            assert_eq!(probe.finish_bytes(), 0);
+            let observation = canonical(encoded).unwrap();
+            let selection = observation
+                .record_field("wallpaper")
+                .unwrap()
+                .unwrap()
+                .variant_payload("available")
+                .unwrap()
+                .unwrap();
+            let observed = selection
+                .record_field("selected_at_unix_ms")
+                .unwrap()
+                .unwrap()
+                .primitive_bytes("value/u64")
+                .unwrap();
+            assert_eq!(u64::from_le_bytes(observed.try_into().unwrap()), selected);
+        }
     }
 }
