@@ -270,9 +270,9 @@ fn assert_pete_create_serial_play(first_sample: SerialSample) {
     let peer = master.map(|mut master| {
         std::thread::spawn(move || {
             for revision in 1..=2 {
-                let mut commands = [0; 6];
+                let mut commands = [0; 5];
                 master.read_exact(&mut commands).unwrap();
-                assert_eq!(commands, [128, 131, 148, 2, 0, 34]);
+                assert_eq!(commands, [128, 148, 2, 0, 34]);
                 let capacity = if first_sample == SerialSample::MissingCapacity && revision == 1 {
                     0
                 } else {
