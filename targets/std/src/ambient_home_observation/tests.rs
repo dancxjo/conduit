@@ -444,3 +444,62 @@ fn weather_fixture() -> (SocketAddr, std::thread::JoinHandle<()>) {
     });
     (endpoint, worker)
 }
+
+#[test]
+fn ambient_home_source_connects_the_typed_timer_observation_and_face() {
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
+        StartupCatalog,
+    };
+    use conduit_semantic_catalog as catalog;
+
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
+    catalog::install_ambient_display_types(&mut startup).unwrap();
+    catalog::install_ambient_home_observation_kind(&mut startup, &mut profile).unwrap();
+    catalog::install_ambient_home_face_kind(&mut startup, &mut profile).unwrap();
+    let source = include_str!("../../../../plots/ambient-home/main.conduit");
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_plot(&checked, "ambient-resident", &profile).unwrap();
+
+    let mut kinds: Vec<_> = expanded
+        .gears
+        .iter()
+        .map(|gear| gear.kind_id.as_str())
+        .collect();
+    kinds.sort_unstable();
+    assert_eq!(
+        kinds,
+        [
+            "ambient/resident-observation",
+            "face/resident-ambient-home",
+            "time/every"
+        ]
+    );
+    let gear_id = |kind: &str| {
+        &expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id.as_str() == kind)
+            .unwrap()
+            .gear_id
+    };
+    let cadence = gear_id("time/every");
+    let source = gear_id("ambient/resident-observation");
+    let face = gear_id("face/resident-ambient-home");
+    assert_eq!(expanded.connections.len(), 2);
+    assert!(expanded.connections.iter().any(|cord| {
+        &cord.source_gear_id == cadence
+            && &cord.sink_gear_id == source
+            && cord.source_port_id.as_str() == "tick"
+            && cord.sink_port_id.as_str() == "tick"
+            && cord.value_kind.as_str() == conduit_time::TICK_VALUE_KIND
+    }));
+    assert!(expanded.connections.iter().any(|cord| {
+        &cord.source_gear_id == source
+            && &cord.sink_gear_id == face
+            && cord.source_port_id.as_str() == "observation"
+            && cord.sink_port_id.as_str() == "observation"
+    }));
+}
