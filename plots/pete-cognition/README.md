@@ -174,7 +174,9 @@ Its artifact identity comes from the inventory before initialization; it does
 not establish immutable provider-tag custody or answer quality. Changing
 these realization options does not change the Plot, its cognition bounds, or
 the ordinary planner/kernel path. Default model qualification remains tracked
-in [#6874](https://github.com/dancxjo/conduit/issues/6874).
+in [#6874](https://github.com/dancxjo/conduit/issues/6874). The
+[qualification cases](model-qualification.md) distinguish the unchanged Pete
+persona from the generic explicit-evidence instruction envelope.
 
 Open the optional replay with the Workbench's `--replay-snapshot` argument.
 The replay opens on the final episode's upstream trace and keeps the same
