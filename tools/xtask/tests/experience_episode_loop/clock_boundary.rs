@@ -290,12 +290,12 @@ fn checkpoint_clock_case(foreign: bool) {
     let restored = decode_episode_checkpoint(&next).unwrap();
     assert_eq!(*restored.completed(), 2);
     assert_eq!(
-        restored.owner().encode().unwrap(),
-        saved.owner().encode().unwrap()
+        restored.owner().clone().encode().unwrap(),
+        saved.owner().clone().encode().unwrap()
     );
     assert_eq!(
-        restored.memories().encode().unwrap(),
-        saved.memories().encode().unwrap(),
+        restored.memories().clone().encode().unwrap(),
+        saved.memories().clone().encode().unwrap(),
         "foreign evidence stays byte-identical in native checkpoint custody"
     );
     assert_eq!(
