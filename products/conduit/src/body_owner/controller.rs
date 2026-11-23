@@ -239,6 +239,7 @@ pub(crate) struct Owner {
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     runtime_face_updates: u64,
+    runtime_face_inspection: bool,
     runtime_face: Option<conduit_std_host::body_execution::CommittedFaceContribution>,
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
     /// Canonical document projection adopted from completed notebook Source steps.
@@ -352,6 +353,7 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             runtime_face_updates: 0,
+            runtime_face_inspection: false,
             runtime_face: None,
             todo_live: None,
             todo_verified: None,
@@ -388,6 +390,7 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             runtime_face_updates: 0,
+            runtime_face_inspection: false,
             runtime_face: None,
             todo_live: None,
             todo_verified: None,

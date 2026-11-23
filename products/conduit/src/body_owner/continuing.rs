@@ -299,6 +299,7 @@ impl LocalWorker {
             self.faces.progress(owner)?;
             return Ok(false);
         }
+        owner.runtime_face_inspection = false;
         if owner.runtime_face.take().is_some() {
             owner.advance_runtime_face_revision()?;
         }

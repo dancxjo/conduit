@@ -56,6 +56,45 @@ impl RuntimeFaceReceiver {
 }
 
 impl Owner {
+    pub(crate) fn navigate_home_inspection(
+        &mut self,
+        show: &conduit_face::MaskShow,
+        interaction: &conduit_face::FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        use conduit_face::FaceOperatorActionKind;
+        let current = self.project_body_face(None)?;
+        show.validate(&current.face)
+            .map_err(|error| format!("stale inspection Show: {error:?}"))?;
+        interaction
+            .validate_against(&current.face, show)
+            .map_err(|error| format!("inspection interaction refused: {error:?}"))?;
+        let action = current
+            .resolve_operator_action(interaction.face_revision, &interaction.action_id)
+            .map_err(|error| format!("inspection action refused: {error:?}"))?;
+        let home = self
+            .current_home_fragment()
+            .ok_or("Home inspection is not current")?;
+        let inspect = match &action.kind {
+            FaceOperatorActionKind::OpenInspection(plot) if *plot == home.basis.checked_plot_id => {
+                true
+            }
+            FaceOperatorActionKind::OpenOverview => false,
+            _ => return Err("action does not target the current Home inspection".into()),
+        };
+        if self.runtime_face_inspection != inspect {
+            self.advance_runtime_face_revision()?;
+            self.runtime_face_inspection = inspect;
+        }
+        Ok(serde_json::json!({
+            "schema": "conduit.body/inspection-navigation@1",
+            "body_id": show.show.body_id,
+            "prior_face_id": interaction.face_id,
+            "prior_show_id": interaction.show_id,
+            "interaction_id": interaction.identity.as_str(),
+            "context": if inspect { "inspection" } else { "overview" }
+        }))
+    }
+
     pub(super) fn advance_runtime_face_revision(&mut self) -> Result<(), String> {
         self.runtime_face_updates = self
             .runtime_face_updates

@@ -104,6 +104,7 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             runtime_face_updates: 0,
+            runtime_face_inspection: false,
             runtime_face: None,
             todo_live: None,
             todo_verified: None,

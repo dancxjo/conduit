@@ -58,6 +58,7 @@ pub(crate) enum ClockAction {
     Start,
     Lull,
     NotebookNavigation,
+    HomeNavigation,
 }
 
 pub(super) fn source_for(interval_ms: u64) -> String {
@@ -295,6 +296,11 @@ impl Owner {
                 0,
             ) if self.has_open_notebook() && self.current_play_id().is_some() => {
                 Ok(ClockAction::NotebookNavigation)
+            }
+            ("conduit.intent/open-inspection@1" | "conduit.intent/open-body-overview@1", 0)
+                if self.current_home_fragment().is_some() =>
+            {
+                Ok(ClockAction::HomeNavigation)
             }
             _ => Err("owner action is not a current clock control".into()),
         }
