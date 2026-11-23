@@ -167,6 +167,15 @@ impl InitializedNativeSource {
                 "native Source Plan does not possess the independently installed grant".into(),
             );
         }
+        let offer = &d.base.capabilities[0];
+        let resident_ambient = matches!(self.provider, NativeProvider::Worker(_))
+            && d.kind.kind_id.as_str() == conduit_semantic_catalog::AMBIENT_HOME_OBSERVE_KIND
+            && offer.implementation.implementation_id.as_str()
+                == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+            && offer.implementation.execution_profile_id.as_str() == NATIVE_SOURCE_WORKER_PROFILE;
+        // This resident worker uses the nonwrapping Host Call request sequence.
+        // Each Play has its own finite authority and only one request in flight.
+        let maximum_operations = if resident_ambient { u32::MAX } else { 1 };
         let envelope: CapabilityEnvelopeId = "std/native-source/exact@1".into();
         let scope = BaseCapabilityScope {
             host_id: host.host_id.clone(),
@@ -196,7 +205,7 @@ impl InitializedNativeSource {
             maximum_result_bytes: d.output_bytes,
             maximum_work_units: 1,
             maximum_in_flight: 1,
-            maximum_operations: 1,
+            maximum_operations,
         };
         let authority = BaseCapabilityAuthority {
             grant: g.clone(),
@@ -210,7 +219,7 @@ impl InitializedNativeSource {
             maximum_result_bytes: d.output_bytes,
             maximum_work_units: 1,
             maximum_in_flight: 1,
-            maximum_operations: 1,
+            maximum_operations,
         };
         let claim = BaseOperationClaim {
             host_id: scope.host_id.clone(),

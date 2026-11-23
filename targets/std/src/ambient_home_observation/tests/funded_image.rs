@@ -203,11 +203,13 @@ impl crate::body_execution::BodyFaceContributionObserver for Capture {
         &mut self,
         contribution: crate::body_execution::CommittedFaceContribution,
     ) -> Result<(), crate::body_execution::ReturnedFaceContribution> {
-        assert!(self.current.is_none());
-        self.current = Some(contribution);
-        self.control
-            .request_stop(crate::RunControlRequestId::new("fixture/home-complete").unwrap())
-            .unwrap();
+        let previous = self.current.replace(contribution);
+        if let Some(previous) = previous {
+            assert!(previous.request() < self.current.as_ref().unwrap().request());
+            self.control
+                .request_stop(crate::RunControlRequestId::new("fixture/home-complete").unwrap())
+                .unwrap();
+        }
         Ok(())
     }
 }
