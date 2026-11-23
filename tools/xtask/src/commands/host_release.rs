@@ -1,3 +1,4 @@
+use conduit_host_make::MAXIMUM_NATIVE_HOST_RELEASE_FILE_BYTES as MAXIMUM_NATIVE_FILE_BYTES;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -16,10 +17,8 @@ mod browser;
 mod linux;
 
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
-// Browser consumers retain their 32 MiB file limit. Installed native Hosts
-// accept 64 MiB release files, so sealing must admit the same finite range.
+// Browser consumers retain their 32 MiB file limit.
 const MAXIMUM_FILE_BYTES: u64 = 32 * 1024 * 1024;
-const MAXIMUM_NATIVE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub(crate) enum ReleasePlatform {
@@ -116,6 +115,8 @@ pub(crate) fn run(
     }
     Ok(())
 }
+
+pub(super) use linux::seal_linux_installer;
 
 fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Refuse a missing optimizer before paying for the browser Rust build.
@@ -395,7 +396,7 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let product = root.join("conduit-linux-x86_64");
         let file = fs::File::create(&product).unwrap();
-        file.set_len(MAXIMUM_FILE_BYTES + 1).unwrap();
+        file.set_len(MAXIMUM_NATIVE_FILE_BYTES).unwrap();
         drop(file);
         let seal_product = |manifest_name| {
             seal(
@@ -416,7 +417,7 @@ mod tests {
         seal_product("release.json").unwrap();
         let manifest: serde_json::Value =
             serde_json::from_slice(&fs::read(root.join("release.json")).unwrap()).unwrap();
-        assert_eq!(manifest["files"][0]["bytes"], MAXIMUM_FILE_BYTES + 1);
+        assert_eq!(manifest["files"][0]["bytes"], MAXIMUM_NATIVE_FILE_BYTES);
 
         fs::OpenOptions::new()
             .write(true)

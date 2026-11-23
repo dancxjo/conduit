@@ -260,6 +260,11 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 },
             )
         }
+        HostCommand::SealLinuxInstaller {
+            executable,
+            output,
+            source_identity,
+        } => host_release::seal_linux_installer(&executable, &output, &source_identity),
         HostCommand::ReleaseCatalog { root, generation } => {
             host_release_catalog::run(&root, generation, opts.dry_run, opts.json, opts.quiet)
         }
