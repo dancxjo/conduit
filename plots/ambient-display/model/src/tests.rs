@@ -1,10 +1,7 @@
-use crate::{AmbientFaceRefusal, PreparedAmbientFaces};
-use alloc::{string::String, vec::Vec};
-use conduit_core::StructuredInfoValue;
-use conduit_face::{FaceContributionBasis, FaceFragment, FacePropertyValue};
-use conduit_plot::rust_binding::semantic_core as conduit_core;
-
 use crate::test_fixtures::*;
+use crate::{AmbientFaceRefusal, PreparedAmbientFaces};
+use alloc::vec::Vec;
+use conduit_face::FacePropertyValue;
 
 #[test]
 fn bundled_observation_reuses_both_exact_domain_contracts() {

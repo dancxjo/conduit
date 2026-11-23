@@ -1,11 +1,9 @@
 //! Identity parity proof only; no prospective reservation or publication.
 use super::*;
+use crate::test_fixtures::*;
 use crate::PreparedAmbientFaces;
-use conduit_core::StructuredInfoValue;
 use conduit_face::{FaceFragment, FaceRole};
 use conduit_plot::rust_binding::semantic_core as conduit_core;
-
-use crate::test_fixtures::*;
 
 fn semantic_subject<'a>(fragment: &'a FaceFragment, role: &str) -> &'a str {
     fragment
