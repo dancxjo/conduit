@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::{
     ambient_clock::PreparedAmbientClockWire,
@@ -105,12 +104,10 @@ fn ambient_home_worker_becomes_an_installed_offer_only_with_its_exact_grant_and_
     };
     let output_bytes = HOME_OBSERVATION_BYTES as u32;
     let input_bytes = conduit_time::TICK_ENCODED_LEN;
-    let provider = PreparedAmbientHomeObservation::prepare(
-        "America/Los_Angeles",
-        "127.0.0.1:80".parse().unwrap(),
-        fixture_deck(),
-    )
-    .unwrap();
+    let (endpoint, weather_server) = weather_fixture();
+    let provider =
+        PreparedAmbientHomeObservation::prepare("America/Los_Angeles", endpoint, fixture_deck())
+            .unwrap();
     let backing = budget.backing_bytes(input_bytes, output_bytes).unwrap();
     let mut definition = NativeSourceDefinition {
         kind,
@@ -164,6 +161,21 @@ fn ambient_home_worker_becomes_an_installed_offer_only_with_its_exact_grant_and_
         .unwrap();
     assert_eq!(placement.host_calls, offer.host_calls);
     assert_eq!(placement.authority[0].boot_id, host.advertisement().boot_id);
+    let mut capture = HomeCapture { readings: 0 };
+    host.run_external_plot_to(
+        plan.fragments[0].clone(),
+        &[crate::ExternalForeInput {
+            front_port_id: "pulse".into(),
+            track: ConnectionTrack::Payload,
+            bytes: conduit_time::encode_tick(0).to_vec(),
+        }],
+        &mut capture,
+        &mut Vec::new(),
+        &mut crate::ThreadTimer,
+    )
+    .unwrap();
+    weather_server.join().unwrap();
+    assert_eq!(capture.readings, 1);
 }
 
 #[cfg(target_os = "linux")]
@@ -250,4 +262,98 @@ plot home (
         &boundaries,
     )
     .unwrap()
+}
+
+#[cfg(target_os = "linux")]
+struct HomeCapture {
+    readings: usize,
+}
+
+#[cfg(target_os = "linux")]
+impl crate::ExternalForeOutputAdapter for HomeCapture {
+    fn deliver(&mut self, _: crate::ExternalForeDelivery) -> Result<(), String> {
+        Err("the Home fixture requires committed delivery".into())
+    }
+    fn deliver_committed(
+        &mut self,
+        witness: crate::CommittedForeValue<'_>,
+        _: crate::ExternalForeDelivery,
+    ) -> Result<(), String> {
+        assert_eq!(witness.scope().fore.front_port_id.as_str(), "current");
+        let home = canonical(witness.bytes()).unwrap();
+        let clock = home.record_field("clock_weather").unwrap().unwrap();
+        assert_eq!(
+            clock
+                .record_field("weather")
+                .unwrap()
+                .unwrap()
+                .variant_tag()
+                .unwrap(),
+            "fresh"
+        );
+        assert_eq!(
+            home.record_field("wallpaper")
+                .unwrap()
+                .unwrap()
+                .variant_tag()
+                .unwrap(),
+            "available"
+        );
+        self.readings += 1;
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn weather_fixture() -> (SocketAddr, std::thread::JoinHandle<()>) {
+    use std::{
+        io::{Read, Write},
+        net::TcpListener,
+        time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    };
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let endpoint = listener.local_addr().unwrap();
+    let worker = std::thread::spawn(move || {
+        let deadline = Instant::now() + Duration::from_secs(15);
+        let mut stream = loop {
+            match listener.accept() {
+                Ok((stream, _)) => break stream,
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    assert!(
+                        Instant::now() < deadline,
+                        "weather request was never submitted"
+                    );
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                Err(error) => panic!("weather fixture accept: {error}"),
+            }
+        };
+        stream
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        let mut request = Vec::new();
+        let mut byte = [0];
+        while !request.ends_with(b"\r\n\r\n") {
+            stream.read_exact(&mut byte).unwrap();
+            request.push(byte[0]);
+            assert!(request.len() < 1024);
+        }
+        assert!(request.starts_with(b"GET /v1/forecast?"));
+        let observed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            - 1;
+        let body = format!(
+            r#"{{"current_units":{{"time":"unixtime","temperature_2m":"°C","weather_code":"wmo code"}},"current":{{"time":{observed},"temperature_2m":12.5,"weather_code":0}}}}"#
+        );
+        write!(
+            stream,
+            "HTTP/1.0 200 OK\r\nContent-Length: {}\r\nContent-Type: application/json\r\n\r\n{body}",
+            body.len()
+        )
+        .unwrap();
+    });
+    (endpoint, worker)
 }
