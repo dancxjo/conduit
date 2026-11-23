@@ -226,7 +226,7 @@ fn assert_maximal_checkpoint_suffix(
     let newest = kept.last().unwrap();
     assert_eq!(newest.observation(), record.observation());
     assert_eq!(newest.outcome(), record.outcome());
-    assert!(newest.evidence().is_some());
+    assert_retained_evidence(newest.evidence().as_deref().unwrap(), record);
 
     let available = previous.memories().get().as_slice();
     let survivors = &kept[..kept.len() - 1];
@@ -265,4 +265,63 @@ fn assert_maximal_checkpoint_suffix(
         bytes.len()
     );
     Some((identities, bytes.len()))
+}
+
+fn assert_retained_evidence(stored: &str, record: &EpisodeRecord) {
+    use serde_json::{Map, Value};
+    let original: Value = serde_json::from_str(record.evidence().as_deref().unwrap()).unwrap();
+    let stored: Value = serde_json::from_str(stored).unwrap();
+    // Time column declarations remain provenance even after expansion. Check
+    // their exact presence and values, including packets without this field.
+    assert_eq!(stored.get("time_fields"), original.get("time_fields"));
+    let mut expected = common::model_projection::expanded_model_evidence(
+        &original,
+        record.observation().content(),
+    );
+    let mut actual =
+        common::model_projection::expanded_model_evidence(&stored, record.observation().content());
+
+    // The shared helper expands declared columns and observation references;
+    // stored classifications are already flat. Nest their exact five values
+    // for comparison rather than applying the production retention formatter.
+    for item in actual["evidence"].as_array_mut().unwrap() {
+        let item = item.as_object_mut().unwrap();
+        let mut classifications = Map::new();
+        for name in [
+            "domain",
+            "origin",
+            "availability",
+            "certainty",
+            "temporal_role",
+        ] {
+            classifications.insert(name.into(), item.remove(name).unwrap());
+        }
+        assert!(item
+            .insert("classifications".into(), Value::Object(classifications))
+            .is_none());
+    }
+
+    // Only these rendering fields may disappear. Column descriptors have
+    // already been resolved; the recorded-time default belongs to the removed
+    // recorded_at field. Leave every other field for full structural equality.
+    let expected_object = expected.as_object_mut().unwrap();
+    expected_object.remove("classification_fields");
+    expected_object.remove("recorded_at_default");
+    expected_object.remove("relationships");
+    for item in expected_object
+        .get_mut("evidence")
+        .unwrap()
+        .as_array_mut()
+        .unwrap()
+    {
+        let item = item.as_object_mut().unwrap();
+        item.remove("content_kind");
+        item.remove("recorded_at");
+    }
+    assert_eq!(
+        actual,
+        expected,
+        "episode {} retained evidence",
+        record.episode()
+    );
 }
