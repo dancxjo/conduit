@@ -16,6 +16,27 @@ capabilities understandable and useful through real product experiences.
 names exact development, accepted-release, publication, lag, and proof-receipt
 identities; this roadmap does not substitute planned work for any of those.
 
+## Current sprint: Archibold (updated 20 November 2026)
+
+**[Sprint Archibold](sprints/archibold.md)**, tracked by
+[#6984](https://github.com/dancxjo/conduit/issues/6984), now prioritizes
+**a complete first user journey on already durable browser/hosted Linux
+machinery**: download, Crib, selected resident Plots, Ambient Commons/Patchbay,
+and returning to the same Body. It is a staged acceptance plan, not a claim
+that browser and Linux currently pass those tests.
+
+**NEXT:** actual Stem catalog/Seed/second-Host Join, hosted Windows/macOS,
+multimodal accessibility and native ConduitOS single-Boot experience.
+
+**LATER:** physical Threebee Pi3B+ AArch64 ConduitOS boot [#6859](https://github.com/dancxjo/conduit/issues/6859)
+and its safely writable microSD continuity [#6996](https://github.com/dancxjo/conduit/issues/6996);
+native x86_64 QEMU storage is independent. These remain valuable but **are
+not prerequisites** for the first complete Crib → Commons → Return experience.
+See [#6983](https://github.com/dancxjo/conduit/issues/6983) for Now/Next/Later
+ownership and proof gaps. Parallel work is bounded by *actual overlaps* and
+release integration, not a global two-PR cap when the contributing-policy PR
+is adopted.
+
 ## How this roadmap relates to continuing Bodies
 
 A Body's identity is distinct from the Host or Boot currently doing its work.

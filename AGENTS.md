@@ -5,6 +5,40 @@ This file records the constraints contributors and coding agents need when
 changing code. Keep routine work focused and explain the behavior and proof
 that matter to a reviewer.
 
+## Current product sprint: Archibold
+
+The current first-use acceptance goal is [Sprint Archibold](docs/sprints/archibold.md),
+tracked in [#6984](https://github.com/dancxjo/conduit/issues/6984) and ordered by
+[#6983](https://github.com/dancxjo/conduit/issues/6983). **NOW:** reviewed
+download → Crib Birth/Join → checked selected resident Plots → Ambient Commons
+and usable Patchbay → close and re-enter the **same Body** on an already durable
+browser/hosted Linux Host. Prove browser and installed-host reentry independently
+with exact current Body/Host/Boot, Plan/Play, Face/Show and released-artifact
+evidence. This is a *planned outcome*, not proof that it already ships.
+
+**NEXT:** Stem as a genuine Crib-catalog selectable ordinary Plot for same-Body
+member Seeds and a second browser Host; hosted Windows/macOS qualification;
+native ConduitOS x86_64 single-Boot Commons, with truthful ephemeral persistence
+if no selected storage Back exists.
+
+**LATER, not an upstream first-use dependency:** [#6859](https://github.com/dancxjo/conduit/issues/6859)
+direct AArch64 ConduitOS boot on **Threebee (Pi 3B+ rev 1.3)**, followed by
+[#6996](https://github.com/dancxjo/conduit/issues/6996) real microSD
+read/write/flush and safe committed Body continuity on disposable media.
+ConduitOS x86_64/QEMU durable disk recovery is separate. Do not claim physical
+Pi or virtual persistence from a successful browser/Linux return, nor prevent
+the first working vertical on an already durable Host because these drivers
+are unfinished. Raspberry Pi OS on Threebee is not bare-metal ConduitOS.
+
+**Delivery policy:** coordinate by *actual shared-file/contract/equipment*
+conflicts, not a global two-active-PR quota. Distinct independent work may run
+in parallel; one writer owns each overlapping code/equipment seam at a time,
+with agreed order for conflicting merge-ready changes. An integration shepherd
+owns red-dev repair, cross-platform proof and source-matched release gates.
+Keep bounded checks, architecture, custody, security and publication safeguards
+below. Work from current source and fix demonstrated first-user failures
+before inventing broad architecture prerequisites.
+
 ## Read the relevant contracts
 
 Before changing code, read the [canon](docs/conduit-canon.md),
