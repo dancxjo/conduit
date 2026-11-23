@@ -1,4 +1,4 @@
-# This script replaces host operations only in the test process.
+# Substitute display service commands in the test process.
 unit_root=$1/system
 mode=$2
 review_dir=$1/review
