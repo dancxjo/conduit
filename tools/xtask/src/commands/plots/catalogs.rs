@@ -40,6 +40,7 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_graphics_face_catalog(&mut startup, &mut profile)?;
+    conduit_ambient_display::install_ambient_display_types(&mut startup)?;
     conduit_face::install_bitmap_face_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
