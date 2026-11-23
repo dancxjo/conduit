@@ -5,7 +5,7 @@ impl BodyKernel<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn finish<T: TimerAdapter>(
         mut self,
-        mut state: BodyExecutionState<'_>,
+        mut state: BodyExecutionState<'_, '_>,
         result: Result<TerminalDisposition, String>,
         clock: &mut T,
         host_id: &conduit_core::HostId,

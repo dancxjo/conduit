@@ -43,7 +43,15 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        self.run_selected_image_body_plan_with_ack_to(request, &[], output, timer, fore, started)
+        self.run_selected_image_body_plan_with_ack_to(
+            request,
+            &[],
+            output,
+            timer,
+            fore,
+            started,
+            None,
+        )
     }
     pub fn run_selected_image_body_plan_with_committed_startup_to<W: Write, T: TimerAdapter, F>(
         &mut self,
@@ -57,8 +65,55 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<CommittedBodyStartup, String>,
     {
-        self.run_selected_image_body_plan_with_ack_to(request, inputs, output, timer, fore, started)
+        self.run_selected_image_body_plan_with_ack_to(
+            request, inputs, output, timer, fore, started, None,
+        )
     }
+    pub fn run_selected_image_body_plan_with_face_to<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        observer: &mut dyn BodyFaceContributionObserver,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_selected_image_body_plan_with_ack_to(
+            request,
+            &[],
+            output,
+            timer,
+            None,
+            started,
+            Some(observer),
+        )
+    }
+
+    pub fn run_selected_image_body_plan_with_startup_and_face_to<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        observer: &mut dyn BodyFaceContributionObserver,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<CommittedBodyStartup, String>,
+    {
+        self.run_selected_image_body_plan_with_ack_to(
+            request,
+            &[],
+            output,
+            timer,
+            None,
+            started,
+            Some(observer),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn run_selected_image_body_plan_with_ack_to<W: Write, T: TimerAdapter, F, A>(
         &mut self,
         request: BodyRunRequest<'_>,
@@ -67,6 +122,7 @@ impl StdHost {
         timer: &mut T,
         fore: Option<&mut dyn BodyForeOutputAdapter>,
         started: F,
+        observer: Option<&mut dyn BodyFaceContributionObserver>,
     ) -> Result<ImageBodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<A, String>,
@@ -92,6 +148,7 @@ impl StdHost {
             None,
             started,
             Some(&mut custody),
+            observer,
         )?;
         Ok(ImageBodyRunReport {
             report,

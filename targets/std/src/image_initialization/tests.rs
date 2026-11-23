@@ -41,6 +41,27 @@ fn host(image: &HostImage, boot: &str) -> Result<StdHost, String> {
         &conduit_workspace_make::catalog(),
     )
 }
+#[test]
+fn selected_recurring_timer_does_not_advertise_unselected_finite_timer() {
+    let source = SOURCE
+        .replace("time/tick", conduit_time::TIME_EVERY_KIND)
+        .replace(
+            conduit_std_offers::TICK_IMPLEMENTATION,
+            conduit_std_offers::TIME_EVERY_IMPLEMENTATION,
+        );
+    let selected = image(&source);
+    let initialized = host(&selected, "boot/selected-every").unwrap();
+    let implements = |id: &str| {
+        initialized
+            .advertisement()
+            .capabilities
+            .iter()
+            .any(|offer| offer.implementation.implementation_id.as_str() == id)
+    };
+    assert!(implements(conduit_std_offers::TIME_EVERY_IMPLEMENTATION));
+    assert!(!implements(conduit_std_offers::TICK_IMPLEMENTATION));
+}
+
 fn plan(host: &StdHost) -> conduit_core::Plan {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();

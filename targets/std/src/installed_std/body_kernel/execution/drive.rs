@@ -5,7 +5,7 @@ impl BodyKernel<'_> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn drive<W: Write, T: TimerAdapter>(
         &mut self,
-        state: &mut BodyExecutionState<'_>,
+        state: &mut BodyExecutionState<'_, '_>,
         output: &mut W,
         clock: &mut T,
         fore_output: &mut Option<&mut dyn BodyForeOutputAdapter>,
@@ -26,6 +26,13 @@ impl BodyKernel<'_> {
         let cancel_requested = cancel_requested || external_cancel();
         if !state.cancelling && !(control.stop_requested() || cancel_requested) {
             self.poll_creche(creche.as_deref_mut())?;
+            if let Some(observer) = state.face_observer.as_deref_mut() {
+                for route in &mut self.home_face_routes {
+                    if !route.is_retired() || route.is_pending() {
+                        route.poll(&mut self.scheduler, observer)?;
+                    }
+                }
+            }
         }
         self.fore.drain(
             &mut self.scheduler,
@@ -147,6 +154,9 @@ impl BodyKernel<'_> {
             }
         }
         while let Some(cancellation) = self.scheduler.next_host_cancellation() {
+            if self.cancel_native_source(cancellation)? {
+                continue;
+            }
             let operation = self
                 .operations
                 .iter()
@@ -156,6 +166,18 @@ impl BodyKernel<'_> {
                 == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
                 self.cancel_creche_call(cancellation, creche.as_deref_mut())?;
+            } else if super::super::ambient_home::is_home_face_call(operation) {
+                self.scheduler
+                    .complete_host_call(
+                        cancellation.node,
+                        cancellation.request,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Cancelled,
+                            output: None,
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("Home Face cancellation: {error:?}"))?;
             } else if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                 state.keys.cancel();
                 self.scheduler
@@ -178,6 +200,7 @@ impl BodyKernel<'_> {
                     })?;
             }
         }
+        self.poll_native_source()?;
         while let Some(request) = self.scheduler.next_host_request() {
             self.clock_observations.capture_new(
                 self.scheduler.signs().events(),
@@ -262,8 +285,10 @@ impl BodyKernel<'_> {
                 }
             }
             SchedulerStatus::Idle => {
+                let pending_native = self.native_source_pending()
+                    || self.home_face_routes.iter().any(|route| route.is_pending());
                 if state.keys.poll(&mut self.scheduler)?
-                    || (if wait {
+                    || (if wait && !pending_native {
                         state.deadlines.complete_next(&mut self.scheduler, clock)
                     } else {
                         state.deadlines.complete_ready(&mut self.scheduler, clock)
@@ -276,6 +301,12 @@ impl BodyKernel<'_> {
                 }
                 // A pending admitted keyboard request owns progress even
                 // when no command has reached the live Fore queue yet.
+                if pending_native {
+                    if wait {
+                        std::thread::park_timeout(std::time::Duration::from_millis(2));
+                    }
+                    return Ok(None);
+                }
                 if !state.keys.is_pending() && !self.creche_pending() {
                     if let Some(observed) = live_observed {
                         if wait && self.fore.wait_for_activity(observed)? {

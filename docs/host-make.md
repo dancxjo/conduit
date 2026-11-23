@@ -221,6 +221,19 @@ Repository loaders do not infer or import a second format. The checked semantic
 model and the stable configuration/Profile identities established during the
 earlier migration remain unchanged.
 
+An installed Linux Host can offer Ambient Home in Crib when its selected
+configuration and matching IMAGE initialize the timer, observation worker, and
+Face implementations. While the service is stopped, retain that selection
+with the installed executable.
+
+```text
+conduit host service configure ambient.host.conduit --image image.json --state-dir PATH
+```
+
+The local configuration names the civil time zone, the exact weather endpoint,
+and the provider access the operator admits. Photo acquisition is an explicit
+selection. The checked settings take effect on the next Boot.
+
 ## Exact identities
 
 The following identities never substitute for one another:

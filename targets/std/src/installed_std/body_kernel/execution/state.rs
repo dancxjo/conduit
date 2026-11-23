@@ -1,19 +1,22 @@
 //! Retained state of the existing ordinary execution loop.
 use super::*;
-pub(crate) struct BodyExecutionState<'a> {
+pub(crate) struct BodyExecutionState<'a, 'observer> {
     pub(super) keys: super::super::super::keyboard_input_host::KeyboardInputHost<'a>,
     pub(super) deadlines:
         super::super::super::deadline_host::InstalledDeadlineHost<PENDING_REQUESTS>,
     pub(super) clock_quality: Option<BodyTimeQuality>,
     pub(super) kernel_failure: Option<Failure>,
     pub(super) cancelling: bool,
+    pub(super) face_observer: Option<
+        &'observer mut dyn crate::body_execution::face_contribution::BodyFaceContributionObserver,
+    >,
 }
 impl BodyKernel<'_> {
-    pub(crate) fn execution_state<'a>(
+    pub(crate) fn execution_state<'a, 'observer>(
         &mut self,
         input: Option<&'a mut dyn HostedKeyboardAdapter>,
         admitted_clock_quality: Option<BodyTimeQuality>,
-    ) -> BodyExecutionState<'a> {
+    ) -> BodyExecutionState<'a, 'observer> {
         let mut keys = super::super::super::keyboard_input_host::KeyboardInputHost::new(
             input,
             self.operations
@@ -36,6 +39,7 @@ impl BodyKernel<'_> {
             clock_quality,
             kernel_failure,
             cancelling: false,
+            face_observer: None,
         }
     }
 }

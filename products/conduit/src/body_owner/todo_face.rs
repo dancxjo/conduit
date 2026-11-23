@@ -114,7 +114,7 @@ impl Owner {
         }];
         let face = BodyFace::project_committed(
             &self.session.evidence().body,
-            self.session.evidence().last_sequence(),
+            self.projected_face_revision()?,
             FaceContext::Overview,
             FaceFocus::Body,
             FaceContribution::from_face(FaceContributionRole::Foreground, fragment),
@@ -211,6 +211,13 @@ impl Owner {
     /// The ordinary owner Face, optionally including current Todo Play truth.
     /// A Plot contribution cannot be projected from an idle or retired Play.
     pub(super) fn project_face(&self, todo: Option<(&TodoState, bool)>) -> Result<Face, String> {
+        clock_interval::with_clock_action(self, self.project_body_face(todo)?.face)
+    }
+
+    pub(super) fn project_body_face(
+        &self,
+        todo: Option<(&TodoState, bool)>,
+    ) -> Result<BodyFace, String> {
         let plot_name = self
             .resident
             .as_ref()
@@ -221,7 +228,7 @@ impl Owner {
                 name,
             });
         let plot_names: Vec<_> = plot_name.into_iter().collect();
-        let contributions = todo
+        let mut contributions = todo
             .map(|(state, actions_admitted)| {
                 let fragment = todo_fragment(state, self.todo_basis()?, actions_admitted)
                     .map_err(|error| format!("Todo Face contribution refused: {error:?}"))?;
@@ -232,14 +239,29 @@ impl Owner {
             })
             .transpose()?
             .unwrap_or_default();
+        let mut context = FaceContext::Overview;
+        let mut focus = FaceFocus::Body;
+        if let Some(fragment) = self.current_home_fragment() {
+            if self.runtime_face_inspection {
+                context = FaceContext::Inspection(fragment.basis.checked_plot_id.clone());
+                focus = FaceFocus::Contribution {
+                    role: FaceContributionRole::Inspection,
+                    node_key: None,
+                };
+            }
+            contributions.push(FaceContribution::from_face(
+                FaceContributionRole::Inspection,
+                fragment.clone(),
+            ));
+        }
         let face = BodyFace::project_with_names(
             &self.session.evidence().body,
             self.session
                 .realization()
                 .map(|realization| &realization.wake),
-            self.session.evidence().last_sequence(),
-            FaceContext::Overview,
-            FaceFocus::Body,
+            self.projected_face_revision()?,
+            context,
+            focus,
             contributions,
             FaceNames {
                 body_name: Some(&self.session.evidence().friendly_name),
@@ -250,7 +272,7 @@ impl Owner {
         face.face
             .validate()
             .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
-        clock_interval::with_clock_action(self, face.face)
+        Ok(face)
     }
 }
 

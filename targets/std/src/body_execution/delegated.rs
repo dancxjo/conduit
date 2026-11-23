@@ -101,7 +101,7 @@ pub struct PreparedDelegatedBody {
     terminal: DelegatedBodyTerminalReceipt,
     scope: super::startup::PreparedStartupScope,
     kernel: Option<BodyKernel<'static>>,
-    execution: Option<BodyExecutionState<'static>>,
+    execution: Option<BodyExecutionState<'static, 'static>>,
     reservations: Vec<KernelResourceReservation>,
     memory: ImageMemoryLease,
     committed: bool,

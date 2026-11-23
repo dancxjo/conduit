@@ -11,6 +11,8 @@ use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+#[path = "selected_host_configuration/ambient.rs"]
+mod ambient;
 #[path = "selected_host_configuration/image.rs"]
 mod image;
 #[path = "selected_host_configuration/microphone.rs"]
@@ -69,6 +71,9 @@ impl Selection {
         } else {
             check(&self.source)?
         };
+        if self.host_image.is_none() && ambient::selected(&checked) {
+            return Err("selected Ambient source requires its exact canonical --image".into());
+        }
         if checked.configuration_id() != self.configuration_id {
             return Err("retained Host configuration identity changed".into());
         }
@@ -178,6 +183,9 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                         &checked,
                     )?;
                 }
+                Some(conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION) => {
+                    conduit_std_host::ambient_home_observation::CheckedAmbientHomeSource::from_configuration(&checked)?;
+                }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
                 }
@@ -252,6 +260,7 @@ pub(super) fn configure_with_image(
         None
     };
     if let Some(selection) = &selection {
+        selection.validate()?;
         selection.validate_speech_overlap(installation.selected_speech.as_ref())?;
     }
     installation.selected_host_configuration = selection;

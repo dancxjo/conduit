@@ -3,6 +3,7 @@ use super::*;
 use crate::kernel_preparation::{ImageMemoryLease, StagedImageMemory};
 #[derive(Default)]
 pub(crate) struct InitialBases<'a> {
+    pub(crate) worker: Option<crate::selected_native_source::image_worker::PreparedImageWorker<'a>>,
     pub(crate) recognition: Option<super::InitialWhisper>,
     pub(crate) memory: Option<StagedImageMemory<'a>>,
     pub(crate) playback: Option<(
@@ -26,6 +27,16 @@ impl InitialBases<'_> {
         }
     }
     pub(super) fn supports_native_implementation(&self, _id: &str) -> bool {
+        if self.worker.as_ref().is_some_and(|worker| {
+            let entry = &worker.definition().base;
+            entry
+                .capabilities
+                .iter()
+                .any(|offer| offer.implementation.implementation_id.as_str() == _id)
+        }) {
+            return true;
+        }
+
         if self.recognition.as_ref().is_some_and(|recognition| {
             recognition
                 .entry
@@ -51,6 +62,15 @@ impl InitialBases<'_> {
         }
     }
     pub(super) fn supports_native_base(&self, _id: &str, _kind: &str, _driver: &str) -> bool {
+        if self.worker.as_ref().is_some_and(|worker| {
+            let entry = &worker.definition().base;
+            entry.base_id.as_str() == _id
+                && entry.mechanism_family.as_str() == _kind
+                && entry.implementation_id.as_str() == _driver
+        }) {
+            return true;
+        }
+
         if self.recognition.as_ref().is_some_and(|recognition| {
             recognition.entry.base_id.as_str() == _id
                 && recognition.entry.mechanism_family.as_str() == _kind
@@ -72,6 +92,16 @@ impl InitialBases<'_> {
         }
     }
     pub(super) fn owns_native_pool(&self, _id: &str) -> bool {
+        if self.worker.as_ref().is_some_and(|worker| {
+            let entry = &worker.definition().base;
+            entry
+                .resources
+                .iter()
+                .any(|pool| pool.pool_id.as_str() == _id)
+        }) {
+            return true;
+        }
+
         if self.recognition.as_ref().is_some_and(|recognition| {
             recognition
                 .entry
@@ -107,6 +137,21 @@ impl InitialBases<'_> {
         _kinds: &mut BTreeSet<String>,
         _drivers: &mut BTreeSet<String>,
     ) -> Result<(), String> {
+        if let Some(worker) = &self.worker {
+            let entry = &worker.definition().base;
+            _registry
+                .register(entry.clone())
+                .map_err(|error| format!("selected worker registry: {error:?}"))?;
+            _bases.push(entry.clone());
+            _classes.extend(
+                entry
+                    .resources
+                    .iter()
+                    .map(|pool| pool.class_id.as_str().to_owned()),
+            );
+            _kinds.insert(entry.mechanism_family.as_str().to_owned());
+            _drivers.insert(entry.implementation_id.as_str().to_owned());
+        }
         if let Some(recognition) = &self.recognition {
             _registry
                 .register(recognition.entry.clone())
@@ -149,6 +194,9 @@ impl InitialBases<'_> {
         Ok(())
     }
     pub(super) fn finish_native(&mut self, _host: &mut StdHost) -> Result<(), String> {
+        if let Some(worker) = self.worker.take() {
+            worker.finish(_host)?;
+        }
         if let Some(recognition) = self.recognition.take() {
             _host.speech_recognition = Some(recognition.adapter);
         }

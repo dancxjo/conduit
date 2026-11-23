@@ -73,12 +73,15 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
+        InstalledBack::AmbientHome(back) => back
+            .retained_backing_bytes()
+            .ok_or_else(|| "Home Face gate backing overflow".into()),
         InstalledBack::StartupChime(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::StartupSource(_) => {
             super::super::startup_source_back::StartupGate::backing_bytes()
                 .ok_or_else(|| "startup gate backing overflow".into())
         }
-        InstalledBack::Inactive => Ok(0),
+        InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
     }
 }
@@ -88,6 +91,9 @@ impl BodyKernel<'_> {
         lease: &crate::kernel_preparation::ImageMemoryLease,
     ) {
         self.fore.attach_image_memory(lease);
+        for route in &mut self.home_face_routes {
+            route.attach_image_memory(lease);
+        }
     }
     pub(crate) fn prepare_memory<T: TimerAdapter>(
         &mut self,
@@ -133,6 +139,19 @@ impl BodyKernel<'_> {
                 .tick_backing_bytes()
                 .ok_or("IMAGE memory receipt does not support this Fore/input/live contract")?,
         )?;
+        if let Some(source) = &self.native_source {
+            add(
+                &mut bytes,
+                source
+                    .image_backing_bytes()
+                    .ok_or("Home source lost its funded backing")?,
+            )?;
+        }
+        add(&mut bytes, vector(&self.home_face_routes)?)?;
+        for route in &self.home_face_routes {
+            add(&mut bytes, route.additional_backing_bytes()?)?;
+            add(&mut bytes, route.escaped_backing_bytes()?)?;
+        }
         for (_, output) in &self.startup_outputs {
             add(&mut bytes, output.retained_backing_bytes())?;
         }

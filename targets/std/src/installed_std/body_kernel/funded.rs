@@ -49,8 +49,15 @@ impl TickPreparationLayout {
         timer: &T,
         selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
     ) -> Result<Self, String> {
-        let mut layout =
-            Self::prepare_with_playback(request, host, ledger, timer, false, selected_playback)?;
+        let mut layout = Self::prepare_with_playback(
+            request,
+            host,
+            ledger,
+            timer,
+            false,
+            selected_playback,
+            None,
+        )?;
         let extra = crate::body_execution::delegated_preparation_backing_bytes(
             request.plan,
             global_play,
@@ -67,7 +74,7 @@ impl TickPreparationLayout {
         timer: &T,
         has_output: bool,
     ) -> Result<Self, String> {
-        Self::prepare_with_playback(request, host, ledger, timer, has_output, None)
+        Self::prepare_with_playback(request, host, ledger, timer, has_output, None, None)
     }
     /// Only dimensions and borrowed identities are read here. No Plan validation
     /// clone, lowering, timer observation, Fore payload or value slot is built.
@@ -78,6 +85,7 @@ impl TickPreparationLayout {
         timer: &T,
         has_output: bool,
         selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+        native: Option<&crate::selected_native_source::InitializedNativeSource>,
     ) -> Result<Self, String> {
         if request.keyboard.is_some()
             || request.plan.body_time_requirement.is_some()
@@ -115,14 +123,31 @@ impl TickPreparationLayout {
                 if !matches!(
                     gear.implementation_id.as_str(),
                     conduit_std_offers::TICK_IMPLEMENTATION
+                        | conduit_std_offers::TIME_EVERY_IMPLEMENTATION
                         | conduit_std_offers::BODY_WAKE_IMPLEMENTATION
                         | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                 ) {
                     return Err(
                         "selected IMAGE receipt has no owned accounting for this Back".into(),
                     );
                 }
-                let budget = super::super::preparation::back_budget(gear)?;
+                let source = if gear.implementation_id.as_str()
+                    == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                {
+                    Some(
+                        native
+                            .filter(|source| source.matches(gear))
+                            .ok_or("IMAGE requires the exact installed Home source worker")?,
+                    )
+                } else {
+                    None
+                };
+                let budget = match source {
+                    Some(source) => source.budget(),
+                    None => super::super::preparation::back_budget(gear)?,
+                };
                 items = items
                     .checked_add(budget.value_items)
                     .ok_or("Tick value item budget overflow")?;
@@ -137,10 +162,24 @@ impl TickPreparationLayout {
                 requests = requests
                     .checked_add(budget.host_requests)
                     .ok_or("Tick request budget overflow")?;
-                add(
-                    &mut tick_vectors,
-                    startup::backing_bytes(gear, &budget, selected_playback)?,
-                )?;
+                let backing = if let Some(source) = source {
+                    source
+                        .body_preparation_backing_bound(request.plan, gear)?
+                        .checked_add(size_of::<Option<native_source::NativeSourceRoute<'_>>>())
+                        .ok_or("Body native source backing overflow")?
+                } else if gear.implementation_id.as_str()
+                    == conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+                {
+                    super::super::ambient_home_route::AmbientHomeRoute::preparation_backing_bound(
+                        request.plan,
+                        part,
+                        &part.plan.fragments[0],
+                        gear,
+                    )?
+                } else {
+                    startup::backing_bytes(gear, &budget, selected_playback)?
+                };
+                add(&mut tick_vectors, backing)?;
             }
             for port in &part.plan.fragments[0].fore_ports {
                 if !has_output
@@ -406,6 +445,7 @@ impl<'a> BodyKernel<'a> {
         funding: &TickPreparationLayout,
         advertisement: &HostAdvertisement,
         selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+        native: Option<native_source::NativeBodySource<'a, '_>>,
     ) -> Result<Self, String> {
         if partitions
             .iter()
@@ -430,6 +470,7 @@ impl<'a> BodyKernel<'a> {
             #[cfg(target_os = "linux")]
             None,
             Some(funding),
+            native,
         )?;
         kernel.prepare_startup_outputs(partitions, selected_playback)?;
         Ok(kernel)

@@ -22,8 +22,12 @@ impl BodyKernel<'_> {
         admitted_clock_quality: Option<BodyTimeQuality>,
         mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
+        face_observer: Option<
+            &mut dyn crate::body_execution::face_contribution::BodyFaceContributionObserver,
+        >,
     ) -> BodyKernelResult {
         let mut state = self.execution_state(input, admitted_clock_quality);
+        state.face_observer = face_observer;
         let result = loop {
             match self.drive(
                 &mut state,

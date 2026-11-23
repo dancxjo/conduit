@@ -1,6 +1,9 @@
 mod address_detect_back;
 mod alife_backs;
 mod alife_host;
+mod ambient_home_back;
+mod ambient_home_factory;
+mod ambient_home_route;
 mod audio_pitch_analysis_back;
 mod audio_play_back;
 mod audio_spectral_analysis_back;
