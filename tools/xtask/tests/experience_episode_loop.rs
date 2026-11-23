@@ -861,97 +861,6 @@ mod live_model;
 use live_model::ollama_episode_model;
 
 #[test]
-#[ignore = "requires a running loopback Ollama with gemma3:latest already installed"]
-fn live_pete_experience_episode_uses_earlier_memory() {
-    let mut harness = pete_harness(ollama_episode_model());
-    let question = "What exact label did I report for the hallway switch?";
-    let mut incoming = inputs(&[]);
-    incoming.extend([
-        frame_input(frame(1, "The hallway switch label is COPPER KITE.", true)),
-        frame_input(frame(2, question, false)),
-    ]);
-    let mut collector = Collector::default();
-    let report = run(
-        &mut harness,
-        &incoming,
-        &mut collector,
-        &RunControl::default(),
-    )
-    .unwrap();
-    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
-    let episodes = records(&collector.0);
-    let [first, second] = episodes.as_slice() else {
-        panic!("expected two completed episodes");
-    };
-    assert_eq!(first.body_id(), second.body_id());
-    assert_eq!(first.wake_id(), second.wake_id());
-    assert_eq!(
-        second.recalled().get()[0].observation(),
-        first.observation()
-    );
-    let recalled_answer = second.response().unwrap().content();
-    println!("With recall: {recalled_answer}");
-    let normalized = recalled_answer.trim().to_ascii_lowercase();
-    for prefix in ["i do not know", "i don't know", "i don’t know"] {
-        assert!(!normalized.starts_with(prefix), "{recalled_answer}");
-    }
-    assert!(second
-        .response()
-        .unwrap()
-        .content()
-        .to_ascii_uppercase()
-        .contains("COPPER KITE"));
-
-    let mut incoming = inputs(&[]);
-    incoming.extend([
-        frame_input(frame(2, question, false)),
-        frame_input(frame(
-            3,
-            "What is your current battery charge as a percentage?",
-            false,
-        )),
-    ]);
-    let mut control = Collector::default();
-    let control_report = run(
-        &mut harness,
-        &incoming,
-        &mut control,
-        &RunControl::default(),
-    )
-    .unwrap();
-    assert_eq!(terminal(&control_report), &TerminalDisposition::Completed);
-    let control = records(&control.0);
-    assert!(control[0].recalled().get().is_empty());
-    let charge = control[1].response().unwrap().content();
-    println!("Body question: {charge}");
-    let fresh = control[0].response().unwrap().content();
-    println!("Fresh Play: {fresh}");
-    let fresh = fresh.trim().to_ascii_lowercase();
-    // The authored persona may identify its speaker before the answer.
-    let fresh = fresh.strip_prefix("pete:").unwrap_or(&fresh).trim_start();
-    assert!(
-        ["i do not know", "i don't know", "i don’t know"]
-            .iter()
-            .any(|prefix| fresh.starts_with(prefix)),
-        "{fresh}"
-    );
-    for unrelated in ["copper kite", "battery", "charge", "volt", "%", "13000"] {
-        assert!(!fresh.contains(unrelated), "{fresh}");
-    }
-    let compact_charge: String = charge.chars().filter(|c| !c.is_whitespace()).collect();
-    let percentages: Vec<_> = compact_charge
-        .split_inclusive('%')
-        .filter_map(|part| part.strip_suffix('%'))
-        .map(|part| {
-            part.rsplit(|c: char| !c.is_ascii_digit() && c != '.' && c != '-')
-                .next()
-                .unwrap()
-        })
-        .collect();
-    assert!(matches!(percentages.as_slice(), ["9" | "9.0"]), "{charge}");
-}
-
-#[test]
 fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
     let (model, requests) = common::fenced_model();
     let mut harness = pete_harness(model);
@@ -1203,3 +1112,6 @@ mod retained_provenance;
 
 #[path = "experience_episode_loop/live_qualification.rs"]
 mod live_qualification;
+
+#[path = "experience_episode_loop/instruction_contract.rs"]
+mod instruction_contract;

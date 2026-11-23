@@ -94,7 +94,9 @@ fn assert_checkpoint_recall(provider_lost: bool, live_recovery: bool) {
     );
     let first_plan = harness.plan_id.clone();
     let model = if live_recovery {
-        ollama_episode_model()
+        let model = ollama_episode_model();
+        instruction_contract::receipt(model.as_ref(), RESUMABLE);
+        model
     } else {
         common::fenced_model().0
     };
