@@ -194,10 +194,12 @@ sequentially once each on 23 November 2026. Configuration was Ollama 0.34.1,
 | Existing narrow recall/current/empty-history control | Passed: COPPER KITE, 9.0%, and unknown with empty history. |
 | Existing provider-loss/checkpoint recovery | Passed: recalled the retained label and `provider_lost`. Loss was fault-injected before live recovery. |
 
-Existing quality assertions and resource bounds were unchanged. Each live case
-retains its source, instruction, model and Plan/Play receipts and first-result
-log/checksum in ignored local proof output; no inference was retried. The
-existing narrow live test moved into its instruction-contract module without
+Existing quality assertions and resource bounds were unchanged. All four live
+cases retain source, instruction and model receipts plus first-result logs and
+checksums in ignored local proof output; no inference was retried. Plan/Play
+identities are retained where the existing harness emits them. The narrow
+recall control asserts Body/Wake continuity without printing those values.
+That existing live test moved into its instruction-contract module without
 changing assertions, keeping the large parent test file smaller.
 
 These are synthetic-input hosted results, not physical sensor or robot proof.
