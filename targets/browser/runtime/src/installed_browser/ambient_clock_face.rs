@@ -121,3 +121,71 @@ fn weather_text(weather: Observation<'_>) -> Result<String, String> {
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::{
+        StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
+    };
+    use conduit_plot::rust_binding::{primitive_into_structured, NativePrimitive};
+
+    #[test]
+    fn available_weather_preserves_reading_and_distinguishes_staleness() {
+        let types = catalog::prepare_ambient_display_types().unwrap();
+        let weather = types
+            .native_types
+            .iter()
+            .find(|ty| ty.name == "AmbientWeather")
+            .unwrap();
+        let StructuredInfoTypeShape::Variant { cases, .. } = weather.value_type.shape() else {
+            panic!("expected semantic weather cases");
+        };
+        for (status, reference) in [("fresh", 2_u64), ("stale", 3)] {
+            let case = cases.iter().find(|case| case.tag() == status).unwrap();
+            let payload = record(case.payload_type(), |name, ty| match name {
+                "reference_at_unix_ms" => primitive(ty, &reference),
+                "reading" => record(ty, |name, ty| match name {
+                    "location" => primitive(ty, &String::from("Seattle")),
+                    "conditions" => primitive(ty, &String::from("Clear")),
+                    "attribution" => primitive(ty, &String::from("Example weather service")),
+                    "temperature_celsius_milli" => primitive(ty, &-1250_i64),
+                    "observed_at_unix_ms" => primitive(ty, &1_u64),
+                    "usable_until_unix_ms" => primitive(ty, &2_u64),
+                    _ => panic!("unexpected reading field"),
+                }),
+                _ => panic!("unexpected weather field"),
+            });
+            let encoded = StructuredInfoValue::variant(weather.value_type.clone(), status, payload)
+                .unwrap()
+                .canonical_bytes()
+                .unwrap();
+            let value = conduit_core::validate_canonical_structured_value(&encoded).unwrap();
+            assert_eq!(
+                weather_text(value).unwrap(),
+                format!("Weather {status} · Seattle · Clear · -1.25 °C · Example weather service")
+            );
+        }
+    }
+
+    fn primitive<T: NativePrimitive>(ty: &StructuredInfoType, value: &T) -> StructuredInfoValue {
+        primitive_into_structured(ty.clone(), value).unwrap()
+    }
+
+    fn record(
+        ty: &StructuredInfoType,
+        mut value: impl FnMut(&str, &StructuredInfoType) -> StructuredInfoValue,
+    ) -> StructuredInfoValue {
+        let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
+            panic!("expected semantic weather record");
+        };
+        let fields = fields
+            .iter()
+            .map(|field| {
+                StructuredFieldValue::new(field.name(), value(field.name(), field.value_type()))
+                    .unwrap()
+            })
+            .collect();
+        StructuredInfoValue::record(ty.clone(), fields).unwrap()
+    }
+}
