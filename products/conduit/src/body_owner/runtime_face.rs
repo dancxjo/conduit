@@ -56,6 +56,18 @@ impl RuntimeFaceReceiver {
 }
 
 impl Owner {
+    pub(crate) fn has_current_home_navigation(&self, face: &conduit_face::Face) -> bool {
+        self.current_home_fragment().is_some()
+            && face.actions.iter().any(|action| {
+                action.availability.is_available()
+                    && action.arguments.is_empty()
+                    && matches!(
+                        action.intent.as_str(),
+                        "conduit.intent/open-inspection@1" | "conduit.intent/open-body-overview@1"
+                    )
+            })
+    }
+
     pub(crate) fn navigate_home_inspection(
         &mut self,
         show: &conduit_face::MaskShow,

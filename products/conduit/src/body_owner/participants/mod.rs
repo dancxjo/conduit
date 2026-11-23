@@ -342,7 +342,7 @@ fn serve_presence(
                             if selected.face_id == face.identity
                                 && selected.face_revision == face.revision =>
                         {
-                            *interactions_admitted =
+                            *interactions_admitted |=
                                 crate::durable_host_control::has_remote_mask_action(face);
                             *route = Some(Box::new(selected));
                         }
