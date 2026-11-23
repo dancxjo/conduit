@@ -147,6 +147,34 @@ the installed loopback Ollama model. Pass `--serial-path /dev/ttyUSB0` to
 capture a Create sample for each utterance. Without a serial path, battery
 state is unknown. Responses are printed as the Play delivers episodes.
 
+Select the local realization explicitly with `--model`, `--model-endpoint`,
+and `--model-memory-mib`. Both ordinary and `--reflection-after` sessions use
+the same selection path. Defaults remain `gemma3:latest`,
+`http://127.0.0.1:11434`, and 6144 MiB. The endpoint must be an HTTP loopback
+origin without a path; the selected model must already be installed and fit
+the admitted memory. Discovery, an optional artifact-identity check, and the
+existing bounded initialization probe complete before the serial device opens.
+
+For a reproducible selection, supply the model's 64-character lowercase SHA-256
+from the local inventory through `--expected-model-digest`. A mismatch refuses
+before initialization. Retain the resolved artifact and resource configuration
+with `--model-receipt-out`; existing destinations are refused:
+
+```sh
+cargo xtask prove pete std-cognition --model gemma4:latest \
+  --model-memory-mib 12288 --model-receipt-out target/pete-model.json \
+  --utterance 'Which bodily facts are currently available?'
+```
+
+The same initialization receipt appears on stderr as
+`CONDUIT_PETE_MODEL_EVIDENCE`. It records the endpoint, requested selection,
+resolved runtime/model identity, artifact digest and initialized offer bounds.
+Its artifact identity comes from the inventory before initialization; it does
+not establish immutable provider-tag custody or answer quality. Changing
+these realization options does not change the Plot, its cognition bounds, or
+the ordinary planner/kernel path. Default model qualification remains tracked
+in [#6874](https://github.com/dancxjo/conduit/issues/6874).
+
 Open the optional replay with the Workbench's `--replay-snapshot` argument.
 The replay opens on the final episode's upstream trace and keeps the same
 Body, Wake, Host, Plan, and Play identities as the operator run.

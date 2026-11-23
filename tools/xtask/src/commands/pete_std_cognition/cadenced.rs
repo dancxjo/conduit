@@ -11,7 +11,10 @@ pub(super) fn validate_positions(positions: &[usize], events: usize) -> Result<(
     }
     Ok(())
 }
-pub(super) fn run(args: StdCognitionArgs) -> Result<(), String> {
+pub(super) fn run(
+    args: StdCognitionArgs,
+    model: conduit_std_host::hosted_local_model::OllamaLocalModelAdapter,
+) -> Result<(), String> {
     validate_positions(&args.reflection_after, args.utterance.len())?;
     let mut provider = args
         .serial_path
@@ -25,10 +28,6 @@ pub(super) fn run(args: StdCognitionArgs) -> Result<(), String> {
             .map_err(|error| format!("open Create serial device: {error:?}"))
         })
         .transpose()?;
-    let model = OllamaDiscovery::discover_at("http://127.0.0.1:11434", "gemma3:latest")
-        .map_err(|error| format!("discover Ollama: {error:?}"))?
-        .initialize(6144, vec![conduit_ai::LocalModelKindProfile::GenerateFlow])
-        .map_err(|error| format!("initialize Ollama: {error:?}"))?;
     let back = HostedFrameBack::new(
         conduit_pete::pete_cognition_inputs_offer(),
         conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,

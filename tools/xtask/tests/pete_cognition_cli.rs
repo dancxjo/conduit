@@ -1,5 +1,95 @@
 //! Operator trigger admission is finite and checked before provider acquisition.
 use std::process::Command;
+#[cfg(unix)]
+#[path = "pete_cognition_cli/model_inventory.rs"]
+mod model_inventory;
+
+#[test]
+fn invalid_model_selection_refuses_before_serial_in_both_operator_modes() {
+    for cadenced in [false, true] {
+        for (arguments, error) in [
+            (vec!["--model-memory-mib", "0"], "--model-memory-mib"),
+            (vec!["--model", " "], "--model must name"),
+            (
+                vec!["--model-endpoint", "http://remote:11434"],
+                "--model-endpoint",
+            ),
+            (
+                vec!["--model-endpoint", "http://localhost:11434/api"],
+                "--model-endpoint",
+            ),
+            (
+                vec!["--expected-model-digest", "mutable-tag"],
+                "--expected-model-digest",
+            ),
+        ] {
+            let mut command = Command::new(env!("CARGO_BIN_EXE_xtask"));
+            command.args([
+                "prove",
+                "pete",
+                "std-cognition",
+                "--serial-path",
+                "/conduit/no-such-device",
+                "--utterance",
+                "What is my battery state?",
+            ]);
+            if cadenced {
+                command.args(["--reflection-after", "1"]);
+            }
+            let output = command.args(arguments).output().unwrap();
+            assert!(!output.status.success());
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            assert!(stderr.contains(error), "{stderr}");
+            assert!(!stderr.contains("open Create serial device"), "{stderr}");
+        }
+    }
+}
+
+#[test]
+fn dry_run_preserves_explicit_model_configuration_without_acquisition() {
+    for cadenced in [false, true] {
+        let digest = "a".repeat(64);
+        let mut command = Command::new(env!("CARGO_BIN_EXE_xtask"));
+        command.args([
+            "--dry-run",
+            "prove",
+            "pete",
+            "std-cognition",
+            "--model",
+            "selected:fixture",
+            "--model-endpoint",
+            "http://[::1]:1234",
+            "--model-memory-mib",
+            "12288",
+            "--expected-model-digest",
+            &digest,
+            "--serial-path",
+            "/conduit/no-such-device",
+            "--utterance",
+            "What is my battery state?",
+        ]);
+        if cadenced {
+            command.args(["--reflection-after", "1"]);
+        }
+        let output = command.output().unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for expected in [
+            "selected:fixture",
+            "http://[::1]:1234",
+            "12288 MiB",
+            &digest,
+        ] {
+            assert!(stdout.contains(expected), "{stdout}");
+        }
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("CONDUIT_PETE_MODEL_EVIDENCE"));
+    }
+}
+
 #[test]
 fn cadenced_operator_admits_only_ordered_complete_trigger_positions() {
     for (positions, accepted) in [
