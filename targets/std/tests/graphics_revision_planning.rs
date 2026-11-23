@@ -24,14 +24,14 @@ fn legacy_ports_and_laws(
     laws: &mut [conduit_core::KindSemanticLaw],
 ) {
     for port in ports {
-        if port.value_kind.as_str() == "face/graphics-scene@2" {
+        if port.value_kind.as_str() == "face/graphics-scene@3" {
             port.value_kind = kind_id("face/graphics-scene@1");
         }
     }
     for law in laws {
         if let conduit_core::KindSemanticLaw::ValueContracts(values) = law {
             for value in values {
-                if value.contract.value_kind.as_str() == "face/graphics-scene@2" {
+                if value.contract.value_kind.as_str() == "face/graphics-scene@3" {
                     value.contract.value_kind = kind_id("face/graphics-scene@1");
                 }
             }
@@ -53,9 +53,9 @@ fn portable(contract: StandardKindContract, current: bool) -> conduit_core::Kind
 fn old_and_union_contracts_plan_only_against_the_matching_installed_offers() {
     assert_eq!(
         GRAPHICS_SCENE_CONTRACT_REVISION,
-        "conduit.std/graphics-scene@2"
+        "conduit.std/graphics-scene@3"
     );
-    assert_eq!(GRAPHICS_FACE_REVISION, "conduit.std/face-graphics@2");
+    assert_eq!(GRAPHICS_FACE_REVISION, "conduit.std/face-graphics@3");
     for contract in [
         graphics_rect_contract(),
         graphics_text_contract(),

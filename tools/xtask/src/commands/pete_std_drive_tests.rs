@@ -192,8 +192,9 @@ fn reviewed_navigation_produces_the_exact_bounded_drive_request() {
 fn establish_safe_script(master: &mut std::fs::File) {
     expect(master, &[128]);
     expect(master, &[131]);
-    expect(master, &[142, 35]);
-    master.write_all(&[2]).unwrap();
+    expect(master, &[148, 1, 35]);
+    master.write_all(&[19, 2, 35, 2, 198]).unwrap();
+    expect(master, &[150, 0]);
 }
 
 fn observation_script(master: &mut std::fs::File, distance_delta_mm: i16) {

@@ -5,7 +5,9 @@ mod coverage;
 pub mod edid;
 mod font;
 mod geometry;
+mod image;
 pub(crate) use geometry::validate_framebuffer_geometry;
+pub use image::{ImageResolver, MAX_IMAGE_PIXELS, OpaqueRgbaImage, render_scene_with_images};
 #[cfg(feature = "native-compositor-core")]
 mod icons;
 mod polyline;
@@ -46,6 +48,10 @@ pub enum DisplayError {
     InvalidExtent,
     BufferTooSmall,
     Lost,
+    ImageUnsupported,
+    ImageUnavailable,
+    ImageStale,
+    ImageAccessDenied,
 }
 
 impl DisplayError {
@@ -56,6 +62,10 @@ impl DisplayError {
             Self::InvalidExtent => "display-extent-invalid",
             Self::BufferTooSmall => "display-buffer-too-small",
             Self::Lost => "display-base-lost",
+            Self::ImageUnsupported => "display-image-unsupported",
+            Self::ImageUnavailable => "display-image-unavailable",
+            Self::ImageStale => "display-image-stale",
+            Self::ImageAccessDenied => "display-image-access-denied",
         }
     }
 }
@@ -225,6 +235,7 @@ fn render_command_with_color(
         return Ok(());
     };
     match command.kind {
+        GraphicsCommandKind::Image => Err(DisplayError::ImageUnsupported),
         GraphicsCommandKind::Polyline => polyline::render(target, format, command, color, receipt),
         GraphicsCommandKind::OrthogonalPath => {
             let path = command.path_geometry().ok_or(DisplayError::InvalidExtent)?;

@@ -13,6 +13,11 @@ pub(super) fn visual_paint(
             Role::Focus | Role::Hovered | Role::Selected => (255, 255, 0),
             _ => (255, 255, 255),
         }
+    } else if expression
+        .is_some_and(|value| value.expression.identity == conduit_face::PICTURE_FRAME_LOOK_ID)
+    {
+        let [r, g, b] = conduit_face::picture_frame_color(role);
+        (r, g, b)
     } else if expression.is_some_and(|value| value.expression.palette == VisualPalette::Editorial) {
         match role {
             Role::Background => (243, 240, 232),
@@ -93,6 +98,17 @@ pub(super) fn visual_look_typography(
     match look {
         Some(look) => Typography::with_visual_look(intent, look, 200)
             .map_err(|_| crate::display::DisplayError::InvalidExtent),
+        None if expression.is_some_and(|value| {
+            value.expression.identity == conduit_face::PICTURE_FRAME_LOOK_ID
+        }) =>
+        {
+            Typography::with_made_look_metrics(
+                intent,
+                conduit_face::picture_frame_text_metrics(),
+                200,
+            )
+            .map_err(|_| crate::display::DisplayError::InvalidExtent)
+        }
         None => Ok(Typography::new(intent)),
     }
 }

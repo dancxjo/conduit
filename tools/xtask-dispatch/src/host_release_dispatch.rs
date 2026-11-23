@@ -59,6 +59,7 @@ fn parse_options(options: &[String]) -> Result<ParsedRelease, String> {
             json,
             quiet,
             native_display,
+            retained_linux_executable: None,
         },
     })
 }

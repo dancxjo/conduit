@@ -60,3 +60,19 @@ test('browser reads the exact union packet pinned by the shared Rust codec',()=>
   assert.equal(commands[1].payload,'19.0 °C');
   assert.deepEqual(commands[2].rectMetrics,{radius:0,stroke:2});
 });
+
+
+test('image version four retains exact binary generation without implying access',()=>{
+  const key = new Uint8Array([...Array(32).fill(1), ...Array(32).fill(2)]);
+  const image = command(6,key); image[1]=2;
+  const decoded=decodeGraphics(scene(4,image));
+  assert.deepEqual(decoded[0].image.identity,key.slice(0,32));
+  assert.deepEqual(decoded[0].image.version,key.slice(32));
+  assert.equal(decoded[0].payload,'');
+  assert.throws(()=>decodeGraphics(scene(2,image)));
+  assert.throws(()=>decodeGraphics(scene(3,image)));
+  const zeroVersion=image.slice();zeroVersion.fill(0,21+32);
+  assert.throws(()=>decodeGraphics(scene(4,zeroVersion)));
+  const wrongPaint=image.slice();wrongPaint[1]=3;
+  assert.throws(()=>decodeGraphics(scene(4,wrongPaint)));
+});

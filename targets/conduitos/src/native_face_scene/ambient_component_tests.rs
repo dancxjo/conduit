@@ -474,3 +474,55 @@ fn short_tile_keeps_clock_content_together_or_refuses_geometry() {
         Err(error) => panic!("unexpected tile refusal: {error:?}"),
     }
 }
+
+#[test]
+fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page() {
+    use conduit_core::{Quantity, TEMPERATURE_INFO_ID, Unit};
+    let mut face = fixture();
+    let value = Quantity::from_decimal(8400, -3, Unit::Celsius)
+        .unwrap()
+        .encode();
+    face.properties.push(FaceProperty {
+        subject: WEATHER.into(),
+        name: "temperature".into(),
+        value: FacePropertyValue::TypedValue {
+            contract: CheckedValueContract::new(
+                kind_id(TEMPERATURE_INFO_ID),
+                value.len() as u32,
+                vec![],
+            )
+            .unwrap(),
+            bytes: value.to_vec(),
+        },
+    });
+    let face = refresh(face);
+    let expression = picture_frame_expression().unwrap();
+    for (width, height) in [(1024, 600), (640, 480)] {
+        let mut scene = NativeFaceScene::prepare_picture_frame(
+            face.clone(),
+            width,
+            height,
+            true,
+            &expression,
+            Some(Unit::Fahrenheit),
+        )
+        .unwrap();
+        assert!(scene.pages() > 1);
+        let frame = scene.frame().unwrap();
+        let commands = frame.scene.commands();
+        assert_eq!(
+            commands[0].image_key(),
+            Some(GraphicsImageKey::new([1; 32], [2; 32]).unwrap())
+        );
+        assert_eq!(commands[0].bounds, scene.bounds());
+        assert_eq!(commands[0].clip, scene.bounds());
+        for value in ["2026-11-17", "19:45:12", "Seattle: 47.1 °F, Cloudy."] {
+            assert!(commands.iter().any(|c| c.payload() == value), "{value}");
+        }
+        assert!(frame.hits.is_empty());
+        scene.turn_page(true);
+        assert_eq!(scene.frame().unwrap().page, 1);
+        scene.show_details(true);
+        assert_eq!(scene.face(), &face);
+    }
+}

@@ -42,10 +42,14 @@ mod expression;
 mod frame;
 #[path = "native_face_scene/graph_reading.rs"]
 mod graph_reading;
+#[path = "native_face_scene/image.rs"]
+mod image;
 #[path = "native_face_scene/input.rs"]
 mod input;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
+#[path = "native_face_scene/picture.rs"]
+mod picture;
 #[path = "native_face_scene/reading_position.rs"]
 mod reading_position;
 pub use reading_position::NativeReadingPosition;
@@ -128,6 +132,7 @@ impl FaceFrame<'_> {
 /// One admitted display extent. Changing extent prepares a new scene document;
 /// it cannot reinterpret, replace, or mutate its retained semantic Face.
 pub struct NativeFaceScene {
+    picture_frame: Option<picture::PicturePage>,
     face: Face,
     screen: LayoutRect,
     text_scale_percent: u16,

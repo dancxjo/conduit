@@ -87,6 +87,105 @@ fn exact_session_starts_reads_correlated_observation_and_pauses() {
 }
 
 #[test]
+fn cognition_capture_preserves_charging_evidence_without_requesting_safe() {
+    let mut provider = provider(&frame());
+    let sign = crate::PeteCognitionSign::new("sign/create/charging".into()).unwrap();
+    let mut ticks = [100_u64, 125].into_iter();
+    let battery = crate::capture_pete_cognition_battery(
+        &mut provider,
+        sign.clone(),
+        "clock/create".into(),
+        500,
+        || Ok::<_, ()>(ticks.next().unwrap()),
+    )
+    .unwrap()
+    .unwrap();
+
+    // Start requests Passive. Neither Safe/Full nor an actuator command is sent.
+    assert_eq!(
+        provider.writes,
+        [vec![128], vec![148, 2, 0, 34], vec![150, 0]]
+    );
+    assert_eq!(*battery.charge_permille(), 500);
+    assert_eq!(*battery.millivolts(), 14_000);
+    assert!(*battery.charging());
+    assert_eq!(battery.sign(), &sign);
+    assert_eq!(
+        battery.observed_at(),
+        &conduit_time::NativeTemporalInstant::new(
+            "clock/create".into(),
+            1,
+            conduit_time::NativeTemporalScale::Milliseconds,
+            125,
+            0,
+        )
+        .unwrap()
+    );
+}
+
+#[test]
+fn passive_capture_keeps_read_and_pause_failures_without_retrying() {
+    use crate::CreateCognitionCaptureError;
+    for fail_pause in [false, true] {
+        let mut provider = provider(&[]);
+        provider.fail_write_at = fail_pause.then_some(2);
+        let result = crate::capture_pete_cognition_battery(
+            &mut provider,
+            crate::PeteCognitionSign::new("sign/create/silent".into()).unwrap(),
+            "clock/create".into(),
+            500,
+            || Ok::<_, ()>(100),
+        );
+        let Err(CreateCognitionCaptureError::Read {
+            failure,
+            pause_failure,
+        }) = result
+        else {
+            panic!("silent capture must retain its read failure");
+        };
+        assert_eq!(
+            failure,
+            CreateObservationFailure::Protocol(CreateOiFailure::DeviceNoResponse)
+        );
+        assert_eq!(
+            pause_failure,
+            fail_pause.then_some(CreateObservationFailure::Protocol(
+                CreateOiFailure::WriteFailed
+            ))
+        );
+        let mut expected = vec![vec![128], vec![148, 2, 0, 34]];
+        if !fail_pause {
+            expected.push(vec![150, 0]);
+        }
+        assert_eq!(provider.writes, expected);
+    }
+}
+
+#[test]
+fn passive_stream_start_failure_is_terminal_without_mode_fallback() {
+    let mut provider = provider(&frame());
+    provider.fail_write_at = Some(1);
+    let mut session = CreateObservationSession::new_passive();
+    assert_eq!(
+        session.start(&mut provider),
+        Err(CreateObservationFailure::Protocol(
+            CreateOiFailure::WriteFailed
+        ))
+    );
+    assert_eq!(provider.writes, [vec![128]]);
+    assert_eq!(session.state(), CreateObservationSessionState::StartFailed);
+    assert_eq!(
+        session.start(&mut provider),
+        Err(CreateObservationFailure::InvalidState)
+    );
+    assert_eq!(
+        session.pause(&mut provider),
+        Err(CreateObservationFailure::InvalidState)
+    );
+    assert_eq!(provider.writes, [vec![128]]);
+}
+
+#[test]
 fn cognition_battery_leaves_an_unavailable_capacity_absent() {
     let mut payload = group_zero();
     payload[24..26].copy_from_slice(&0u16.to_be_bytes());

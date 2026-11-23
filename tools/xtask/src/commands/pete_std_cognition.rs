@@ -4,8 +4,8 @@ use clap::Args;
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
 use conduit_core::{BaseImplementationId, ConnectionTrack, PlanFragment, PortDirection};
 use conduit_pete::{
-    capture_pete_cognition_battery, CreateCognitionCaptureError, PeteCognitionBatteryInput,
-    PeteCognitionFrame, PeteCognitionSign, PeteCognitionUtterance, UartProfile,
+    CreateCognitionCaptureError, PeteCognitionBatteryInput, PeteCognitionFrame, PeteCognitionSign,
+    PeteCognitionUtterance, UartProfile,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_connection_limits,
@@ -14,7 +14,6 @@ use conduit_planner::{
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_std_host::{
     episode_checkpoint::EpisodeCheckpointResidence,
-    hosted_local_model::OllamaDiscovery,
     std_create_uart::{monotonic_millis, StdCreateUartBase, StdCreateUartObservation},
     BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput,
     ExternalForeOutputAdapter, HostedFrameBack, RunControl, StdHost, StdHostComposition,
@@ -23,13 +22,18 @@ use conduit_std_host::{
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 use std::{collections::BTreeMap, path::PathBuf, sync::mpsc};
 mod cadenced;
+mod capture_evidence;
+mod model;
 mod output;
 mod planning;
+use model::ModelArgs;
 use output::EpisodeOutput;
 use planning::{authoring, checkpoint_context, context, plan};
 
 #[derive(Args, Debug)]
 pub(super) struct StdCognitionArgs {
+    #[command(flatten)]
+    model: ModelArgs,
     /// Explicit Create serial device. Omit for a session with unknown battery state.
     #[arg(long)]
     serial_path: Option<PathBuf>,
@@ -60,6 +64,7 @@ const CLOCK: &str = "clock/pete-cognition";
 const CREATE_SOURCE: &str = "pete/cognition-create";
 
 pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
+    args.model.validate()?;
     if !(1..=16).contains(&args.utterance.len())
         || args
             .utterance
@@ -81,10 +86,13 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
                 args.reflection_after.len()
             }
         );
+        args.model.describe();
         return Ok(());
     }
+    // Resolve the exact local realization before acquiring any Create device.
+    let model = args.model.prepare()?;
     if !args.reflection_after.is_empty() {
-        return cadenced::run(args);
+        return cadenced::run(args, model);
     }
     let mut provider = args
         .serial_path
@@ -98,10 +106,6 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
             .map_err(|error| format!("open Create serial device: {error:?}"))
         })
         .transpose()?;
-    let model = OllamaDiscovery::discover_at("http://127.0.0.1:11434", "gemma3:latest")
-        .map_err(|error| format!("discover Ollama: {error:?}"))?
-        .initialize(6144, vec![conduit_ai::LocalModelKindProfile::GenerateFlow])
-        .map_err(|error| format!("initialize Ollama: {error:?}"))?;
     let back = HostedFrameBack::new(
         conduit_pete::pete_cognition_inputs_offer(),
         conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
@@ -283,6 +287,31 @@ fn frame_with_namespace(
     retain: bool,
     namespace: &str,
 ) -> Result<PeteCognitionFrame, String> {
+    let identity = provider
+        .as_ref()
+        .map(|provider| provider.identity().clone());
+    frame_with_namespace_using(
+        provider,
+        capture_evidence::CaptureContext {
+            identity: identity.as_ref(),
+            revision,
+            namespace,
+        },
+        utterance,
+        retain,
+        &mut std::io::stderr().lock(),
+    )
+}
+
+fn frame_with_namespace_using<P: conduit_pete::CreateUartProvider>(
+    provider: Option<&mut P>,
+    capture_context: capture_evidence::CaptureContext<'_>,
+    utterance: String,
+    retain: bool,
+    evidence: &mut impl std::io::Write,
+) -> Result<PeteCognitionFrame, String> {
+    let revision = capture_context.revision;
+    let namespace = capture_context.namespace;
     let sign = |kind| {
         PeteCognitionSign::new(if namespace.is_empty() {
             format!("pete/{kind}/{revision}")
@@ -292,26 +321,24 @@ fn frame_with_namespace(
         .map_err(|error| format!("Pete source Sign: {error:?}"))
     };
     let utterance_at = now()?;
-    let battery = match provider {
-        Some(provider) => match capture_pete_cognition_battery(
-            provider,
-            sign("battery")?,
-            CLOCK.into(),
-            1_000,
-            monotonic_millis,
-        ) {
-            Ok(Some(sample)) => sample
-                .try_into()
-                .map_err(|error| format!("battery input: {error:?}"))?,
-            Ok(None) => PeteCognitionBatteryInput::Missing,
-            Err(CreateCognitionCaptureError::Read {
-                pause_failure: None,
-                ..
-            }) => PeteCognitionBatteryInput::unavailable(CREATE_SOURCE.into())
-                .map_err(|error| format!("battery source: {error:?}"))?,
-            Err(error) => return Err(format!("capture Create battery: {error:?}")),
-        },
-        None => PeteCognitionBatteryInput::Missing,
+    let capture = capture_evidence::capture(
+        provider,
+        capture_context,
+        sign("battery")?,
+        monotonic_millis,
+        evidence,
+    )?;
+    let battery = match capture {
+        Some(Ok(Some(sample))) => sample
+            .try_into()
+            .map_err(|error| format!("battery input: {error:?}"))?,
+        Some(Ok(None)) | None => PeteCognitionBatteryInput::Missing,
+        Some(Err(CreateCognitionCaptureError::Read {
+            pause_failure: None,
+            ..
+        })) => PeteCognitionBatteryInput::unavailable(CREATE_SOURCE.into())
+            .map_err(|error| format!("battery source: {error:?}"))?,
+        Some(Err(error)) => return Err(format!("capture Create battery: {error:?}")),
     };
     PeteCognitionFrame::new(
         battery,

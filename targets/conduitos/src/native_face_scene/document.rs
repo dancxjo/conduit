@@ -2,6 +2,8 @@
 //! The exact Face reader remains available in Details, including relationships,
 //! properties, unavailable actions, input contracts, and provenance.
 use super::*;
+#[path = "document/weather.rs"]
+mod weather;
 use alloc::{format, string::String};
 use conduit_face::{
     FaceActionAvailability, FaceDisclosureLevel, FacePropertyValue, FaceRole,
@@ -65,6 +67,13 @@ pub(super) fn omit_encounter_heading(
 pub(super) fn prepare(
     face: &Face,
     interaction_admitted: bool,
+) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
+    prepare_for_viewer(face, interaction_admitted, None)
+}
+pub(super) fn prepare_for_viewer(
+    face: &Face,
+    interaction_admitted: bool,
+    preferred: Option<conduit_core::Unit>,
 ) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
     let plan = plan_face_utterances(face).map_err(|_| FaceSceneError::DocumentBound)?;
     let mut primary = Vec::new();
@@ -256,7 +265,17 @@ pub(super) fn prepare(
         }
         // The source-supplied Body status follows its name. This presents the
         // owner's exact wording; the Mask derives no lifecycle fact.
-        {
+        let summary = weather::summary(face, subject, preferred);
+        let localized = summary.is_some();
+        if let Some(text) = summary {
+            append(item(text, GraphicsTextRole::Body));
+            if let Some(source) = weather::text_fact(face, subject, "attribution") {
+                append(item(
+                    format!("Weather source: {source}."),
+                    GraphicsTextRole::Body,
+                ));
+            }
+        } else {
             for text in face
                 .text
                 .iter()
@@ -282,6 +301,9 @@ pub(super) fn prepare(
                     && subject.role == FaceRole::TextEntry
                     && property.name == "current-value")
         }) {
+            if localized && property.name == "temperature" {
+                continue;
+            }
             if let FacePropertyValue::TypedValue { contract, bytes } = &property.value {
                 let value = conduit_face::display_typed_value(contract, bytes);
                 if subject.role == FaceRole::Info {
@@ -422,6 +444,14 @@ pub(super) fn prepare(
         }
     }
     Ok((primary, details))
+}
+
+pub(super) fn weather_summary(
+    face: &Face,
+    subject: &conduit_face::FaceSubject,
+    preferred: Option<conduit_core::Unit>,
+) -> Option<String> {
+    weather::summary(face, subject, preferred)
 }
 
 fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {

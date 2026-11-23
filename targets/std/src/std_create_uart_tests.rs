@@ -190,3 +190,85 @@ fn no_peer_bytes_remain_device_no_response_not_base_absence() {
         Err(CreateOiFailure::DeviceNoResponse)
     );
 }
+
+#[test]
+fn supported_create_profiles_configure_the_exact_selected_os_baud() {
+    for (profile, speed) in [
+        (UartProfile::CREATE_OI, libc::B57600),
+        (UartProfile::CREATE_OI_19200, libc::B19200),
+    ] {
+        let pty = Pty::open();
+        let guard = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&pty.slave_path)
+            .unwrap();
+        let mut prior = observe_termios(guard.as_raw_fd()).unwrap();
+        prior.c_iflag |= libc::IXON | libc::IXOFF | libc::IXANY;
+        assert_eq!(
+            unsafe { libc::tcsetattr(guard.as_raw_fd(), libc::TCSANOW, &prior) },
+            0
+        );
+        let mut observation = pty.observation();
+        observation.profile = profile;
+        let provider = StdCreateUartBase::open(observation).unwrap();
+        let configured = observe_termios(provider.fd.as_raw_fd()).unwrap();
+
+        assert_eq!(provider.identity().profile, profile);
+        assert_eq!(unsafe { libc::cfgetispeed(&configured) }, speed);
+        assert_eq!(unsafe { libc::cfgetospeed(&configured) }, speed);
+        assert_eq!(
+            configured.c_iflag & (libc::IXON | libc::IXOFF | libc::IXANY),
+            0
+        );
+    }
+}
+
+#[test]
+fn releasing_binary_device_preserves_baud_and_never_restores_terminal_echo() {
+    let mut pty = Pty::open();
+    let guard = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&pty.slave_path)
+        .unwrap();
+    let mut prior = observe_termios(guard.as_raw_fd()).unwrap();
+    prior.c_lflag |= libc::ICANON | libc::ECHO;
+    assert_eq!(unsafe { libc::cfsetispeed(&mut prior, libc::B9600) }, 0);
+    assert_eq!(unsafe { libc::cfsetospeed(&mut prior, libc::B9600) }, 0);
+    assert_eq!(
+        unsafe { libc::tcsetattr(guard.as_raw_fd(), libc::TCSANOW, &prior) },
+        0
+    );
+
+    let mut provider = StdCreateUartBase::open(pty.observation()).unwrap();
+    write_command(&mut provider, &conduit_create_oi::encode_pause_stream()).unwrap();
+    drop(provider);
+
+    let retained = observe_termios(guard.as_raw_fd()).unwrap();
+    assert_eq!(unsafe { libc::cfgetispeed(&retained) }, libc::B57600);
+    assert_eq!(unsafe { libc::cfgetospeed(&retained) }, libc::B57600);
+    assert_eq!(retained.c_lflag & (libc::ICANON | libc::ECHO), 0);
+    let mut pause = [0; 2];
+    pty.master.read_exact(&mut pause).unwrap();
+    assert_eq!(pause, [150, 0]);
+
+    // An unsolicited device byte after release remains input, never an
+    // implicit host transmission produced by the terminal line discipline.
+    pty.master.write_all(&[0x80]).unwrap();
+    let mut incoming = libc::pollfd {
+        fd: guard.as_raw_fd(),
+        events: libc::POLLIN,
+        revents: 0,
+    };
+    assert_eq!(unsafe { libc::poll(&mut incoming, 1, 1_000) }, 1);
+    let mut input = [0];
+    (&guard).read_exact(&mut input).unwrap();
+    assert_eq!(input, [0x80]);
+    let mut poll = libc::pollfd {
+        fd: pty.master.as_raw_fd(),
+        events: libc::POLLIN,
+        revents: 0,
+    };
+    assert_eq!(unsafe { libc::poll(&mut poll, 1, 20) }, 0);
+}
