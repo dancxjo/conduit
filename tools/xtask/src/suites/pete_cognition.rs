@@ -2,6 +2,8 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.operator-clock", "Check prepared Linux clock domains and coherent operator capture", "cargo",
+        &["test", "--locked", "-p", "xtask", "--bin", "xtask", "commands::pete_std_cognition::"]),
     Step::new("pete-cognition.model-context", "Check bounded instruction and evidence separation", "cargo",
         &["test", "--locked", "-p", "conduit-ai", "--lib", "generation_context"]),
     Step::new("pete-cognition.model-provenance", "Check that model run identities remain distinct across Host replacement", "cargo",
