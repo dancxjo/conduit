@@ -1,7 +1,23 @@
 //! Deterministic operator capture proof; no model or physical serial device.
+#[path = "clock_model_budget_tests.rs"]
+mod clock_model_budget_tests;
+
+use super::super::clock::ClockSource;
 use super::*;
 use conduit_core::InfoDecodeError;
 use std::collections::VecDeque;
+const FIXTURE_CLOCK: &str = "clock/fixture/prepared-source";
+struct FixtureClock(u64);
+impl ClockSource for FixtureClock {
+    fn basis(&self) -> &str {
+        FIXTURE_CLOCK
+    }
+    fn millis(&mut self) -> Result<u64, String> {
+        let ticks = self.0;
+        self.0 += 1;
+        Ok(ticks)
+    }
+}
 
 #[derive(Default)]
 struct Provider {
@@ -74,6 +90,7 @@ fn shared_frame(
         },
         "What is your current battery?".into(),
         false,
+        &mut FixtureClock(100),
         &mut output,
     );
     (result, receipt(&output))
@@ -92,6 +109,24 @@ fn shared_cli_path_emits_correlated_sample_for_ordinary_and_cadenced_namespaces(
             panic!("expected observed")
         };
         assert_eq!(*sample.charge_permille(), 500);
+        assert_eq!(sample.observed_at().clock_basis(), FIXTURE_CLOCK);
+        assert_eq!(frame.utterance().observed_at().clock_basis(), FIXTURE_CLOCK);
+        assert_eq!(frame.reference().clock_basis(), FIXTURE_CLOCK);
+        assert_eq!(*frame.utterance().observed_at().ticks(), 100);
+        assert_eq!(*sample.observed_at().ticks(), 102);
+        assert_eq!(*frame.reference().ticks(), 103);
+        for time in [
+            sample.observed_at(),
+            frame.utterance().observed_at(),
+            frame.reference(),
+        ] {
+            assert_eq!(*time.resolution_ticks(), 1);
+            assert_eq!(*time.uncertainty_ticks(), 0);
+            assert_eq!(
+                *time.scale(),
+                conduit_time::NativeTemporalScale::Milliseconds
+            );
+        }
         assert_eq!(record["schema"], "conduit.pete/capture-evidence@1");
         assert_eq!(record["source"], super::super::CREATE_SOURCE);
         assert_eq!(record["frame_revision"], 7);
@@ -99,7 +134,7 @@ fn shared_cli_path_emits_correlated_sample_for_ordinary_and_cadenced_namespaces(
         assert_eq!(record["selected_device"]["device_number"], 123);
         assert_eq!(record["selected_device"]["device_path"], "/fixture/serial");
         assert_eq!(record["selected_device"]["uart_profile"]["baud"], 57_600);
-        assert_eq!(record["clock"]["basis"], super::super::CLOCK);
+        assert_eq!(record["clock"]["basis"], FIXTURE_CLOCK);
         assert_eq!(record["read_timeout_ms"], 1_000);
         let tick = record["clock"]["deadline_basis_tick"].as_u64().unwrap();
         assert_eq!(record["clock"]["read_deadline_tick"], tick + 1_000);
@@ -137,6 +172,7 @@ fn no_selected_sensor_and_valid_capture_without_capacity_keep_missing_input_dist
         },
         "Hello".into(),
         false,
+        &mut FixtureClock(100),
         &mut bytes,
     )
     .unwrap();
@@ -273,6 +309,7 @@ fn synthetic(error: CreateCognitionCaptureError<()>) -> Value {
         },
         Some(&Err(error)),
         [Some(100), None],
+        FIXTURE_CLOCK,
     )
 }
 
@@ -363,6 +400,7 @@ fn capture_records_exact_clock_reads_without_extra_clock_or_serial_attempts() {
             namespace: "clock-fixture",
         },
         PeteCognitionSign::new("fixture/battery".into()).unwrap(),
+        FIXTURE_CLOCK,
         || Ok::<_, ()>(ticks.next().unwrap()),
         &mut output,
     )
@@ -395,6 +433,7 @@ fn selected_identity_retains_non_utf8_path_bytes_without_serialization_failure()
         },
         None,
         [None, None],
+        FIXTURE_CLOCK,
     );
     assert!(record["selected_device"]["device_path"].is_null());
     assert_eq!(

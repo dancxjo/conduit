@@ -201,6 +201,25 @@ Episode numbers continue from the last committed checkpoint. One process at a
 time can use a checkpoint directory. The command waits for the episode and its
 checkpoint before submitting another utterance.
 
+The Linux operator binds timestamps to the observed kernel boot and exact
+monotonic namespace offset. Replacement processes in the same domain can
+recall the checkpoint without rewriting source times. History using the old
+`clock/pete-cognition` label or another domain stays stored but is omitted with
+`clock_mismatch`; there is no inferred clock relation. Preparation checks the
+calling thread and the process offsets source before model initialization or
+serial acquisition, and refuses if that source cannot be established. Clock
+identities count toward the existing request and checkpoint byte limits.
+[#7038](https://github.com/dancxjo/conduit/issues/7038) describes the bounded
+source contract; broader clock transfer remains under
+[#6879](https://github.com/dancxjo/conduit/issues/6879).
+
+Deterministic tests use complete captured operator frames, a 64-byte zero-offset
+clock identity, both ordinary and cadenced resumable Plots, and one retained
+episode. Both two-episode cases fit the unchanged bounds: the largest model
+request was 3934/4096 bytes and checkpoint 3950/8192 bytes. Inference and UART
+were fenced; a separate real child-process test checks same-kernel clock
+identity. These results do not qualify larger inputs or a different model.
+
 For independent attention updates and explicit reflection positions, use the
 [three-Form composition](../pete-cognition-cadenced/README.md) with
 `--reflection-after`. Its source, model bounds, checkpoint retention, and

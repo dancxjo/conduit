@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::{
     catalogs, live_create_drive_advertisement, live_speaker_advertisement,
-    live_speaker_realization, CreateDriveObservation, CreateSpeakerObservation,
-    CREATE_DRIVE_AUTHORITY, CREATE_DRIVE_CAPABILITY, CREATE_DRIVE_OPERATION,
-    CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY, SPEAKER_AUTHORITY, SPEAKER_CAPABILITY,
-    SPEAKER_OPERATION,
+    live_speaker_realization, CreateDriveObservation, CreateDriveOfferRefusal,
+    CreateSpeakerObservation, CREATE_DRIVE_AUTHORITY, CREATE_DRIVE_CAPABILITY,
+    CREATE_DRIVE_OPERATION, CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY, SPEAKER_AUTHORITY,
+    SPEAKER_CAPABILITY, SPEAKER_OPERATION,
 };
 use conduit_core::{
     kind_id, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseImplementationId,
@@ -85,15 +85,23 @@ pub fn simple_melody_plan(
     )
 }
 
+/// Offer admission may refuse before any Plan exists; retain that cause
+/// separately from failures returned by the ordinary planner.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CreateDrivePlanRefusal {
+    Offer(CreateDriveOfferRefusal),
+    Planning(PlannerError),
+}
+
 pub fn bounded_drive_plan(
     observation: &CreateDriveObservation,
     authority_granted: bool,
-) -> Result<conduit_core::Plan, PlannerError> {
+) -> Result<conduit_core::Plan, CreateDrivePlanRefusal> {
     let (_, profile) = catalogs().expect("fixed Pete catalogs are valid");
     let checked = conduit_plot::parse(BOUNDED_DRIVE_FORM, &profile)
         .expect("portable drive checks without mechanism facts");
     let host = live_create_drive_advertisement(observation, observation.safety.observed_at_tick)
-        .expect("caller supplies fresh non-hazardous Create drive truth");
+        .map_err(CreateDrivePlanRefusal::Offer)?;
     let observations = host
         .resources
         .iter()
@@ -138,6 +146,7 @@ pub fn bounded_drive_plan(
             authority_grants: grants.as_slice(),
         },
     )
+    .map_err(CreateDrivePlanRefusal::Planning)
 }
 
 #[cfg(test)]
@@ -211,6 +220,32 @@ mod tests {
         assert_eq!(
             placement.authority[0].contract_id.as_str(),
             CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY
+        );
+    }
+
+    #[test]
+    fn charging_drive_offer_refuses_without_panicking_or_producing_a_plan() {
+        let mut observation = reduced_drive();
+        observation.safety.charging = true;
+        for authority_granted in [false, true] {
+            assert_eq!(
+                bounded_drive_plan(&observation, authority_granted).unwrap_err(),
+                CreateDrivePlanRefusal::Offer(CreateDriveOfferRefusal::SafetyStaleOrInhibited(
+                    crate::LocalHazard::Charging,
+                )),
+            );
+        }
+    }
+
+    #[test]
+    fn healthy_drive_without_authority_retains_the_planner_refusal() {
+        let refusal = bounded_drive_plan(&reduced_drive(), false).unwrap_err();
+        assert!(
+            matches!(
+                refusal,
+                CreateDrivePlanRefusal::Planning(PlannerError::AuthorityGrantMissing(_))
+            ),
+            "unexpected refusal: {refusal:?}"
         );
     }
 
