@@ -1,8 +1,6 @@
 //! Bounded wire conformance; no provider inference or runtime policy.
 use super::*;
-#[allow(dead_code)]
-#[path = "../../../../../semantics/catalog/tests/common/experience_evidence.rs"]
-mod common;
+use crate::installed_std_tests::experience_evidence::common;
 use conduit_human::{
     ExperienceAvailability, ExperienceEvidenceContext, ExperienceOrigin, ExperienceTemporalRole,
 };
