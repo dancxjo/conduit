@@ -14,6 +14,8 @@ use serde::Deserialize;
 
 mod current_wire;
 mod decimal;
+mod http;
+pub use http::{OpenMeteoHttp, OpenMeteoHttpRefusal, MAXIMUM_CURRENT_BODY_BYTES};
 mod wire;
 pub use current_wire::PreparedCurrentWeatherWire;
 pub use wire::PreparedAmbientWeatherWire;
