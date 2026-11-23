@@ -1,6 +1,7 @@
 //! Checked Face controls for the installed owner's interval ticker.
 //! An interval change replaces the Body workset only while lulled; a start
 //! seals a new Plan and Play, and a stop requests a real terminal receipt.
+#[path = "clock_interval/action.rs"]
 mod action;
 
 use super::{debug, Owner};
