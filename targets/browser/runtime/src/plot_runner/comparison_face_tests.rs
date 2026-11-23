@@ -171,6 +171,7 @@ fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
         {
             let effect_kind = match effect.effect {
                 engine::BrowserHostEffect::ClockObservation => "clock",
+                engine::BrowserHostEffect::CivilClockObservation => "civil-clock",
                 engine::BrowserHostEffect::AudioCue => "audio",
                 engine::BrowserHostEffect::ButtonTransition => "button",
                 engine::BrowserHostEffect::Manifestation(_) => "manifestation",
@@ -240,6 +241,7 @@ fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
         session.pending.iter().map(|effect| match &effect.effect {
             engine::BrowserHostEffect::WombPrepare => "womb-prepare",
             engine::BrowserHostEffect::ClockObservation => "clock",
+            engine::BrowserHostEffect::CivilClockObservation => "civil-clock",
             engine::BrowserHostEffect::AudioCue => "audio",
             engine::BrowserHostEffect::AudioCapture => "audio-capture",
             engine::BrowserHostEffect::PcmPlayback { .. } => "pcm-playback",

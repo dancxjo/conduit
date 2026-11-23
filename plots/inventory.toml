@@ -215,6 +215,15 @@ entry = "camera-summary"
 deterministic_not_applicable = "camera acquisition requires an explicit permission and device proof mode"
 browser_safe_not_applicable = "camera acquisition requires an explicit permission and device proof mode"
 [[plots]]
+slug = "resident-ambient-clock-weather"
+title = "Local Clock and Weather"
+entry = "resident-ambient-clock-weather"
+initial_body_order = 15
+workspace_catalog = true
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "resident_clock_samples_civil_time_and_manifests_through_the_browser_kernel" }
+browser_safe_not_applicable = "Requires a browser Host with an admitted civil clock slot."
+
+[[plots]]
 slug = "clock"
 title = "Clock"
 entry = "clock-demo"

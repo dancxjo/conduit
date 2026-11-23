@@ -155,6 +155,27 @@ impl TourSession {
                     choice: None,
                 }),
             )),
+            engine::BrowserHostEffect::CivilClockObservation => Ok(
+                TourHostEffect::CivilClockObservation(Box::new(TourKeyEventEffect {
+                    editor: None,
+                    schema: "conduit.browser/civil-clock-observation-effect@1",
+                    effect_kind: "civil-clock-observation",
+                    source_document_id: fragment.source_document_id.as_str().into(),
+                    checked_plot_id: fragment.checked_plot_id.as_str().into(),
+                    expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
+                    plan_id: fragment.plan_id.as_str().into(),
+                    fragment_id: fragment.fragment_id.as_str().into(),
+                    active_play_id: self.active_play_id.as_str().into(),
+                    placement_id: placement.placement_id.as_str().into(),
+                    host_id: self.host_id.as_str().into(),
+                    boot_id: self.boot_id.as_str().into(),
+                    request_sequence: pending.request.request.0,
+                    maximum_output_bytes: crate::browser_civil_clock::CIVIL_CLOCK_REPLY_BYTES
+                        as u32,
+                    source_interaction: self.source_interaction.clone(),
+                    choice: None,
+                })),
+            ),
             engine::BrowserHostEffect::KeyEvent => {
                 Ok(TourHostEffect::KeyEvent(Box::new(TourKeyEventEffect {
                     editor: None,

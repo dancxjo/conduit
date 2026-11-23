@@ -56,10 +56,9 @@ setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError
 
 /** Validate the finite installed-executor disclosure without acquiring a Body. */
 export function checkedBrowserExecutionCapabilities(value) {
-  // Includes semantic document editing alongside the existing installations;
-  // The canonical Patchbay ingress adds one executor and one advertised Back.
-  // The 124 executors are distinct from the 140-offer membership advertisement.
-  const maximumExecutionCapabilities = 124;
+  // This includes the civil clock source and Face executors.
+  // The 126 executors are distinct from the 142-offer membership advertisement.
+  const maximumExecutionCapabilities = 126;
   if (value?.schema !== "conduit.browser/body-capabilities@1"
       || !Array.isArray(value.capability_ids)
       || value.capability_ids.length > maximumExecutionCapabilities

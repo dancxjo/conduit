@@ -1,0 +1,9 @@
+# The cadence and civil timezone are authored. Provider and display placement
+# are selected at admission. The resident remains open until Stop or Lull.
+plot resident-ambient-clock-weather {
+    cadence: time/every(1s)
+    observation: ambient/clock-weather-observation("America/Los_Angeles")
+    show: face/ambient-clock-weather("Date, time and weather")
+    cadence.tick >> observation.tick
+    observation.observation >> show.input
+}

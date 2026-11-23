@@ -107,6 +107,11 @@ mod tests {
             conduit_core::HostId::from("browser/inventory-test"),
             conduit_core::BootId::from("browser/inventory-test-boot"),
         );
+        assert!(
+            advertisement.capabilities.len() <= conduit_body::MAX_CANDIDATE_CAPABILITIES,
+            "current browser Host advertises {} capabilities",
+            advertisement.capabilities.len()
+        );
         let inventory = inventory();
         let installed = inventory
             .entries

@@ -239,6 +239,10 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
         ("patchbay", "patchbay"),
         ("little-seismograph", "little-seismograph-display"),
         ("tour", "tour"),
+        (
+            "resident-ambient-clock-weather",
+            "resident-ambient-clock-weather",
+        ),
     ];
     assert_eq!(plots.len(), expected.len());
     for (plot, (slug, entry)) in plots.iter().zip(expected) {

@@ -17,6 +17,7 @@ fn manifestation(effect: TourHostEffect) -> TourEffect {
             panic!("non-Womb fixture requested member Seed preparation")
         }
         TourHostEffect::ClockObservation(_)
+        | TourHostEffect::CivilClockObservation(_)
         | TourHostEffect::AudioCue(_)
         | TourHostEffect::AudioIo(_)
         | TourHostEffect::PitchTone(_) => {
@@ -635,6 +636,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
                 timer.duration_millis, timer.request_sequence
             )),
             TourHostEffect::ClockObservation(_)
+            | TourHostEffect::CivilClockObservation(_)
             | TourHostEffect::AudioCue(_)
             | TourHostEffect::AudioIo(_)
             | TourHostEffect::PitchTone(_) => {

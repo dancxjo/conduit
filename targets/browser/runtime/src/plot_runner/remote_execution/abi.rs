@@ -437,6 +437,13 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     BrowserHostEffect::ClockObservation => {
                         object.insert("effect_kind".into(), "clock-observation".into());
                     }
+                    BrowserHostEffect::CivilClockObservation => {
+                        object.insert("effect_kind".into(), "civil-clock-observation".into());
+                        object.insert(
+                            "maximum_output_bytes".into(),
+                            (crate::browser_civil_clock::CIVIL_CLOCK_REPLY_BYTES as u32).into(),
+                        );
+                    }
                     BrowserHostEffect::Timer { duration_millis } => {
                         object.insert("effect_kind".into(), "timer".into());
                         object.insert("duration_millis".into(), (*duration_millis).into());

@@ -2,3 +2,135 @@
 pub use conduit_ambient_display::{
     install_ambient_display_types, prepare_ambient_display_types, AMBIENT_DISPLAY_TYPES_SOURCE,
 };
+
+use alloc::{format, string::String, vec};
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, CheckedValueContract, ConfigurationValue,
+    FrontStartupParameter, FrontValueContract, FrontValueLocation, Kind, KindConfigurationField,
+    KindConfigurationRule, KindSemanticLaw, KindTerminalBehavior, PortDescriptor, PortDirection,
+    PortTemporal, TEXT_INFO_ID,
+};
+
+pub const AMBIENT_CLOCK_KIND: &str = "ambient/clock-weather-observation";
+pub const AMBIENT_CLOCK_REVISION: &str = "ambient/clock-weather-observation@1";
+pub const AMBIENT_CLOCK_OBSERVATION_BYTES: u32 = 4096;
+
+pub fn ambient_clock_kind() -> Result<Kind, String> {
+    let ambient = prepare_ambient_display_types()?;
+    let observation = ambient
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "AmbientClockWeather")
+        .ok_or("missing AmbientClockWeather")?;
+    let profile = observation
+        .value_type
+        .profile()
+        .map_err(|error| format!("ambient observation profile: {error:?}"))?;
+    let contract = CheckedValueContract::new(
+        profile.value_kind().clone(),
+        AMBIENT_CLOCK_OBSERVATION_BYTES,
+        vec![],
+    )
+    .map_err(|error| format!("ambient observation extent: {error:?}"))?;
+    let mut tick = conduit_time::time_every_outputs().remove(0);
+    tick.direction = PortDirection::Input;
+    let observation_port = port_id("observation");
+    let kind = Kind {
+        kind_id: kind_id(AMBIENT_CLOCK_KIND),
+        kind_contract_revision: AMBIENT_CLOCK_REVISION.into(),
+        startup_parameters: vec![FrontStartupParameter {
+            name: "timezone".into(),
+            value_type: kind_id(TEXT_INFO_ID),
+            has_default: false,
+        }],
+        shorthand: None,
+        inputs: vec![tick],
+        outputs: vec![PortDescriptor {
+            port_id: observation_port.clone(),
+            value_kind: profile.value_kind().clone(),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
+        }],
+        configuration: vec![KindConfigurationField {
+            key: "timezone".into(),
+            default_value: ConfigurationValue::Text("America/Los_Angeles".into()),
+            rule: KindConfigurationRule::TextBytes { maximum: 64 },
+        }],
+        semantic_laws: vec![
+            KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+                location: FrontValueLocation::Output(observation_port),
+                contract,
+            }]),
+            KindSemanticLaw::Terminal(KindTerminalBehavior::CompletesWhenInputsClose),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: AMBIENT_CLOCK_OBSERVATION_BYTES,
+        },
+    };
+    kind.validate()
+        .map_err(|error| format!("ambient clock kind: {error:?}"))?;
+    Ok(kind)
+}
+
+pub fn install_ambient_clock_kind(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    let kind = ambient_clock_kind()?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: AMBIENT_CLOCK_KIND.into(),
+        startup_parameters: vec![conduit_plot::StartupParameterSignature {
+            name: "timezone".into(),
+            value_type: "Text".into(),
+            default: None,
+        }],
+    })?;
+    startup.insert_fore(AMBIENT_CLOCK_KIND, kind.checked_front())?;
+    profile
+        .insert_kind(kind)
+        .map_err(|error| format!("ambient clock catalog: {error:?}"))?;
+    Ok(())
+}
+
+pub const AMBIENT_CLOCK_FACE_KIND: &str = "face/ambient-clock-weather";
+pub const AMBIENT_CLOCK_FACE_REVISION: &str = "face/ambient-clock-weather@1";
+
+pub fn ambient_clock_face_kind() -> Result<Kind, String> {
+    let mut kind = ambient_clock_kind()?;
+    let mut observation = kind.outputs.remove(0);
+    observation.direction = PortDirection::Input;
+    observation.port_id = port_id("input");
+    let contract = kind.semantic_contract().value_contracts()[0]
+        .contract
+        .clone();
+    kind.kind_id = kind_id(AMBIENT_CLOCK_FACE_KIND);
+    kind.kind_contract_revision = AMBIENT_CLOCK_FACE_REVISION.into();
+    kind.inputs = vec![observation];
+    kind.configuration = crate::data_label_configuration();
+    kind.startup_parameters = crate::startup_front(&kind.configuration);
+    kind.semantic_laws[0] = KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+        location: FrontValueLocation::Input(port_id("input")),
+        contract,
+    }]);
+    kind.validate()
+        .map_err(|error| format!("ambient clock Face kind: {error:?}"))?;
+    Ok(kind)
+}
+
+pub fn install_ambient_clock_face_kind(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    let kind = ambient_clock_face_kind()?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: AMBIENT_CLOCK_FACE_KIND.into(),
+        startup_parameters: crate::data_label_startup_signature(),
+    })?;
+    startup.insert_fore(AMBIENT_CLOCK_FACE_KIND, kind.checked_front())?;
+    profile
+        .insert_kind(kind)
+        .map_err(|error| format!("{error:?}"))
+}

@@ -290,6 +290,15 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::ClockObservation,
                 }));
             }
+            if operation.contract_id.as_str() == crate::browser_civil_clock::CIVIL_CLOCK_OPERATION {
+                if !input.is_empty() {
+                    return Err("civil clock observation input must be empty".into());
+                }
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::CivilClockObservation,
+                }));
+            }
             if operation.contract_id.as_str() == conduit_core::WAIT_HOST_CALL_CONTRACT
                 || operation.contract_id.as_str()
                     == conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT

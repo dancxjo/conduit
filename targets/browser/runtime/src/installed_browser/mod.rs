@@ -14,6 +14,8 @@ mod deterministic_garden_source;
 mod distance_frequency;
 pub(crate) mod typed_state;
 pub(crate) use conduit_browser_mask_offer as dom_mask;
+mod ambient_clock;
+pub(crate) mod ambient_clock_face;
 mod face;
 mod factory;
 mod final_normalized_pattern;

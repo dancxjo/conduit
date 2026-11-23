@@ -7,6 +7,7 @@ import { BrowserHostEffectRefusal, createPitchTonePerformer, drainBrowserEffects
 import { openBrowserSavedChoice } from "./browser-saved-choice.mjs";
 import { BrowserStorageRefusal } from "./browser-application-storage.mjs";
 import { executeResourceStorageEffect } from "./browser-resource-storage.mjs";
+import { CIVIL_CLOCK_REPLY_BYTES, prepareBrowserCivilClockReply } from "./browser-civil-clock.mjs";
 import { createBrowserMonotonicTimer } from "./browser-monotonic-timer.mjs";
 import { manifestApplicationView } from "./application-face.mjs";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
@@ -17,6 +18,8 @@ const TIMER = "conduit.resource/timer-slot@1";
 const SAVED_CHOICE = "conduit.resource/saved-choice-slot@1";
 const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
+const CIVIL_CLOCK = "conduit.resource/browser-civil-clock-slot@1";
+const CIVIL_CLOCK_OPERATION = "conduit.host/browser-civil-clock@1";
 const MEMORY = "conduit.resource/runtime-memory@1";
 // The Rust scheduler prepares and checks this finite backing/scratch pool
 // before start; the page owns its admission observation, not a second allocation.
@@ -27,6 +30,7 @@ const SNAPSHOT_READ = "conduit.host/resource-snapshot-read@1";
 const pools = new Map([
   [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
   [PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL], [PCM_PLAY_RESOURCE, PCM_PLAY_POOL],
+  [CIVIL_CLOCK, "browser/civil-clock"],
   [MEMORY, "browser/runtime-memory"],
   [FACE, "browser/face"], [INPUT, "browser/window-input"],
   [SAVED_CHOICE, "browser/saved-choice"], [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
@@ -166,6 +170,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   if (!placements.length) throw new Error("browser Body requires at least one locally managed Plot");
   const demand = new Map();
   const snapshotPlacements = new Map();
+  const civilClocks = new Map();
   for (const placement of placements) {
     if (!Array.isArray(placement.resources) || placement.resources.length > 64) throw new Error("browser resource binding bound exceeded");
     for (const resource of placement.resources) {
@@ -198,6 +203,16 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (pools.get(resource.class_id) !== resource.pool_id ||
           !Number.isSafeInteger(resource.units) || resource.units < 1) {
         throw new Error("unsupported browser Body resource binding");
+      }
+      if (resource.class_id === CIVIL_CLOCK) {
+        const call = placement.host_calls?.[0];
+        const timezone = placement.configuration?.find(entry => entry.key === "timezone")?.value?.Text;
+        if (resource.units !== 1 || civilClocks.size !== 0 ||
+            placement.host_calls?.length !== 1 || call?.contract_id !== CIVIL_CLOCK_OPERATION ||
+            call.maximum_output_bytes !== CIVIL_CLOCK_REPLY_BYTES) {
+          throw new Error("civil clock binding differs from its planned operation");
+        }
+        civilClocks.set(placement.placement_id, prepareBrowserCivilClockReply(timezone));
       }
       demand.set(resource.class_id, (demand.get(resource.class_id) ?? 0) + resource.units);
     }
@@ -405,7 +420,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Adapter counts come from acquired state; memory names the finite
       // runtime pool whose exact prepared demand is checked at start.
-      unreserved_units: class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === FACE ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === SAVED_CHOICE ? demand.get(SAVED_CHOICE) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
+      unreserved_units: class_id === CIVIL_CLOCK ? civilClocks.size : class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === FACE ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === SAVED_CHOICE ? demand.get(SAVED_CHOICE) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
     const snapshotPools = new Map();
@@ -454,6 +469,19 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const availableTimer = timerSlots.find(slot => slot.pending === null);
       if (!availableTimer) throw new Error("browser timer slot was not acquired");
       return delay(effect.duration_millis, signal, availableTimer);
+    }
+    if (effect.effect_kind === "civil-clock-observation") {
+      const sample = civilClocks.get(effect.placement_id);
+      if (!sample || effect.maximum_output_bytes !== CIVIL_CLOCK_REPLY_BYTES) {
+        throw new Error("civil clock effect differs from its acquired placement");
+      }
+      signal.throwIfAborted();
+      try {
+        return sample(window.Date.now());
+      } catch (error) {
+        if (!(error instanceof RangeError)) throw error;
+        throw new BrowserHostEffectRefusal("failed", 223, "civil clock reading outside the admitted profile");
+      }
     }
     if (effect.effect_kind === "clock-observation") {
       if (!clock) throw new Error("browser clock not acquired");
