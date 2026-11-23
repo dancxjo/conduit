@@ -85,8 +85,8 @@ two failures:
 | Generic explicit evidence: contradictory reports | Passed | Preserved both label alternatives and explicitly said the reports contradict each other. |
 | Generic explicit evidence: uncertain human report | Failed | Said the label was “observed to be” COPPER KITE, with no acknowledgment of the uncertain human-report classification. |
 
-Every scenario completed through its existing ordinary kernel path and produced
-nontruncated model results. The bodily sequence retained one Body/Wake/Play and
+Every Gemma4 scenario completed through its existing ordinary kernel path and
+produced nontruncated model results. The bodily sequence retained one Body/Wake/Play and
 distinct model runs. Independent test harnesses use declared fixture Host/Boot
 identities; the Cargo test names identify separate scenarios, and their native
 Plan/Play/run identities must not be treated as global real-Host uniqueness.
@@ -96,3 +96,34 @@ The assertions, defaults, authored instructions and resource bounds remain
 unchanged. The result does not establish a preferred replacement configuration
 or close the owning issue. The first-run logs and configuration receipts remain
 in ignored local proof output; required durable publication is separate work.
+
+
+## Comparison with the installed Phi4 candidate
+
+The next candidate used the identical four cases and assertions: `phi4:latest`,
+Ollama 0.34.1, 12288 MiB admitted memory, and inventory digest
+`ac896e5b8b34a1f4efa7b14d7520725140d5512484457fab45d2a4ea14c69dba`.
+The first result for every case was retained. No prompts or resource bounds
+changed to accommodate its answers.
+
+| Instruction envelope and case | Result | Observed behavior |
+| --- | --- | --- |
+| Pete: direct human report | Quality failure | Answered “I do not know.” despite the supplied current human report of 72%. |
+| Pete: previous/current/unavailable battery | Passed | Recalled 50.0%, answered current 9.0%, then answered “I do not know.” when the current source became unavailable. |
+| Generic explicit evidence: contradictory reports | Bounded-output failure | Returned `Truncated` after discussing only the first label; no complete answer preserving both alternatives was delivered. |
+| Generic explicit evidence: uncertain human report | Bounded-output failure | The partial text mentioned the uncertain human-report classification, but the native result was `Truncated`, so it did not qualify as a completed answer. |
+
+Initialization succeeded for all four cases. Native truncation remains separate
+from a completed answer failing its grounding assertions and from provider or
+transport loss. Increasing a budget, changing the instructions or accepting the
+partial text would change this comparison; none was done. Neither candidate
+passed all four new cases, so this campaign did not advance either to an
+additional run of the existing narrow recall/current/empty-history scenario.
+
+The already installed `gpt-oss:20b` artifact was considered but not invoked.
+Its preflight measured 24,417,243,136 bytes available; a 20 GiB admission would
+leave 2,942,406,656 bytes. That did not meet the selected extra-headroom margin
+of 7 GiB (one quarter of the admission plus 2 GiB). The candidate was skipped
+without downloading models, evicting another model or changing its requested
+admission. The ignored preflight record retains the installed artifact digest,
+resident model inventory and measured memory.
