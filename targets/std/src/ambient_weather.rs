@@ -12,7 +12,13 @@ use conduit_core::{
 use conduit_plot::{rust_binding, CheckedNativeType};
 use serde::Deserialize;
 
+mod current_wire;
 mod decimal;
+mod http;
+pub use http::{OpenMeteoHttp, OpenMeteoHttpRefusal, MAXIMUM_CURRENT_BODY_BYTES};
+mod wire;
+pub use current_wire::PreparedCurrentWeatherWire;
+pub use wire::PreparedAmbientWeatherWire;
 
 pub const MAXIMUM_OPEN_METEO_RESPONSE_BYTES: usize = 64 * 1024;
 pub const MAXIMUM_WEATHER_AGE_MS: u64 = 3_600_000;

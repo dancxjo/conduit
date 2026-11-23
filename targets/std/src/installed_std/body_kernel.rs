@@ -43,11 +43,13 @@ use fore_route::BodyForeRoute;
 mod diagnostic;
 mod execution;
 pub(crate) use execution::state::BodyExecutionState;
+mod ambient_home;
 pub(crate) mod funded;
 mod host_calls;
 #[path = "body_kernel/preparation.rs"]
 mod materialization;
 pub(crate) mod memory;
+pub(crate) mod native_source;
 mod startup;
 
 pub(crate) struct BodyKernel<'a> {
@@ -61,6 +63,8 @@ pub(crate) struct BodyKernel<'a> {
     error_diagnostic: Option<diagnostic::Diagnostic>,
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
     creche: Option<CrecheRoute>,
+    native_source: Option<native_source::NativeSourceRoute<'a>>,
+    home_face_routes: Vec<super::ambient_home_route::AmbientHomeRoute>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
@@ -181,6 +185,7 @@ impl<'a> BodyKernel<'a> {
             #[cfg(target_os = "linux")]
             None,
             None,
+            None,
         )
     }
 
@@ -209,6 +214,7 @@ impl<'a> BodyKernel<'a> {
             sources.as_ref(),
             #[cfg(target_os = "linux")]
             selected_file,
+            None,
             None,
         )
     }
@@ -242,6 +248,7 @@ impl<'a> BodyKernel<'a> {
             sources.as_ref(),
             #[cfg(target_os = "linux")]
             selected_file,
+            None,
             None,
         )
     }

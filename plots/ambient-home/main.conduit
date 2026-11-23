@@ -1,0 +1,8 @@
+# Keep the Home observation live until the Body Lulls or stops.
+plot ambient-resident {
+    cadence: time/every(1s)
+    source: ambient/resident-observation("America/Los_Angeles")
+    home: face/resident-ambient-home("Home")
+    cadence.tick >> source.tick
+    source.observation >> home.observation
+}

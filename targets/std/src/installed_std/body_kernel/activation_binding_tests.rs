@@ -77,6 +77,7 @@ fn internal_preloaded_todo_body_play_delivers_before_complete_with_child_signs()
         None,
         None,
         None,
+        None,
     );
     assert_eq!(result.terminal, TerminalDisposition::Completed);
     assert!(result.failure.is_none(), "{:?}", result.failure);
@@ -140,6 +141,7 @@ fn internal_preloaded_todo_body_cancels_after_first_delivery() {
         &control,
         &host_id,
         &boot_id,
+        None,
         None,
         None,
         None,

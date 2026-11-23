@@ -68,6 +68,7 @@ fn startup_one_byte_short_refuses_before_preparation_started_or_effect() {
             &crate::ThreadTimer,
             false,
             host.playback.as_ref(),
+            None,
         )
         .unwrap();
     let required = baseline.checked_add(layout.peak_bytes).unwrap();

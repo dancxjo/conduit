@@ -43,6 +43,11 @@ mod creche;
 mod creche_tests;
 mod delegated;
 mod execution;
+pub(crate) mod face_contribution;
+pub use face_contribution::{
+    BodyFaceContributionObserver, CommittedFaceContribution, FaceContributionRefusal,
+    FaceContributionScope, ReturnedFaceContribution,
+};
 mod prepared;
 pub(crate) use delegated::preparation_backing_bytes as delegated_preparation_backing_bytes;
 pub use delegated::{

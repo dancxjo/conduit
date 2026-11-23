@@ -2,6 +2,11 @@
 use super::*;
 use core::mem::size_of;
 impl BaseCapabilityTable {
+    /// Inline heap entries for a table with one capability and one in-flight operation.
+    pub fn single_operation_storage_bytes() -> usize {
+        size_of::<CapabilityEntry>() + size_of::<u32>()
+    }
+
     /// Actual owned Vec/String capacities only; excludes inline Self, allocator
     /// overhead and caller-owned bearer/lease values. Does not issue authority.
     pub fn retained_backing_bytes(&self) -> Option<usize> {

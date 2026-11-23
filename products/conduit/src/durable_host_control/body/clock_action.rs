@@ -100,6 +100,12 @@ impl DurableHostRuntime {
             };
         };
         match action {
+            crate::durable_host::owner::ClockAction::HomeNavigation => {
+                let HostSource::Body { owner, .. } = &mut self.host else {
+                    unreachable!("navigation was checked on its current owner");
+                };
+                owner.navigate_home_inspection(show, interaction)
+            }
             crate::durable_host::owner::ClockAction::NotebookNavigation => {
                 let HostSource::Body { owner, .. } = &mut self.host else {
                     unreachable!("navigation was checked on its current owner");

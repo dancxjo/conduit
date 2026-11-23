@@ -126,7 +126,11 @@ impl Owner {
         }
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
-        let plan = conduit_planner::plan_expanded_authoring_with_options(
+        let home_observation_queues =
+            conduit_std_host::ambient_home_observation::ambient_home_connection_limits(
+                &plot.expanded,
+            );
+        let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
             plot,
             &hosts,
             &placements,
@@ -136,10 +140,11 @@ impl Owner {
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                authority_grants: &[],
+                authority_grants: self.host.native_source_planning_grants(),
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
+            &home_observation_queues,
             &BTreeMap::new(),
         )
         .map_err(debug)?;

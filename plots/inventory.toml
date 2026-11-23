@@ -32,6 +32,13 @@ deterministic = { package = "conduit-semantic-catalog", test = "ambient_display_
 browser_safe_not_applicable = "Requires a caller supplying a checked clock and weather observation."
 
 [[plots]]
+slug = "ambient-home"
+title = "Ambient Home"
+entry = "ambient-resident"
+workspace_catalog = false
+browser_safe_not_applicable = "requires selected civil clock, wallpaper, weather and Face contribution Backs"
+
+[[plots]]
 slug = "ambient-wallpaper"
 title = "Wallpaper Observation"
 entry = "ambient-wallpaper"

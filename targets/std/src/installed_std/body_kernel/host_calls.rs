@@ -26,6 +26,9 @@ impl BodyKernel<'_> {
             }
             self.requests.push(request);
         }
+        if self.begin_native_source(request)? {
+            return Ok(());
+        }
         let operation = self
             .operations
             .iter()
@@ -41,6 +44,14 @@ impl BodyKernel<'_> {
         {
             self.begin_creche(request, creche)?;
             return Ok(());
+        }
+        if super::ambient_home::is_home_face_call(operation) {
+            let route = self
+                .home_face_routes
+                .iter_mut()
+                .find(|route| route.handles(request))
+                .ok_or("Home Face call has no funded route")?;
+            return route.dispatch(&mut self.scheduler, request);
         }
         if scalar_math::complete(operation, request, &mut self.scheduler)? {
             return Ok(());

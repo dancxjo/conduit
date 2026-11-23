@@ -6,6 +6,8 @@ pub(super) fn backing_bytes(
     selected: Option<&crate::hosted_audio::HostedPlaybackSelection>,
 ) -> Result<usize, String> {
     match gear.implementation_id.as_str() {
+        // The recurring timer retains an inline ValueRef into the funded store.
+        conduit_std_offers::TIME_EVERY_IMPLEMENTATION => Ok(0),
         conduit_std_offers::TICK_IMPLEMENTATION => array::<ValueRef>(budget.host_requests)?
             .checked_mul(2)
             .ok_or_else(|| "Tick backing overflow".into()),
