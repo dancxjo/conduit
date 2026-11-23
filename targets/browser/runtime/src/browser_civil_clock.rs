@@ -1,5 +1,8 @@
 //! Bounded browser civil clock replies.
 
+#[cfg(test)]
+mod observation;
+
 use conduit_core::{LocalDate, LocalDateTime, LocalTime, TemporalScale, UtcOffsetSeconds};
 
 pub const CIVIL_CLOCK_OPERATION: &str = "conduit.host/browser-civil-clock@1";
