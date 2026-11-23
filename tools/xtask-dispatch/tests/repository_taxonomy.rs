@@ -39,6 +39,7 @@ const RETIRED_ROOTS: &[&str] = &[
 // Reviewed resident data can have a plot owner without pretending to be a
 // canonical executable entry in the authored inventory.
 const RESIDENT_PLOT_ASSETS: &[&str] = &[
+    "plots/ambient-display/types.conduit",
     "plots/birth/names/README.md",
     "plots/birth/names/catalog.mjs",
 ];
@@ -94,7 +95,7 @@ fn validate_owners(paths: &BTreeSet<String>) -> Result<(), String> {
 // Reviewed Rust owners of resident plot meaning, independently of the authored
 // executable inventory. A tracked manifest is required; only Rust package
 // source/tests and package documentation are admitted by this rule.
-const RESIDENT_PLOT_PACKAGES: &[&str] = &["plots/birth"];
+const RESIDENT_PLOT_PACKAGES: &[&str] = &["plots/ambient-display/model", "plots/birth"];
 
 fn resident_plot_package_owns(path: &str, paths: &BTreeSet<String>) -> bool {
     RESIDENT_PLOT_PACKAGES.iter().any(|root| {

@@ -11077,6 +11077,7 @@ dependencies = [
  "cliclack",
  "conduit-ai",
  "conduit-alife",
+ "conduit-ambient-display",
  "conduit-audio",
  "conduit-body",
  "conduit-body-make",
