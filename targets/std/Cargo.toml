@@ -22,6 +22,8 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+chrono = { version = "0.4.45", default-features = false }
+chrono-tz = { version = "0.10.4", default-features = false }
 conduit-linux-display = { path = "display", optional = true }
 conduit-linear-framebuffer-make = { path = "../../mechanisms/implementations/linear-framebuffer-make", optional = true }
 conduitos = { path = "../conduitos", features = ["native-compositor-core"], optional = true }
