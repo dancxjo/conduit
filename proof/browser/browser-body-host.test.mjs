@@ -498,3 +498,47 @@ test('legacy Patchbay proposals do not require a canonical startup observation',
   try { owner.start(1); await owner.run(); assert.equal(f.outputRoot.children[0].textContent, 'Greeting: hello'); }
   finally { owner.close(); }
 });
+
+test("the acquired civil clock returns a fixed reply for its exact planned placement", async () => {
+  const f = fixture();
+  const clock = f.proposal.plan.plots[0].plan.fragments[0].placements[0];
+  clock.resources = [{ pool_id: "browser/civil-clock", class_id: "conduit.resource/browser-civil-clock-slot@1", units: 1 }];
+  clock.host_calls = [{ contract_id: "conduit.host/browser-civil-clock@1", maximum_output_bytes: 28 }];
+  clock.configuration = [{ key: "timezone", value: { Text: "America/Los_Angeles" } }];
+  f.outputRoot.ownerDocument.defaultView.Date = { now: () => 1_793_523_600_876 };
+  let reply;
+  f.api.conduit_browser_body_start = () => {
+    f.output({
+      schema: "conduit.browser/body-started@1",
+      play: { active_play_id: "play", plan_id: "body-plan", wake_id: "wake", body_id: "body" },
+      progress: {
+        host_id: "host", boot_id: "boot", active_play_id: "play", plan_id: "partition",
+        placement_id: "placement-0", request_sequence: 0,
+        effect_kind: "civil-clock-observation", maximum_output_bytes: 28,
+      },
+    });
+    return 0;
+  };
+  const complete = f.api.conduit_browser_plot_complete_effect;
+  f.api.conduit_browser_plot_complete_effect = (play, placement, sequence, length) => {
+    const bytes = new Uint8Array(f.api.memory.buffer, 128 * 1024 + play + placement, length);
+    reply = Uint8Array.from(bytes);
+    return complete(play, placement, sequence, length);
+  };
+  assert.throws(() => {
+    clock.host_calls[0].maximum_output_bytes = 27;
+    acquireBrowserBodyHost(f);
+  }, /differs from its planned operation/);
+  clock.host_calls[0].maximum_output_bytes = 28;
+  const owner = acquireBrowserBodyHost(f);
+  assert.equal(owner.observations()[0].unreserved_units, 1);
+  owner.start(1);
+  try {
+    assert.equal((await owner.run()).disposition, "completed");
+    assert.equal(reply.length, 28);
+    assert.equal(new DataView(reply.buffer).getBigUint64(0, true), 1_793_523_600_876n);
+    assert.equal(new TextDecoder().decode(reply.subarray(10)), "2026-11-0101:00:00");
+  } finally {
+    owner.close();
+  }
+});
