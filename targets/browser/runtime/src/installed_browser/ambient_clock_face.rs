@@ -110,12 +110,47 @@ fn weather_text(weather: Observation<'_>) -> Result<String, String> {
                     .map_err(debug_error)?,
             );
             let temperature = temperature as f64 / 1000.0;
+            let observed = utc_time(field(reading, "observed_at_unix_ms")?)?;
+            let expiry = utc_time(field(reading, "usable_until_unix_ms")?)?;
             Ok(format!(
-                "Weather {status} · {location} · {conditions} · {temperature} °C · {provider}"
+                "Weather {status} · {location} · {conditions} · {temperature} °C · {provider} · Observed {observed} · Expires {expiry}"
             ))
         }
         _ => Err("unknown ambient weather status".into()),
     }
+}
+
+fn utc_time(value: Observation<'_>) -> Result<String, String> {
+    use conduit_core::{
+        LocalDateTime, TemporalInstant, TemporalScale, UtcOffsetSeconds, UNIX_UTC_CLOCK_BASIS,
+    };
+
+    let ticks = u64::from_le_bytes(
+        value
+            .primitive_bytes("value/u64")
+            .map_err(debug_error)?
+            .try_into()
+            .map_err(debug_error)?,
+    );
+    let instant = TemporalInstant {
+        ticks,
+        scale: TemporalScale::Milliseconds,
+        clock_basis: UNIX_UTC_CLOCK_BASIS.into(),
+        resolution_ticks: 1,
+        uncertainty_ticks: 0,
+    };
+    let offset = UtcOffsetSeconds::new(0).map_err(debug_error)?;
+    let civil = LocalDateTime::from_offset_instant(&instant, offset).map_err(debug_error)?;
+    Ok(format!(
+        "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03} UTC",
+        civil.date.year(),
+        civil.date.month(),
+        civil.date.day(),
+        civil.time.hour(),
+        civil.time.minute(),
+        civil.time.second(),
+        civil.time.nanosecond() / 1_000_000,
+    ))
 }
 
 fn debug_error(error: impl core::fmt::Debug) -> String {
@@ -163,7 +198,7 @@ mod tests {
             let value = conduit_core::validate_canonical_structured_value(&encoded).unwrap();
             assert_eq!(
                 weather_text(value).unwrap(),
-                format!("Weather {status} · Seattle · Clear · -1.25 °C · Example weather service")
+                format!("Weather {status} · Seattle · Clear · -1.25 °C · Example weather service · Observed 1970-01-01 00:00:00.001 UTC · Expires 1970-01-01 00:00:00.002 UTC")
             );
         }
     }
