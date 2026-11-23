@@ -153,77 +153,43 @@ fn validate_image_definition(
     Ok(())
 }
 
-impl crate::StdHost {
-    /// Initialize a checked IMAGE with its independently admitted source worker.
-    ///
-    /// # Safety
-    /// The caller owns the exact source definition and its current grant. It
-    /// must qualify the factory's retained and peak memory, the provider's
-    /// cooperative cancellation behavior, and its exact external resource
-    /// custody. The factory must complete or retire temporary work on failure.
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) unsafe fn from_selected_timer_and_native_worker_image<F>(
-        config: crate::StdHostConfig,
-        image: &conduit_host_make::HostImage,
-        catalog: &conduit_host_make::MakeCatalog,
-        checked: &conduit_host_make::CheckedHostConfiguration,
-        definition: NativeSourceDefinition,
-        budget: NativeWorkerBudget,
-        provider_preparation_bytes: usize,
-        prepare: F,
-    ) -> Result<Self, String>
-    where
-        F: FnOnce() -> Result<Box<dyn NativeSourceWorkerProvider>, String>,
+pub(crate) fn stage_native_worker<'a>(
+    image: &conduit_host_make::HostImage,
+    checked: &conduit_host_make::CheckedHostConfiguration,
+    definition: NativeSourceDefinition,
+    factory: ImageWorkerFactory<'a>,
+    memory: &StagedImageMemory<'_>,
+) -> Result<PreparedImageWorker<'a>, String> {
+    if definition.base.enforcement_class != conduit_core::BaseEnforcementClass::Cooperative
+        || !definition.base.capabilities.first().is_some_and(|offer| {
+            offer.implementation.execution_profile_id.as_str()
+                == super::NATIVE_SOURCE_WORKER_PROFILE
+        })
+        || factory.provider_preparation_bytes == 0
     {
-        if definition.base.enforcement_class != conduit_core::BaseEnforcementClass::Cooperative
-            || !definition.base.capabilities.first().is_some_and(|offer| {
-                offer.implementation.execution_profile_id.as_str()
-                    == super::NATIVE_SOURCE_WORKER_PROFILE
-            })
-            || provider_preparation_bytes == 0
-        {
-            return Err("selected native worker requires its finite cooperative profile".into());
-        }
-        let memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
-        if definition.base.implementation_id.as_str()
-            == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
-        {
-            let parameters =
-                crate::ambient_home_observation::CheckedAmbientHomeSource::from_configuration(
-                    checked,
-                )?;
-            let [source, memory] = definition.base.resources.as_slice() else {
-                return Err("Ambient source requires its checked resource pools".into());
-            };
-            let [timezone] = definition.configuration.as_slice() else {
-                return Err("Ambient source requires its exact checked timezone".into());
-            };
-            if source.pool_id.as_str() != parameters.source_pool
-                || memory.pool_id.as_str() != parameters.memory_pool
-                || timezone.key != "timezone"
-                || !matches!(&timezone.value, conduit_core::ConfigurationValue::Text(value) if value == parameters.timezone)
-            {
-                return Err(
-                    "Ambient worker definition differs from the checked Base configuration".into(),
-                );
-            }
-        }
-        let factory = ImageWorkerFactory {
-            budget,
-            provider_preparation_bytes,
-            prepare: Box::new(prepare),
-        };
-        validate_image_definition(image, &definition, factory.preparation_bytes(&definition)?)?;
-        let worker = factory.prepare_for_image(definition, &memory)?;
-        Self::from_selected_initial_bases(
-            config.clone(),
-            image,
-            catalog,
-            crate::image_initialization::InitialBases {
-                worker: Some(worker),
-                memory: Some(memory),
-                ..crate::image_initialization::InitialBases::default()
-            },
-        )
+        return Err("selected native worker requires its finite cooperative profile".into());
     }
+    if definition.base.implementation_id.as_str()
+        == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+    {
+        let parameters =
+            crate::ambient_home_observation::CheckedAmbientHomeSource::from_configuration(checked)?;
+        let [source, memory] = definition.base.resources.as_slice() else {
+            return Err("Ambient source requires its checked resource pools".into());
+        };
+        let [timezone] = definition.configuration.as_slice() else {
+            return Err("Ambient source requires its exact checked timezone".into());
+        };
+        if source.pool_id.as_str() != parameters.source_pool
+            || memory.pool_id.as_str() != parameters.memory_pool
+            || timezone.key != "timezone"
+            || !matches!(&timezone.value, conduit_core::ConfigurationValue::Text(value) if value == parameters.timezone)
+        {
+            return Err(
+                "Ambient worker definition differs from the checked Base configuration".into(),
+            );
+        }
+    }
+    validate_image_definition(image, &definition, factory.preparation_bytes(&definition)?)?;
+    factory.prepare_for_image(definition, memory)
 }

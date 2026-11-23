@@ -15,6 +15,8 @@ pub(super) fn contract() -> BaseInitializationContract {
             text("weather_endpoint", 128),
             text("source_pool", 128),
             text("memory_pool", 128),
+            text("provider_access", 32),
+            text("photo_source", 32),
         ],
     }
 }

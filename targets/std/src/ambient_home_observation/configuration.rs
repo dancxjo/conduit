@@ -8,6 +8,7 @@ pub struct CheckedAmbientHomeSource<'a> {
     pub weather_endpoint: SocketAddr,
     pub source_pool: &'a str,
     pub memory_pool: &'a str,
+    pub acquire_nasa_photos: bool,
 }
 
 impl<'a> CheckedAmbientHomeSource<'a> {
@@ -46,6 +47,14 @@ impl<'a> CheckedAmbientHomeSource<'a> {
             .map_err(|_| "checked Ambient weather endpoint is invalid")?;
         let source_pool = text("source_pool")?;
         let memory_pool = text("memory_pool")?;
+        if text("provider_access")? != "operator-admitted" {
+            return Err("Ambient source requires explicit operator provider access".into());
+        }
+        let acquire_nasa_photos = match text("photo_source")? {
+            "nasa-apod" => true,
+            "disabled" => false,
+            _ => return Err("checked Ambient photo source is unsupported".into()),
+        };
         if weather_endpoint.port() == 0 || source_pool == memory_pool {
             return Err(
                 "checked Ambient source requires a nonzero endpoint and distinct pools".into(),
@@ -56,6 +65,7 @@ impl<'a> CheckedAmbientHomeSource<'a> {
             weather_endpoint,
             source_pool,
             memory_pool,
+            acquire_nasa_photos,
         })
     }
 }
@@ -79,90 +89,111 @@ impl crate::StdHost {
     where
         F: FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String>,
     {
-        use conduit_core::*;
-        use conduit_std_offers::{ambient_home_source_offer, AMBIENT_HOME_SOURCE_RESOURCE};
-        use std::time::Duration;
-        let parameters = CheckedAmbientHomeSource::from_configuration(checked)?;
-        let base = image
-            .manifest
-            .base_selections
-            .iter()
-            .find(|base| {
-                base.kind == AMBIENT_HOME_SOURCE_BASE
-                    && base.driver == AMBIENT_HOME_SOURCE_IMPLEMENTATION
-            })
-            .ok_or("Ambient worker Base is absent from the IMAGE")?;
-        let pool = |id: &str, class: &str| {
-            image
-                .manifest
-                .resource_budgets
-                .iter()
-                .find(|pool| pool.id == id && pool.class == class)
-                .map(|pool| resource_offer(&pool.id, &pool.class, pool.slots))
-                .ok_or_else(|| format!("Ambient worker lacks the checked pool {id}"))
-        };
-        let definition = crate::NativeSourceDefinition {
-            kind: conduit_semantic_catalog::ambient_home_observation_kind()?,
-            base: BaseProviderEntry {
-                base_id: base.id.as_str().into(),
-                provider_instance_id: format!(
-                    "{}/{}/ambient-home-source",
-                    config.host_id.as_str(),
-                    config.boot_id.as_str()
-                )
-                .into(),
-                provider_generation: config.offer_generation.0,
-                implementation_id: AMBIENT_HOME_SOURCE_IMPLEMENTATION.into(),
-                mechanism_family: AMBIENT_HOME_SOURCE_BASE.into(),
-                enforcement_class: BaseEnforcementClass::Cooperative,
-                lifecycle: BaseLifecycle::Ready,
-                capabilities: vec![ambient_home_source_offer()?],
-                resources: vec![
-                    pool(parameters.source_pool, AMBIENT_HOME_SOURCE_RESOURCE)?,
-                    pool(parameters.memory_pool, RUNTIME_MEMORY_RESOURCE_CLASS)?,
-                ],
+        use crate::{image_initialization::InitialBases, kernel_preparation::StagedImageMemory};
+        let memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
+        let worker = stage_ambient_worker(&config, image, checked, grant, prepare_deck, &memory)?;
+        Self::from_selected_initial_bases(
+            config.clone(),
+            image,
+            catalog,
+            InitialBases {
+                worker: Some(worker),
+                memory: Some(memory),
+                ..InitialBases::default()
             },
-            grant,
-            resource_generation: ResourceGenerationId(format!(
-                "{}/ambient-source/{}",
-                config.boot_id.as_str(),
-                config.offer_generation.0
-            )),
-            configuration: vec![ConfigurationEntry {
-                key: "timezone".into(),
-                value: ConfigurationValue::Text(parameters.timezone.into()),
-            }],
-            input_bytes: conduit_time::TICK_ENCODED_LEN,
-            output_bytes: super::HOME_OBSERVATION_BYTES as u32,
-            resource_bytes: super::HOME_OBSERVATION_BYTES as u64,
-        };
-        let budget = crate::NativeWorkerBudget {
-            requested_stack_bytes: 2 * 1024 * 1024,
-            maximum_stack_mapping_bytes: 2 * 1024 * 1024 + 64 * 1024,
-            capture_timeout: Duration::from_secs(3),
-            cancellation_timeout: Duration::from_millis(250),
-        };
-        unsafe {
-            Self::from_selected_timer_and_native_worker_image(
-                config,
-                image,
-                catalog,
-                checked,
-                definition,
-                budget,
-                crate::ambient_wallpaper::acquisition::PREPARATION_BYTES,
-                move || {
-                    Ok(Box::new(
-                        super::PreparedAmbientHomeObservation::prepare_with_optional_deck(
-                            parameters.timezone,
-                            parameters.weather_endpoint,
-                            prepare_deck()?,
-                        )?,
-                    ))
-                },
-            )
-        }
+        )
     }
+}
+
+pub(crate) fn stage_ambient_worker<'a, F>(
+    config: &crate::StdHostConfig,
+    image: &conduit_host_make::HostImage,
+    checked: &'a CheckedHostConfiguration,
+    grant: conduit_core::AuthorityGrant,
+    prepare_deck: F,
+    memory: &crate::kernel_preparation::StagedImageMemory<'_>,
+) -> Result<crate::selected_native_source::image_worker::PreparedImageWorker<'a>, String>
+where
+    F: FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String> + 'a,
+{
+    use crate::selected_native_source::image_worker::{stage_native_worker, ImageWorkerFactory};
+    use conduit_core::*;
+    use conduit_std_offers::{ambient_home_source_offer, AMBIENT_HOME_SOURCE_RESOURCE};
+    use std::time::Duration;
+    let parameters = CheckedAmbientHomeSource::from_configuration(checked)?;
+    let base = image
+        .manifest
+        .base_selections
+        .iter()
+        .find(|base| {
+            base.kind == AMBIENT_HOME_SOURCE_BASE
+                && base.driver == AMBIENT_HOME_SOURCE_IMPLEMENTATION
+        })
+        .ok_or("Ambient worker Base is absent from the IMAGE")?;
+    let pool = |id: &str, class: &str| {
+        image
+            .manifest
+            .resource_budgets
+            .iter()
+            .find(|pool| pool.id == id && pool.class == class)
+            .map(|pool| resource_offer(&pool.id, &pool.class, pool.slots))
+            .ok_or_else(|| format!("Ambient worker lacks the checked pool {id}"))
+    };
+    let definition = crate::NativeSourceDefinition {
+        kind: conduit_semantic_catalog::ambient_home_observation_kind()?,
+        base: BaseProviderEntry {
+            base_id: base.id.as_str().into(),
+            provider_instance_id: format!(
+                "{}/{}/ambient-home-source",
+                config.host_id.as_str(),
+                config.boot_id.as_str()
+            )
+            .into(),
+            provider_generation: config.offer_generation.0,
+            implementation_id: AMBIENT_HOME_SOURCE_IMPLEMENTATION.into(),
+            mechanism_family: AMBIENT_HOME_SOURCE_BASE.into(),
+            enforcement_class: BaseEnforcementClass::Cooperative,
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: vec![ambient_home_source_offer()?],
+            resources: vec![
+                pool(parameters.source_pool, AMBIENT_HOME_SOURCE_RESOURCE)?,
+                pool(parameters.memory_pool, RUNTIME_MEMORY_RESOURCE_CLASS)?,
+            ],
+        },
+        grant,
+        resource_generation: ResourceGenerationId(format!(
+            "{}/ambient-source/{}",
+            config.boot_id.as_str(),
+            config.offer_generation.0
+        )),
+        configuration: vec![ConfigurationEntry {
+            key: "timezone".into(),
+            value: ConfigurationValue::Text(parameters.timezone.into()),
+        }],
+        input_bytes: conduit_time::TICK_ENCODED_LEN,
+        output_bytes: super::HOME_OBSERVATION_BYTES as u32,
+        resource_bytes: super::HOME_OBSERVATION_BYTES as u64,
+    };
+    let budget = crate::NativeWorkerBudget {
+        requested_stack_bytes: 2 * 1024 * 1024,
+        maximum_stack_mapping_bytes: 2 * 1024 * 1024 + 64 * 1024,
+        capture_timeout: Duration::from_secs(3),
+        cancellation_timeout: Duration::from_millis(250),
+    };
+    let factory = ImageWorkerFactory {
+        budget,
+        provider_preparation_bytes: crate::ambient_wallpaper::acquisition::PREPARATION_BYTES,
+        prepare: Box::new(move || {
+            Ok(Box::new(
+                super::PreparedAmbientHomeObservation::prepare_with_optional_deck(
+                    parameters.timezone,
+                    parameters.weather_endpoint,
+                    prepare_deck()?,
+                )?,
+            ))
+        }),
+    };
+    stage_native_worker(image, checked, definition, factory, memory)
 }
 
 /// Finite queue requirements for the connections owned by the Home source.

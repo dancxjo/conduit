@@ -42,6 +42,19 @@ impl InitialNativeMask {
         offered
     }
 }
+#[path = "initialization/ambient.rs"]
+mod ambient;
+
+type DeckFactory<'a> = Box<
+    dyn FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String>
+        + 'a,
+>;
+
+struct AmbientWorkerStartup<'a> {
+    grant: conduit_core::AuthorityGrant,
+    prepare_deck: DeckFactory<'a>,
+}
+
 impl StdHost {
     pub fn from_selected_timer_and_native_mask_image(
         config: StdHostConfig,
@@ -53,6 +66,7 @@ impl StdHost {
     ) -> Result<Self, String> {
         Self::from_native_mask_backend(
             config, image, catalog, checked, parameters, output, false, None, None, None, None,
+            None,
         )
     }
     pub fn from_selected_timer_and_native_mask_and_playback_image(
@@ -76,6 +90,7 @@ impl StdHost {
             None,
             None,
             Some(selected),
+            None,
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -103,6 +118,7 @@ impl StdHost {
             input,
             images,
             Some(selected),
+            None,
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -118,7 +134,7 @@ impl StdHost {
     ) -> Result<Self, String> {
         Self::from_native_mask_backend(
             config, image, catalog, checked, parameters, output, false, recognizer, input, None,
-            None,
+            None, None,
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -145,6 +161,7 @@ impl StdHost {
             input,
             Some(images),
             None,
+            None,
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -166,6 +183,7 @@ impl StdHost {
             output,
             false,
             Some(recognizer),
+            None,
             None,
             None,
             None,
@@ -195,6 +213,7 @@ impl StdHost {
             input,
             None,
             Some(selected),
+            None,
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -210,6 +229,7 @@ impl StdHost {
         input: Option<conduit_linux_display::PreparedNativeInput>,
         image_data: Option<NativeMaskImageInitialization>,
         selected: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+        ambient: Option<AmbientWorkerStartup<'_>>,
     ) -> Result<Self, String> {
         crate::image_initialization::bounded_image_preflight(&config, image)?;
         if checked.configuration_id() != parameters.configuration_id() {
@@ -228,6 +248,18 @@ impl StdHost {
         let memory = crate::kernel_preparation::StagedImageMemory::verified(
             &config, image, checked, catalog,
         )?;
+        let worker = ambient
+            .map(|ambient| {
+                crate::ambient_home_observation::stage_ambient_worker(
+                    &config,
+                    image,
+                    checked,
+                    ambient.grant,
+                    ambient.prepare_deck,
+                    &memory,
+                )
+            })
+            .transpose()?;
         let playback = selected
             .map(|selected| {
                 crate::image_initialization::prepare_playback_on(
@@ -434,7 +466,7 @@ impl StdHost {
             catalog,
             crate::image_initialization::InitialBases {
                 memory: Some(memory),
-                worker: None,
+                worker,
                 playback,
                 recognition,
                 scanout: Some(Box::new(scanout)),

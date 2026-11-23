@@ -16,7 +16,7 @@ fn checked_image(endpoint: std::net::SocketAddr) -> (CheckedHostConfiguration, H
   schema = 1
   target = {{architecture: "x86_64", machine: "computer", os: "linux"}}
   base = {{kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}}
-  base = {{kind: "{AMBIENT_HOME_SOURCE_BASE}", implementation: "{AMBIENT_HOME_SOURCE_IMPLEMENTATION}", initialization: {{timezone: "America/Los_Angeles", weather_endpoint: "{endpoint}", source_pool: "ambient/source", memory_pool: "ambient/worker-memory"}}}}
+  base = {{kind: "{AMBIENT_HOME_SOURCE_BASE}", implementation: "{AMBIENT_HOME_SOURCE_IMPLEMENTATION}", initialization: {{timezone: "America/Los_Angeles", weather_endpoint: "{endpoint}", source_pool: "ambient/source", memory_pool: "ambient/worker-memory", provider_access: "operator-admitted", photo_source: "disabled"}}}}
   base = {{kind: "{AMBIENT_HOME_FACE_BASE}", implementation: "{AMBIENT_HOME_FACE_DRIVER}"}}
   capability = {{kind: "time/every", pinned_implementation: "{TIME_EVERY_IMPLEMENTATION}"}}
   capability = {{kind: "{AMBIENT_HOME_SOURCE_BASE}", pinned_implementation: "{AMBIENT_HOME_SOURCE_IMPLEMENTATION}"}}

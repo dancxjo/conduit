@@ -83,9 +83,18 @@ impl Selection {
     ) -> Result<StdHost, String> {
         let image = self.host_image.as_ref().ok_or("selected IMAGE is absent")?;
         let checked = self.checked()?;
+        let ambient_selected = checked.configuration().bases.iter().any(|base| {
+            base.kind == conduit_std_offers::AMBIENT_HOME_SOURCE_BASE
+                && base.initialization.is_some()
+        });
         for base in &checked.configuration().bases {
             if base.initialization.is_some()
-                && !matches!(base.kind.as_str(), "audio/speaker" | "display/scanout")
+                && !matches!(
+                    base.kind.as_str(),
+                    "audio/speaker"
+                        | "display/scanout"
+                        | conduit_std_offers::AMBIENT_HOME_SOURCE_BASE
+                )
             {
                 return Err(
                     "selected IMAGE cannot initialize this equipment or compiler composition"
@@ -105,6 +114,16 @@ impl Selection {
                     "configured native input has no admitted product Show/input consumer".into(),
                 );
             }
+            if ambient_selected {
+                return super::ambient::initialize_with_display(
+                    config,
+                    image,
+                    &checked,
+                    parameters,
+                    output,
+                    selected.as_ref(),
+                );
+            }
             let catalog = conduit_workspace_make::catalog();
             return match selected.as_ref() {
                 Some(speaker) => StdHost::from_selected_timer_and_native_mask_and_playback_image(
@@ -117,6 +136,12 @@ impl Selection {
         }
         if self.requires_scanout()? {
             return Err("selected scanout requires the native-display product feature and actual initialized output".into());
+        }
+        if ambient_selected {
+            if selected.is_some() {
+                return Err("selected screen-free Ambient IMAGE does not compose playback".into());
+            }
+            return super::ambient::initialize(config, image, &checked);
         }
         if let Some(selected) = selected {
             StdHost::from_selected_timer_and_playback_image(

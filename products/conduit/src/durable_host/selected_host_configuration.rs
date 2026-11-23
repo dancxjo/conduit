@@ -11,6 +11,8 @@ use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+#[path = "selected_host_configuration/ambient.rs"]
+mod ambient;
 #[path = "selected_host_configuration/image.rs"]
 mod image;
 #[path = "selected_host_configuration/microphone.rs"]

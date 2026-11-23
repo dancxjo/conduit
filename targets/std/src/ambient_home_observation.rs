@@ -11,6 +11,8 @@ use conduit_core::{
     validate_canonical_structured_value as canonical, PreparedStructuredComposer as Composer,
     StructuredInfoTypeShape,
 };
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub(crate) use configuration::stage_ambient_worker;
 pub use configuration::{ambient_home_connection_limits, CheckedAmbientHomeSource};
 use std::net::SocketAddr;
 

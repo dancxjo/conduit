@@ -44,6 +44,7 @@ impl PreparationAdmission {
 #[derive(Debug, PartialEq, Eq)]
 pub enum PreparationError {
     InsufficientAdmission,
+    ClockUnavailable,
     Transport,
     ResponseTooLarge,
     InvalidMetadata,
@@ -276,3 +277,17 @@ pub(super) fn bounded_https_transport(
 #[cfg(test)]
 #[path = "acquisition/tests.rs"]
 mod tests;
+
+/// Prepare the current public photo deck under the fixed acquisition budget.
+pub fn prepare_current_public_deck() -> Result<PreparedDeck, PreparationError> {
+    let elapsed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| PreparationError::ClockUnavailable)?;
+    let seconds =
+        i64::try_from(elapsed.as_secs()).map_err(|_| PreparationError::ClockUnavailable)?;
+    let date = chrono::DateTime::from_timestamp(seconds, elapsed.subsec_nanos())
+        .ok_or(PreparationError::ClockUnavailable)?
+        .date_naive();
+    let admission = PreparationAdmission::admit(date, MAXIMUM_RETAINED_BYTES, PREPARATION_BYTES)?;
+    prepare_deck_https(admission)
+}
