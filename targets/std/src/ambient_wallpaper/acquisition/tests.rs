@@ -121,3 +121,14 @@ fn repeats_and_wrong_dates_never_complete_a_deck() {
         PreparationAdmission::admit(NaiveDate::from_ymd_opt(2026, 11, 16).unwrap(), 0, 0).is_err()
     );
 }
+
+#[test]
+fn rate_limited_provider_stops_deck_preparation_without_another_request() {
+    let mut requests = 0;
+    let result = prepare_deck(admission(), |_, _| {
+        requests += 1;
+        Err(PreparationError::ProviderRateLimited)
+    });
+    assert!(matches!(result, Err(PreparationError::ProviderRateLimited)));
+    assert_eq!(requests, 1);
+}

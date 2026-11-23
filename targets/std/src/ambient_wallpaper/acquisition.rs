@@ -46,6 +46,7 @@ pub enum PreparationError {
     InsufficientAdmission,
     ClockUnavailable,
     Transport,
+    ProviderRateLimited,
     ResponseTooLarge,
     InvalidMetadata,
     CreditTooLarge,
@@ -147,6 +148,9 @@ pub fn prepare_deck(
             let bytes = fetch(&candidate.asset_url, MAXIMUM_COMPRESSED_BYTES)?;
             prepare_photo(candidate, &bytes)
         })();
+        if matches!(&photo, Err(PreparationError::ProviderRateLimited)) {
+            return Err(PreparationError::ProviderRateLimited);
+        }
         if let Ok(photo) = photo {
             if !photos
                 .iter()
@@ -258,10 +262,10 @@ pub(super) fn bounded_https_transport(
         .build()
         .into();
     move |url, limit| {
-        let mut response = agent
-            .get(url)
-            .call()
-            .map_err(|_| PreparationError::Transport)?;
+        let mut response = agent.get(url).call().map_err(|error| match error {
+            ureq::Error::StatusCode(429) => PreparationError::ProviderRateLimited,
+            _ => PreparationError::Transport,
+        })?;
         if response.status() != 200 {
             return Err(PreparationError::Transport);
         }
