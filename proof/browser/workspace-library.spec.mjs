@@ -429,12 +429,15 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
 
 test("reviewed resident civil clock Shows live time and returns to the same Body", async ({ page }) => {
   test.setTimeout(30_000 + 3 * BROWSER_COLD_PREPARATION_MS);
-  await birth(page);
+  await page.goto(entrance.url);
+  await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "Local Clock and Weather", exact: true }).check();
+  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
+  await waitForWorkspacePreparation(page);
   const first = await current(page);
-  await openLibrary(page);
-  await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("Local Clock and Weather");
-  await card(page, "Local Clock and Weather").getByRole("button", { name: "Use", exact: true }).click();
-  await waitForWorkspacePreparation(page, { surfaceTitle: "Local Clock and Weather" });
+  await page.getByRole("navigation", { name: "Your plots" })
+    .getByRole("button", { name: "Local Clock and Weather", exact: true }).click();
   const clock = page.locator('[data-face-kind="face/ambient-clock-weather"]:visible');
   await expect(clock).toContainText(/\d{4}-\d{2}-\d{2} · \d{2}:\d{2}:\d{2} · America\/Los_Angeles · Weather unavailable/u);
   const firstShow = await clock.getAttribute("data-observation-sequence");
