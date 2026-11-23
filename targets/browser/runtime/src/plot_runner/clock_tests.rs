@@ -41,7 +41,7 @@ fn canonical_clock_executes_five_ticks_then_stops_in_the_browser_kernel() {
 
 #[test]
 fn resident_clock_samples_civil_time_and_manifests_through_the_browser_kernel() {
-    let source = include_str!("../../../../../plots/ambient-clock-weather/resident.conduit");
+    let source = include_str!("../../../../../plots/resident-ambient-clock-weather/main.conduit");
     let (mut session, mut effect) =
         TourSession::prepare("browser/civil-clock", "boot/civil-clock", source, 1).unwrap();
     let mut reply = [0; crate::browser_civil_clock::CIVIL_CLOCK_REPLY_BYTES];

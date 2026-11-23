@@ -18,6 +18,9 @@ pub(super) fn catalogs(
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_ambient_display_types(&mut startup)?;
+    conduit_semantic_catalog::install_ambient_clock_kind(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_ambient_clock_face_kind(&mut startup, &mut profile)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
     conduit_time::install_historical_timeline_catalog(&mut startup, &mut profile)?;
