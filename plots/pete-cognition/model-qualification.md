@@ -69,6 +69,50 @@ this does not prove immutable provider-tag custody. Raw logs belong in ignored
 `target/pete-model-qualification/` output, with compact results and any required
 durable custody tracked separately.
 
+
+## Generic source and certainty instruction profile v2
+
+Issue [#7026](https://github.com/dancxjo/conduit/issues/7026) changes only the
+default generic explicit-evidence formatter instruction. The 227-byte
+`generic/source-certainty-evidence@2` instruction explicitly asks the model to distinguish human
+reports, recall and inference from current observations, preserve certainty and
+acknowledge uncertainty. It is five bytes shorter than the
+previous instruction. Authored/contextual instructions, omitted-instruction
+rendering, defaults and all model/request/output/resource bounds are unchanged.
+
+Receipts include the exact instruction, UTF-8 length, SHA-256 and compiled
+formatter source SHA-256. The instruction hash is
+`e185f176b61d281bf15a8ca5dd835680f1ce8ae13401d5a527d46501e2b77e13`.
+The deterministic tests preserve human-report/uncertain classifications and the
+explicit contradiction relationship in actual model-bound requests, beside the
+existing two-revision provenance and oversized-render refusal checks.
+
+The first sequential run on 23 November 2026 used Ollama 0.34.1, the same
+pinned Gemma4 digest recorded in the original comparison below and 12288 MiB admitted memory. It ran from
+the designated original checkout after deterministic checks and warnings-denied
+Clippy passed. Each live case ran once; neither response was retried. Both
+results were `Produced`, with no truncation:
+
+| Case | Result | Observed behavior |
+| --- | --- | --- |
+| Uncertain human evidence | Quality failure | Reported COPPER KITE and explicitly identified a human report, but did not acknowledge uncertainty. |
+| Contradictory human evidence | Passed | Preserved COPPER KITE and SILVER MOTH as human reports and explicitly said they contradict each other. |
+
+The uncertainty response was: “The crate label is reported to be "COPPER KITE."
+This information is a human report.” Correct source attribution does not satisfy
+the retained uncertainty assertion. This candidate remains unqualified for that
+case; the instruction change does not justify accepting the answer or promoting
+a default. The three deterministic tests passed, with three existing opt-in live
+tests ignored in the ordinary target. The separate older generic live test still
+hardcodes Gemma3 and was not included in this Gemma4 campaign.
+
+The retained original failure remains part of the historical comparison.
+This bounded synthetic-evidence proof does not establish universal correctness,
+the configured Gemma3 default, Pete's separate authored instruction, physical
+robot behavior or stable-release acceptance. The broader #6874 qualification
+remains open.
+
+
 ## Recorded candidate outcome
 
 The first sequential local run on 22 November 2026 used Ollama 0.34.1,

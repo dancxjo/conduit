@@ -150,6 +150,7 @@ impl OllamaDiscovery {
             next_request_sequence: 1,
             active_stream: None,
             generation_worker: None,
+            generation_transport: None,
         };
         if needs_completion {
             // One token is not enough for every completion-capable model to

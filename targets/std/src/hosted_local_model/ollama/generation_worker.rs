@@ -16,6 +16,7 @@ pub(super) struct Worker {
     slot: Option<Slot>,
     thread: Option<std::thread::JoinHandle<()>>,
     cancelled: bool,
+    cancellation: generation_transport::Cancellation,
     pub(super) next_sequence: u64,
 }
 impl Worker {
@@ -45,6 +46,17 @@ impl Worker {
         {
             return Err("generation worker envelope exceeds the model profile".into());
         }
+        // The bounded process-group profile is Unix-specific. Other hosted
+        // profiles keep their existing publication-only cancellation behavior.
+        let transport = if cfg!(unix) {
+            Some(generation_transport::Transport::prepare()?)
+        } else {
+            None
+        };
+        let cancellation = transport
+            .as_ref()
+            .map(generation_transport::Transport::cancellation)
+            .unwrap_or_else(generation_transport::Cancellation::new);
         let mut adapter = OllamaLocalModelAdapter {
             offer: owner.offer.clone(),
             endpoint: owner.endpoint.clone(),
@@ -52,6 +64,7 @@ impl Worker {
             next_request_sequence: owner.next_request_sequence,
             active_stream: None,
             generation_worker: None,
+            generation_transport: transport,
         };
         let table = placements.clone();
         let (submit, requests) = sync_channel::<Slot>(1);
@@ -88,6 +101,7 @@ impl Worker {
             }),
             thread: Some(thread),
             cancelled: false,
+            cancellation,
             next_sequence: owner.next_request_sequence,
         })
     }
@@ -115,6 +129,9 @@ impl Worker {
         slot.output.clear();
         slot.placement = index;
         slot.next_sequence = next_sequence;
+        // Only the returned single slot may start another transport. A cancelled
+        // request must finish cleanup before this token can be reset.
+        self.cancellation.reset();
         self.cancelled = false;
         match self.submit.as_ref().unwrap().try_send(slot) {
             Ok(()) => None,
@@ -152,6 +169,7 @@ impl Worker {
         Some(terminal)
     }
     pub(super) fn retire(&mut self) -> u64 {
+        self.cancel();
         self.submit.take();
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
@@ -162,8 +180,13 @@ impl Worker {
     }
     pub(super) fn cancel(&mut self) {
         self.cancelled = true;
+        self.cancellation.cancel();
     }
 }
+
+#[cfg(test)]
+#[path = "generation_worker_tests.rs"]
+mod tests;
 impl Drop for Worker {
     fn drop(&mut self) {
         self.retire();

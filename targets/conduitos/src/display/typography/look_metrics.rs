@@ -51,10 +51,26 @@ impl Typography {
         tokens: &LookVisualTokensInfo,
         maximum_user_scale: u16,
     ) -> Result<Self, LookTypographyRefusal> {
+        Self::with_made_look_metrics(
+            intent,
+            (
+                *tokens.type_body_px(),
+                *tokens.type_small_px(),
+                *tokens.line_height_percent(),
+            ),
+            maximum_user_scale,
+        )
+    }
+
+    pub(crate) fn with_made_look_metrics(
+        intent: VisualTypography,
+        (body, small, line_percent): (u16, u16, u16),
+        maximum_user_scale: u16,
+    ) -> Result<Self, LookTypographyRefusal> {
         let metrics = LookTextMetrics {
-            body: *tokens.type_body_px(),
-            small: *tokens.type_small_px(),
-            line_percent: *tokens.line_height_percent(),
+            body,
+            small,
+            line_percent,
             maximum_scale: maximum_user_scale,
         };
         if !(8..=64).contains(&metrics.body)

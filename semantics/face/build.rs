@@ -12,6 +12,7 @@ fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=look.conduit");
     println!("cargo:rerun-if-changed=field-instrument-looks.conduit");
+    println!("cargo:rerun-if-changed=components/ambient-clock-mask.conduit");
     println!("cargo:rerun-if-changed=component-layout.conduit");
     println!("cargo:rerun-if-changed=local-look.conduit");
     local_look_build::generate();
@@ -48,6 +49,7 @@ fn main() {
                 include_str!("types.conduit"),
                 include_str!("look.conduit"),
                 include_str!("field-instrument-looks.conduit"),
+                &look_resources_build::picture_definition(),
                 include_str!("component-layout.conduit"),
                 include_str!("local-look.conduit"),
             ]

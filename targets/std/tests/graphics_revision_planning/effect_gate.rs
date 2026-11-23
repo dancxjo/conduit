@@ -31,7 +31,7 @@ fn authored(current: bool) -> ExpandedAuthoringPlot {
         .insert_value_kind_alias(
             "GraphicsScene",
             conduit_core::kind_id(if current {
-                "face/graphics-scene@2"
+                "face/graphics-scene@3"
             } else {
                 "face/graphics-scene@1"
             }),

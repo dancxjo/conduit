@@ -411,6 +411,10 @@ fn pete_cadence_keeps_reacting_and_attending_during_slow_provider_loss() {
 #[path = "pete_cadence/cancellation.rs"]
 mod cancellation;
 
+#[cfg(unix)]
+#[path = "pete_cadence/transport_cancellation.rs"]
+mod transport_cancellation;
+
 #[path = "../src/commands/pete_replay.rs"]
 mod pete_replay;
 #[path = "pete_cadence/replay.rs"]

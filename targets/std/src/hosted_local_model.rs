@@ -23,6 +23,10 @@ pub enum LocalModelAdapterTerminal {
     Truncated,
     Refused,
     Failed,
+    /// The selected hosted transport exhausted its finite request deadline.
+    TimedOut,
+    /// The selected transport's admitted raw response ceiling was exceeded.
+    ResponseBoundExceeded,
     Cancelled,
     ProviderLost,
     InvalidStructuredResult,

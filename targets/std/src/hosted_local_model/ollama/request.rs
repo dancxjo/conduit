@@ -27,11 +27,13 @@ impl OllamaLocalModelAdapter {
         }
         let body = serde_json::to_vec(&request)
             .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
-        let response: GenerateResponse = serde_json::from_slice(
-            &curl_json(&self.endpoint, "/api/generate", Some(&body))
+        let bytes = match &self.generation_transport {
+            Some(transport) => transport.generate(&self.endpoint, &body)?,
+            None => curl_json(&self.endpoint, "/api/generate", Some(&body))
                 .map_err(|_| LocalModelAdapterTerminal::ProviderLost)?,
-        )
-        .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
+        };
+        let response: GenerateResponse = serde_json::from_slice(&bytes)
+            .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
         if response.done != Some(true) {
             return Err(LocalModelAdapterTerminal::InvalidStructuredResult);
         }

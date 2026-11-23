@@ -2,7 +2,7 @@
 use super::*;
 use conduit_core::*;
 
-fn placement() -> PlannedGear {
+pub(in crate::hosted_local_model::ollama) fn placement() -> PlannedGear {
     let host = conduit_ai::llm_generate_base_fixtures()[0]
         .advertisement
         .clone();
@@ -23,7 +23,7 @@ fn placement() -> PlannedGear {
 fn offered() -> LlmWorkBounds {
     LlmWorkBounds::new(8, 1, 1024, 20, 0).unwrap()
 }
-fn set(gear: &mut PlannedGear, key: &str, value: u64) {
+pub(in crate::hosted_local_model::ollama) fn set(gear: &mut PlannedGear, key: &str, value: u64) {
     gear.configuration.push(ConfigurationEntry {
         key: key.into(),
         value: ConfigurationValue::U64(value),
@@ -152,7 +152,7 @@ fn native_wire_counts_preserve_absent_null_exact_zero_and_invalid_numbers() {
     }
 }
 
-fn finite_adapter_fixture() -> OllamaLocalModelAdapter {
+pub(in crate::hosted_local_model::ollama) fn finite_adapter_fixture() -> OllamaLocalModelAdapter {
     OllamaLocalModelAdapter {
         offer: LocalModelOffer {
             identity: LocalModelIdentity {
@@ -193,6 +193,7 @@ fn finite_adapter_fixture() -> OllamaLocalModelAdapter {
         next_request_sequence: 7,
         active_stream: None,
         generation_worker: None,
+        generation_transport: None,
     }
 }
 
