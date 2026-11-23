@@ -19,6 +19,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 pub mod acoustic_emergency;
+pub mod ambient_weather;
 #[cfg(all(target_os = "linux", feature = "bluetooth-bluez"))]
 pub mod bluetooth_gatt;
 pub mod body_causal_evidence;

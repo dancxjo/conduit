@@ -1,0 +1,26 @@
+# The default five-minute policy is ordinary data. This pure Plot does not run
+# a timer or acquire images; a realization must admit those effects separately.
+plot ambient-wallpaper/default-policy (
+    begin: Empty >> seconds: AmbientRotationSeconds
+) = 300
+
+# Advance exactly once for one admitted transition input. Repetition and
+# elapsed-time admission remain the caller's explicit responsibility.
+plot ambient-wallpaper/rotate-four (
+    >> deck: AmbientWallpaperDeckFour <= 32768B
+    rotated: AmbientWallpaperDeckFour >>
+) = {current: .next, next: .after, after: .last, last: .current}
+
+plot ambient-wallpaper/current (
+    >> observation: AmbientWallpaperSelection <= 4096B
+    current: AmbientWallpaperSelection >>
+) = .
+
+plot ambient-wallpaper (
+    >> observation: AmbientWallpaperSelection <= 4096B
+) {
+    current: ambient-wallpaper/current
+    inspect: face/structured-info("Wallpaper")
+    observation >> current.observation
+    current.current >> inspect.input
+}
