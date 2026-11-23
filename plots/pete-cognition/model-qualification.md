@@ -181,9 +181,11 @@ Its UTF-8 SHA-256 is
 Deterministic checks inspect actual ordinary and resumable model requests:
 current 9.0% coexists with unrelated unknown thermal state; unavailable current
 charge stays null with its source classification, while selected historical
-charge remains 50.0%. Five-source instruction agreement also passes. The owning
-integration target passed 20 non-live tests; its four live cases were then run
-sequentially once each on 23 November 2026. Configuration was Ollama 0.34.1,
+charge remains 50.0%. Five-source instruction agreement also passes. The episode-loop target passed 20 non-live tests; four cadence tests and five
+CLI tests also passed. The new fenced cadenced-resumable case uses the literal
+authored entry, a seeded ordinary Plan/Play, bounded requests and an emitted
+checkpoint; it does not establish cross-Host durable recovery. A first campaign
+ran the four live cases sequentially once each on 23 November 2026. Configuration was Ollama 0.34.1,
 `gemma4:latest`, 12288 MiB, with the same pinned inventory digest
 `c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb`.
 
