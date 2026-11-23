@@ -1,5 +1,6 @@
 import { memoryEditor, enterMemoryText } from "./workspace-editor.mjs";
 import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
+import { observeRealAudio } from "./browser-audio-proof.mjs";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { startStaticProduct } from "./static-product-server.mjs";
@@ -227,17 +228,6 @@ test("explicit Finish retires work, records provenance, and restores as read-onl
   expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).state).toBe("FULFILLED");
 });
 
-async function observeRealAudio(page) {
-  await page.addInitScript(() => {
-    globalThis.__cueAudio = { starts: [], ended: 0 };
-    const start = AudioBufferSourceNode.prototype.start;
-    AudioBufferSourceNode.prototype.start = function(...args) {
-      globalThis.__cueAudio.starts.push({ frames: this.buffer.length, sampleRate: this.buffer.sampleRate, channels: this.buffer.numberOfChannels, state: this.context.state });
-      this.addEventListener('ended', () => globalThis.__cueAudio.ended++, { once: true });
-      return start.apply(this, args);
-    };
-  });
-}
 async function liveEvidence(page) {
   await page.locator('[data-inspect="lifecycle"]').click();
   const result = JSON.parse(await page.locator('[data-inspection-content] pre').textContent());
