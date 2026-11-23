@@ -100,7 +100,7 @@ pub struct ReturnedFaceContribution {
     pub contribution: CommittedFaceContribution,
     pub refusal: FaceContributionRefusal,
 }
-pub trait BodyFaceContributionObserver {
+pub trait BodyFaceContributionObserver: Send {
     // Refusal returns original charged custody; allocating a Box under pressure
     // would add storage exactly when the consumer cannot accept ownership.
     #[allow(clippy::result_large_err)]
