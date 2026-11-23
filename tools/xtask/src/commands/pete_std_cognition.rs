@@ -4,8 +4,8 @@ use clap::Args;
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
 use conduit_core::{BaseImplementationId, ConnectionTrack, PlanFragment, PortDirection};
 use conduit_pete::{
-    capture_pete_cognition_battery, CreateCognitionCaptureError, PeteCognitionBatteryInput,
-    PeteCognitionFrame, PeteCognitionSign, PeteCognitionUtterance, UartProfile,
+    CreateCognitionCaptureError, PeteCognitionBatteryInput, PeteCognitionFrame, PeteCognitionSign,
+    PeteCognitionUtterance, UartProfile,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_connection_limits,
@@ -22,6 +22,7 @@ use conduit_std_host::{
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 use std::{collections::BTreeMap, path::PathBuf, sync::mpsc};
 mod cadenced;
+mod capture_evidence;
 mod model;
 mod output;
 mod planning;
@@ -286,6 +287,31 @@ fn frame_with_namespace(
     retain: bool,
     namespace: &str,
 ) -> Result<PeteCognitionFrame, String> {
+    let identity = provider
+        .as_ref()
+        .map(|provider| provider.identity().clone());
+    frame_with_namespace_using(
+        provider,
+        capture_evidence::CaptureContext {
+            identity: identity.as_ref(),
+            revision,
+            namespace,
+        },
+        utterance,
+        retain,
+        &mut std::io::stderr().lock(),
+    )
+}
+
+fn frame_with_namespace_using<P: conduit_pete::CreateUartProvider>(
+    provider: Option<&mut P>,
+    capture_context: capture_evidence::CaptureContext<'_>,
+    utterance: String,
+    retain: bool,
+    evidence: &mut impl std::io::Write,
+) -> Result<PeteCognitionFrame, String> {
+    let revision = capture_context.revision;
+    let namespace = capture_context.namespace;
     let sign = |kind| {
         PeteCognitionSign::new(if namespace.is_empty() {
             format!("pete/{kind}/{revision}")
@@ -295,26 +321,24 @@ fn frame_with_namespace(
         .map_err(|error| format!("Pete source Sign: {error:?}"))
     };
     let utterance_at = now()?;
-    let battery = match provider {
-        Some(provider) => match capture_pete_cognition_battery(
-            provider,
-            sign("battery")?,
-            CLOCK.into(),
-            1_000,
-            monotonic_millis,
-        ) {
-            Ok(Some(sample)) => sample
-                .try_into()
-                .map_err(|error| format!("battery input: {error:?}"))?,
-            Ok(None) => PeteCognitionBatteryInput::Missing,
-            Err(CreateCognitionCaptureError::Read {
-                pause_failure: None,
-                ..
-            }) => PeteCognitionBatteryInput::unavailable(CREATE_SOURCE.into())
-                .map_err(|error| format!("battery source: {error:?}"))?,
-            Err(error) => return Err(format!("capture Create battery: {error:?}")),
-        },
-        None => PeteCognitionBatteryInput::Missing,
+    let capture = capture_evidence::capture(
+        provider,
+        capture_context,
+        sign("battery")?,
+        monotonic_millis,
+        evidence,
+    )?;
+    let battery = match capture {
+        Some(Ok(Some(sample))) => sample
+            .try_into()
+            .map_err(|error| format!("battery input: {error:?}"))?,
+        Some(Ok(None)) | None => PeteCognitionBatteryInput::Missing,
+        Some(Err(CreateCognitionCaptureError::Read {
+            pause_failure: None,
+            ..
+        })) => PeteCognitionBatteryInput::unavailable(CREATE_SOURCE.into())
+            .map_err(|error| format!("battery source: {error:?}"))?,
+        Some(Err(error)) => return Err(format!("capture Create battery: {error:?}")),
     };
     PeteCognitionFrame::new(
         battery,
