@@ -5,10 +5,7 @@ use std::time::Duration;
 
 use clap::Args;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_create_oi::{
-    encode_query_sensor, read_query_sensor_packet, write_command, CreateOiFailure,
-    CreateUartProvider, UartProfile,
-};
+use conduit_create_oi::{CreateOiFailure, CreateUartProvider, UartProfile};
 use conduit_pete::{
     encode_song, prepare_speaker_execution, run_speaker_execution, simple_melody_plan,
     speaker_authority_admits, CreateSpeakerObservation, CreateSpeakerSerial, OiPitch, OiSongEvent,
@@ -22,7 +19,9 @@ use conduit_std_host::std_create_uart::{
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
-use crate::commands::pete_std_create::{establish_full, establish_safe, write_new_atomic};
+use crate::commands::pete_std_create::{
+    establish_full, establish_safe, read_framed_status, write_new_atomic, CreateStatusFailure,
+};
 
 const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-speaker-evidence@1";
 const MAXIMUM_ID_BYTES: usize = 128;
@@ -219,15 +218,23 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
                 .div_ceil(u64::from(DURATION_TICKS_PER_SECOND))
                 .saturating_add(100);
             std::thread::sleep(Duration::from_millis(millis));
-            let still_playing = speaker
-                .query_boolean(SONG_PLAYING_PACKET)
-                .map_err(|error| format!("post-bound song observation: {error:?}"))?;
-            post_bound = Some(still_playing);
-            if still_playing {
-                outcome = Outcome::Failed {
-                    stage: "post_bound_cleanup",
-                    code: "song_still_playing".into(),
-                };
+            match speaker.query_boolean(SONG_PLAYING_PACKET) {
+                Ok(still_playing) => {
+                    post_bound = Some(still_playing);
+                    if still_playing {
+                        outcome = Outcome::Failed {
+                            stage: "post_bound_cleanup",
+                            code: "song_still_playing".into(),
+                        };
+                    }
+                }
+                Err(error) => {
+                    // Refusal must still reach the mandatory Safe cleanup below.
+                    outcome = Outcome::Failed {
+                        stage: "post_bound_observation",
+                        code: format!("{error:?}"),
+                    };
+                }
             }
         }
         (report, outcome, post_bound)
@@ -239,7 +246,12 @@ fn execute(args: &StdSpeakerArgs) -> Result<Evidence, Box<dyn std::error::Error>
     if let Err(ref error) = safe_cleanup {
         outcome = Outcome::Failed {
             stage: "restore_safe",
-            code: error.clone(),
+            code: match &outcome {
+                Outcome::Completed => error.clone(),
+                Outcome::Failed { stage, code } => {
+                    format!("{error}; prior failure at {stage}: {code}")
+                }
+            },
         };
     }
     Ok(Evidence {
@@ -291,14 +303,12 @@ struct StdSpeakerSerial<'a> {
 
 impl StdSpeakerSerial<'_> {
     fn query_byte(&mut self, packet: u8) -> Result<u8, SerialFailure> {
-        let command = encode_query_sensor(packet).map_err(|_| SerialFailure::Refused)?;
-        write_command(self.provider, &command).map_err(map_serial_failure)?;
         let deadline = monotonic_millis()
             .map_err(|_| SerialFailure::ProviderLost)?
             .checked_add(u64::from(self.read_timeout_ms))
             .ok_or(SerialFailure::Refused)?;
-        let response = read_query_sensor_packet(self.provider, packet, deadline)
-            .map_err(map_serial_failure)?;
+        let response =
+            read_framed_status(self.provider, packet, deadline).map_err(map_status_failure)?;
         response
             .bytes()
             .first()
@@ -340,6 +350,20 @@ fn terminal_outcome(report: SpeakerPlayReport) -> Outcome {
             stage: "kernel_speaker_play",
             code: format!("{terminal:?}"),
         },
+    }
+}
+
+fn map_status_failure(error: CreateStatusFailure) -> SerialFailure {
+    // The portable speaker boundary carries one terminal cause. Failed pause
+    // prevents admission even when the sample was valid; conservatively report
+    // loss of the provider's cleanup disposition. Both causes remain distinct
+    // in the shared helper's local result.
+    if error.pause_failure.is_some() {
+        SerialFailure::ProviderLost
+    } else {
+        error
+            .primary
+            .map_or(SerialFailure::Refused, map_serial_failure)
     }
 }
 

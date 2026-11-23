@@ -5,8 +5,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use conduit_create_oi::{
-    encode_mode, encode_query_sensor, encode_start, read_query_sensor_packet, write_command,
-    CreateOiFailure, CreateOiModeRequest, CreateUartProvider,
+    encode_mode, encode_pause_stream, encode_sensor_stream, encode_start, read_stream_packet,
+    write_command, CreateOiFailure, CreateOiModeRequest, CreateOiPacket, CreateUartProvider,
 };
 use conduit_pete::OiMode;
 use conduit_std_host::std_create_uart::monotonic_millis;
@@ -52,13 +52,11 @@ fn establish_mode<P: CreateUartProvider>(
             &encode_mode(requested).expect("SAFE and FULL each have one exact command"),
         )
         .map_err(protocol_error)?;
-        let query = encode_query_sensor(OI_MODE_PACKET).map_err(protocol_error)?;
-        write_command(provider, &query).map_err(protocol_error)?;
         let deadline = monotonic_millis()
             .map_err(|error| format!("monotonic clock: {error:?}"))?
             .checked_add(u64::from(read_timeout_ms))
             .ok_or_else(|| "mode deadline overflow".to_string())?;
-        match read_query_sensor_packet(provider, OI_MODE_PACKET, deadline) {
+        match read_framed_status(provider, OI_MODE_PACKET, deadline) {
             Ok(packet) => {
                 let mode = match packet.bytes()[0] {
                     0 => OiMode::Off,
@@ -73,7 +71,10 @@ fn establish_mode<P: CreateUartProvider>(
                 last_failure =
                     format!("attempt {attempt} observed {mode:?} after {requested:?} request");
             }
-            Err(CreateOiFailure::DeviceNoResponse) => {
+            Err(CreateStatusFailure {
+                primary: Some(CreateOiFailure::DeviceNoResponse),
+                pause_failure: None,
+            }) => {
                 last_failure = format!("attempt {attempt} received no mode response");
             }
             Err(error) => return Err(format!("mode query: {error:?}")),
@@ -82,6 +83,45 @@ fn establish_mode<P: CreateUartProvider>(
     Err(format!(
         "failed to establish {requested:?} after {attempts} attempts: {last_failure}"
     ))
+}
+
+/// Failure of a single framed status request, retaining pause cleanup separately.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct CreateStatusFailure {
+    pub(crate) primary: Option<CreateOiFailure>,
+    pub(crate) pause_failure: Option<CreateOiFailure>,
+}
+
+/// Read one strict packet-35/36/37 sample and request stream pause before use.
+///
+/// The existing reader uses fixed maximum frame storage and consumes exactly
+/// five bytes for these one-byte packets (or stops on incomplete/provider data).
+/// Unexpected bytes refuse without scanning, draining, or raw-query fallback.
+/// A valid sample has no transaction nonce and does not establish freshness or
+/// delivery of the pause command. The caller owns the one absolute deadline.
+pub(crate) fn read_framed_status<P: CreateUartProvider>(
+    provider: &mut P,
+    packet_id: u8,
+    deadline_tick: u64,
+) -> Result<CreateOiPacket, CreateStatusFailure> {
+    if !(35..=37).contains(&packet_id) {
+        return Err(CreateStatusFailure {
+            primary: Some(CreateOiFailure::UnsupportedPacket(packet_id)),
+            pause_failure: None,
+        });
+    }
+    let command = encode_sensor_stream(packet_id).expect("status packets are allow-listed");
+    // A failed write can have delivered a prefix: attempt pause even then.
+    let primary = write_command(provider, &command)
+        .and_then(|()| read_stream_packet(provider, packet_id, deadline_tick));
+    let pause = write_command(provider, &encode_pause_stream());
+    match (primary, pause) {
+        (Ok(packet), Ok(())) => Ok(packet),
+        (primary, pause) => Err(CreateStatusFailure {
+            primary: primary.err(),
+            pause_failure: pause.err(),
+        }),
+    }
 }
 
 pub(crate) fn write_new_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
@@ -114,69 +154,5 @@ fn protocol_error(error: CreateOiFailure) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_create_oi::UartProfile;
-    use std::collections::VecDeque;
-
-    struct Provider {
-        writes: Vec<Vec<u8>>,
-        reads: VecDeque<Option<u8>>,
-    }
-
-    impl CreateUartProvider for Provider {
-        type Error = ();
-
-        fn is_available(&self) -> bool {
-            true
-        }
-
-        fn profile(&self) -> UartProfile {
-            UartProfile::CREATE_OI
-        }
-
-        fn write_all(&mut self, bytes: &[u8]) -> Result<(), Self::Error> {
-            self.writes.push(bytes.to_vec());
-            Ok(())
-        }
-
-        fn read_byte(&mut self, _: u64) -> Result<Option<u8>, Self::Error> {
-            Ok(self.reads.pop_front().flatten())
-        }
-    }
-
-    #[test]
-    fn full_acquisition_retries_start_and_full_until_confirmed() {
-        let mut provider = Provider {
-            writes: Vec::new(),
-            reads: VecDeque::from([None, Some(2), Some(3)]),
-        };
-
-        assert_eq!(establish_full(&mut provider, 1).unwrap(), OiMode::Full);
-        assert_eq!(
-            provider.writes,
-            [
-                vec![128],
-                vec![132],
-                vec![142, 35],
-                vec![128],
-                vec![132],
-                vec![142, 35],
-                vec![128],
-                vec![132],
-                vec![142, 35],
-            ]
-        );
-    }
-
-    #[test]
-    fn safe_cleanup_remains_one_exact_non_retrying_transaction() {
-        let mut provider = Provider {
-            writes: Vec::new(),
-            reads: VecDeque::from([Some(2)]),
-        };
-
-        assert_eq!(establish_safe(&mut provider, 1).unwrap(), OiMode::Safe);
-        assert_eq!(provider.writes, [vec![128], vec![131], vec![142, 35]]);
-    }
-}
+#[path = "pete_std_create/tests.rs"]
+mod tests;
