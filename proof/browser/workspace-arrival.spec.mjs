@@ -161,6 +161,9 @@ test("an intentionally empty Body remains lulled without inventing a play", asyn
   await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeHidden();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(original.body_id).toBeTruthy();
+  expect(original.host_id).toBeTruthy();
+  expect(original.boot_id).toBeTruthy();
   expect(original.active_play_id).toBeUndefined();
   await page.reload();
   await waitForWorkspacePreparation(page, { expectedState: "Lulled" });
@@ -168,6 +171,7 @@ test("an intentionally empty Body remains lulled without inventing a play", asyn
   const returned = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(original.body_id);
   expect(returned.host_id).toBe(original.host_id);
+  expect(returned.boot_id).toBeTruthy();
   expect(returned.boot_id).not.toBe(original.boot_id);
   expect(returned.active_play_id).toBeUndefined();
 });
