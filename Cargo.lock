@@ -2783,6 +2783,7 @@ dependencies = [
  "ed25519-dalek",
  "futures",
  "getrandom 0.3.4",
+ "image",
  "instant-distance",
  "libc",
  "ort-sys",
