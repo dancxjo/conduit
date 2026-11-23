@@ -161,7 +161,10 @@ fn ambient_home_worker_becomes_an_installed_offer_only_with_its_exact_grant_and_
         .unwrap();
     assert_eq!(placement.host_calls, offer.host_calls);
     assert_eq!(placement.authority[0].boot_id, host.advertisement().boot_id);
-    let mut capture = HomeCapture { readings: 0 };
+    let mut capture = HomeCapture {
+        readings: 0,
+        faces: conduit_semantic_catalog::PreparedAmbientFaces::prepare().unwrap(),
+    };
     host.run_external_plot_to(
         plan.fragments[0].clone(),
         &[crate::ExternalForeInput {
@@ -267,6 +270,7 @@ plot home (
 #[cfg(target_os = "linux")]
 struct HomeCapture {
     readings: usize,
+    faces: conduit_semantic_catalog::PreparedAmbientFaces,
 }
 
 #[cfg(target_os = "linux")]
@@ -299,6 +303,27 @@ impl crate::ExternalForeOutputAdapter for HomeCapture {
                 .unwrap(),
             "available"
         );
+        let scope = witness.scope();
+        let contribution = self
+            .faces
+            .home_canonical_observation(
+                conduit_face::FaceContributionBasis {
+                    checked_plot_id: scope.fragment.checked_plot_id.clone(),
+                    plan_id: scope.fragment.plan_id.clone(),
+                    active_play_id: scope.play.active_play_id.clone(),
+                    required_interaction_context: None,
+                },
+                witness.bytes(),
+            )
+            .unwrap();
+        assert_eq!(contribution.basis.active_play_id, scope.play.active_play_id);
+        assert!(contribution.properties.iter().any(|property| {
+            matches!(&property.value, conduit_face::FacePropertyValue::Content(_))
+        }));
+        assert!(contribution
+            .text
+            .iter()
+            .any(|text| text.text.contains("Seattle")));
         self.readings += 1;
         Ok(())
     }
