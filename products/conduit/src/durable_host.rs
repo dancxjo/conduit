@@ -40,6 +40,8 @@ mod installation_configured;
 use installation_configured::install_configured;
 use installation_configured::install_configured_with_todo;
 
+#[path = "durable_host/linux_direct_display.rs"]
+mod linux_direct_display;
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
@@ -134,32 +136,49 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             manifest,
             state_dir,
             no_start,
+            display,
             speech,
             model,
             todo_checkpoint,
-        } => (if no_start {
-            install_with_equipment(
+        } => {
+            let locks = display
+                .direct_display_tty
+                .map(|_| linux_direct_display::lock_for_install(&state_dir))
+                .transpose()?;
+            let installation = install_with_equipment(
                 &manifest,
                 &state_dir,
                 selected_speech::change(speech)?,
                 selected_model::change(model)?,
                 selected_todo::change(todo_checkpoint)?,
-            )
-        } else {
-            install_and_activate_with_equipment(
-                &manifest,
-                &state_dir,
-                selected_speech::change(speech)?,
-                selected_model::change(model)?,
-                selected_todo::change(todo_checkpoint)?,
-            )
-        })
-        .map(|installation| {
+            )?;
+            drop(locks);
+            if let Some(tty) = display.direct_display_tty {
+                if display.display_configuration.is_some() {
+                    selected_host_configuration::configure_with_image(
+                        &state_dir,
+                        display.display_configuration.as_deref(),
+                        false,
+                        display.display_image.as_deref(),
+                    )?;
+                }
+                linux_direct_display::activate(&manifest, &state_dir, tty)?;
+            } else if !no_start {
+                activate_service(&state_dir)?;
+            }
             println!(
                 "installed durable host {} from {}",
                 installation.host_id, installation.release_bundle_sha256
             );
-        }),
+            Ok(())
+        }
+        HostServiceCommand::PrepareDirectDisplay {
+            manifest,
+            state_dir,
+            output,
+            user,
+            tty,
+        } => linux_direct_display::prepare(&manifest, &state_dir, &output, &user, tty),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
         HostServiceCommand::OwnBody {
@@ -252,24 +271,6 @@ pub(crate) fn install_and_activate(
     state_dir: &Path,
 ) -> Result<InstalledHostIdentity, String> {
     let installation = install_without_start(manifest, state_dir)?;
-    activate_service(state_dir)?;
-    Ok(installation)
-}
-
-fn install_and_activate_with_equipment(
-    manifest: &Path,
-    state_dir: &Path,
-    speech_change: selected_speech::Change,
-    model_change: selected_model::Change,
-    todo_change: selected_todo::Change,
-) -> Result<InstalledHostIdentity, String> {
-    let installation = install_with_equipment(
-        manifest,
-        state_dir,
-        speech_change,
-        model_change,
-        todo_change,
-    )?;
     activate_service(state_dir)?;
     Ok(installation)
 }
@@ -1095,6 +1096,7 @@ mod tests {
             manifest: manifest.clone(),
             state_dir: state.clone(),
             no_start: true,
+            display: Default::default(),
             speech: Default::default(),
             model: Default::default(),
             todo_checkpoint: Default::default(),
