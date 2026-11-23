@@ -7,7 +7,9 @@
 
 extern crate alloc;
 mod ambient_display;
+mod ambient_home_observation;
 pub use ambient_display::*;
+pub use ambient_home_observation::*;
 
 use alloc::vec;
 use alloc::vec::Vec;

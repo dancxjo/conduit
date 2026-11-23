@@ -12,7 +12,8 @@ use conduit_core::{
 };
 use std::net::SocketAddr;
 
-pub const HOME_OBSERVATION_BYTES: usize = 8192;
+pub const HOME_OBSERVATION_BYTES: usize =
+    conduit_semantic_catalog::AMBIENT_HOME_OBSERVATION_BYTES as usize;
 const CLOCK_OBSERVATION_BYTES: usize = 4096;
 
 pub struct PreparedAmbientHomeObservation {
