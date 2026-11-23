@@ -97,7 +97,20 @@ fn custom_none_and_compact_keep_their_legacy_byte_contracts() {
 #[test]
 fn compact_observation_reference_keeps_its_legacy_bytes() {
     let observation = b"01234567890123456789012345678901";
-    let context = context(&[observation]);
+    let encoded = serde_json::to_vec(std::str::from_utf8(observation).unwrap()).unwrap();
+    let plain = context(&[observation]);
+    let plain_expected = LEGACY_COMPACT.replace(
+        r#""utf8_content":"plain""#,
+        &format!(
+            r#""utf8_content":{}"#,
+            std::str::from_utf8(&encoded).unwrap()
+        ),
+    );
+    assert_eq!(
+        output(|buffer| render_compact_context(&plain, buffer, observation)),
+        plain_expected.as_bytes()
+    );
+    let context = context(&[encoded.as_slice()]);
     let expected = LEGACY_COMPACT.replace(
         r#""utf8_content":"plain""#,
         r#""json_string_ref":"observation.content""#,
