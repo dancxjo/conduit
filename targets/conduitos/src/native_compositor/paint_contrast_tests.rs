@@ -171,3 +171,60 @@ fn complete_look_tokens_drive_native_roles_with_accessibility_precedence() {
         }
     }
 }
+
+#[test]
+fn made_picture_frame_style_matches_complete_checked_look_and_forced_colors() {
+    use super::{visual_look_paint, visual_look_typography};
+    let look = conduit_face::picture_frame_look().unwrap();
+    let hint = conduit_face::picture_frame_expression().unwrap();
+    let complete = conduit_face::admit_visual_look(
+        &look,
+        VisualUserConstraints {
+            forced_colors: false,
+            reduced_motion: true,
+            minimum_text_scale_percent: 100,
+            maximum_supported_text_scale_percent: 200,
+        },
+    )
+    .unwrap();
+    assert_eq!(hint, complete.visual);
+    assert_eq!(
+        visual_look_typography(Some(&hint), None).unwrap(),
+        visual_look_typography(Some(&hint), Some(&look)).unwrap()
+    );
+    let format = DisplayFormat {
+        width: 640,
+        height: 480,
+        pitch: 2560,
+        bits_per_pixel: 32,
+        red_shift: 16,
+        green_shift: 8,
+        blue_shift: 0,
+    };
+    for role in [
+        Role::Background,
+        Role::Surface,
+        Role::Foreground,
+        Role::Muted,
+        Role::Accent,
+        Role::Selected,
+        Role::Status,
+        Role::Warning,
+        Role::Success,
+        Role::Danger,
+        Role::Focus,
+        Role::Hovered,
+        Role::Border,
+    ] {
+        assert_eq!(
+            visual_look_paint(format, role, Some(&hint), None),
+            visual_look_paint(format, role, Some(&hint), Some(&look))
+        );
+    }
+    let mut forced = hint;
+    forced.platform_forced_colors = true;
+    assert_eq!(
+        visual_look_paint(format, Role::Foreground, Some(&forced), None),
+        0xffffff
+    );
+}

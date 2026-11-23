@@ -52,6 +52,48 @@ pub fn render_scene_selected(
     typography: Typography,
     resolve_paint: impl Fn(GraphicsPaintRole) -> u32,
 ) -> Result<DisplayReceipt, DisplayError> {
+    render_selected(
+        target,
+        scene,
+        role,
+        text_scale_percent,
+        typography,
+        resolve_paint,
+        None,
+    )
+}
+
+/// Render exact image generations through separately admitted immutable views,
+/// preserving the same text roles, palette and typography as an ordinary Mask.
+pub fn render_scene_selected_with_images(
+    target: &mut impl RetainedPixelTarget,
+    scene: &GraphicsScene,
+    role: impl Fn(usize, &GraphicsCommand) -> TextRole,
+    text_scale_percent: u16,
+    typography: Typography,
+    resolve_paint: impl Fn(GraphicsPaintRole) -> u32,
+    images: &dyn crate::display::ImageResolver,
+) -> Result<DisplayReceipt, DisplayError> {
+    render_selected(
+        target,
+        scene,
+        role,
+        text_scale_percent,
+        typography,
+        resolve_paint,
+        Some(images),
+    )
+}
+
+fn render_selected(
+    target: &mut impl RetainedPixelTarget,
+    scene: &GraphicsScene,
+    role: impl Fn(usize, &GraphicsCommand) -> TextRole,
+    text_scale_percent: u16,
+    typography: Typography,
+    resolve_paint: impl Fn(GraphicsPaintRole) -> u32,
+    images: Option<&dyn crate::display::ImageResolver>,
+) -> Result<DisplayReceipt, DisplayError> {
     super::TextScale::new(text_scale_percent)?;
     let format = target.format().validate()?;
     let mut receipt = DisplayReceipt::default();
@@ -70,6 +112,9 @@ pub fn render_scene_selected(
                 .pixels_written
                 .checked_add(text.pixels_written)
                 .ok_or(DisplayError::InvalidExtent)?;
+        } else if let Some(key) = command.image_key() {
+            let images = images.ok_or(DisplayError::ImageUnsupported)?;
+            super::super::image::raster(target, command, images.resolve(key)?, &mut receipt)?;
         } else {
             super::super::coverage::render_command(
                 target,

@@ -5,17 +5,19 @@ use crate::{
     GraphicsPaintRole, GraphicsPaintRoleForm, GraphicsShapeStyle, GraphicsShapeStyleForm,
     GraphicsTextRole, GraphicsTextRoleForm, LayoutRect, MAX_LAYOUT_EXTENT,
 };
+mod image;
 mod path;
 mod polyline;
 mod rectangle;
+pub use image::{GraphicsImageKey, GRAPHICS_IMAGE_KEY_BYTES};
 pub use path::{GraphicsPath, MAX_GRAPHICS_PATH_POINTS};
 pub use polyline::{GraphicsPolyline, MAX_GRAPHICS_POLYLINE_POINTS};
 
-pub const GRAPHICS_SCENE_KIND: &str = "face/graphics-scene@2";
+pub const GRAPHICS_SCENE_KIND: &str = "face/graphics-scene@3";
 pub const MAX_GRAPHICS_COMMANDS: usize = 48;
 /// One bounded pane-sized UTF-8 payload. Commands remain fixed-capacity, but
 /// can retain a small complete source document instead of a single label.
-/// Orthogonal paths reuse this storage for at most eight binary coordinate pairs.
+/// Geometry and exact image keys reuse this storage for bounded binary values.
 pub const MAX_GRAPHICS_TEXT_BYTES: usize = 192;
 pub const MAX_GRAPHICS_SCENE_BYTES: usize =
     2 + MAX_GRAPHICS_COMMANDS * (21 + MAX_GRAPHICS_TEXT_BYTES);
@@ -25,6 +27,7 @@ pub const MAX_GRAPHICS_SCENE_BYTES: usize =
 // command layout. Readers without those paints refuse the unknown tag.
 const VERSION: u8 = 2;
 const RECT_METRICS_VERSION: u8 = 3;
+const IMAGE_VERSION: u8 = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GraphicsError {
@@ -33,6 +36,7 @@ pub enum GraphicsError {
     TooManyCommands,
     InvalidGeometry,
     UnknownIcon,
+    InvalidImageKey,
     MalformedEncoding,
     NonCanonicalEncoding,
 }
@@ -175,6 +179,8 @@ impl GraphicsCommand {
             }
         } else if kind == GraphicsCommandKind::Rect {
             rectangle::validate(style, payload)?;
+        } else if kind == GraphicsCommandKind::Image {
+            image::validate(paint, style, payload)?;
         } else if !payload.is_empty() {
             return Err(GraphicsError::NonCanonicalEncoding);
         }
@@ -197,13 +203,14 @@ impl GraphicsCommand {
         })
     }
 
-    /// Textual content only; use `path_geometry` for an orthogonal path.
+    /// Textual content only; binary geometry and image keys remain separate.
     pub fn payload(&self) -> &str {
         if matches!(
             self.kind,
             GraphicsCommandKind::OrthogonalPath
                 | GraphicsCommandKind::Polyline
                 | GraphicsCommandKind::Rect
+                | GraphicsCommandKind::Image
         ) {
             return "";
         }
@@ -314,6 +321,12 @@ impl GraphicsScene {
         if self
             .commands()
             .iter()
+            .any(|command| command.kind == GraphicsCommandKind::Image)
+        {
+            IMAGE_VERSION
+        } else if self
+            .commands()
+            .iter()
             .any(|command| command.rect_metrics().is_some())
         {
             RECT_METRICS_VERSION
@@ -323,7 +336,7 @@ impl GraphicsScene {
     }
 
     pub fn decode(input: &[u8]) -> Result<Self, GraphicsError> {
-        if input.len() < 2 || !matches!(input[0], VERSION | RECT_METRICS_VERSION) {
+        if input.len() < 2 || !matches!(input[0], VERSION | RECT_METRICS_VERSION | IMAGE_VERSION) {
             return Err(GraphicsError::MalformedEncoding);
         }
         let count = usize::from(input[1]);
