@@ -17,6 +17,8 @@ fn pair(namespace: NamespaceId) -> Namespaces {
     Namespaces {
         active: namespace,
         children: namespace,
+        leader_active: namespace,
+        offset_source: namespace,
     }
 }
 fn domain(boot: &str, offsets: &str, namespace: NamespaceId) -> String {
@@ -128,6 +130,7 @@ fn ambiguous_or_changed_namespace_never_publishes_a_domain() {
         Namespaces {
             active: NS,
             children: OTHER_NS,
+            ..pair(NS)
         },
         pair(OTHER_NS),
     ] {
@@ -144,6 +147,7 @@ fn ambiguous_or_changed_namespace_never_publishes_a_domain() {
         Namespaces {
             active: NS,
             children: OTHER_NS,
+            ..pair(NS)
         },
     ] {
         let mut sequence = [pair(NS), after].into_iter();
@@ -193,4 +197,55 @@ fn prepared_sampler_refuses_changed_namespace_without_relabeling_ticks() {
     assert!(sample_in_domain(NS, || Err("namespace unavailable".into()), &mut sample).is_err());
     assert_eq!(sampled.get(), 2);
     assert!(sample_in_domain(NS, || Ok(NS), || Err("sample unavailable".into())).is_err());
+}
+
+#[test]
+fn leader_offset_source_mismatch_refuses_before_reading_offsets() {
+    for before in [
+        Namespaces {
+            offset_source: OTHER_NS,
+            ..pair(NS)
+        },
+        Namespaces {
+            leader_active: OTHER_NS,
+            ..pair(NS)
+        },
+    ] {
+        assert!(prepare_domain(
+            BOOT,
+            NS,
+            || Ok(before),
+            || panic!("leader/source mismatch must refuse before offset read"),
+        )
+        .unwrap_err()
+        .contains("caller/offset-source namespace mismatch"));
+    }
+}
+
+#[test]
+fn leader_offset_source_transition_discards_the_single_bounded_read() {
+    for after in [
+        Namespaces {
+            offset_source: OTHER_NS,
+            ..pair(NS)
+        },
+        Namespaces {
+            leader_active: OTHER_NS,
+            ..pair(NS)
+        },
+    ] {
+        let mut sequence = [pair(NS), after].into_iter();
+        let reads = Cell::new(0);
+        let result = prepare_domain(
+            BOOT,
+            NS,
+            || Ok(sequence.next().unwrap()),
+            || {
+                reads.set(reads.get() + 1);
+                Ok(OFFSETS_TEXT.into())
+            },
+        );
+        assert!(result.unwrap_err().contains("changed during preparation"));
+        assert_eq!(reads.get(), 1, "no offset retry or fallback source");
+    }
 }

@@ -1,12 +1,18 @@
 //! Prepared Linux CLOCK_MONOTONIC domain, not a cross-clock correlation.
 //! boot_id is kernel-provided random identity, not authenticated machine identity.
+//! The finite operator lifecycle does not mutate time namespaces. Procfs guards
+//! reject observed changes; separate reads cannot exclude hostile A->B->A changes
+//! or forged procfs. Holding a namespace FD prevents inode reuse, not mutation.
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 use std::{fs::File, io::Read, os::unix::fs::MetadataExt};
 
 const BOOT_ID: &str = "/proc/sys/kernel/random/boot_id";
 const ACTIVE: &str = "/proc/thread-self/ns/time";
 const CHILDREN: &str = "/proc/thread-self/ns/time_for_children";
-const OFFSETS: &str = "/proc/thread-self/timens_offsets";
+// Linux registers timens_offsets only in the thread-group proc directory.
+const OFFSETS: &str = "/proc/self/timens_offsets";
+const LEADER_ACTIVE: &str = "/proc/self/ns/time";
+const OFFSET_SOURCE: &str = "/proc/self/ns/time_for_children";
 const BOOT_BOUND: usize = 37;
 const OFFSETS_BOUND: usize = 256;
 
@@ -43,6 +49,8 @@ struct NamespaceId {
 struct Namespaces {
     active: NamespaceId,
     children: NamespaceId,
+    leader_active: NamespaceId,
+    offset_source: NamespaceId,
 }
 
 impl PreparedClock {
@@ -97,6 +105,8 @@ fn namespaces() -> Result<Namespaces, String> {
     Ok(Namespaces {
         active: active_namespace()?,
         children: observe_namespace(CHILDREN)?,
+        leader_active: observe_namespace(LEADER_ACTIVE)?,
+        offset_source: observe_namespace(OFFSET_SOURCE)?,
     })
 }
 
@@ -124,10 +134,19 @@ fn prepare_domain(
 ) -> Result<String, String> {
     let boot = boot_uuid(boot)?;
     let before = observe()?;
-    // Linux proc_timens_show_offsets selects time_ns_for_children, which need
-    // not be the current scalar clock. Refuse that ambiguity, never assume zero.
-    if before.active != selected || before.active != before.children {
-        return Err("Pete clock active/children namespace mismatch".into());
+    // /proc/self/timens_offsets describes the process leader's children, not
+    // the calling thread. Bind that source and both active/children pairs to
+    // the pinned selected namespace before reading, and recheck all afterward.
+    if [
+        before.active,
+        before.children,
+        before.leader_active,
+        before.offset_source,
+    ]
+    .iter()
+    .any(|namespace| *namespace != selected)
+    {
+        return Err("Pete clock caller/offset-source namespace mismatch".into());
     }
     let offset = monotonic_offset(&offsets()?)?;
     if observe()? != before {
