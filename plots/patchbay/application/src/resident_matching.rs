@@ -64,6 +64,7 @@ impl PatchbayApplicationPort {
         ];
         let mut bounds_error = None;
         let mut checked_subjects = 0;
+        let mut subject_order = SubjectOrder::default();
         let body = format!("body/{}", body.as_str());
         // Source subjects already belong to the observation. Seeding these
         // preserves the shared emitter's existing subject/disclosure decision.
@@ -172,7 +173,8 @@ impl PatchbayApplicationPort {
                 if bounds_error.is_some() {
                     return false;
                 }
-                if let Err(error) = validate_subject_tail(content.subjects, checked_subjects) {
+                if let Err(error) = subject_order.validate_tail(content.subjects, checked_subjects)
+                {
                     bounds_error = Some(error);
                     return false;
                 }
@@ -211,30 +213,51 @@ impl PatchbayApplicationPort {
         }
     }
 }
-/// The caller owns an append-only prefix already checked by prior checkpoints.
-/// Compare every new identity with the complete prefix and the other new entries.
-fn validate_subject_tail(
-    subjects: &[conduit_face::FaceSubject],
-    checked: usize,
-) -> Result<(), FaceFragmentError> {
-    let tail = subjects
-        .get(checked..)
-        .ok_or(FaceFragmentError::InvalidIdentity)?;
-    if tail.iter().any(|subject| {
-        subject.identity.is_empty() || subject.identity.len() > conduit_face::MAX_FACE_ID_BYTES
-    }) {
-        return Err(FaceFragmentError::InvalidIdentity);
-    }
-    for (offset, subject) in tail.iter().enumerate() {
-        if subjects[..checked + offset]
-            .iter()
-            .any(|previous| previous.identity == subject.identity)
-        {
-            return Err(FaceFragmentError::DuplicateSubject);
+/// Index the emitter's append-only subject identities by exact string order.
+struct SubjectOrder {
+    offsets: [u16; conduit_face::MAX_FACE_SUBJECTS],
+}
+impl Default for SubjectOrder {
+    fn default() -> Self {
+        Self {
+            offsets: [0; conduit_face::MAX_FACE_SUBJECTS],
         }
     }
-    Ok(())
 }
+impl SubjectOrder {
+    fn validate_tail(
+        &mut self,
+        subjects: &[conduit_face::FaceSubject],
+        checked: usize,
+    ) -> Result<(), FaceFragmentError> {
+        let tail = subjects
+            .get(checked..)
+            .ok_or(FaceFragmentError::InvalidIdentity)?;
+        if tail.iter().any(|subject| {
+            subject.identity.is_empty() || subject.identity.len() > conduit_face::MAX_FACE_ID_BYTES
+        }) {
+            return Err(FaceFragmentError::InvalidIdentity);
+        }
+        if subjects.len() > self.offsets.len() {
+            return Err(FaceFragmentError::TooManySubjects);
+        }
+        for (offset, subject) in (checked..).zip(tail) {
+            let index = match self.offsets[..offset].binary_search_by(|prior| {
+                subjects[usize::from(*prior)]
+                    .identity
+                    .cmp(&subject.identity)
+            }) {
+                Ok(_) => return Err(FaceFragmentError::DuplicateSubject),
+                Err(index) => index,
+            };
+            self.offsets.copy_within(index..offset, index + 1);
+            self.offsets[index] =
+                u16::try_from(offset).map_err(|_| FaceFragmentError::TooManySubjects)?;
+        }
+        Ok(())
+    }
+}
+
 fn contains_indexed(index: &ContentIndex<'_>, fragment: &FaceFragment) -> bool {
     index.subjects.contains_all(&fragment.subjects)
         && index.relationships.contains_all(&fragment.relationships)
@@ -308,13 +331,14 @@ mod tests {
             role: FaceRole::Gear,
             name: "First".into(),
         }];
-        validate_subject_tail(&subjects, 0).unwrap();
+        let mut order = SubjectOrder::default();
+        order.validate_tail(&subjects, 0).unwrap();
         subjects.push(FaceSubject {
             identity: "port/second".into(),
             role: FaceRole::Port,
             name: "Second".into(),
         });
-        validate_subject_tail(&subjects, 1).unwrap();
+        order.validate_tail(&subjects, 1).unwrap();
         // Collision crosses a checkpoint and differs in non-identity facts.
         subjects.push(FaceSubject {
             identity: "gear/first".into(),
@@ -322,16 +346,16 @@ mod tests {
             name: "Forged".into(),
         });
         assert_eq!(
-            validate_subject_tail(&subjects, 2),
+            order.validate_tail(&subjects, 2),
             Err(FaceFragmentError::DuplicateSubject)
         );
         subjects[2].identity.clear();
         assert_eq!(
-            validate_subject_tail(&subjects, 2),
+            order.validate_tail(&subjects, 2),
             Err(FaceFragmentError::InvalidIdentity)
         );
         assert_eq!(
-            validate_subject_tail(&subjects[..1], 2),
+            order.validate_tail(&subjects[..1], 2),
             Err(FaceFragmentError::InvalidIdentity)
         );
     }
