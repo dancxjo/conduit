@@ -14,7 +14,6 @@ use conduit_planner::{
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_std_host::{
     episode_checkpoint::EpisodeCheckpointResidence,
-    hosted_local_model::OllamaDiscovery,
     std_create_uart::{monotonic_millis, StdCreateUartBase, StdCreateUartObservation},
     BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput,
     ExternalForeOutputAdapter, HostedFrameBack, RunControl, StdHost, StdHostComposition,
@@ -23,13 +22,17 @@ use conduit_std_host::{
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 use std::{collections::BTreeMap, path::PathBuf, sync::mpsc};
 mod cadenced;
+mod model;
 mod output;
 mod planning;
+use model::ModelArgs;
 use output::EpisodeOutput;
 use planning::{authoring, checkpoint_context, context, plan};
 
 #[derive(Args, Debug)]
 pub(super) struct StdCognitionArgs {
+    #[command(flatten)]
+    model: ModelArgs,
     /// Explicit Create serial device. Omit for a session with unknown battery state.
     #[arg(long)]
     serial_path: Option<PathBuf>,
@@ -60,6 +63,7 @@ const CLOCK: &str = "clock/pete-cognition";
 const CREATE_SOURCE: &str = "pete/cognition-create";
 
 pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
+    args.model.validate()?;
     if !(1..=16).contains(&args.utterance.len())
         || args
             .utterance
@@ -81,10 +85,13 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
                 args.reflection_after.len()
             }
         );
+        args.model.describe();
         return Ok(());
     }
+    // Resolve the exact local realization before acquiring any Create device.
+    let model = args.model.prepare()?;
     if !args.reflection_after.is_empty() {
-        return cadenced::run(args);
+        return cadenced::run(args, model);
     }
     let mut provider = args
         .serial_path
@@ -98,10 +105,6 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
             .map_err(|error| format!("open Create serial device: {error:?}"))
         })
         .transpose()?;
-    let model = OllamaDiscovery::discover_at("http://127.0.0.1:11434", "gemma3:latest")
-        .map_err(|error| format!("discover Ollama: {error:?}"))?
-        .initialize(6144, vec![conduit_ai::LocalModelKindProfile::GenerateFlow])
-        .map_err(|error| format!("initialize Ollama: {error:?}"))?;
     let back = HostedFrameBack::new(
         conduit_pete::pete_cognition_inputs_offer(),
         conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
