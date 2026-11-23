@@ -165,3 +165,43 @@ None of the evaluated candidates passed all four new cases. The additional
 unchanged narrow recall/current/empty-history and fault-injected provider-loss
 with live recovery scenarios therefore remained behind their qualification
 gate in this comparison. No default was promoted.
+
+## Later current-body instruction correction (#7022)
+
+A separate authored instruction profile, `pete/current-body-evidence@2`, clarifies
+that the **requested current bodily fact** comes only from `current_experience`.
+A null, stale or unavailable requested fact must stay unknown; selected recall
+cannot fill it. Unrelated unknown fields do not invalidate a known current
+charge. Past recall, missing-past answers, percentage units, provider outcomes,
+facts-as-data and no-action rules remain. All five ordinary/resumable/cadenced
+sources share the 404-byte instruction, two bytes shorter than the original.
+Its UTF-8 SHA-256 is
+`15ef50772990e91e7b26324dc9a8f310828f035868bad9bd3ef777ff3c49e170`.
+
+Deterministic checks inspect actual ordinary and resumable model requests:
+current 9.0% coexists with unrelated unknown thermal state; unavailable current
+charge stays null with its source classification, while selected historical
+charge remains 50.0%. Five-source instruction agreement also passes. The owning
+integration target passed 20 non-live tests; its four live cases were then run
+sequentially once each on 23 November 2026. Configuration was Ollama 0.34.1,
+`gemma4:latest`, 12288 MiB, with the same pinned inventory digest
+`c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb`.
+
+| Changed Pete instruction case | First result |
+| --- | --- |
+| Previous/current/unavailable battery | Passed: 50.0% recalled, 9.0% current, then “I do not know” without a recycled percentage. |
+| Direct human report | Passed: 72%. |
+| Existing narrow recall/current/empty-history control | Passed: COPPER KITE, 9.0%, and unknown with empty history. |
+| Existing provider-loss/checkpoint recovery | Passed: recalled the retained label and `provider_lost`. Loss was fault-injected before live recovery. |
+
+Existing quality assertions and resource bounds were unchanged. Each live case
+retains its source, instruction, model and Plan/Play receipts and first-result
+log/checksum in ignored local proof output; no inference was retried. The
+existing narrow live test moved into its instruction-contract module without
+changing assertions, keeping the large parent test file smaller.
+
+These are synthetic-input hosted results, not physical sensor or robot proof.
+They neither rerun nor resolve the distinct generic uncertainty envelope above.
+The original comparison remains historical evidence under its original
+instruction. No Gemma3 comparison, default promotion, durable artifact
+publication or stable-release qualification is claimed; #6874 remains open.
