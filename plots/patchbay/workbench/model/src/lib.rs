@@ -70,6 +70,7 @@ mod topology_hosts;
 mod zero_body_authoring;
 mod zero_body_creche;
 mod zero_body_front_door;
+mod zero_body_plot_catalog;
 mod zero_body_projection;
 
 pub use build_birth::{

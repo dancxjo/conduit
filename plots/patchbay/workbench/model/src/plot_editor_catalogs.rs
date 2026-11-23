@@ -38,6 +38,12 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotE
         .map_err(PlotEditorError::Catalog)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_ambient_display_types(&mut startup)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_ambient_home_observation_kind(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_ambient_home_face_kind(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile)
