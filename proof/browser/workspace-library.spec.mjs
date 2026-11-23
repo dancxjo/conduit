@@ -426,3 +426,26 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
     await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
   });
 }
+
+test("reviewed resident civil clock Shows live time and returns to the same Body", async ({ page }) => {
+  test.setTimeout(30_000 + 3 * BROWSER_COLD_PREPARATION_MS);
+  await birth(page);
+  const first = await current(page);
+  await openLibrary(page);
+  await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("Local Clock and Weather");
+  await card(page, "Local Clock and Weather").getByRole("button", { name: "Use", exact: true }).click();
+  await waitForWorkspacePreparation(page, { surfaceTitle: "Local Clock and Weather" });
+  const clock = page.locator('[data-face-kind="face/ambient-clock-weather"]:visible');
+  await expect(clock).toContainText(/\d{4}-\d{2}-\d{2} · \d{2}:\d{2}:\d{2} · America\/Los_Angeles · Weather unavailable/u);
+  const firstShow = await clock.getAttribute("data-observation-sequence");
+  expect(firstShow).toMatch(/^\d+$/u);
+  await expect(clock).not.toHaveAttribute("data-observation-sequence", firstShow);
+  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  await page.reload();
+  await waitForWorkspacePreparation(page, { surfaceTitle: "Local Clock and Weather" });
+  await expect(clock).toContainText("America/Los_Angeles");
+  const after = await current(page);
+  expect(after.body_id).toBe(first.body_id);
+  expect(after.host_id).toBe(first.host_id);
+  expect(after.boot_id).not.toBe(first.boot_id);
+});
