@@ -83,10 +83,7 @@ impl Selection {
     ) -> Result<StdHost, String> {
         let image = self.host_image.as_ref().ok_or("selected IMAGE is absent")?;
         let checked = self.checked()?;
-        let ambient_selected = checked.configuration().bases.iter().any(|base| {
-            base.kind == conduit_std_offers::AMBIENT_HOME_SOURCE_BASE
-                && base.initialization.is_some()
-        });
+        let ambient_selected = super::ambient::selected(&checked);
         for base in &checked.configuration().bases {
             if base.initialization.is_some()
                 && !matches!(

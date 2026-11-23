@@ -9,6 +9,12 @@ use conduit_std_offers::{
     ambient_home_source_offer, AMBIENT_HOME_SOURCE_AUTHORITY, AMBIENT_HOME_SOURCE_CALL,
 };
 
+pub(super) fn selected(checked: &CheckedHostConfiguration) -> bool {
+    checked.configuration().bases.iter().any(|base| {
+        base.kind == conduit_std_offers::AMBIENT_HOME_SOURCE_BASE && base.initialization.is_some()
+    })
+}
+
 pub(super) fn initialize(
     config: StdHostConfig,
     image: &HostImage,
