@@ -1,3 +1,4 @@
+use conduit_host_make::MAXIMUM_NATIVE_HOST_RELEASE_FILE_BYTES as MAXIMUM_NATIVE_FILE_BYTES;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -16,10 +17,8 @@ mod browser;
 mod linux;
 
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
-// Browser consumers retain their 32 MiB file limit. Installed native Hosts
-// accept 64 MiB release files, so sealing must admit the same finite range.
+// Browser consumers retain their 32 MiB file limit.
 const MAXIMUM_FILE_BYTES: u64 = 32 * 1024 * 1024;
-const MAXIMUM_NATIVE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub(crate) enum ReleasePlatform {
@@ -116,6 +115,8 @@ pub(crate) fn run(
     }
     Ok(())
 }
+
+pub(super) use linux::seal_linux_installer;
 
 fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Refuse a missing optimizer before paying for the browser Rust build.

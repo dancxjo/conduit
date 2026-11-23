@@ -1,6 +1,7 @@
 //! Installed durable host ownership and its platform-service handoff.
 
 use crate::cli::HostServiceCommand;
+use conduit_host_make::MAXIMUM_NATIVE_HOST_RELEASE_FILE_BYTES as MAXIMUM_RELEASE_FILE_BYTES;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -23,7 +24,6 @@ pub(crate) const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
 const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
-const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
 // Admission retains the exact Host inventory, including authored layout defaults.
 const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 2 * 1024 * 1024;
 

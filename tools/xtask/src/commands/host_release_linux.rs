@@ -1,5 +1,6 @@
 //! Existing x86_64 and AArch64 Linux release set.
 use super::*;
+use std::io::Read;
 #[path = "host_release_linux_native.rs"]
 mod native;
 
@@ -134,6 +135,29 @@ pub(super) fn build_x86_64(
     compile_x86_64(output, native_display, true)?;
     seal_x86_64(output, source_identity)
 }
+pub(in crate::commands) fn seal_linux_installer(
+    executable: &Path,
+    output: &Path,
+    source_identity: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let metadata = fs::metadata(executable)?;
+    if !metadata.is_file() || metadata.len() > MAXIMUM_NATIVE_FILE_BYTES {
+        return Err("installer executable violates its finite file bound".into());
+    }
+    let mut header = [0; 20];
+    fs::File::open(executable)?.read_exact(&mut header)?;
+    // Current Linux executables are ELF64 little endian, including PIE.
+    if header[..6] != *b"\x7fELF\x02\x01"
+        || !matches!(u16::from_le_bytes([header[16], header[17]]), 2 | 3)
+        || u16::from_le_bytes([header[18], header[19]]) != 62
+    {
+        return Err("installer requires an ELF Linux x86-64 executable".into());
+    }
+    fs::create_dir(output)?;
+    stage_x86_64(executable, output)?;
+    seal_x86_64(output, source_identity)
+}
+
 fn compile_x86_64(
     output: &Path,
     native_display: bool,
@@ -145,15 +169,15 @@ fn compile_x86_64(
         "compile hosted Linux release",
     )?;
     fs::create_dir_all(output)?;
-    copy(
-        cargo_release_artifact(target, "conduit"),
-        &output.join("conduit-linux-x86_64"),
-    )?;
+    stage_x86_64(&cargo_release_artifact(target, "conduit"), output)
+}
+
+fn stage_x86_64(executable: &Path, output: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    copy(executable, &output.join("conduit-linux-x86_64"))?;
     copy(
         "products/conduit/install/install-linux-x86_64.sh",
         &output.join("install-linux-x86_64.sh"),
-    )?;
-    Ok(())
+    )
 }
 fn seal_x86_64(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     seal(
