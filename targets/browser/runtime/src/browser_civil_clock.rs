@@ -1,7 +1,6 @@
 //! Bounded browser civil clock replies.
 
-#[cfg(test)]
-mod observation;
+pub(crate) mod observation;
 
 use conduit_core::{LocalDate, LocalDateTime, LocalTime, TemporalScale, UtcOffsetSeconds};
 
