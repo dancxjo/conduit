@@ -26,20 +26,21 @@ pub(super) fn capture<P: CreateUartProvider, E: Debug>(
     provider: Option<&mut P>,
     context: CaptureContext<'_>,
     sign: PeteCognitionSign,
+    clock_basis: &str,
     mut clock: impl FnMut() -> Result<u64, E>,
     writer: &mut impl Write,
 ) -> Result<Option<CaptureResult<E>>, String> {
     let mut clock_ticks = [None; 2];
     let mut clock_index = 0;
     let result = provider.map(|provider| {
-        capture_pete_cognition_battery(provider, sign, super::CLOCK.into(), READ_TIMEOUT_MS, || {
+        capture_pete_cognition_battery(provider, sign, clock_basis.into(), READ_TIMEOUT_MS, || {
             let tick = clock();
             clock_ticks[clock_index] = tick.as_ref().ok().copied();
             clock_index += 1;
             tick
         })
     });
-    let receipt = record(&context, result.as_ref(), clock_ticks);
+    let receipt = record(&context, result.as_ref(), clock_ticks, clock_basis);
     writeln!(writer, "{PREFIX}{receipt}")
         .map_err(|error| format!("write Pete capture evidence: {error}"))?;
     Ok(result)
@@ -49,6 +50,7 @@ fn record<E: Debug>(
     context: &CaptureContext<'_>,
     result: Option<&CaptureResult<E>>,
     clock_ticks: [Option<u64>; 2],
+    clock_basis: &str,
 ) -> Value {
     use CreateCognitionCaptureError as Error;
     let (outcome, stage, failure, pause, pause_failure) = match result {
@@ -139,7 +141,7 @@ fn record<E: Debug>(
             "uart_profile": profile(identity.profile),
             "maximum_write_wait_ms": identity.maximum_write_wait_ms,
         })),
-        "clock": {"basis": super::CLOCK, "scale":"milliseconds", "resolution_ticks":1,
+        "clock": {"basis": clock_basis, "scale":"milliseconds", "resolution_ticks":1,
             "deadline_basis_tick":clock_ticks[0],
             "read_deadline_tick":clock_ticks[0].and_then(|tick| tick.checked_add(u64::from(READ_TIMEOUT_MS))),
             "post_read_tick":clock_ticks[1]},
