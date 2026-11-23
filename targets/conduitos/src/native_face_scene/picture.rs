@@ -11,7 +11,7 @@ pub(super) struct PicturePage {
     time: String,
     period: &'static str,
     period_bounds: LayoutRect,
-    weather: usize,
+    weather: String,
     panel: LayoutRect,
     lines: [LayoutRect; 3],
 }
@@ -80,7 +80,7 @@ pub(super) fn display_date(text: &str) -> Option<String> {
 
 impl NativeFaceScene {
     /// Prepare the graphical viewer selected by the Host. A Face without a
-    /// compatible photograph, clock and weather opens in the usual reader.
+    /// compatible photograph and clock opens in the usual reader.
     pub fn prepare_picture_frame(
         face: Face,
         width: u16,
@@ -144,21 +144,12 @@ impl NativeFaceScene {
         };
         let date = display_date(property_text(face, property("local-date")?)?)?;
         let (time, period) = display_time(property_text(face, property("local-time")?)?)?;
-        let (weather_subject_index, weather_subject) = semantic("weather/conditions")?;
-        // The first Body wording is the complete owner or localized weather
-        // summary made by document::prepare. Attributions follow it.
-        let weather = self.primary.iter().position(|r| {
-            r.subject_index == Some(weather_subject_index) && r.role == GraphicsTextRole::Body
-        })?;
-        let summary = document::weather_summary(face, weather_subject, preferred_temperature)?;
-        if self.primary[weather].text != summary {
-            return None;
-        }
-        let texts = [
-            date.as_str(),
-            time.as_str(),
-            self.primary[weather].text.as_str(),
-        ];
+        let weather = semantic("weather/conditions")
+            .and_then(|(_, subject)| {
+                document::weather_overlay(face, subject, preferred_temperature)
+            })
+            .unwrap_or_else(|| "Weather unavailable".into());
+        let texts = [date.as_str(), time.as_str(), weather.as_str()];
         let width = self.screen.width;
         let height = self.screen.height;
         if width < 400 || height < 300 {
@@ -276,7 +267,7 @@ impl NativeFaceScene {
         let texts = [
             page.date.as_str(),
             page.time.as_str(),
-            self.primary[page.weather].text.as_str(),
+            page.weather.as_str(),
         ];
         for (((text, role), bounds), paint) in texts.into_iter().zip(ROLES).zip(page.lines).zip([
             GraphicsPaintRole::Muted,

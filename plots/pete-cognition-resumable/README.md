@@ -44,3 +44,19 @@ stable-release acceptance. [#6878](https://github.com/dancxjo/conduit/issues/687
 still owns sustained load, slowdown, cancellation, recovery and independent
 cadence proof. Raw local records remain under ignored `target/pete-trace-horizon/`;
 durable publication is separate.
+
+The same deterministic entrance also checks the clock boundary from
+[#7036](https://github.com/dancxjo/conduit/issues/7036). Each case uses two
+native Host instances with distinct Host/Boot identities and the same checkpoint
+owner. A shared declared clock basis recalls the original source timestamp,
+nonzero uncertainty and source Sign. With a different basis, even the same
+numeric counter produces explicit `clock_mismatch` omissions and scoped
+`no_history`; the archived evidence remains byte-identical. The first runtime
+pair passed with maximum model request 3398/4096 bytes and checkpoint 3327/8192
+bytes, making one fenced model call per Play.
+
+These clocks are explicitly injected test evidence. This proves neither actual
+clock correlation nor relation-backed transfer. The public operator's clock
+producer and the missing relation ingress remain separate prerequisites under
+[#6879](https://github.com/dancxjo/conduit/issues/6879). Fixture Host/Boot names
+identify each case's configured realizations, not globally unique real machines.

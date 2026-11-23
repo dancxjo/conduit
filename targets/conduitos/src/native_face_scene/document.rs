@@ -446,12 +446,12 @@ pub(super) fn prepare_for_viewer(
     Ok((primary, details))
 }
 
-pub(super) fn weather_summary(
+pub(super) fn weather_overlay(
     face: &Face,
     subject: &conduit_face::FaceSubject,
     preferred: Option<conduit_core::Unit>,
 ) -> Option<String> {
-    weather::summary(face, subject, preferred)
+    weather::overlay(face, subject, preferred)
 }
 
 fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
