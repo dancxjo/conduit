@@ -14,6 +14,7 @@ pub(super) fn validate_positions(positions: &[usize], events: usize) -> Result<(
 pub(super) fn run(
     args: StdCognitionArgs,
     model: conduit_std_host::hosted_local_model::OllamaLocalModelAdapter,
+    mut clock: PreparedClock,
 ) -> Result<(), String> {
     validate_positions(&args.reflection_after, args.utterance.len())?;
     let mut provider = args
@@ -103,6 +104,7 @@ pub(super) fn run(
     for (index, utterance) in args.utterance.into_iter().enumerate() {
         let frame = frame_with_namespace(
             provider.as_mut(),
+            &mut clock,
             index as u64 + 1,
             utterance,
             args.retain,

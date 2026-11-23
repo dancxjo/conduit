@@ -14,18 +14,19 @@ use conduit_planner::{
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_std_host::{
     episode_checkpoint::EpisodeCheckpointResidence,
-    std_create_uart::{monotonic_millis, StdCreateUartBase, StdCreateUartObservation},
+    std_create_uart::{StdCreateUartBase, StdCreateUartObservation},
     BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput,
     ExternalForeOutputAdapter, HostedFrameBack, RunControl, StdHost, StdHostComposition,
     StdHostConfig, ThreadTimer,
 };
-use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 use std::{collections::BTreeMap, path::PathBuf, sync::mpsc};
 mod cadenced;
 mod capture_evidence;
+mod clock;
 mod model;
 mod output;
 mod planning;
+use clock::{ClockSource, PreparedClock};
 use model::ModelArgs;
 use output::EpisodeOutput;
 use planning::{authoring, checkpoint_context, context, plan};
@@ -60,7 +61,6 @@ pub(super) struct StdCognitionArgs {
 const SOURCE: &str = include_str!("../../../../plots/pete-cognition/main.conduit");
 const RESUMABLE_SOURCE: &str =
     include_str!("../../../../plots/pete-cognition-resumable/main.conduit");
-const CLOCK: &str = "clock/pete-cognition";
 const CREATE_SOURCE: &str = "pete/cognition-create";
 
 pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
@@ -90,9 +90,10 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         return Ok(());
     }
     // Resolve the exact local realization before acquiring any Create device.
+    let mut clock = PreparedClock::prepare()?;
     let model = args.model.prepare()?;
     if !args.reflection_after.is_empty() {
-        return cadenced::run(args, model);
+        return cadenced::run(args, model, clock);
     }
     let mut provider = args
         .serial_path
@@ -201,6 +202,7 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
             for (index, utterance) in args.utterance.into_iter().enumerate() {
                 let frame = frame(
                     provider.as_mut(),
+                    &mut clock,
                     completed + index as u64 + 1,
                     utterance,
                     args.retain,
@@ -274,14 +276,16 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
 
 fn frame(
     provider: Option<&mut StdCreateUartBase>,
+    clock: &mut impl ClockSource,
     revision: u64,
     utterance: String,
     retain: bool,
 ) -> Result<PeteCognitionFrame, String> {
-    frame_with_namespace(provider, revision, utterance, retain, "")
+    frame_with_namespace(provider, clock, revision, utterance, retain, "")
 }
 fn frame_with_namespace(
     provider: Option<&mut StdCreateUartBase>,
+    clock: &mut impl ClockSource,
     revision: u64,
     utterance: String,
     retain: bool,
@@ -299,6 +303,7 @@ fn frame_with_namespace(
         },
         utterance,
         retain,
+        clock,
         &mut std::io::stderr().lock(),
     )
 }
@@ -308,6 +313,7 @@ fn frame_with_namespace_using<P: conduit_pete::CreateUartProvider>(
     capture_context: capture_evidence::CaptureContext<'_>,
     utterance: String,
     retain: bool,
+    clock: &mut impl ClockSource,
     evidence: &mut impl std::io::Write,
 ) -> Result<PeteCognitionFrame, String> {
     let revision = capture_context.revision;
@@ -320,12 +326,14 @@ fn frame_with_namespace_using<P: conduit_pete::CreateUartProvider>(
         })
         .map_err(|error| format!("Pete source Sign: {error:?}"))
     };
-    let utterance_at = now()?;
+    let utterance_at = clock.now()?;
+    let clock_basis = clock.basis().to_owned();
     let capture = capture_evidence::capture(
         provider,
         capture_context,
         sign("battery")?,
-        monotonic_millis,
+        &clock_basis,
+        || clock.millis(),
         evidence,
     )?;
     let battery = match capture {
@@ -348,7 +356,7 @@ fn frame_with_namespace_using<P: conduit_pete::CreateUartProvider>(
         } else {
             format!("pete/cognition-cli/{namespace}")
         },
-        now()?,
+        clock.now()?,
         revision,
         conduit_human::ExperienceTemporalPolicy::new(5_000, 10_000)
             .map_err(|error| format!("temporal policy: {error:?}"))?,
@@ -356,15 +364,4 @@ fn frame_with_namespace_using<P: conduit_pete::CreateUartProvider>(
             .map_err(|error| format!("human input: {error:?}"))?,
     )
     .map_err(|error| format!("Pete frame: {error:?}"))
-}
-
-fn now() -> Result<NativeTemporalInstant, String> {
-    NativeTemporalInstant::new(
-        CLOCK.into(),
-        1,
-        NativeTemporalScale::Milliseconds,
-        monotonic_millis().map_err(|error| format!("monotonic clock: {error:?}"))?,
-        0,
-    )
-    .map_err(|error| format!("capture instant: {error:?}"))
 }
