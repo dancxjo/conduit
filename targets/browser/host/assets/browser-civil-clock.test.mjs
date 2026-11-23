@@ -1,6 +1,6 @@
-import { deepEqual, throws } from "node:assert/strict";
+import { deepEqual, equal, throws } from "node:assert/strict";
 import { test } from "node:test";
-import { prepareBrowserCivilClock } from "./browser-civil-clock.mjs";
+import { prepareBrowserCivilClock, prepareBrowserCivilClockReply } from "./browser-civil-clock.mjs";
 
 test("Seattle civil labels retain the supplied instant across gaps and folds", () => {
   const project = prepareBrowserCivilClock("America/Los_Angeles");
@@ -40,4 +40,19 @@ test("unknown timezones and instants outside the checked range refuse", () => {
     utc_offset_minutes: 0,
     observed_at_unix_ms: 0,
   });
+});
+
+test("a clock reply preserves the exact instant and fits one fixed-size buffer", () => {
+  const sample = prepareBrowserCivilClockReply("America/Los_Angeles");
+  const instant = Date.parse("2026-11-01T09:00:00.876Z");
+  const reply = sample(instant);
+  equal(reply.length, 28);
+  const fields = new DataView(reply.buffer);
+  equal(fields.getBigUint64(0, true), BigInt(instant));
+  equal(fields.getInt16(8, true), -480);
+  const decoder = new TextDecoder();
+  equal(decoder.decode(reply.subarray(10, 20)), "2026-11-01");
+  equal(decoder.decode(reply.subarray(20)), "01:00:00");
+  equal(sample(instant + 1000), reply);
+  equal(decoder.decode(reply.subarray(20)), "01:00:01");
 });

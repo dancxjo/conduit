@@ -51,3 +51,23 @@ function offsetMinutes(text) {
   }
   return (Number(result[2]) * 60 + Number(result[3])) * (result[1] === "-" ? -1 : 1);
 }
+
+// The planned timezone and the rule provider belong to the acquired clock.
+// Its reply carries the observed instant and the corresponding civil labels.
+export const CIVIL_CLOCK_REPLY_BYTES = 28;
+
+export function prepareBrowserCivilClockReply(timezone) {
+  const project = prepareBrowserCivilClock(timezone);
+  const reply = new Uint8Array(CIVIL_CLOCK_REPLY_BYTES);
+  const fields = new DataView(reply.buffer);
+  const encoder = new TextEncoder();
+
+  return unixMillis => {
+    const reading = project(unixMillis);
+    fields.setBigUint64(0, BigInt(reading.observed_at_unix_ms), true);
+    fields.setInt16(8, reading.utc_offset_minutes, true);
+    encoder.encodeInto(reading.local_date, reply.subarray(10, 20));
+    encoder.encodeInto(reading.local_time, reply.subarray(20, 28));
+    return reply;
+  };
+}
