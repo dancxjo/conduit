@@ -1,13 +1,16 @@
 //! The selected photographic opening page borrows the checked Face and its
 //! prepared reader text. All geometry and indices have fixed size.
 use super::*;
+use alloc::format;
+use conduit_core::{LocalDate, LocalDateTime, LocalTime, TemporalScale, UtcOffsetSeconds};
 use conduit_face::{FacePropertyValue, FaceRole};
 
-#[derive(Clone, Copy)]
 pub(super) struct PicturePage {
     image: conduit_face::GraphicsImageKey,
-    date: usize,
-    time: usize,
+    date: String,
+    time: String,
+    period: &'static str,
+    period_bounds: LayoutRect,
     weather: usize,
     panel: LayoutRect,
     lines: [LayoutRect; 3],
@@ -24,6 +27,55 @@ fn property_text(face: &Face, index: usize) -> Option<&str> {
         FacePropertyValue::Text(value) if !value.is_empty() => Some(value),
         _ => None,
     }
+}
+
+fn decimal<T: core::str::FromStr>(text: &str) -> Option<T> {
+    text.bytes()
+        .all(|byte| byte.is_ascii_digit())
+        .then_some(())?;
+    text.parse().ok()
+}
+
+pub(super) fn display_time(text: &str) -> Option<(String, &'static str)> {
+    let [_, _, b':', _, _, b':', _, _] = *text.as_bytes() else {
+        return None;
+    };
+    let time = LocalTime::new(
+        decimal(text.get(..2)?)?,
+        decimal(text.get(3..5)?)?,
+        decimal(text.get(6..)?)?,
+        0,
+    )
+    .ok()?;
+    let hour = (time.hour() + 11) % 12 + 1;
+    let period = if time.hour() < 12 { "AM" } else { "PM" };
+    Some((format!("{hour}:{:02}", time.minute()), period))
+}
+
+pub(super) fn display_date(text: &str) -> Option<String> {
+    const MONTHS: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    // The Unix epoch started on Thursday.
+    const WEEKDAYS: [&str; 7] = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
+    let [_, _, _, _, b'-', _, _, b'-', _, _] = *text.as_bytes() else {
+        return None;
+    };
+    let year: i32 = decimal(text.get(..4)?)?;
+    let month = decimal(text.get(5..7)?)?;
+    let day = decimal(text.get(8..)?)?;
+    // The Gregorian calendar repeats every 400 years. Use a cycle after the
+    // epoch so the shared civil conversion also handles earlier dates.
+    let date = LocalDate::new(2000 + year % 400, month, day).ok()?;
+    let midnight = LocalTime::new(0, 0, 0, 0).ok()?;
+    let utc = UtcOffsetSeconds::new(0).ok()?;
+    let ticks = LocalDateTime::new(date, midnight)
+        .to_offset_instant(utc, TemporalScale::Seconds)
+        .ok()?
+        .ticks;
+    let weekday = WEEKDAYS[((ticks / 86_400) % 7) as usize];
+    let month = MONTHS[usize::from(month - 1)];
+    Some(format!("{weekday} · {month} {day}"))
 }
 
 impl NativeFaceScene {
@@ -90,8 +142,8 @@ impl NativeFaceScene {
                 .iter()
                 .position(|p| p.subject == clock.identity && p.name == name)
         };
-        let date = property("local-date")?;
-        let time = property("local-time")?;
+        let date = display_date(property_text(face, property("local-date")?)?)?;
+        let (time, period) = display_time(property_text(face, property("local-time")?)?)?;
         let (weather_subject_index, weather_subject) = semantic("weather/conditions")?;
         // The first Body wording is the complete owner or localized weather
         // summary made by document::prepare. Attributions follow it.
@@ -103,8 +155,8 @@ impl NativeFaceScene {
             return None;
         }
         let texts = [
-            property_text(face, date)?,
-            property_text(face, time)?,
+            date.as_str(),
+            time.as_str(),
             self.primary[weather].text.as_str(),
         ];
         let width = self.screen.width;
@@ -115,26 +167,42 @@ impl NativeFaceScene {
         let margin = (width / 28).clamp(14, 42);
         let pad = (width / 50).clamp(12, 24);
         let usable = width.checked_sub(2 * margin + 2 * pad)?;
-        let mut max_line_width = 0;
-        let mut heights = [0u16; 3];
-        for ((text, role), line_height) in texts.into_iter().zip(ROLES).zip(&mut heights) {
-            let style = self.typography.style(role.into());
+        let gap = 6;
+        let label_style = self.typography.style(GraphicsTextRole::Label.into());
+        let measure = |text, style| {
             let metrics = crate::display::typography::intrinsic_text_metrics(
                 text,
                 style,
                 self.text_scale_percent,
             )
             .ok()?;
-            let line_width = u16::try_from(metrics.preferred_inline).ok()?.min(usable);
-            max_line_width = max_line_width.max(line_width);
-            *line_height = u16::try_from(
-                TextLayout::new_selected(text, style, usable, self.text_scale_percent)
+            u16::try_from(metrics.preferred_inline).ok()
+        };
+        let period_width = measure(period, label_style)?;
+        let period_height = u16::try_from(
+            TextLayout::new_selected(period, label_style, period_width, self.text_scale_percent)
+                .ok()?
+                .finish_height(),
+        )
+        .ok()?;
+        let mut widths = [0u16; 3];
+        let mut heights = [0u16; 3];
+        for (index, (text, role)) in texts.into_iter().zip(ROLES).enumerate() {
+            let style = self.typography.style(role.into());
+            let measured = measure(text, style)?;
+            if index == 1 && measured.checked_add(gap)?.checked_add(period_width)? > usable {
+                return None;
+            }
+            widths[index] = measured.min(usable);
+            heights[index] = u16::try_from(
+                TextLayout::new_selected(text, style, widths[index], self.text_scale_percent)
                     .ok()?
                     .finish_height(),
             )
             .ok()?;
         }
-        let gap = 6;
+        let max_line_width = widths[0].max(widths[1] + gap + period_width).max(widths[2]);
+        heights[1] = heights[1].max(period_height);
         let panel_height = heights
             .iter()
             .try_fold(2 * pad + 2 * gap, |total: u16, h| total.checked_add(*h))?;
@@ -149,20 +217,29 @@ impl NativeFaceScene {
             height: panel_height,
         };
         let mut cursor = y + pad;
-        let lines = heights.map(|h| {
+        let lines = core::array::from_fn(|index| {
+            let h = heights[index];
             let rect = LayoutRect {
                 x: (margin + pad) as i16,
                 y: cursor as i16,
-                width: max_line_width,
+                width: widths[index],
                 height: h,
             };
             cursor += h + gap;
             rect
         });
+        let period_bounds = LayoutRect {
+            x: lines[1].x + (widths[1] + gap) as i16,
+            y: lines[1].y + ((heights[1] - period_height) / 2) as i16,
+            width: period_width,
+            height: period_height,
+        };
         Some(PicturePage {
             image: key,
             date,
             time,
+            period,
+            period_bounds,
             weather,
             panel,
             lines,
@@ -170,7 +247,7 @@ impl NativeFaceScene {
     }
 
     pub(super) fn picture_page(&self) -> Result<Option<FaceFrame<'_>>, FaceSceneError> {
-        let Some(page) = self.picture_frame else {
+        let Some(page) = &self.picture_frame else {
             return Ok(None);
         };
         if self.page != 0
@@ -197,9 +274,9 @@ impl NativeFaceScene {
             ),
         )?;
         let texts = [
-            property_text(&self.face, page.date),
-            property_text(&self.face, page.time),
-            Some(self.primary[page.weather].text.as_str()),
+            page.date.as_str(),
+            page.time.as_str(),
+            self.primary[page.weather].text.as_str(),
         ];
         for (((text, role), bounds), paint) in texts.into_iter().zip(ROLES).zip(page.lines).zip([
             GraphicsPaintRole::Muted,
@@ -208,15 +285,20 @@ impl NativeFaceScene {
         ]) {
             push(
                 &mut scene,
-                GraphicsCommand::text(
-                    bounds,
-                    screen,
-                    paint,
-                    text.ok_or(FaceSceneError::InvalidFace)?,
-                )
-                .and_then(|command| command.with_text_role(role)),
+                GraphicsCommand::text(bounds, screen, paint, text)
+                    .and_then(|command| command.with_text_role(role)),
             )?;
         }
+        push(
+            &mut scene,
+            GraphicsCommand::text(
+                page.period_bounds,
+                screen,
+                GraphicsPaintRole::Foreground,
+                page.period,
+            )
+            .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
+        )?;
         if let Some(controls) = self.page_controls()? {
             let label = "Next page";
             let style = self.typography.style(GraphicsTextRole::Label.into());

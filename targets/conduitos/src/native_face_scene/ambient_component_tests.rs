@@ -516,13 +516,99 @@ fn picture_frame_draws_photo_and_local_weather_and_preserves_every_reader_page()
         );
         assert_eq!(commands[0].bounds, scene.bounds());
         assert_eq!(commands[0].clip, scene.bounds());
-        for value in ["2026-11-17", "19:45:12", "Seattle: 47.1 °F, Cloudy."] {
+        for value in ["Tue · Nov 17", "7:45", "PM", "Seattle: 47.1 °F, Cloudy."] {
             assert!(commands.iter().any(|c| c.payload() == value), "{value}");
+        }
+        assert!(commands.iter().all(|c| c.payload() != "19:45:12"));
+        let clock = commands.iter().find(|c| c.payload() == "7:45").unwrap();
+        let period = commands.iter().find(|c| c.payload() == "PM").unwrap();
+        assert_eq!(clock.text_role(), GraphicsTextRole::Value);
+        assert_eq!(period.text_role(), GraphicsTextRole::Label);
+        assert!(
+            i32::from(clock.bounds.x) + i32::from(clock.bounds.width) <= i32::from(period.bounds.x)
+        );
+        assert!(period.bounds.height < clock.bounds.height);
+        for command in commands {
+            assert!(command.bounds.x >= 0 && command.bounds.y >= 0);
+            assert!(command.bounds.x as u16 + command.bounds.width <= width);
+            assert!(command.bounds.y as u16 + command.bounds.height <= height);
         }
         assert!(frame.hits.is_empty());
         scene.turn_page(true);
         assert_eq!(scene.frame().unwrap().page, 1);
+        for page in 1..scene.pages() {
+            assert_eq!(scene.frame().unwrap().page, page);
+            scene.turn_page(true);
+        }
+        let last = scene.pages() - 1;
+        let controls = scene.page_controls().unwrap().unwrap();
+        assert!(controls.can_previous);
+        assert!(!controls.can_next);
+        let previous = controls.previous;
+        assert_eq!(
+            scene.pointer_page(previous.x + 4, previous.y + 4).unwrap(),
+            Some(true)
+        );
+        assert_eq!(scene.frame().unwrap().page, last - 1);
         scene.show_details(true);
         assert_eq!(scene.face(), &face);
+    }
+
+    let mut malformed = face;
+    malformed
+        .properties
+        .iter_mut()
+        .find(|property| property.name == "local-time")
+        .unwrap()
+        .value = FacePropertyValue::Text("24:00:00".into());
+    let malformed = refresh(malformed);
+    let scene = NativeFaceScene::prepare_picture_frame(
+        malformed.clone(),
+        640,
+        480,
+        true,
+        &expression,
+        Some(Unit::Fahrenheit),
+    )
+    .unwrap();
+    assert!(scene.picture_page().unwrap().is_none());
+    assert_eq!(scene.face(), &malformed);
+}
+
+#[test]
+fn picture_clock_formats_only_valid_civil_observations() {
+    use super::picture::{display_date, display_time};
+
+    for (input, clock, marker) in [
+        ("00:00:00", "12:00", "AM"),
+        ("11:59:59", "11:59", "AM"),
+        ("12:00:00", "12:00", "PM"),
+        ("23:59:59", "11:59", "PM"),
+    ] {
+        let (time, period) = display_time(input).unwrap();
+        assert_eq!((time.as_str(), period), (clock, marker));
+    }
+    for input in ["", "24:00:00", "12:60:00", "12:59:60", "1:02:03", "12:34:é"] {
+        assert!(display_time(input).is_none(), "{input}");
+    }
+    for (input, expected) in [
+        ("2023-12-31", "Sun · Dec 31"),
+        ("2024-01-01", "Mon · Jan 1"),
+        ("2024-02-29", "Thu · Feb 29"),
+        ("2024-03-01", "Fri · Mar 1"),
+        ("1900-02-28", "Wed · Feb 28"),
+        ("2000-02-29", "Tue · Feb 29"),
+    ] {
+        assert_eq!(display_date(input).as_deref(), Some(expected));
+    }
+    for input in [
+        "",
+        "1900-02-29",
+        "2026-04-31",
+        "2026-00-01",
+        "2026-01-00",
+        "2026-1-01",
+    ] {
+        assert!(display_date(input).is_none(), "{input}");
     }
 }
