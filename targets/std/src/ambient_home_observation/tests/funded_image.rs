@@ -196,6 +196,7 @@ fn home_plan(host: &crate::StdHost) -> (conduit_body::Wake, conduit_body::BodyPl
 struct Capture {
     control: crate::RunControl,
     current: Option<crate::body_execution::CommittedFaceContribution>,
+    repeated: bool,
 }
 
 impl crate::body_execution::BodyFaceContributionObserver for Capture {
@@ -206,6 +207,7 @@ impl crate::body_execution::BodyFaceContributionObserver for Capture {
         let previous = self.current.replace(contribution);
         if let Some(previous) = previous {
             assert!(previous.request() < self.current.as_ref().unwrap().request());
+            self.repeated = true;
             self.control
                 .request_stop(crate::RunControlRequestId::new("fixture/home-complete").unwrap())
                 .unwrap();
@@ -225,6 +227,7 @@ fn funded_ambient_play_publishes_worker_observation_then_retires_its_face() {
     let mut observer = Capture {
         control: control.clone(),
         current: None,
+        repeated: false,
     };
     let report = std::thread::scope(|scope| {
         let (done, cancellation) = std::sync::mpsc::sync_channel::<()>(1);
@@ -259,6 +262,10 @@ fn funded_ambient_play_publishes_worker_observation_then_retires_its_face() {
         report.report().failure.is_none(),
         "{:?}",
         report.report().failure
+    );
+    assert!(
+        observer.repeated,
+        "resident Play committed only its initial Face"
     );
     let face = observer
         .current
