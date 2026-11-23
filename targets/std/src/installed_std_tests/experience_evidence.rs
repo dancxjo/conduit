@@ -1,5 +1,5 @@
 #[path = "../../../../semantics/catalog/tests/common/experience_evidence.rs"]
-mod common;
+pub(crate) mod common;
 use super::{host, installed_std, RecordingTimer};
 use common::*;
 use conduit_core::{

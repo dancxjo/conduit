@@ -113,6 +113,45 @@ robot behavior or stable-release acceptance. The broader #6874 qualification
 remains open.
 
 
+## Generic instruction delivery through GenerationContext (#7033)
+
+The default explicit-evidence renderer now uses the existing
+`conduit.ai/generation-context@1` envelope. Its instruction remains the accepted
+227-byte profile v2 and hash above. The `data` object is byte-identical to
+omitted-instruction rendering; custom, omitted and compact rendering retain
+their existing byte contracts. This lets the existing provider adapter separate
+the instruction from evidence. Receipts identify the envelope schema separately
+from the instruction profile and compiled formatter checksum.
+
+The envelope adds exactly 52 wire bytes. Storage remains 4096 bytes: a request
+that previously required 4045–4096 bytes can now refuse `ByteBound` before any
+model call. No evidence is dropped and no input, output, work or resource budget
+increases. Renderer tests cover exact-capacity success, one-byte overflow,
+escaping, instruction-like evidence remaining data, and early malformed-input
+refusal. Existing model-bound metadata and oversized-input assertions remain.
+Role separation does not enforce model obedience or confine hostile input.
+
+The first sequential pair on 23 November 2026 used the same pinned Gemma4
+digest, Ollama 0.34.1 and 12288 MiB admission. Renderer (6), shared evidence (3),
+decoder (2), provider role mapping (3) and integration (3) checks passed, as did
+warnings-denied package Clippy. The two live cases each ran once:
+
+| Case | First result | Observed behavior |
+| --- | --- | --- |
+| Uncertain human evidence | Quality failure, `Produced` | Identified the human report and label, but omitted the supplied uncertainty. |
+| Contradictory human evidence | `Truncated` | Included both labels and their contradiction, then exhausted the existing output budget before completing. |
+
+This delivery correction does not qualify Gemma4 or demonstrate that missing
+role separation caused the earlier quality failures. The earlier untagged v2
+results remain above. A separate, unpublished wording-only v3 study
+([#7031](https://github.com/dancxjo/conduit/issues/7031)) also failed uncertainty;
+its 225-byte instruction is not used here. Its comparison with the configured
+Gemma3 model failed all four quality cases. A later Phi4 comparison with current
+body/v2 generic instructions passed the battery sequence, failed the human
+report and truncated both generic cases. Those first results remain in ignored
+local proof output alongside the original campaigns. No model default changes,
+physical robot proof or stable-release acceptance are claimed; #6874 stays open.
+
 ## Recorded candidate outcome
 
 The first sequential local run on 22 November 2026 used Ollama 0.34.1,

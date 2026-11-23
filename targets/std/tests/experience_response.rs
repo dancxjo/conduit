@@ -16,6 +16,14 @@ use evidence::{items, observation, selection_with_relationships};
 
 const PROGRAM: &str = include_str!("../../../plots/experience-response/main.conduit");
 
+fn generation_context(request: &str) -> conduit_ai::GenerationContext {
+    let context = conduit_ai::decode_generation_context(request)
+        .unwrap()
+        .expect("default explicit evidence uses the existing generation envelope");
+    assert!(context.question().is_none());
+    context
+}
+
 #[test]
 fn experience_relationships_reach_the_model_across_two_revisions() {
     let mut harness = evidence_harness(PROGRAM);
@@ -91,8 +99,10 @@ fn experience_relationships_reach_the_model_across_two_revisions() {
     assert_eq!(terminal(&report), &TerminalDisposition::Completed);
     assert_eq!(collector.0.len(), 2);
     let requests = harness.requests.lock().unwrap();
-    let first: serde_json::Value = serde_json::from_str(&requests[0]).unwrap();
-    let second: serde_json::Value = serde_json::from_str(&requests[1]).unwrap();
+    let first: serde_json::Value =
+        serde_json::from_str(generation_context(&requests[0]).data()).unwrap();
+    let second: serde_json::Value =
+        serde_json::from_str(generation_context(&requests[1]).data()).unwrap();
     assert_eq!(first["evidence"][0]["identity"], "a");
     assert_eq!(
         first["evidence"][0]["observed_at"]["clock_basis"],
