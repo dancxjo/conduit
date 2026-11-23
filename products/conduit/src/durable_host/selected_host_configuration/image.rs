@@ -105,18 +105,15 @@ impl Selection {
                     "configured native input has no admitted product Show/input consumer".into(),
                 );
             }
-            let selected = selected
-                .as_ref()
-                .ok_or("combined startup member requires its selected speaker")?;
-            return StdHost::from_selected_timer_and_native_mask_and_playback_image(
-                config,
-                image,
-                &conduit_workspace_make::catalog(),
-                &checked,
-                parameters,
-                output,
-                selected,
-            );
+            let catalog = conduit_workspace_make::catalog();
+            return match selected.as_ref() {
+                Some(speaker) => StdHost::from_selected_timer_and_native_mask_and_playback_image(
+                    config, image, &catalog, &checked, parameters, output, speaker,
+                ),
+                None => StdHost::from_selected_timer_and_native_mask_image(
+                    config, image, &catalog, &checked, parameters, output,
+                ),
+            };
         }
         if self.requires_scanout()? {
             return Err("selected scanout requires the native-display product feature and actual initialized output".into());
