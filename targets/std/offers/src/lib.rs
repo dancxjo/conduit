@@ -1,5 +1,7 @@
 //! Exact implementation offers owned by the hosted std Host.
 
+mod ambient_home_face;
+pub use ambient_home_face::*;
 mod ambient_home_observation;
 pub use ambient_home_observation::*;
 mod flow_coalesce_finite;
