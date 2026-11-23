@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { validateNativeTextEditReceipt } from '../conduitos-text-edit-receipt.mjs';
 import { cargo, cargoArtifact, command, copyFile, digest, xtask } from './targets/common.mjs';
@@ -47,7 +47,25 @@ async function hosted(id, directory) {
     const { loadHostedProductCacheConfig } = await import('./hosted-cache-command.mjs');
     const { cachedHostedLinux } = await import('./targets/hosted-cached.mjs');
     const configuration = await loadHostedProductCacheConfig(process.env.CONDUIT_HOSTED_CACHE_CONFIG);
-    return cachedHostedLinux({ ...configuration, directory });
+    await cachedHostedLinux({ ...configuration, directory });
+    const executable = path.join(directory, 'conduit');
+    const installer = path.join(directory, 'install-bundle');
+    const before = digest(executable);
+    xtask('make', 'host', 'seal-linux-installer', executable, '--output', installer,
+      '--source-identity', configuration.snapshot.sourceCommit);
+    const installExecutable = path.join(installer, 'conduit-linux-x86_64');
+    const state = path.join(configuration.taskRoot, 'installer-proof-state');
+    command('sh', [path.join(installer, 'install-linux-x86_64.sh'), '--state-dir', state, '--no-start'],
+      { cwd: configuration.taskRoot });
+    const installation = JSON.parse(readFileSync(path.join(state, 'installation.json'), 'utf8'));
+    if (installation.schema !== 'conduit.install/durable-host@1' ||
+        installation.release_source_identity !== configuration.snapshot.sourceCommit ||
+        !installation.host_id || existsSync(path.join(state, 'runtime.json')) ||
+        digest(executable) !== before || digest(installExecutable) !== before ||
+        digest(installation.product_executable) !== before) {
+      throw new Error('Installer must install the exact retained Linux executable without starting a Host');
+    }
+    return;
   }
   // The old Linux release command also cross-builds Raspberry Pi. Keep this
   // native executable lane independent of every embedded compiler.

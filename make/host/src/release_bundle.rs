@@ -8,6 +8,10 @@ use std::io::Read;
 
 pub const HOST_RELEASE_BUNDLE_SCHEMA: &str = "conduit.release/host-bundle@1";
 
+/// Finite file limit for native installer sealing and verification. The
+/// stripped Linux x86-64 executable in the reviewed distribution exceeds 64 MiB.
+pub const MAXIMUM_NATIVE_HOST_RELEASE_FILE_BYTES: u64 = 72 * 1024 * 1024;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HostReleaseFile {
     pub path: String,

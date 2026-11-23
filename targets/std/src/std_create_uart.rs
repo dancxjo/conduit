@@ -55,10 +55,14 @@ pub enum StdCreateUartIoError {
     WriteTimedOut,
 }
 
+/// An exact binary serial device, not a borrowed interactive terminal.
+///
+/// Release retains the configured binary settings: changing baud beneath queued
+/// cleanup or restoring terminal echo could corrupt or transmit device bytes.
+/// The next owner must explicitly configure its own serial profile.
 pub struct StdCreateUartBase {
     fd: OwnedFd,
     identity: StdCreateUartIdentity,
-    saved_termios: libc::termios,
     available: bool,
 }
 
@@ -96,9 +100,9 @@ impl StdCreateUartBase {
         if opened_device_number != metadata.rdev() {
             return Err(StdCreateUartOpenError::PathIdentityChanged);
         }
-        let saved_termios = observe_termios(fd.as_raw_fd())?;
-        configure_create_oi(fd.as_raw_fd(), &saved_termios)?;
-        verify_create_oi(fd.as_raw_fd())?;
+        let previous_termios = observe_termios(fd.as_raw_fd())?;
+        configure_create_oi(fd.as_raw_fd(), &previous_termios, observation.profile)?;
+        verify_create_oi(fd.as_raw_fd(), observation.profile)?;
         Ok(Self {
             fd,
             identity: StdCreateUartIdentity {
@@ -108,7 +112,6 @@ impl StdCreateUartBase {
                 profile: observation.profile,
                 maximum_write_wait_ms: observation.maximum_write_wait_ms,
             },
-            saved_termios,
             available: true,
         })
     }
@@ -119,12 +122,6 @@ impl StdCreateUartBase {
 
     pub fn close(&mut self) {
         self.available = false;
-    }
-}
-
-impl Drop for StdCreateUartBase {
-    fn drop(&mut self) {
-        let _ = unsafe { libc::tcsetattr(self.fd.as_raw_fd(), libc::TCSANOW, &self.saved_termios) };
     }
 }
 
@@ -240,9 +237,14 @@ fn opened_character_device_number(fd: RawFd) -> Result<u64, StdCreateUartOpenErr
     Ok(stat.st_rdev)
 }
 
-fn configure_create_oi(fd: RawFd, observed: &libc::termios) -> Result<(), StdCreateUartOpenError> {
+fn configure_create_oi(
+    fd: RawFd,
+    observed: &libc::termios,
+    profile: UartProfile,
+) -> Result<(), StdCreateUartOpenError> {
     let mut termios = *observed;
     unsafe { libc::cfmakeraw(&mut termios) };
+    termios.c_iflag &= !(libc::IXON | libc::IXOFF | libc::IXANY);
     termios.c_cflag &= !(libc::CSIZE | libc::CSTOPB | libc::PARENB);
     termios.c_cflag |= libc::CS8 | libc::CLOCAL | libc::CREAD;
     #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -251,8 +253,9 @@ fn configure_create_oi(fd: RawFd, observed: &libc::termios) -> Result<(), StdCre
     }
     termios.c_cc[libc::VMIN] = 0;
     termios.c_cc[libc::VTIME] = 0;
-    if unsafe { libc::cfsetispeed(&mut termios, libc::B57600) } != 0
-        || unsafe { libc::cfsetospeed(&mut termios, libc::B57600) } != 0
+    let speed = create_oi_speed(profile)?;
+    if unsafe { libc::cfsetispeed(&mut termios, speed) } != 0
+        || unsafe { libc::cfsetospeed(&mut termios, speed) } != 0
         || unsafe { libc::tcsetattr(fd, libc::TCSANOW, &termios) } != 0
         || unsafe { libc::tcflush(fd, libc::TCIOFLUSH) } != 0
     {
@@ -263,15 +266,30 @@ fn configure_create_oi(fd: RawFd, observed: &libc::termios) -> Result<(), StdCre
     Ok(())
 }
 
-fn verify_create_oi(fd: RawFd) -> Result<(), StdCreateUartOpenError> {
+fn create_oi_speed(profile: UartProfile) -> Result<libc::speed_t, StdCreateUartOpenError> {
+    match profile {
+        UartProfile::CREATE_OI => Ok(libc::B57600),
+        UartProfile::CREATE_OI_19200 => Ok(libc::B19200),
+        _ => Err(StdCreateUartOpenError::WrongProfile(profile)),
+    }
+}
+
+fn verify_create_oi(fd: RawFd, profile: UartProfile) -> Result<(), StdCreateUartOpenError> {
     let termios = observe_termios(fd)?;
+    let speed = create_oi_speed(profile)?;
     let exact_flags = termios.c_cflag & libc::CSIZE == libc::CS8
         && termios.c_cflag & libc::CSTOPB == 0
         && termios.c_cflag & libc::PARENB == 0
         && termios.c_cflag & (libc::CLOCAL | libc::CREAD) == libc::CLOCAL | libc::CREAD;
-    let exact_speed = unsafe { libc::cfgetispeed(&termios) } == libc::B57600
-        && unsafe { libc::cfgetospeed(&termios) } == libc::B57600;
-    if exact_flags && exact_speed && termios.c_cc[libc::VMIN] == 0 && termios.c_cc[libc::VTIME] == 0
+    let exact_speed = unsafe { libc::cfgetispeed(&termios) } == speed
+        && unsafe { libc::cfgetospeed(&termios) } == speed;
+    let binary_input = termios.c_lflag & (libc::ICANON | libc::ECHO | libc::ECHONL) == 0
+        && termios.c_iflag & (libc::IXON | libc::IXOFF | libc::IXANY) == 0;
+    if exact_flags
+        && exact_speed
+        && binary_input
+        && termios.c_cc[libc::VMIN] == 0
+        && termios.c_cc[libc::VTIME] == 0
     {
         Ok(())
     } else {

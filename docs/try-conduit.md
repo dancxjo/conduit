@@ -8,8 +8,10 @@ inspection, its live diagram, and Stop.
 
 ## Start Conduit on Linux
 
-On a systemd-based Linux x86-64 machine, unpack the reviewed Host release
-bundle and run this from its directory as the account that will own the Host:
+On a systemd-based Linux x86-64 machine, download `hosted-linux.tar.gz` from
+the [latest release](https://github.com/dancxjo/conduit/releases/latest). Unpack
+it, enter `hosted-linux/install-bundle/`, and run this as the account that will
+own the Host:
 
 ```sh
 sh ./install-linux-x86_64.sh

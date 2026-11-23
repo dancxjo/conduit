@@ -59,13 +59,26 @@ pub enum CreateObservationSessionState {
 
 pub struct CreateObservationSession {
     state: CreateObservationSessionState,
+    startup_mode: CreateOiModeRequest,
     last_stream_discarded_bytes: Option<u16>,
 }
 
 impl CreateObservationSession {
+    /// Start in Safe mode for existing observation and actuator workflows.
     pub const fn new() -> Self {
         Self {
+            startup_mode: CreateOiModeRequest::Safe,
+            ..Self::new_passive()
+        }
+    }
+
+    /// Request Passive mode for a standalone sensor session, permitting charging.
+    /// This changes mode and must not share an active actuator session.
+    /// It does not verify that the robot received the request or is charging.
+    pub const fn new_passive() -> Self {
+        Self {
             state: CreateObservationSessionState::New,
+            startup_mode: CreateOiModeRequest::Passive,
             last_stream_discarded_bytes: None,
         }
     }
@@ -87,10 +100,10 @@ impl CreateObservationSession {
         }
         let result = write_command(provider, &encode_start())
             .and_then(|()| {
-                write_command(
-                    provider,
-                    &encode_mode(CreateOiModeRequest::Safe).expect("Safe has one command"),
-                )
+                match encode_mode(self.startup_mode) {
+                    Some(command) => write_command(provider, &command),
+                    None => Ok(()), // Start already requests Passive mode.
+                }
             })
             .and_then(|()| write_command(provider, &encode_observation_stream()));
         match result {

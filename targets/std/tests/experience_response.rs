@@ -2,6 +2,10 @@
 mod common;
 #[path = "../../../semantics/catalog/tests/common/experience_evidence.rs"]
 mod evidence;
+#[path = "experience_response/live_qualification.rs"]
+mod live_qualification;
+#[path = "../../../tools/xtask/tests/experience_episode_loop/live_model.rs"]
+mod qualification_model;
 
 use common::{evidence_harness, run, terminal, Collector};
 use conduit_core::{ConnectionTrack, TerminalDisposition};

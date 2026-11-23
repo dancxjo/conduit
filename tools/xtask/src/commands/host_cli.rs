@@ -70,6 +70,14 @@ pub(super) enum HostCommand {
         #[arg(long)]
         source_identity: Option<String>,
     },
+    /// Package an already-built Linux x86-64 executable and its installer.
+    SealLinuxInstaller {
+        executable: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+        #[arg(long)]
+        source_identity: String,
+    },
     /// Seal reviewed release manifests into the installed target catalog.
     ReleaseCatalog {
         /// Directory containing reviewed release manifests and their artifacts.
