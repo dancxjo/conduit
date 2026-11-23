@@ -53,10 +53,10 @@ impl<'a> CivilClockReply<'a> {
             0,
         )
         .map_err(|_| CivilClockRefusal::CivilLabel)?;
-        let instant = LocalDateTime::new(date, time)
-            .to_offset_instant(offset, TemporalScale::Seconds)
+        let unix_seconds = LocalDateTime::new(date, time)
+            .to_offset_unix_ticks(offset, TemporalScale::Seconds)
             .map_err(|_| CivilClockRefusal::InconsistentInstant)?;
-        if instant.ticks != observed_at_unix_ms / 1000 {
+        if unix_seconds != observed_at_unix_ms / 1000 {
             return Err(CivilClockRefusal::InconsistentInstant);
         }
         Ok(Self {

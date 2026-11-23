@@ -30,6 +30,22 @@ impl LocalDateTime {
         offset: UtcOffsetSeconds,
         scale: TemporalScale,
     ) -> Result<TemporalInstant, CivilConversionRefusal> {
+        let ticks = self.to_offset_unix_ticks(offset, scale)?;
+        Ok(TemporalInstant {
+            ticks,
+            scale,
+            clock_basis: String::from(UNIX_UTC_CLOCK_BASIS),
+            resolution_ticks: 1,
+            uncertainty_ticks: 0,
+        })
+    }
+
+    /// Exact Unix UTC ticks without constructing an owned clock identity.
+    pub fn to_offset_unix_ticks(
+        self,
+        offset: UtcOffsetSeconds,
+        scale: TemporalScale,
+    ) -> Result<u64, CivilConversionRefusal> {
         self.validate()
             .map_err(CivilConversionRefusal::InvalidCivilTime)?;
         offset
@@ -61,15 +77,7 @@ impl LocalDateTime {
         if utc_nanos % factor != 0 {
             return Err(CivilConversionRefusal::Inexact);
         }
-        let ticks =
-            u64::try_from(utc_nanos / factor).map_err(|_| CivilConversionRefusal::Overflow)?;
-        Ok(TemporalInstant {
-            ticks,
-            scale,
-            clock_basis: String::from(UNIX_UTC_CLOCK_BASIS),
-            resolution_ticks: 1,
-            uncertainty_ticks: 0,
-        })
+        u64::try_from(utc_nanos / factor).map_err(|_| CivilConversionRefusal::Overflow)
     }
 
     pub fn from_offset_instant(
