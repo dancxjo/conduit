@@ -52,6 +52,16 @@ The process report records whether the wire bound established retirement;
 buffered bytes drained during cleanup cannot rewrite an already established
 cancellation, timeout, or unrelated provider loss into a capacity failure.
 
+The durable pool-member wire consumer preserves its existing codes: refusal
+(70), implementation/structured-result failure (71), cancellation (72), semantic
+output payload limit (73), and provider loss (74). Transport timeout (75) and raw
+response capacity overflow (76) fail each active session separately from that
+semantic payload limit. Failed operations publish no result payload, including
+any bytes retained by the adapter; cancellation retains the cancelled wire
+terminal. The deterministic product session tests exercise actual planned
+session machines and encoded failure/terminal frames with synthetic model
+terminal inputs, rather than invoking a model provider.
+
 The generic model offer still reports `cancellation_supported: false`: only this
 prepared Unix generation worker has the selected transport behavior. Synchronous
 model operations, initialization, inventory, text streaming, and other operating
