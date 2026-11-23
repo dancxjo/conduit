@@ -452,7 +452,6 @@ test("reviewed resident civil clock Shows live time and returns to the same Body
     text: element.textContent,
   }));
   const beforeReload = await show();
-  expect(beforeReload.face_id).toBeTruthy();
   const checkedPlotId = await resident.getAttribute("data-checked-plot-id");
   expect(checkedPlotId).toBeTruthy();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
@@ -464,6 +463,13 @@ test("reviewed resident civil clock Shows live time and returns to the same Body
   expect(after.host_id).toBe(first.host_id);
   expect(after.boot_id).not.toBe(first.boot_id);
   const afterReload = await show();
+  for (const currentShow of [beforeReload, afterReload]) {
+    expect(currentShow.face_id).toMatch(/^[0-9a-f]{64}$/u);
+    expect(currentShow.plan_id).toMatch(/^[0-9a-f]{64}$/u);
+    expect(currentShow.placement_id).toMatch(/^[0-9a-f]{64}$/u);
+  }
+  expect(afterReload.face_id).not.toBe(beforeReload.face_id);
+  expect(afterReload.plan_id).not.toBe(beforeReload.plan_id);
   await expect(resident).toHaveAttribute("data-checked-plot-id", checkedPlotId);
   await testInfo.attach("resident-clock-return", {
     contentType: "application/json",
