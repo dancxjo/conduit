@@ -192,7 +192,7 @@ fn plan_fixture(host: &crate::StdHost, grant: conduit_core::AuthorityGrant) -> c
             r#"
 plot home (
     >> pulse: Tick...
-    current: AmbientHomeObservation... >>
+    current: AmbientHomeObservation... <= 8192B >>
 ) {
     source: ambient/resident-observation("America/Los_Angeles")
     pulse >> source.tick
