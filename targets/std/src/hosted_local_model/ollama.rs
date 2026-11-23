@@ -19,6 +19,7 @@ const REQUEST_TIMEOUT_SECONDS: &str = "120";
 const WARMUP_MAXIMUM_TOKENS: u64 = 8;
 
 mod discovery;
+mod generation_transport;
 mod generation_worker;
 mod protocol;
 mod request;
@@ -39,6 +40,7 @@ pub struct OllamaLocalModelAdapter {
     next_request_sequence: u64,
     active_stream: Option<super::ollama_stream::Session>,
     generation_worker: Option<generation_worker::Worker>,
+    generation_transport: Option<generation_transport::Transport>,
 }
 
 impl HostedLocalModelAdapter for OllamaLocalModelAdapter {

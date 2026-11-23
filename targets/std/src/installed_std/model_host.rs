@@ -11,6 +11,8 @@ pub(super) enum ModelHostCompletion {
     StreamComplete,
     Refused,
     Failed,
+    TimedOut,
+    ResponseBoundExceeded,
     Cancelled,
     ProviderLost,
     InvalidStructuredResult,
@@ -31,6 +33,24 @@ impl ModelHostCompletion {
                 Some(Failure {
                     code: FailureCode::HostCallFailed,
                     detail: 53,
+                }),
+            ),
+            // The local-model Host Call detail owns this transport distinction:
+            // 53 implementation failure, 54 provider loss, 55 invalid result,
+            // 56 request timeout, 57 response capacity. No new kernel failure
+            // class is introduced.
+            Self::TimedOut => (
+                HostCallDisposition::Failed,
+                Some(Failure {
+                    code: FailureCode::HostCallFailed,
+                    detail: 56,
+                }),
+            ),
+            Self::ResponseBoundExceeded => (
+                HostCallDisposition::Failed,
+                Some(Failure {
+                    code: FailureCode::HostCallFailed,
+                    detail: 57,
                 }),
             ),
             Self::Cancelled => (HostCallDisposition::Cancelled, None),
@@ -134,6 +154,10 @@ pub(super) fn finish_terminal(
         }
         LocalModelAdapterTerminal::Refused => ModelHostCompletion::Refused,
         LocalModelAdapterTerminal::Failed => ModelHostCompletion::Failed,
+        LocalModelAdapterTerminal::TimedOut => ModelHostCompletion::TimedOut,
+        LocalModelAdapterTerminal::ResponseBoundExceeded => {
+            ModelHostCompletion::ResponseBoundExceeded
+        }
         LocalModelAdapterTerminal::Cancelled => ModelHostCompletion::Cancelled,
         LocalModelAdapterTerminal::ProviderLost => ModelHostCompletion::ProviderLost,
         LocalModelAdapterTerminal::InvalidStructuredResult => {
@@ -202,5 +226,22 @@ mod tests {
         assert_eq!(lost.disposition, HostCallDisposition::Failed);
         assert_eq!(malformed.failure.unwrap().detail, 55);
         assert_eq!(lost.failure.unwrap().detail, 54);
+    }
+
+    #[test]
+    fn transport_timeout_is_distinct_from_loss_cancellation_and_completion() {
+        let timeout = ModelHostCompletion::TimedOut.outcome(None);
+        let lost = ModelHostCompletion::ProviderLost.outcome(None);
+        let cancelled = ModelHostCompletion::Cancelled.outcome(None);
+        let completed = ModelHostCompletion::Output.outcome(None);
+        let overflow = ModelHostCompletion::ResponseBoundExceeded.outcome(None);
+        assert_eq!(timeout.disposition, HostCallDisposition::Failed);
+        assert_eq!(timeout.failure.unwrap().detail, 56);
+        assert_ne!(timeout.failure, lost.failure);
+        assert_eq!(overflow.failure.unwrap().detail, 57);
+        assert_ne!(overflow.failure, timeout.failure);
+        assert_ne!(overflow.failure, lost.failure);
+        assert_eq!(cancelled.disposition, HostCallDisposition::Cancelled);
+        assert_eq!(completed.disposition, HostCallDisposition::Completed);
     }
 }

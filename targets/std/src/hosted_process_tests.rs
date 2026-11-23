@@ -48,6 +48,65 @@ fn output_pressure_retains_bound_and_observes_full_stream() {
     assert_eq!(report.stdout.retained.len(), 64);
     assert_eq!(report.stdout.observed_bytes, 8000);
 }
+
+#[test]
+#[cfg(unix)]
+fn larger_wire_capture_requires_an_explicit_finite_admission() {
+    let arguments = [OsString::from("-c"), OsString::from("printf '%0131117d' 0")];
+    let mut request = ProcessRequest {
+        program: Path::new("/bin/sh"),
+        arguments: &arguments,
+        environment: &[],
+        stdin: &[],
+        maximum_stdout_bytes: 131_117,
+        maximum_stderr_bytes: 32,
+        timeout: Duration::from_secs(2),
+        require_process_group: true,
+    };
+    assert!(matches!(
+        run_process_with_input_bound(&request, 256, || false),
+        Err(ProcessError::InvalidRequest(_))
+    ));
+    let report =
+        run_process_with_input_and_output_bounds(&request, 256, 16 * 1024 * 1024, || false)
+            .unwrap();
+    assert!(matches!(report.terminal, ProcessTerminal::Exited(status) if status.success()));
+    assert_eq!(report.stdout.retained.len(), 131_117);
+    assert_eq!(report.stdout.observed_bytes, 131_117);
+    request.maximum_stdout_bytes = 16 * 1024 * 1024 + 1;
+    assert!(matches!(
+        run_process_with_input_and_output_bounds(&request, 256, 16 * 1024 * 1024, || false),
+        Err(ProcessError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        run_process_with_input_and_output_bounds(&request, 256, 16 * 1024 * 1024 + 1, || false),
+        Err(ProcessError::InvalidRequest(_))
+    ));
+}
+
+#[test]
+#[cfg(unix)]
+fn explicit_wire_overflow_records_the_retirement_cause() {
+    let arguments = [
+        OsString::from("-c"),
+        OsString::from("printf '%02000d' 0; sleep 10"),
+    ];
+    let request = ProcessRequest {
+        program: Path::new("/bin/sh"),
+        arguments: &arguments,
+        environment: &[],
+        stdin: &[],
+        maximum_stdout_bytes: 64,
+        maximum_stderr_bytes: 32,
+        timeout: Duration::from_secs(2),
+        require_process_group: true,
+    };
+    let report = run_process_with_input_and_output_bounds(&request, 256, 64, || false).unwrap();
+    assert!(report.stdout_bound_retired);
+    assert!(matches!(report.terminal, ProcessTerminal::ProviderLost(_)));
+    assert_eq!(report.stdout.retained.len(), 64);
+    assert!(report.stdout.observed_bytes > 64);
+}
 #[test]
 #[cfg(unix)]
 fn timeout_and_cancellation_retire_descendant_held_pipes() {

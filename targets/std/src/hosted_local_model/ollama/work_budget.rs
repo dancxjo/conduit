@@ -118,4 +118,4 @@ impl OllamaLocalModelAdapter {
 
 #[cfg(test)]
 #[path = "work_budget_tests.rs"]
-mod tests;
+pub(super) mod tests;
