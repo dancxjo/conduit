@@ -181,11 +181,13 @@ Its UTF-8 SHA-256 is
 Deterministic checks inspect actual ordinary and resumable model requests:
 current 9.0% coexists with unrelated unknown thermal state; unavailable current
 charge stays null with its source classification, while selected historical
-charge remains 50.0%. Five-source instruction agreement also passes. The episode-loop target passed 20 non-live tests; four cadence tests and five
+charge remains 50.0%. Five-source instruction agreement also passes. The
+episode-loop target passed 20 non-live tests; four cadence tests and five
 CLI tests also passed. The new fenced cadenced-resumable case uses the literal
 authored entry, a seeded ordinary Plan/Play, bounded requests and an emitted
 checkpoint; it does not establish cross-Host durable recovery. A first campaign
-ran the four live cases sequentially once each on 23 November 2026. Configuration was Ollama 0.34.1,
+ran the four live cases sequentially once each on 23 November 2026. Configuration
+was Ollama 0.34.1,
 `gemma4:latest`, 12288 MiB, with the same pinned inventory digest
 `c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb`.
 
@@ -196,13 +198,24 @@ ran the four live cases sequentially once each on 23 November 2026. Configuratio
 | Existing narrow recall/current/empty-history control | Passed: COPPER KITE, 9.0%, and unknown with empty history. |
 | Existing provider-loss/checkpoint recovery | Passed: recalled the retained label and `provider_lost`. Loss was fault-injected before live recovery. |
 
-Existing quality assertions and resource bounds were unchanged. All four live
-cases retain source, instruction and model receipts plus first-result logs and
-checksums in ignored local proof output; no inference was retried. Plan/Play
-identities are retained where the existing harness emits them. The narrow
-recall control asserts Body/Wake continuity without printing those values.
-That existing live test moved into its instruction-contract module without
-changing assertions, keeping the large parent test file smaller.
+Existing quality assertions and resource bounds were unchanged. Each live case
+retains source, instruction and model receipts plus its result log/checksum in
+ignored local proof output. The bodily, human-report and provider-loss paths
+also print their Plan/Play identities. The narrow control asserts Body/Wake
+continuity without printing those values or a separate Plan/Play receipt. Its
+move into the instruction-contract module preserves every existing assertion
+and keeps the large parent test file smaller.
+
+A later confirmation invalidated workspace-package artifacts after stale Cargo
+metadata was observed across linked worktree roots. All subsequent proof used
+one original checkout at frozen commits. The 29 non-live tests passed, as did
+40 std/Create operator tests and warnings-denied owning checks. The four live
+cases then passed again with the same 404-byte instruction, model digest,
+12288 MiB admission and unchanged assertions. Both campaigns retained their
+first result per case; the second was build confirmation, not answer selection.
+Initial input/output records remain separate, and their dependency-build
+identity is not assumed. Clean-source confirmation records its known build
+checkout and source. No response was discarded to select a pass.
 
 These are synthetic-input hosted results, not physical sensor or robot proof.
 They neither rerun nor resolve the distinct generic uncertainty envelope above.
