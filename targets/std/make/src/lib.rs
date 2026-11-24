@@ -81,6 +81,11 @@ fn package_catalog() -> PackageCatalogContribution {
                 .expect("shipped Ambient Home observation descriptor"),
             conduit_std_offers::resident_ambient_home_face_offer()
                 .expect("shipped Ambient Home Face descriptor"),
+            conduit_std_offers::AmbientFaceProjection::Clock
+                .offer()
+                .expect("shipped ambient clock Face descriptor"),
+            conduit_std_offers::ambient_clock_source_offer()
+                .expect("shipped standalone ambient clock observation descriptor"),
         ])
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
@@ -94,12 +99,18 @@ fn package_catalog() -> PackageCatalogContribution {
                     PrerequisiteNode::Resource(requirement.class_id.as_str().to_owned())
                 }))
                 .collect::<Vec<_>>();
-            if implementation == conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION {
+            if conduit_std_offers::AmbientFaceProjection::for_implementation(&implementation)
+                .is_some()
+            {
                 prerequisites.push(PrerequisiteNode::Base(
                     conduit_std_offers::AMBIENT_HOME_FACE_BASE.into(),
                 ));
             }
-            if implementation == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION {
+            if matches!(
+                implementation.as_str(),
+                conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+            ) {
                 prerequisites.push(PrerequisiteNode::Base(
                     conduit_std_offers::AMBIENT_HOME_SOURCE_BASE.into(),
                 ));
@@ -109,7 +120,9 @@ fn package_catalog() -> PackageCatalogContribution {
             let targets = if matches!(
                 implementation.as_str(),
                 conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
             ) {
                 vec![
                     HOSTED_TARGET_ID.into(),
@@ -133,6 +146,10 @@ fn package_catalog() -> PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
             (
                 conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION.into(),
+                ambient_initialization::contract(),
+            ),
+            (
+                conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION.into(),
                 ambient_initialization::contract(),
             ),
             (
@@ -268,6 +285,11 @@ impl HostMakePackage for HostedMakePackage {
                     conduit_std_offers::AMBIENT_HOME_SOURCE_BASE,
                     conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION,
                     "base-ambient-home-source",
+                ),
+                offer(
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_BASE,
+                    conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+                    "base-ambient-clock-source",
                 ),
             ],
         })

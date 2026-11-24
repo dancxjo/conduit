@@ -1,9 +1,13 @@
 //! Equipment inputs selected by the checked Host configuration.
 use conduit_host_make::CheckedHostConfiguration;
-use conduit_std_offers::{AMBIENT_HOME_SOURCE_BASE, AMBIENT_HOME_SOURCE_IMPLEMENTATION};
+use conduit_std_offers::{
+    AMBIENT_CLOCK_SOURCE_IMPLEMENTATION, AMBIENT_HOME_SOURCE_BASE,
+    AMBIENT_HOME_SOURCE_IMPLEMENTATION,
+};
 use std::net::SocketAddr;
 
 pub struct CheckedAmbientHomeSource<'a> {
+    pub implementation: &'a str,
     pub timezone: &'a str,
     pub weather_endpoint: SocketAddr,
     pub source_pool: &'a str,
@@ -21,8 +25,12 @@ impl<'a> CheckedAmbientHomeSource<'a> {
         let base = declarations
             .next()
             .ok_or("checked Ambient source Base is missing")?;
+        let implementation = base.implementation.as_deref().unwrap_or_default();
         if declarations.next().is_some()
-            || base.implementation.as_deref() != Some(AMBIENT_HOME_SOURCE_IMPLEMENTATION)
+            || !matches!(
+                implementation,
+                AMBIENT_HOME_SOURCE_IMPLEMENTATION | AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+            )
         {
             return Err("checked Ambient source Base is ambiguous or unsupported".into());
         }
@@ -55,12 +63,16 @@ impl<'a> CheckedAmbientHomeSource<'a> {
             "disabled" => false,
             _ => return Err("checked Ambient photo source is unsupported".into()),
         };
+        if implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION && acquire_nasa_photos {
+            return Err("the standalone clock worker has no admitted photo acquisition".into());
+        }
         if weather_endpoint.port() == 0 || source_pool == memory_pool {
             return Err(
                 "checked Ambient source requires a nonzero endpoint and distinct pools".into(),
             );
         }
         Ok(Self {
+            implementation,
             timezone,
             weather_endpoint,
             source_pool,
@@ -118,16 +130,34 @@ where
 {
     use crate::selected_native_source::image_worker::{stage_native_worker, ImageWorkerFactory};
     use conduit_core::*;
-    use conduit_std_offers::{ambient_home_source_offer, AMBIENT_HOME_SOURCE_RESOURCE};
+    use conduit_std_offers::{
+        ambient_clock_source_offer, ambient_home_source_offer, AMBIENT_CLOCK_SOURCE_RESOURCE,
+        AMBIENT_HOME_SOURCE_RESOURCE,
+    };
     use std::time::Duration;
     let parameters = CheckedAmbientHomeSource::from_configuration(checked)?;
+    let clock_only = parameters.implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION;
+    let (kind, offer, source_resource, observation_bytes) = if clock_only {
+        (
+            conduit_semantic_catalog::ambient_clock_kind()?,
+            ambient_clock_source_offer()?,
+            AMBIENT_CLOCK_SOURCE_RESOURCE,
+            conduit_semantic_catalog::AMBIENT_CLOCK_OBSERVATION_BYTES,
+        )
+    } else {
+        (
+            conduit_semantic_catalog::ambient_home_observation_kind()?,
+            ambient_home_source_offer()?,
+            AMBIENT_HOME_SOURCE_RESOURCE,
+            super::HOME_OBSERVATION_BYTES as u32,
+        )
+    };
     let base = image
         .manifest
         .base_selections
         .iter()
         .find(|base| {
-            base.kind == AMBIENT_HOME_SOURCE_BASE
-                && base.driver == AMBIENT_HOME_SOURCE_IMPLEMENTATION
+            base.kind == AMBIENT_HOME_SOURCE_BASE && base.driver == parameters.implementation
         })
         .ok_or("Ambient worker Base is absent from the IMAGE")?;
     let pool = |id: &str, class: &str| {
@@ -140,7 +170,7 @@ where
             .ok_or_else(|| format!("Ambient worker lacks the checked pool {id}"))
     };
     let definition = crate::NativeSourceDefinition {
-        kind: conduit_semantic_catalog::ambient_home_observation_kind()?,
+        kind,
         base: BaseProviderEntry {
             base_id: base.id.as_str().into(),
             provider_instance_id: format!(
@@ -150,13 +180,13 @@ where
             )
             .into(),
             provider_generation: config.offer_generation.0,
-            implementation_id: AMBIENT_HOME_SOURCE_IMPLEMENTATION.into(),
+            implementation_id: parameters.implementation.into(),
             mechanism_family: AMBIENT_HOME_SOURCE_BASE.into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
             lifecycle: BaseLifecycle::Ready,
-            capabilities: vec![ambient_home_source_offer()?],
+            capabilities: vec![offer],
             resources: vec![
-                pool(parameters.source_pool, AMBIENT_HOME_SOURCE_RESOURCE)?,
+                pool(parameters.source_pool, source_resource)?,
                 pool(parameters.memory_pool, RUNTIME_MEMORY_RESOURCE_CLASS)?,
             ],
         },
@@ -171,8 +201,8 @@ where
             value: ConfigurationValue::Text(parameters.timezone.into()),
         }],
         input_bytes: conduit_time::TICK_ENCODED_LEN,
-        output_bytes: super::HOME_OBSERVATION_BYTES as u32,
-        resource_bytes: super::HOME_OBSERVATION_BYTES as u64,
+        output_bytes: observation_bytes,
+        resource_bytes: u64::from(observation_bytes),
     };
     let budget = crate::NativeWorkerBudget {
         requested_stack_bytes: 2 * 1024 * 1024,
@@ -184,6 +214,12 @@ where
         budget,
         provider_preparation_bytes: crate::ambient_wallpaper::acquisition::PREPARATION_BYTES,
         prepare: Box::new(move || {
+            if clock_only {
+                return Ok(Box::new(crate::ambient_clock::PreparedLiveClock::prepare(
+                    parameters.timezone,
+                    parameters.weather_endpoint,
+                )?));
+            }
             Ok(Box::new(
                 super::PreparedAmbientHomeObservation::prepare_with_optional_deck(
                     parameters.timezone,
@@ -196,32 +232,39 @@ where
     stage_native_worker(image, checked, definition, factory, memory)
 }
 
-/// Finite queue requirements for the connections owned by the Home source.
+/// Finite queue requirements for connections owned by an ambient observation source.
 pub fn ambient_home_connection_limits(
     plot: &conduit_plot::ExpandedCanonicalPlot,
 ) -> std::collections::BTreeMap<
     conduit_planner::ConnectionEndpoints,
     conduit_planner::ConnectionQueueLimits,
 > {
-    let home_gear = |id| {
-        plot.gears
-            .iter()
-            .any(|gear| &gear.gear_id == id && gear.kind_id.as_str() == AMBIENT_HOME_SOURCE_BASE)
+    use conduit_semantic_catalog::{
+        AMBIENT_CLOCK_KIND, AMBIENT_CLOCK_OBSERVATION_BYTES, AMBIENT_HOME_OBSERVE_KIND,
+    };
+    let observation_bytes = |id| {
+        let gear = plot.gears.iter().find(|gear| &gear.gear_id == id)?;
+        match gear.kind_id.as_str() {
+            AMBIENT_HOME_OBSERVE_KIND => Some(super::HOME_OBSERVATION_BYTES as u32),
+            AMBIENT_CLOCK_KIND => Some(AMBIENT_CLOCK_OBSERVATION_BYTES),
+            _ => None,
+        }
     };
     plot.connections
         .iter()
         .filter_map(|connection| {
-            let bytes = if home_gear(&connection.source_gear_id)
-                && connection.source_port_id.as_str() == "observation"
-            {
-                super::HOME_OBSERVATION_BYTES as u32
-            } else if home_gear(&connection.sink_gear_id)
-                && connection.sink_port_id.as_str() == "tick"
-            {
-                conduit_time::TICK_ENCODED_LEN
-            } else {
-                return None;
-            };
+            let bytes = match connection.source_port_id.as_str() {
+                "observation" => observation_bytes(&connection.source_gear_id),
+                _ => None,
+            }
+            .or_else(|| {
+                if connection.sink_port_id.as_str() == "tick" {
+                    observation_bytes(&connection.sink_gear_id)
+                        .map(|_| conduit_time::TICK_ENCODED_LEN)
+                } else {
+                    None
+                }
+            })?;
             Some((
                 (
                     connection.source_gear_id.clone(),

@@ -4,8 +4,9 @@ use super::{
     back::{BackBudget, BackFactory, InstalledBack},
 };
 use conduit_core::PlannedGear;
-use conduit_semantic_catalog::AMBIENT_HOME_OBSERVATION_BYTES;
-use conduit_std_offers::{resident_ambient_home_face_offer, AMBIENT_HOME_FACE_IMPLEMENTATION};
+use conduit_std_offers::{
+    AmbientFaceProjection, AMBIENT_CLOCK_FACE_IMPLEMENTATION, AMBIENT_HOME_FACE_IMPLEMENTATION,
+};
 
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: AMBIENT_HOME_FACE_IMPLEMENTATION,
@@ -13,8 +14,19 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
+pub(super) static CLOCK_FACTORY: BackFactory = BackFactory {
+    implementation_id: AMBIENT_CLOCK_FACE_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
+pub(super) fn projection(placement: &PlannedGear) -> Result<AmbientFaceProjection, String> {
+    AmbientFaceProjection::for_implementation(placement.implementation_id.as_str())
+        .ok_or_else(|| "unknown ambient Face implementation".into())
+}
+
 pub(super) fn label(placement: &PlannedGear) -> Result<&str, String> {
-    let offer = resident_ambient_home_face_offer()?;
+    let offer = projection(placement)?.offer()?;
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.semantic_contract != offer.semantic_contract
@@ -42,7 +54,7 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         value_bytes: 0,
         host_requests: 2,
         sign_items: 256,
-        maximum_value_bytes: AMBIENT_HOME_OBSERVATION_BYTES,
+        maximum_value_bytes: projection(placement)?.input_bytes(),
     })
 }
 
@@ -52,6 +64,9 @@ fn prepare(
 ) -> Result<InstalledBack, String> {
     budget(placement)?;
     Ok(InstalledBack::AmbientHome(
-        AmbientHomeBack::prepare_resident(placement.placement_id.clone())?,
+        AmbientHomeBack::prepare_resident(
+            placement.placement_id.clone(),
+            projection(placement)?.input_bytes(),
+        )?,
     ))
 }
