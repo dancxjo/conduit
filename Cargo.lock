@@ -1635,6 +1635,7 @@ dependencies = [
  "conduit-workspace-make",
  "conduitos",
  "getrandom 0.3.4",
+ "patchbay-application",
  "patchbay-hosted",
  "patchbay-svg-mask",
  "rcgen",

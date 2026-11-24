@@ -1,5 +1,8 @@
 //! Portable sink Fore for canonical resident interactions, separate from events.
-use alloc::vec;
+use alloc::{
+    string::{String, ToString},
+    vec,
+};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
     PortDescriptor, PortDirection, PortTemporal,
@@ -35,4 +38,18 @@ pub fn patchbay_interaction_contract() -> Kind {
             max_queue_bytes: conduit_face::MAX_FACE_INTERACTION_BYTES as u32,
         },
     }
+}
+
+/// Install the portable Fore for checking. Hosts separately offer and admit a Back.
+pub fn install_patchbay_interaction_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    let kind = patchbay_interaction_contract();
+    startup.insert(conduit_plot::KindSignature {
+        kind: PATCHBAY_INTERACTION_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    startup.insert_fore(PATCHBAY_INTERACTION_KIND, kind.checked_front())?;
+    profile.insert_kind(kind).map_err(|error| error.to_string())
 }

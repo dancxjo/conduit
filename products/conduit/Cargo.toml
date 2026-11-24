@@ -54,6 +54,7 @@ conduit-text = { path = "../../semantics/text" }
 conduit-wire = { path = "../../architecture/wire" }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["plot-catalog"] }
 conduit-workspace-make = { path = "../../make/workspace" }
+patchbay-application = { path = "../../plots/patchbay/application" }
 patchbay-svg-mask = { path = "../../plots/patchbay/workbench/svg-mask" }
 patchbay-hosted = { path = "../../targets/std/patchbay-workbench" }
 serde = { version = "1", features = ["derive"] }
