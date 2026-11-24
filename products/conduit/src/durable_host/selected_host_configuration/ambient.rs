@@ -6,7 +6,8 @@ use conduit_std_host::{
     ambient_wallpaper::acquisition::prepare_current_public_deck, StdHost, StdHostConfig,
 };
 use conduit_std_offers::{
-    ambient_clock_source_offer, ambient_home_source_offer, AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+    ambient_clock_source_offer, ambient_home_source_offer, ambient_wallpaper_source_offer,
+    AMBIENT_CLOCK_SOURCE_IMPLEMENTATION, AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
 };
 
 pub(super) fn selected(checked: &CheckedHostConfiguration) -> bool {
@@ -41,10 +42,10 @@ fn admitted_provider(
     checked: &CheckedHostConfiguration,
 ) -> Result<(AuthorityGrant, bool), String> {
     let source = CheckedAmbientHomeSource::from_configuration(checked)?;
-    let offer = if source.implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION {
-        ambient_clock_source_offer()?
-    } else {
-        ambient_home_source_offer()?
+    let offer = match source.implementation {
+        AMBIENT_CLOCK_SOURCE_IMPLEMENTATION => ambient_clock_source_offer()?,
+        AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION => ambient_wallpaper_source_offer()?,
+        _ => ambient_home_source_offer()?,
     };
     let [requirement] = offer.authority_requirements.as_slice() else {
         return Err("checked Ambient worker requires one exact provider grant".into());

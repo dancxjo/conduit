@@ -107,7 +107,7 @@ fn initialized_host(
         conduit_std_offers::ambient_home_source_offer()
     }
     .unwrap();
-    assert_eq!(source.weather_endpoint, endpoint);
+    assert_eq!(source.weather_endpoint, Some(endpoint));
     let requirement = &offer.authority_requirements[0];
     let grant = AuthorityGrant {
         grant_id: "grant/fixture-ambient-image".into(),

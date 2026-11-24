@@ -173,20 +173,26 @@ pub(crate) fn stage_native_worker<'a>(
         definition.base.implementation_id.as_str(),
         conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
             | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+            | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
     ) {
         let parameters =
             crate::ambient_home_observation::CheckedAmbientHomeSource::from_configuration(checked)?;
         let [source, memory] = definition.base.resources.as_slice() else {
             return Err("Ambient source requires its checked resource pools".into());
         };
-        let [timezone] = definition.configuration.as_slice() else {
-            return Err("Ambient source requires its exact checked timezone".into());
+        let matches_configuration = match (parameters.timezone, definition.configuration.as_slice())
+        {
+            (None, []) => true,
+            (Some(expected), [timezone]) => {
+                timezone.key == "timezone"
+                    && matches!(&timezone.value, conduit_core::ConfigurationValue::Text(value) if value == expected)
+            }
+            _ => false,
         };
         if definition.base.implementation_id.as_str() != parameters.implementation
             || source.pool_id.as_str() != parameters.source_pool
             || memory.pool_id.as_str() != parameters.memory_pool
-            || timezone.key != "timezone"
-            || !matches!(&timezone.value, conduit_core::ConfigurationValue::Text(value) if value == parameters.timezone)
+            || !matches_configuration
         {
             return Err(
                 "Ambient worker definition differs from the checked Base configuration".into(),

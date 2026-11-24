@@ -130,6 +130,7 @@ impl TickPreparationLayout {
                         | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
                 ) {
                     return Err(
                         "selected IMAGE receipt has no owned accounting for this Back".into(),
@@ -139,6 +140,7 @@ impl TickPreparationLayout {
                     gear.implementation_id.as_str(),
                     conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
                 ) {
                     Some(
                         native

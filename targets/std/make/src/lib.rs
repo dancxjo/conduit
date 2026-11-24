@@ -85,6 +85,8 @@ fn package_catalog() -> PackageCatalogContribution {
                 .expect("shipped ambient clock Face descriptor"),
             conduit_std_offers::ambient_clock_source_offer()
                 .expect("shipped standalone ambient clock observation descriptor"),
+            conduit_std_offers::ambient_wallpaper_source_offer()
+                .expect("shipped standalone ambient wallpaper observation descriptor"),
         ])
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
@@ -109,6 +111,7 @@ fn package_catalog() -> PackageCatalogContribution {
                 implementation.as_str(),
                 conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
             ) {
                 prerequisites.push(PrerequisiteNode::Base(
                     conduit_std_offers::AMBIENT_HOME_SOURCE_BASE.into(),
@@ -122,6 +125,7 @@ fn package_catalog() -> PackageCatalogContribution {
                     | conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
             ) {
                 vec![
                     HOSTED_TARGET_ID.into(),
@@ -150,6 +154,10 @@ fn package_catalog() -> PackageCatalogContribution {
             (
                 conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION.into(),
                 ambient_initialization::contract(),
+            ),
+            (
+                conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION.into(),
+                ambient_initialization::wallpaper_contract(),
             ),
             (
                 regional_initialization::IMPLEMENTATION.into(),
@@ -289,6 +297,11 @@ impl HostMakePackage for HostedMakePackage {
                     conduit_std_offers::AMBIENT_HOME_SOURCE_BASE,
                     conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
                     "base-ambient-clock-source",
+                ),
+                offer(
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_BASE,
+                    conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
+                    "base-ambient-wallpaper-source",
                 ),
             ],
         })
