@@ -130,6 +130,41 @@ impl Owner {
             conduit_std_host::ambient_home_observation::ambient_home_connection_limits(
                 &plot.expanded,
             );
+        let mut boundaries = BTreeMap::new();
+        let has_patchbay_owner = match plot.input_bindings.as_slice() {
+            [binding]
+                if binding.front_port_id.as_str() == "interaction"
+                    && binding.gear_port_id.as_str() == "interaction"
+                    && binding.track == ConnectionTrack::Payload =>
+            {
+                plot.expanded.gears.iter().any(|gear| {
+                    gear.gear_id == binding.gear_id
+                        && gear.kind_id.as_str() == patchbay_application::PATCHBAY_INTERACTION_KIND
+                        && gear.kind_contract_revision.as_str()
+                            == patchbay_application::PATCHBAY_INTERACTION_REVISION
+                })
+            }
+            _ => false,
+        };
+        if has_patchbay_owner
+            && plot.front.inputs().iter().any(|port| {
+                port.port_id.as_str() == "interaction"
+                    && port.value_kind.as_str() == conduit_face::FACE_INTERACTION_VALUE_KIND
+                    && port.temporal == (conduit_core::PortTemporal::Flow { closes: true })
+            })
+        {
+            boundaries.insert(
+                conduit_planner::ForeBoundaryKey {
+                    direction: PortDirection::Input,
+                    front_port_id: port_id("interaction"),
+                    track: ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: conduit_face::MAX_FACE_INTERACTION_BYTES as u32,
+                },
+            );
+        }
         let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
             plot,
             &hosts,
@@ -145,7 +180,7 @@ impl Owner {
                 line_offers: &[],
             },
             &home_observation_queues,
-            &BTreeMap::new(),
+            &boundaries,
         )
         .map_err(debug)?;
         Ok(BodyPlotPlan {

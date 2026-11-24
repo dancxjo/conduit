@@ -7,13 +7,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     CommittedStateBasisRefusal, CommittedStateContributionBasis, CommittedStateSelection, Face,
-    FaceBasis, FaceContextBasis, FaceContributionRole, FaceDisclosure, FaceDisclosureLevel,
-    FaceError, FaceFragment, FaceFragmentError, FaceInteractionContext, FaceProperty,
-    FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
+    FaceBasis, FaceContextBasis, FaceContributionBasis, FaceContributionRole, FaceDisclosure,
+    FaceDisclosureLevel, FaceError, FaceFragment, FaceFragmentError, FaceInteractionContext,
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText,
 };
 
 mod action_resolution;
 mod core_projection;
+mod inspection;
 mod projection;
 mod validation;
 use core_projection::{append_execution_truth, append_operator_actions};
@@ -198,6 +200,7 @@ impl BodyFace {
             contributions,
             names,
             None,
+            &[],
         )
     }
 
@@ -222,6 +225,7 @@ impl BodyFace {
             vec![contribution],
             names,
             Some(admission),
+            &[],
         )
     }
 
@@ -235,6 +239,7 @@ impl BodyFace {
         mut contributions: Vec<FaceContribution>,
         names: FaceNames<'_>,
         committed: Option<CommittedFaceAdmission<'_>>,
+        routes: &[&FaceContributionBasis],
     ) -> Result<Self, FaceRefusal> {
         body.validate().map_err(|_| FaceRefusal::InvalidBody)?;
         validate_wake(body, wake)?;
@@ -378,6 +383,7 @@ impl BodyFace {
         append_operator_actions(
             body,
             &contributions,
+            routes,
             &body_subject,
             &mut actions,
             &mut operator_actions,

@@ -22,6 +22,15 @@ impl PreparedBirth {
         state::retain_with_source(root, self.session.evidence(), None, None, primary_source)
     }
 
+    pub(crate) fn retain_workset(
+        &mut self,
+        root: &Path,
+        sources: Vec<(String, String)>,
+    ) -> Result<(), String> {
+        let sources = state::WorksetSources::checked(self.session.evidence(), sources)?;
+        state::retain_session_with_workset_sources(root, &mut self.session, &sources, None, None)
+    }
+
     pub(crate) fn body_id(&self) -> &conduit_body::BodyId {
         &self.session.evidence().body_id
     }
@@ -106,6 +115,8 @@ impl Owner {
             runtime_face_updates: 0,
             runtime_face_inspection: false,
             runtime_face: None,
+            runtime_patchbay: None,
+            patchbay_inspection: false,
             todo_live: None,
             todo_verified: None,
             notebook: None,

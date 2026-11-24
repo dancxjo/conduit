@@ -241,8 +241,31 @@ impl Owner {
             .unwrap_or_default();
         let mut context = FaceContext::Overview;
         let mut focus = FaceFocus::Body;
-        if let Some(fragment) = self.current_home_fragment() {
-            if self.runtime_face_inspection {
+        let home = self.current_home_fragment();
+        let patchbay = self
+            .runtime_patchbay
+            .as_ref()
+            .map(|patchbay| {
+                patchbay.fragment(
+                    &self.session.evidence().body.body_id,
+                    self.current_play_id(),
+                    self.patchbay_inspection,
+                )
+            })
+            .transpose()?
+            .flatten();
+        let routes = home
+            .into_iter()
+            .chain(patchbay.as_ref())
+            .map(|fragment| &fragment.basis)
+            .collect::<Vec<_>>();
+        let inspection = if self.patchbay_inspection {
+            patchbay.as_ref().or(home)
+        } else {
+            home.or(patchbay.as_ref())
+        };
+        if let Some(fragment) = inspection {
+            if self.runtime_face_inspection || self.patchbay_inspection {
                 context = FaceContext::Inspection(fragment.basis.checked_plot_id.clone());
                 focus = FaceFocus::Contribution {
                     role: FaceContributionRole::Inspection,
@@ -254,20 +277,37 @@ impl Owner {
                 fragment.clone(),
             ));
         }
-        let face = BodyFace::project_with_names(
-            &self.session.evidence().body,
-            self.session
-                .realization()
-                .map(|realization| &realization.wake),
-            self.projected_face_revision()?,
-            context,
-            focus,
-            contributions,
-            FaceNames {
-                body_name: Some(&self.session.evidence().friendly_name),
-                resident_plots: &plot_names,
-            },
-        )
+        let body = &self.session.evidence().body;
+        let realization = self.session.realization();
+        let revision = self.projected_face_revision()?;
+        let names = FaceNames {
+            body_name: Some(&self.session.evidence().friendly_name),
+            resident_plots: &plot_names,
+        };
+        let face = if routes.len() <= 1 {
+            BodyFace::project_with_names(
+                body,
+                realization.map(|current| &current.wake),
+                revision,
+                context,
+                focus,
+                contributions,
+                names,
+            )
+        } else {
+            let current = realization.ok_or("inspection has no current Body realization")?;
+            BodyFace::project_with_inspection_routes(
+                body,
+                &current.wake,
+                &current.plan,
+                revision,
+                context,
+                focus,
+                contributions,
+                names,
+                &routes,
+            )
+        }
         .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
         face.face
             .validate()

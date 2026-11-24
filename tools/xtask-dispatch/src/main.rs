@@ -7,6 +7,9 @@
 mod host_release_dispatch;
 
 #[cfg(feature = "host-release")]
+#[path = "../../xtask/src/commands/host_profile_image.rs"]
+mod host_profile_image;
+#[cfg(feature = "host-release")]
 #[path = "../../xtask/src/commands/host_release.rs"]
 mod host_release;
 

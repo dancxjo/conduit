@@ -41,6 +41,8 @@ pub(super) fn backing_bytes(
             )?;
             Ok(bytes)
         }
+        // The sink state is inline in the funded scheduler.
+        conduit_std_offers::PATCHBAY_INTERACTION_IMPLEMENTATION => Ok(0),
         _ => Err("selected IMAGE receipt has no owned accounting for this Back".into()),
     }
 }
