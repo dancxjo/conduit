@@ -127,6 +127,7 @@ impl TickPreparationLayout {
                         | conduit_std_offers::BODY_WAKE_IMPLEMENTATION
                         | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_WALLPAPER_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
