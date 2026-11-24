@@ -271,6 +271,7 @@ pub fn resident_wallpaper_face_kind() -> Result<Kind, String> {
         RESIDENT_WALLPAPER_FACE_KIND,
         "face/ambient-wallpaper-observation@1",
         observation_contract("AmbientWallpaperObservation", RESIDENT_WALLPAPER_BYTES)?,
+        PortTemporal::Flow { closes: false },
     )
 }
 
