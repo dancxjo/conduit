@@ -4,6 +4,10 @@
 extern crate std;
 use conduit_face::{Face, FaceFragmentError, FaceProperty, FaceRelationship, FaceSubject};
 
+const FINGERPRINT_BUCKET_BITS: u32 = 6;
+const FINGERPRINT_BUCKETS: usize = 1 << FINGERPRINT_BUCKET_BITS;
+const BUCKET_SHIFT: u32 = u16::BITS - FINGERPRINT_BUCKET_BITS;
+
 pub(super) struct ContentIndex<'a> {
     pub subjects: Index<'a, FaceSubject, { conduit_face::MAX_FACE_SUBJECTS }>,
     pub relationships: Index<'a, FaceRelationship, { conduit_face::MAX_FACE_RELATIONSHIPS }>,
@@ -27,6 +31,7 @@ impl<'a> ContentIndex<'a> {
 pub(super) struct Index<'a, T, const N: usize> {
     values: &'a [T],
     order: [u32; N],
+    bucket_offsets: [u16; FINGERPRINT_BUCKETS + 1],
     key: fn(&T) -> (&str, &str),
 }
 impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
@@ -40,7 +45,22 @@ impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
             *item = (u32::from(prefixes.fingerprint(key(&values[i])))) << 16 | i as u32;
         }
         order[..values.len()].sort_unstable();
-        Some(Self { values, order, key })
+        let mut bucket_offsets = [0; FINGERPRINT_BUCKETS + 1];
+        let mut offset = 0;
+        for (bucket, end) in bucket_offsets.iter_mut().skip(1).enumerate() {
+            while offset < values.len()
+                && (order[offset] >> (u16::BITS + BUCKET_SHIFT)) as usize == bucket
+            {
+                offset += 1;
+            }
+            *end = offset as u16;
+        }
+        Some(Self {
+            values,
+            order,
+            bucket_offsets,
+            key,
+        })
     }
     /// One immutable checkpoint is compared without rehashing adjacent primary
     /// keys. This scratch borrows only this invocation's slice; it never survives
@@ -58,7 +78,10 @@ impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
         self.contains_fingerprint(value, key, fingerprint(key))
     }
     fn contains_fingerprint(&self, value: &T, key: (&str, &str), fingerprint: u16) -> bool {
-        let order = &self.order[..self.values.len()];
+        let bucket = usize::from(fingerprint >> BUCKET_SHIFT);
+        let start = usize::from(self.bucket_offsets[bucket]);
+        let end = usize::from(self.bucket_offsets[bucket + 1]);
+        let order = &self.order[start..end];
         let fingerprint = u32::from(fingerprint);
         let first = order.partition_point(|&entry| entry >> 16 < fingerprint);
         order[first..]
@@ -141,6 +164,28 @@ fn fingerprint(key: (&str, &str)) -> u16 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn bucket_offsets_cover_the_sorted_index_without_crossing_fingerprint_ranges() {
+        let values = (0..1024)
+            .map(|i| alloc::format!("{i}"))
+            .collect::<alloc::vec::Vec<_>>();
+        let index = Index::<_, 1024>::new(&values, |value| (value.as_str(), "")).unwrap();
+        assert_eq!(index.bucket_offsets[0], 0);
+        assert_eq!(
+            usize::from(index.bucket_offsets[FINGERPRINT_BUCKETS]),
+            values.len()
+        );
+        for (bucket, offsets) in index.bucket_offsets.windows(2).enumerate() {
+            let range = usize::from(offsets[0])..usize::from(offsets[1]);
+            assert!(
+                index.order[range]
+                    .iter()
+                    .all(|entry| { (entry >> (u16::BITS + BUCKET_SHIFT)) as usize == bucket })
+            );
+        }
+        assert!(index.contains_all(&values));
+    }
+
     #[test]
     fn index_workspace_and_distinct_key_lookup_work_are_bounded() {
         use core::sync::atomic::{AtomicUsize, Ordering};
