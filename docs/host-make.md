@@ -234,12 +234,14 @@ The local configuration names the civil time zone, the exact weather endpoint,
 and the provider access the operator admits. Photo acquisition is an explicit
 selection. The checked settings take effect on the next Boot.
 
+### Ambient Home and Patchbay on installed Linux
+
 The Linux x86-64 download includes a checked Ambient Home and Patchbay
 configuration and its matching IMAGE. For a new installation, run these
 commands from the extracted release directory. Use a fresh state directory.
 
 ```sh
-./install-linux-x86_64.sh --state-dir "$PWD/host-state" --no-start
+sh ./install-linux-x86_64.sh --state-dir "$PWD/host-state" --no-start
 ./conduit-linux-x86_64 host service configure linux-ambient.host.conduit \
   --image linux-ambient.image.json --state-dir "$PWD/host-state"
 ./conduit-linux-x86_64 host service run --state-dir "$PWD/host-state"
