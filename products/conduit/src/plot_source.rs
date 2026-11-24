@@ -324,6 +324,35 @@ mod tests {
     }
 
     #[test]
+    fn installed_catalog_checks_the_ambient_clock_observation_and_resident() {
+        let observation = parse(include_str!(
+            "../../../plots/ambient-clock-weather/main.conduit"
+        ))
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+        assert_eq!(observation.expanded.name, "ambient-clock-weather");
+        let resident = parse(include_str!(
+            "../../../plots/resident-ambient-clock-weather/main.conduit"
+        ))
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+        assert_eq!(resident.expanded.name, "resident-ambient-clock-weather");
+    }
+
+    #[test]
+    fn installed_catalog_checks_the_authored_wallpaper_selection() {
+        let wallpaper = parse(include_str!(
+            "../../../plots/ambient-wallpaper/main.conduit"
+        ))
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+        assert_eq!(wallpaper.expanded.name, "ambient-wallpaper");
+    }
+
+    #[test]
     fn installed_catalog_expands_the_shipped_ambient_home_plot() {
         let source = parse(include_str!("../../../plots/ambient-home/main.conduit")).unwrap();
         let expanded = source.expand_entry_for_authoring().unwrap().expanded;
