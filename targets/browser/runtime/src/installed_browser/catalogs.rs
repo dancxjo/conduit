@@ -39,8 +39,7 @@ pub(crate) fn catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, 
 fn build_catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
-    conduit_body_make::womb_runtime_catalog::install_womb_catalogs(&mut startup, &mut profile)?;
-    conduit_body_make::womb_runtime_catalog::install_stem_catalogs(&mut startup, &mut profile)?;
+    conduit_body_make::stem_runtime_catalog::install_stem_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_ambient_display_types(&mut startup)?;
     conduit_semantic_catalog::install_ambient_clock_kind(&mut startup, &mut profile)?;

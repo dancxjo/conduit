@@ -374,7 +374,7 @@ pub(crate) fn plan_workspace_plots(
                 .expanded
                 .gears
                 .iter()
-                .any(|gear| gear.kind_id.as_str() == conduit_body_make::womb_runtime::WOMB_KIND)
+                .any(|gear| gear.kind_id.as_str() == conduit_body_make::stem_runtime::STEM_KIND)
             {
                 super::review::resident_fore::require_resident_fore(&authoring)?;
             }

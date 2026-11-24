@@ -4,13 +4,13 @@ use super::{
     BrowserBack,
 };
 #[cfg(feature = "creche-surface")]
-use conduit_body_make::womb_runtime::WombBack;
-use conduit_body_make::womb_runtime_catalog::*;
+use conduit_body_make::stem_runtime::StemBack;
+use conduit_body_make::stem_runtime_catalog::*;
 use conduit_core::*;
 use conduit_kernel::HostedValueStore;
 
-pub(crate) const IMPLEMENTATION: &str = "browser/womb-prepare@1";
-pub(crate) const RESOURCE: &str = "conduit.resource/womb-provision@1";
+pub(crate) const IMPLEMENTATION: &str = "browser/stem-prepare@1";
+pub(crate) const RESOURCE: &str = "conduit.resource/stem-provision@1";
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
     offer,
@@ -20,13 +20,13 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 
 pub(crate) fn offer() -> CapabilityOffer {
     BackOfferBuilder::new(
-        womb_kind(),
+        stem_kind(),
         Back {
             capability_id: IMPLEMENTATION.into(),
-            execution_profile_id: "browser/womb-kernel-hosted@1".into(),
+            execution_profile_id: "browser/stem-kernel-hosted@1".into(),
             implementation_id: IMPLEMENTATION.into(),
-            artifact_id: "conduit-browser-runtime/womb-prepare@1".into(),
-            host_calls: vec![womb_host_call_requirement()],
+            artifact_id: "conduit-browser-runtime/stem-prepare@1".into(),
+            host_calls: vec![stem_host_call_requirement()],
             resource_requirements: vec![ResourceRequirement {
                 class_id: RESOURCE.into(),
                 units: 1,
@@ -53,7 +53,7 @@ pub(crate) fn validate(placement: &PlannedGear) -> Result<(), String> {
         || !placement.pool_references.is_empty()
         || placement.resources.len() != 1
     {
-        return Err("Womb placement differs from its exact browser Back".into());
+        return Err("Stem placement differs from its exact browser Back".into());
     }
     let resource = &placement.resources[0];
     if resource.class_id.as_str() != RESOURCE
@@ -63,7 +63,7 @@ pub(crate) fn validate(placement: &PlannedGear) -> Result<(), String> {
         || resource.compute.is_some()
         || resource.content.is_some()
     {
-        return Err("Womb requires one exact private provision resource".into());
+        return Err("Stem requires one exact private provision resource".into());
     }
     Ok(())
 }
@@ -72,11 +72,11 @@ fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserB
     validate(placement)?;
     #[cfg(feature = "creche-surface")]
     {
-        crate::workspace_runtime::womb_provision::bind(placement)?;
-        Ok(BrowserBack::installed_step(WombBack::for_admitted_host(
+        crate::workspace_runtime::stem_provision::bind(placement)?;
+        Ok(BrowserBack::installed_step(StemBack::for_admitted_host(
             conduit_kernel::HostCallId(0),
         )))
     }
     #[cfg(not(feature = "creche-surface"))]
-    Err("Womb requires the private Body issuer owner".into())
+    Err("Stem requires the private Body issuer owner".into())
 }

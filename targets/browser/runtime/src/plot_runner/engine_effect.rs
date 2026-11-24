@@ -7,7 +7,7 @@ pub(in crate::plot_runner) struct PendingHostEffect {
 }
 
 pub(in crate::plot_runner) enum BrowserHostEffect {
-    WombPrepare,
+    StemPrepare,
     AudioCue,
     AudioCapture,
     PcmPlayback { frame: Option<Vec<u8>> },

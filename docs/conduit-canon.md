@@ -15,7 +15,7 @@ The archive, the August reboot, and the current implementation are parts of one 
 Ontology terms are common nouns unless they are independently proper names.
 Write “a body has a face,” “a host offers an implementation,” and “a plot is
 realized by a plan and play.” Preserve capitalization for actual names such as
-Conduit, ConduitOS, Patchbay, Tour, Crib, and Womb, and for literal code identifiers
+Conduit, ConduitOS, Patchbay, Tour, Crib, and Stem, and for literal code identifiers
 such as `BodyId`, `CheckedFront`, and `Plot`.
 
 ## The center
@@ -707,15 +707,15 @@ bounded current plot workset, wake/lull episodes, plans, plays, and Shows are
 events in the history of the same body rather than
 replacement body identities.
 
-**Crib makes bodies; Womb makes member seeds.** Crib owns explicit Birth.
+**Crib makes bodies; Stem makes member seeds.** Crib owns explicit Birth.
 An unbodied host may alternatively Join a preexisting body through authenticated
-admission, preserving that body's identity. Womb is an ordinary checked plot
+admission, preserving that body's identity. Stem is an ordinary checked plot
 of an existing body: it prepares a member seed bound to that same body and its
 invitation. A member seed is a provisioning artifact, not an admitted part.
 Preparation, deployment, boot and authenticated membership admission remain
-distinct facts. Womb does not implicitly Birth another body or introduce a
+distinct facts. Stem does not implicitly Birth another body or introduce a
 privileged deployment lifecycle.
-The [Crib/Womb lifecycle issue](https://github.com/dancxjo/conduit/issues/6911)
+The [Crib/Stem lifecycle issue](https://github.com/dancxjo/conduit/issues/6911)
 owns current product integration and proof.
 
 The plot workset may contain zero, one, or many exact checked plots. Adding or

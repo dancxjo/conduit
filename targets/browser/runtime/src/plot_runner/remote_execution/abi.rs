@@ -471,8 +471,8 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     BrowserHostEffect::ApplicationEvent => {
                         object.insert("effect_kind".into(), "application-event".into());
                     }
-                    BrowserHostEffect::WombPrepare => {
-                        return Err("Womb requires the actual local Body owner".into())
+                    BrowserHostEffect::StemPrepare => {
+                        return Err("Stem requires the actual local Body owner".into())
                     }
                     BrowserHostEffect::TutorialPresenterRequest => {
                         object.insert("effect_kind".into(), "tutorial-presenter-request".into());

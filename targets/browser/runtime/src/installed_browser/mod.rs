@@ -67,6 +67,7 @@ mod rhythm_state;
 pub(crate) mod saved_choice;
 pub(crate) mod startup_chime;
 mod state_time;
+pub(crate) mod stem;
 pub(crate) mod stroke_capture;
 pub(crate) mod structured_selector;
 pub(crate) mod template_storage;
@@ -82,7 +83,6 @@ pub(crate) mod timing;
 pub(crate) mod tutorial_presenter;
 pub(crate) mod typed_record;
 mod values;
-pub(crate) mod womb;
 
 #[cfg(test)]
 mod secret_knock_trigger_plan;

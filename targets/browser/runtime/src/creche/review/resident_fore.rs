@@ -1,5 +1,5 @@
-//! Exact resident boundaries: existing Patchbay and one finite Womb operation.
-use conduit_body_make::{womb_runtime::*, womb_runtime_catalog::womb_kind};
+//! Exact resident boundaries: existing Patchbay and one finite Stem operation.
+use conduit_body_make::{stem_runtime::*, stem_runtime_catalog::stem_kind};
 use conduit_core::{ConnectionTrack, PortDirection, PortTemporal};
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey};
 use conduit_plot::ExpandedAuthoringPlot;
@@ -10,24 +10,24 @@ pub(in crate::creche) fn require_resident_fore(plot: &ExpandedAuthoringPlot) -> 
         .expanded
         .gears
         .iter()
-        .any(|gear| gear.kind_id.as_str() == WOMB_KIND)
+        .any(|gear| gear.kind_id.as_str() == STEM_KIND)
     {
         return super::patchbay::require_resident_fore(plot);
     }
-    let expected = womb_kind();
+    let expected = stem_kind();
     let [owner] = plot.expanded.gears.as_slice() else {
-        return Err("Womb Fore requires one exact owner".into());
+        return Err("Stem Fore requires one exact owner".into());
     };
     let [input] = plot.input_bindings.as_slice() else {
-        return Err("Womb requires one exact request Fore".into());
+        return Err("Stem requires one exact request Fore".into());
     };
     let [output] = plot.output_bindings.as_slice() else {
-        return Err("Womb requires one exact outcome Fore".into());
+        return Err("Stem requires one exact outcome Fore".into());
     };
     if plot.front != expected.checked_front()
         || owner.kind_id != expected.kind_id
         || owner.kind_contract_revision != expected.kind_contract_revision
-        || !owner.accepts_realization(&crate::installed_browser::womb::offer())
+        || !owner.accepts_realization(&crate::installed_browser::stem::offer())
         || !plot.expanded.connections.is_empty()
         || !plot.expanded.activations.is_empty()
         || plot.abnormal_export.is_some()
@@ -40,7 +40,7 @@ pub(in crate::creche) fn require_resident_fore(plot: &ExpandedAuthoringPlot) -> 
         || input.track != ConnectionTrack::Payload
         || output.track != ConnectionTrack::Payload
     {
-        return Err("resident Womb differs from its exact finite Fore".into());
+        return Err("resident Stem differs from its exact finite Fore".into());
     }
     Ok(())
 }
@@ -53,11 +53,11 @@ pub(in crate::creche) fn fore_bounds(
         .expanded
         .gears
         .iter()
-        .any(|gear| gear.kind_id.as_str() == WOMB_KIND)
+        .any(|gear| gear.kind_id.as_str() == STEM_KIND)
     {
         for (direction, port, bytes) in [
-            (PortDirection::Input, "request", WOMB_REQUEST_BYTES),
-            (PortDirection::Output, "outcome", WOMB_OUTCOME_BYTES),
+            (PortDirection::Input, "request", STEM_REQUEST_BYTES),
+            (PortDirection::Output, "outcome", STEM_OUTCOME_BYTES),
         ] {
             bounds.insert(
                 ForeBoundaryKey {
@@ -80,25 +80,25 @@ pub(super) fn require_planned_fore(plan: &conduit_core::Plan) -> Result<(), Stri
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .any(|gear| gear.kind_id.as_str() == WOMB_KIND)
+        .any(|gear| gear.kind_id.as_str() == STEM_KIND)
     {
         return super::patchbay::require_planned_fore(plan);
     }
     let [fragment] = plan.fragments.as_slice() else {
-        return Err("Womb requires one exact local fragment".into());
+        return Err("Stem requires one exact local fragment".into());
     };
     let [gear] = fragment.placements.as_slice() else {
-        return Err("Womb requires one exact local operation".into());
+        return Err("Stem requires one exact local operation".into());
     };
-    crate::installed_browser::womb::validate(gear)?;
+    crate::installed_browser::stem::validate(gear)?;
     let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
-        .map_err(|error| format!("Womb lowering: {error:?}"))?;
+        .map_err(|error| format!("Stem lowering: {error:?}"))?;
     if lowered.fore_ports.len() != 2 {
-        return Err("Womb requires two exact finite Fore ports".into());
+        return Err("Stem requires two exact finite Fore ports".into());
     }
     for (direction, kind, bytes) in [
-        (PortDirection::Input, WOMB_REQUEST_KIND, WOMB_REQUEST_BYTES),
-        (PortDirection::Output, WOMB_OUTCOME_KIND, WOMB_OUTCOME_BYTES),
+        (PortDirection::Input, STEM_REQUEST_KIND, STEM_REQUEST_BYTES),
+        (PortDirection::Output, STEM_OUTCOME_KIND, STEM_OUTCOME_BYTES),
     ] {
         let ports = lowered
             .fore_ports
@@ -106,7 +106,7 @@ pub(super) fn require_planned_fore(plan: &conduit_core::Plan) -> Result<(), Stri
             .filter(|port| port.direction == direction)
             .collect::<Vec<_>>();
         let [port] = ports.as_slice() else {
-            return Err("Womb Fore direction is not exact".into());
+            return Err("Stem Fore direction is not exact".into());
         };
         if port.value_kind.as_str() != kind
             || port.temporal != PortTemporal::Value
@@ -114,7 +114,7 @@ pub(super) fn require_planned_fore(plan: &conduit_core::Plan) -> Result<(), Stri
             || port.byte_capacity != bytes as u32
             || port.selected_line.is_some()
         {
-            return Err("Womb lowered Fore differs from its exact value contract".into());
+            return Err("Stem lowered Fore differs from its exact value contract".into());
         }
     }
     Ok(())

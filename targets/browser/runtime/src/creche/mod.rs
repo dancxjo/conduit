@@ -21,14 +21,14 @@ pub(crate) use workspace::{
     workspace_library, WorkspaceIssuerCustody,
 };
 #[cfg(feature = "plot-runner")]
-pub(crate) fn check_womb_configuration(
+pub(crate) fn check_stem_configuration(
     selection: BrowserConfigurationSelection,
 ) -> Result<conduit_host_make::CheckedHostConfiguration, String> {
     browser_configuration::review(selection).map(|(_, checked, _)| checked)
 }
 
 #[cfg(feature = "plot-runner")]
-pub(crate) fn womb_configuration_review(
+pub(crate) fn stem_configuration_review(
     configuration: &conduit_host_make::CheckedHostConfiguration,
 ) -> Result<serde_json::Value, String> {
     let mut implementations = std::collections::BTreeSet::new();
@@ -43,7 +43,7 @@ pub(crate) fn womb_configuration_review(
         implementations: implementations.into_iter().collect(),
     })?;
     if checked.configuration_id() != configuration.configuration_id() {
-        return Err("Womb configuration review changed its canonical identity".into());
+        return Err("Stem configuration review changed its canonical identity".into());
     }
     serde_json::to_value(review).map_err(|error| error.to_string())
 }

@@ -1,9 +1,11 @@
 //! Exact checked member Seed preparation Fores. Checking grants no builder offer.
-use crate::womb_runtime::*;
+use crate::stem_runtime::*;
 
-pub const STEM_KIND: &str = "stem/prepare";
-pub const STEM_REQUEST_KIND: &str = "conduit.stem/request@1";
-pub const STEM_OUTCOME_KIND: &str = "conduit.stem/outcome@1";
+// Retain the original checked Source contract for historical inspection.
+pub const WOMB_KIND: &str = "womb/prepare";
+pub const WOMB_REQUEST_KIND: &str = "conduit.womb/request@1";
+pub const WOMB_OUTCOME_KIND: &str = "conduit.womb/outcome@1";
+
 pub const STEM_HOST_CALL: &str = "conduit.host/stem-prepare@1";
 
 pub const WOMB_HOST_CALL: &str = "conduit.host/womb-prepare@1";
@@ -65,17 +67,17 @@ fn preparation_host_call(kind: &str, contract: &str) -> conduit_core::HostCallRe
         contract_id: conduit_core::HostCallContractId::from(contract),
         target_kind: Some(conduit_core::kind_id(kind)),
         maximum_in_flight: 1,
-        maximum_input_bytes: WOMB_REQUEST_BYTES as u32,
-        maximum_output_bytes: WOMB_OUTCOME_BYTES as u32,
+        maximum_input_bytes: STEM_REQUEST_BYTES as u32,
+        maximum_output_bytes: STEM_OUTCOME_BYTES as u32,
     }
 }
 
-pub fn womb_kernel_call_binding(
+pub fn stem_kernel_call_binding(
     call: conduit_kernel::HostCallId,
 ) -> conduit_kernel::HostCallBinding {
     conduit_kernel::HostCallBinding {
         call,
-        maximum_input_bytes: WOMB_REQUEST_BYTES as u32,
-        maximum_output_bytes: WOMB_OUTCOME_BYTES as u32,
+        maximum_input_bytes: STEM_REQUEST_BYTES as u32,
+        maximum_output_bytes: STEM_OUTCOME_BYTES as u32,
     }
 }

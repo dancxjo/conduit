@@ -22,6 +22,23 @@ function selectedSource(bundled, names) {
     .join("\n\n");
 }
 
+test("Crib lists checked Stem and refuses an unavailable builder before Birth", async ({ page }) => {
+  await page.goto(entrance.url);
+  const birth = page.locator(".body-birth-runner");
+  const stem = birth.getByRole("checkbox", { name: "Stem", exact: true });
+  await expect(stem).toBeVisible();
+  await expect(stem).not.toBeChecked();
+  const bundled = await inventory(page);
+  expect(bundled.plots.find(plot => plot.slug === "stem")).toMatchObject({
+    title: "Stem",
+    entry: "stem/main",
+  });
+  await stem.check();
+  await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await expect(birth.getByText(/initial workload is unrealizable for "stem\/main"/u)).toBeVisible();
+  expect(await page.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
+});
+
 test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload preserves the body", async ({ page }, testInfo) => {
   test.setTimeout(20_000 + 2 * BROWSER_COLD_PREPARATION_MS);
   await page.setViewportSize({ width: 1280, height: 1000 });

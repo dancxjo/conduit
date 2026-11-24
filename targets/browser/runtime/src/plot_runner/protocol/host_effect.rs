@@ -28,7 +28,7 @@ pub(in crate::plot_runner) struct TourAudioIoEffect {
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
 pub(in crate::plot_runner) enum TourHostEffect {
-    WombPrepare(Box<TourKeyEventEffect>),
+    StemPrepare(Box<TourKeyEventEffect>),
     AudioCue(Box<crate::plot_runner::audio::AudioEffect>),
     AudioIo(Box<TourAudioIoEffect>),
     PitchTone(Box<crate::plot_runner::audio::PitchToneEffect>),
@@ -50,7 +50,7 @@ impl TourHostEffect {
         source_interaction: SourceInteractionEvidence,
     ) {
         match self {
-            Self::WombPrepare(effect) => effect.source_interaction = Some(source_interaction),
+            Self::StemPrepare(effect) => effect.source_interaction = Some(source_interaction),
             Self::AudioCue(effect) => effect.source_interaction = Some(source_interaction),
             Self::AudioIo(effect) => effect.source_interaction = Some(source_interaction),
             Self::PitchTone(effect) => effect.source_interaction = Some(source_interaction),

@@ -239,7 +239,7 @@ fn canonical_secret_knock_demo_runs_two_attempts_in_one_play() {
     panic!(
         "canonical Secret Knock demo did not produce two attempts: transitions={transition} clocks={clock} manifested={manifested:?} pending={:?}",
         session.pending.iter().map(|effect| match &effect.effect {
-            engine::BrowserHostEffect::WombPrepare => "womb-prepare",
+            engine::BrowserHostEffect::StemPrepare => "stem-prepare",
             engine::BrowserHostEffect::ClockObservation => "clock",
             engine::BrowserHostEffect::CivilClockObservation => "civil-clock",
             engine::BrowserHostEffect::AudioCue => "audio",

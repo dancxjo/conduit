@@ -4,8 +4,8 @@ use super::*;
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
-    if implementation_id.as_str() == super::super::womb::IMPLEMENTATION {
-        return Some(&super::super::womb::INSTALLATION);
+    if implementation_id.as_str() == super::super::stem::IMPLEMENTATION {
+        return Some(&super::super::stem::INSTALLATION);
     }
     if implementation_id.as_str() == super::super::typed_state::IMPLEMENTATION {
         return Some(&super::super::typed_state::INSTALLATION);

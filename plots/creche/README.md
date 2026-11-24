@@ -1,8 +1,8 @@
 # Crib: existing Body-creation preparation contract
 
-Crib makes Bodies; Womb makes member Seeds. This existing embodied preparation
+Crib makes Bodies; Stem makes member Seeds. This existing embodied preparation
 contract creates another Body. Same-Body
-Host propagation belongs to [Womb](../womb/README.md), whose distinct operation
+Host propagation belongs to [Stem](../stem/README.md), whose distinct operation
 must not call Birth. The current `creche/prepare` contract and its evidence retain their
 original identities while that product integration is completed.
 

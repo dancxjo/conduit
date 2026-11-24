@@ -1,6 +1,6 @@
 //! Checked Source and finite protocol proof; no installed builder or target run.
 use conduit_body_make::{
-    deployment_runtime_catalog::install_creche_catalogs, womb_runtime::*, womb_runtime_catalog::*,
+    deployment_runtime_catalog::install_creche_catalogs, stem_runtime::*, stem_runtime_catalog::*,
 };
 
 #[test]
@@ -46,25 +46,25 @@ fn womb_is_a_checked_plot_with_a_distinct_propagation_kind_and_fore() {
 #[test]
 fn preparation_refusals_remain_classified_and_bound_to_exact_evidence() {
     for disposition in [
-        WombDisposition::Prepared,
-        WombDisposition::UnavailableBuilder,
-        WombDisposition::UnsupportedTarget,
-        WombDisposition::StaleInvitation,
-        WombDisposition::Denied,
-        WombDisposition::Cancelled,
-        WombDisposition::Failed,
-        WombDisposition::InvalidSelection,
+        StemDisposition::Prepared,
+        StemDisposition::UnavailableBuilder,
+        StemDisposition::UnsupportedTarget,
+        StemDisposition::StaleInvitation,
+        StemDisposition::Denied,
+        StemDisposition::Cancelled,
+        StemDisposition::Failed,
+        StemDisposition::InvalidSelection,
     ] {
-        let outcome = WombOutcome {
-            request: WombRequest([11; 32]),
+        let outcome = StemOutcome {
+            request: StemRequest([11; 32]),
             disposition,
             evidence_digest: [29; 32],
         };
-        assert_eq!(WombOutcome::decode(&outcome.encode()), Some(outcome));
-        assert!(WombOutcome::decode(&outcome.encode()[..64]).is_none());
+        assert_eq!(StemOutcome::decode(&outcome.encode()), Some(outcome));
+        assert!(StemOutcome::decode(&outcome.encode()[..64]).is_none());
         let mut unknown = outcome.encode();
         unknown[32] = 8;
-        assert!(WombOutcome::decode(&unknown).is_none());
+        assert!(StemOutcome::decode(&unknown).is_none());
     }
 }
 

@@ -750,5 +750,13 @@ slug = "womb"
 title = "Womb member Seed preparation"
 entry = "womb/main"
 workspace_catalog = false
-deterministic = { package = "conduit-body-make", test = "womb_runtime_contract", case = "womb_is_a_checked_plot_with_a_distinct_propagation_kind_and_fore" }
+deterministic = { package = "conduit-body-make", test = "stem_runtime_contract", case = "womb_is_a_checked_plot_with_a_distinct_propagation_kind_and_fore" }
 browser_safe_not_applicable = "requires an installed Womb owner and selected builder; Source and kernel fixture evidence does not establish browser Body execution or admission"
+
+[[plots]]
+slug = "stem"
+title = "Stem"
+entry = "stem/main"
+initial_body_order = 16
+deterministic = { package = "conduit-body-make", test = "stem_runtime_contract", case = "stem_is_a_separately_checked_member_seed_plot" }
+browser_safe_not_applicable = "Prepare a Seed to add another Host to this Body. Preparation requires a current invitation and an admitted browser builder."

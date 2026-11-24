@@ -29,7 +29,7 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "creche-preparation.contract",
-        "Check Crib/Womb typed Source and transactional kernel preparation",
+        "Check Crib/Stem typed Source and transactional kernel preparation",
         "cargo",
         &[
             "test",
@@ -41,9 +41,9 @@ pub const STEPS: &[Step] = &[
             "--test",
             "deployment_runtime_kernel",
             "--test",
-            "womb_runtime_contract",
+            "stem_runtime_contract",
             "--test",
-            "womb_runtime_kernel",
+            "stem_runtime_kernel",
         ],
     ),
     Step::new(
