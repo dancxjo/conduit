@@ -1,0 +1,10 @@
+# The selected observation Back keeps the finite prepared deck and reports
+# availability. The authored Plot polls at an exact cadence and presents the
+# resulting typed observation until Stop or Lull.
+plot resident-ambient-wallpaper {
+    cadence: time/every(1s)
+    observation: ambient/wallpaper-observation
+    show: face/ambient-wallpaper-observation("Wallpaper")
+    cadence.tick >> observation.tick
+    observation.observation >> show.input
+}

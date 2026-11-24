@@ -6,6 +6,7 @@ use super::{
 use conduit_core::PlannedGear;
 use conduit_std_offers::{
     AmbientFaceProjection, AMBIENT_CLOCK_FACE_IMPLEMENTATION, AMBIENT_HOME_FACE_IMPLEMENTATION,
+    AMBIENT_WALLPAPER_FACE_IMPLEMENTATION,
 };
 
 pub(super) static FACTORY: BackFactory = BackFactory {
@@ -16,6 +17,12 @@ pub(super) static FACTORY: BackFactory = BackFactory {
 
 pub(super) static CLOCK_FACTORY: BackFactory = BackFactory {
     implementation_id: AMBIENT_CLOCK_FACE_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
+pub(super) static WALLPAPER_FACTORY: BackFactory = BackFactory {
+    implementation_id: AMBIENT_WALLPAPER_FACE_IMPLEMENTATION,
     budget,
     prepare,
 };

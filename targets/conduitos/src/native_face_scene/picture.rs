@@ -7,6 +7,10 @@ use conduit_face::{FacePropertyValue, FaceRole};
 
 pub(super) struct PicturePage {
     image: conduit_face::GraphicsImageKey,
+    overlay: Option<ClockOverlay>,
+}
+
+struct ClockOverlay {
     date: String,
     time: String,
     period: &'static str,
@@ -136,7 +140,30 @@ impl NativeFaceScene {
         if face.properties.get(index)?.subject != image.identity {
             return None;
         }
+        if !face.subjects.iter().any(|subject| {
+            matches!(&subject.role, FaceRole::Semantic(kind) if kind.as_str() == "time/civil-observation")
+        }) {
+            return Some(PicturePage { image: key, overlay: None });
+        }
         let (_, clock) = semantic("time/civil-observation")?;
+        self.prepare_clock_overlay(
+            clock,
+            semantic("weather/conditions").map(|(_, weather)| weather),
+            preferred_temperature,
+        )
+        .map(|overlay| PicturePage {
+            image: key,
+            overlay: Some(overlay),
+        })
+    }
+
+    fn prepare_clock_overlay(
+        &self,
+        clock: &conduit_face::FaceSubject,
+        weather_subject: Option<&conduit_face::FaceSubject>,
+        preferred_temperature: Option<conduit_core::Unit>,
+    ) -> Option<ClockOverlay> {
+        let face = &self.face;
         let property = |name: &str| {
             face.properties
                 .iter()
@@ -144,10 +171,8 @@ impl NativeFaceScene {
         };
         let date = display_date(property_text(face, property("local-date")?)?)?;
         let (time, period) = display_time(property_text(face, property("local-time")?)?)?;
-        let weather = semantic("weather/conditions")
-            .and_then(|(_, subject)| {
-                document::weather_overlay(face, subject, preferred_temperature)
-            })
+        let weather = weather_subject
+            .and_then(|subject| document::weather_overlay(face, subject, preferred_temperature))
             .unwrap_or_else(|| "Weather unavailable".into());
         let texts = [date.as_str(), time.as_str(), weather.as_str()];
         let width = self.screen.width;
@@ -225,8 +250,7 @@ impl NativeFaceScene {
             width: period_width,
             height: period_height,
         };
-        Some(PicturePage {
-            image: key,
+        Some(ClockOverlay {
             date,
             time,
             period,
@@ -255,41 +279,9 @@ impl NativeFaceScene {
             &mut scene,
             GraphicsCommand::image(screen, screen, page.image),
         )?;
-        push(
-            &mut scene,
-            GraphicsCommand::rect(
-                page.panel,
-                screen,
-                GraphicsPaintRole::Background,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-        let texts = [
-            page.date.as_str(),
-            page.time.as_str(),
-            page.weather.as_str(),
-        ];
-        for (((text, role), bounds), paint) in texts.into_iter().zip(ROLES).zip(page.lines).zip([
-            GraphicsPaintRole::Muted,
-            GraphicsPaintRole::Foreground,
-            GraphicsPaintRole::Foreground,
-        ]) {
-            push(
-                &mut scene,
-                GraphicsCommand::text(bounds, screen, paint, text)
-                    .and_then(|command| command.with_text_role(role)),
-            )?;
+        if let Some(overlay) = &page.overlay {
+            overlay.draw(&mut scene, screen)?;
         }
-        push(
-            &mut scene,
-            GraphicsCommand::text(
-                page.period_bounds,
-                screen,
-                GraphicsPaintRole::Foreground,
-                page.period,
-            )
-            .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
-        )?;
         if let Some(controls) = self.page_controls()? {
             let label = "Next page";
             let style = self.typography.style(GraphicsTextRole::Label.into());
@@ -329,5 +321,46 @@ impl NativeFaceScene {
             hits: Vec::new(),
             continuation: None,
         }))
+    }
+}
+
+impl ClockOverlay {
+    fn draw(&self, scene: &mut GraphicsScene, screen: LayoutRect) -> Result<(), FaceSceneError> {
+        push(
+            scene,
+            GraphicsCommand::rect(
+                self.panel,
+                screen,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
+            ),
+        )?;
+        let texts = [
+            self.date.as_str(),
+            self.time.as_str(),
+            self.weather.as_str(),
+        ];
+        for (((text, role), bounds), paint) in texts.into_iter().zip(ROLES).zip(self.lines).zip([
+            GraphicsPaintRole::Muted,
+            GraphicsPaintRole::Foreground,
+            GraphicsPaintRole::Foreground,
+        ]) {
+            push(
+                scene,
+                GraphicsCommand::text(bounds, screen, paint, text)
+                    .and_then(|command| command.with_text_role(role)),
+            )?;
+        }
+        push(
+            scene,
+            GraphicsCommand::text(
+                self.period_bounds,
+                screen,
+                GraphicsPaintRole::Foreground,
+                self.period,
+            )
+            .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
+        )?;
+        Ok(())
     }
 }

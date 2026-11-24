@@ -2,14 +2,14 @@
 use conduit_host_make::CheckedHostConfiguration;
 use conduit_std_offers::{
     AMBIENT_CLOCK_SOURCE_IMPLEMENTATION, AMBIENT_HOME_SOURCE_BASE,
-    AMBIENT_HOME_SOURCE_IMPLEMENTATION,
+    AMBIENT_HOME_SOURCE_IMPLEMENTATION, AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
 };
 use std::net::SocketAddr;
 
 pub struct CheckedAmbientHomeSource<'a> {
     pub implementation: &'a str,
-    pub timezone: &'a str,
-    pub weather_endpoint: SocketAddr,
+    pub timezone: Option<&'a str>,
+    pub weather_endpoint: Option<SocketAddr>,
     pub source_pool: &'a str,
     pub memory_pool: &'a str,
     pub acquire_nasa_photos: bool,
@@ -29,7 +29,9 @@ impl<'a> CheckedAmbientHomeSource<'a> {
         if declarations.next().is_some()
             || !matches!(
                 implementation,
-                AMBIENT_HOME_SOURCE_IMPLEMENTATION | AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                    | AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                    | AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
             )
         {
             return Err("checked Ambient source Base is ambiguous or unsupported".into());
@@ -46,13 +48,19 @@ impl<'a> CheckedAmbientHomeSource<'a> {
                 .filter(|value| !value.is_empty())
                 .ok_or_else(|| format!("checked Ambient source requires {key}"))
         };
-        let timezone = text("timezone")?;
-        timezone
-            .parse::<chrono_tz::Tz>()
-            .map_err(|_| "checked Ambient source timezone is invalid")?;
-        let weather_endpoint = text("weather_endpoint")?
-            .parse::<SocketAddr>()
-            .map_err(|_| "checked Ambient weather endpoint is invalid")?;
+        let (timezone, weather_endpoint) =
+            if implementation == AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION {
+                (None, None)
+            } else {
+                let timezone = text("timezone")?;
+                timezone
+                    .parse::<chrono_tz::Tz>()
+                    .map_err(|_| "checked Ambient source timezone is invalid")?;
+                let weather_endpoint = text("weather_endpoint")?
+                    .parse::<SocketAddr>()
+                    .map_err(|_| "checked Ambient weather endpoint is invalid")?;
+                (Some(timezone), Some(weather_endpoint))
+            };
         let source_pool = text("source_pool")?;
         let memory_pool = text("memory_pool")?;
         if text("provider_access")? != "operator-admitted" {
@@ -66,7 +74,8 @@ impl<'a> CheckedAmbientHomeSource<'a> {
         if implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION && acquire_nasa_photos {
             return Err("the standalone clock worker has no admitted photo acquisition".into());
         }
-        if weather_endpoint.port() == 0 || source_pool == memory_pool {
+        if weather_endpoint.is_some_and(|address| address.port() == 0) || source_pool == memory_pool
+        {
             return Err(
                 "checked Ambient source requires a nonzero endpoint and distinct pools".into(),
             );
@@ -99,7 +108,7 @@ impl crate::StdHost {
         prepare_deck: F,
     ) -> Result<Self, String>
     where
-        F: FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String>,
+        F: FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String>,
     {
         use crate::{image_initialization::InitialBases, kernel_preparation::StagedImageMemory};
         let memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
@@ -126,31 +135,36 @@ pub(crate) fn stage_ambient_worker<'a, F>(
     memory: &crate::kernel_preparation::StagedImageMemory<'_>,
 ) -> Result<crate::selected_native_source::image_worker::PreparedImageWorker<'a>, String>
 where
-    F: FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String> + 'a,
+    F: FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String> + 'a,
 {
     use crate::selected_native_source::image_worker::{stage_native_worker, ImageWorkerFactory};
     use conduit_core::*;
     use conduit_std_offers::{
-        ambient_clock_source_offer, ambient_home_source_offer, AMBIENT_CLOCK_SOURCE_RESOURCE,
-        AMBIENT_HOME_SOURCE_RESOURCE,
+        ambient_clock_source_offer, ambient_home_source_offer, ambient_wallpaper_source_offer,
+        AMBIENT_CLOCK_SOURCE_RESOURCE, AMBIENT_HOME_SOURCE_RESOURCE,
+        AMBIENT_WALLPAPER_SOURCE_RESOURCE,
     };
     use std::time::Duration;
     let parameters = CheckedAmbientHomeSource::from_configuration(checked)?;
-    let clock_only = parameters.implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION;
-    let (kind, offer, source_resource, observation_bytes) = if clock_only {
-        (
+    let (kind, offer, source_resource, observation_bytes) = match parameters.implementation {
+        AMBIENT_CLOCK_SOURCE_IMPLEMENTATION => (
             conduit_semantic_catalog::ambient_clock_kind()?,
             ambient_clock_source_offer()?,
             AMBIENT_CLOCK_SOURCE_RESOURCE,
             conduit_semantic_catalog::AMBIENT_CLOCK_OBSERVATION_BYTES,
-        )
-    } else {
-        (
+        ),
+        AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION => (
+            conduit_semantic_catalog::resident_wallpaper_kind()?,
+            ambient_wallpaper_source_offer()?,
+            AMBIENT_WALLPAPER_SOURCE_RESOURCE,
+            conduit_semantic_catalog::RESIDENT_WALLPAPER_BYTES,
+        ),
+        _ => (
             conduit_semantic_catalog::ambient_home_observation_kind()?,
             ambient_home_source_offer()?,
             AMBIENT_HOME_SOURCE_RESOURCE,
             super::HOME_OBSERVATION_BYTES as u32,
-        )
+        ),
     };
     let base = image
         .manifest
@@ -196,10 +210,14 @@ where
             config.boot_id.as_str(),
             config.offer_generation.0
         )),
-        configuration: vec![ConfigurationEntry {
-            key: "timezone".into(),
-            value: ConfigurationValue::Text(parameters.timezone.into()),
-        }],
+        configuration: parameters
+            .timezone
+            .into_iter()
+            .map(|timezone| ConfigurationEntry {
+                key: "timezone".into(),
+                value: ConfigurationValue::Text(timezone.into()),
+            })
+            .collect(),
         input_bytes: conduit_time::TICK_ENCODED_LEN,
         output_bytes: observation_bytes,
         resource_bytes: u64::from(observation_bytes),
@@ -214,16 +232,23 @@ where
         budget,
         provider_preparation_bytes: crate::ambient_wallpaper::acquisition::PREPARATION_BYTES,
         prepare: Box::new(move || {
-            if clock_only {
+            let Some((timezone, endpoint)) = parameters.timezone.zip(parameters.weather_endpoint)
+            else {
+                return Ok(Box::new(
+                    crate::ambient_wallpaper::observation::PreparedWallpaperObservation::prepare_from_outcome(
+                        prepare_deck()?,
+                    )?,
+                ));
+            };
+            if parameters.implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION {
                 return Ok(Box::new(crate::ambient_clock::PreparedLiveClock::prepare(
-                    parameters.timezone,
-                    parameters.weather_endpoint,
+                    timezone, endpoint,
                 )?));
             }
             Ok(Box::new(
-                super::PreparedAmbientHomeObservation::prepare_with_optional_deck(
-                    parameters.timezone,
-                    parameters.weather_endpoint,
+                super::PreparedAmbientHomeObservation::prepare_with_wallpaper(
+                    timezone,
+                    endpoint,
                     prepare_deck()?,
                 )?,
             ))
@@ -241,12 +266,14 @@ pub fn ambient_home_connection_limits(
 > {
     use conduit_semantic_catalog::{
         AMBIENT_CLOCK_KIND, AMBIENT_CLOCK_OBSERVATION_BYTES, AMBIENT_HOME_OBSERVE_KIND,
+        RESIDENT_WALLPAPER_BYTES, RESIDENT_WALLPAPER_KIND,
     };
     let observation_bytes = |id| {
         let gear = plot.gears.iter().find(|gear| &gear.gear_id == id)?;
         match gear.kind_id.as_str() {
             AMBIENT_HOME_OBSERVE_KIND => Some(super::HOME_OBSERVATION_BYTES as u32),
             AMBIENT_CLOCK_KIND => Some(AMBIENT_CLOCK_OBSERVATION_BYTES),
+            RESIDENT_WALLPAPER_KIND => Some(RESIDENT_WALLPAPER_BYTES),
             _ => None,
         }
     };

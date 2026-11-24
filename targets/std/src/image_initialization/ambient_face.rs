@@ -3,6 +3,7 @@ use super::*;
 use conduit_std_offers::{
     AmbientFaceProjection, AMBIENT_CLOCK_SOURCE_IMPLEMENTATION, AMBIENT_HOME_FACE_BASE,
     AMBIENT_HOME_FACE_DRIVER, AMBIENT_HOME_SOURCE_IMPLEMENTATION,
+    AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
 };
 
 pub(super) fn prepare(
@@ -27,6 +28,7 @@ pub(super) fn prepare(
     let worker_id = match projection {
         AmbientFaceProjection::Home => AMBIENT_HOME_SOURCE_IMPLEMENTATION,
         AmbientFaceProjection::Clock => AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+        AmbientFaceProjection::Wallpaper => AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
     };
     if projections.next().is_some()
         || bases.next().is_some()
