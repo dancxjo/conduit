@@ -21,6 +21,8 @@ const fixtureSources = Object.fromEntries(await Promise.all([
 ].map(async name => [name, createHash("sha256")
   .update(await readFile(fileURLToPath(new URL(name, import.meta.url)))).digest("hex")])));
 let encounter;
+// Native preparation and authenticated admission share this test budget.
+test.describe.configure({ timeout: 30_000 });
 
 test.beforeEach(async ({}, testInfo) => {
   const state = preparationState(testInfo.timeout);
