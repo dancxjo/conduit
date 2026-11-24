@@ -14,6 +14,12 @@ fn stem_inventory_refuses_the_retired_womb_identity() {
     let inventory = crate::creche::initial_plots::reviewed_inventory(current).unwrap();
     assert_eq!(inventory.plots[0].name, "stem/main");
     assert!(crate::creche::initial_plots::reviewed_inventory(historical).is_err());
+
+    let mut retired = reservation();
+    retired["action"] = "ReserveWomb".into();
+    let (code, refusal) = workspace(retired);
+    assert_eq!(code, -2);
+    assert_eq!(refusal["code"], "InvalidRequest");
 }
 
 #[test]
