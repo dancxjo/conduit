@@ -71,9 +71,11 @@ impl StdHost {
                 id,
                 conduit_std_offers::TICK_IMPLEMENTATION
                     | conduit_std_offers::TIME_EVERY_IMPLEMENTATION
-            ) || (ambient_face.is_some()
-                && id == conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION)
-                || initial.supports_native_implementation(id)
+            ) || ambient_face.as_ref().is_some_and(|base| {
+                base.capabilities
+                    .iter()
+                    .any(|offer| offer.implementation.implementation_id.as_str() == id)
+            }) || initial.supports_native_implementation(id)
                 || (has_playback
                     && matches!(
                         id,

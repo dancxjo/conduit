@@ -1,8 +1,8 @@
 //! The checked IMAGE's semantic Home Face projection Base.
 use super::*;
 use conduit_std_offers::{
-    resident_ambient_home_face_offer, AMBIENT_HOME_FACE_BASE, AMBIENT_HOME_FACE_DRIVER,
-    AMBIENT_HOME_FACE_IMPLEMENTATION,
+    AmbientFaceProjection, AMBIENT_CLOCK_SOURCE_IMPLEMENTATION, AMBIENT_HOME_FACE_BASE,
+    AMBIENT_HOME_FACE_DRIVER, AMBIENT_HOME_SOURCE_IMPLEMENTATION,
 };
 
 pub(super) fn prepare(
@@ -11,23 +11,35 @@ pub(super) fn prepare(
     initial: &InitialBases<'_>,
 ) -> Result<Option<BaseProviderEntry>, String> {
     let manifest = &image.manifest;
-    if !manifest
+    let mut projections = manifest
         .implementations
         .iter()
-        .any(|id| id == AMBIENT_HOME_FACE_IMPLEMENTATION)
-    {
+        .filter_map(|id| AmbientFaceProjection::for_implementation(id));
+    let Some(projection) = projections.next() else {
         return Ok(None);
-    }
+    };
     let mut bases = manifest.base_selections.iter().filter(|base| {
         base.kind == AMBIENT_HOME_FACE_BASE && base.driver == AMBIENT_HOME_FACE_DRIVER
     });
     let base = bases
         .next()
-        .ok_or("Home Face requires its checked projection Base")?;
-    if bases.next().is_some() || initial.worker.is_none() {
-        return Err("Home Face requires one checked projection Base and an admitted worker".into());
+        .ok_or("ambient Face requires its checked projection Base")?;
+    let worker_id = match projection {
+        AmbientFaceProjection::Home => AMBIENT_HOME_SOURCE_IMPLEMENTATION,
+        AmbientFaceProjection::Clock => AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+    };
+    if projections.next().is_some()
+        || bases.next().is_some()
+        || !initial
+            .worker
+            .as_ref()
+            .is_some_and(|worker| worker.definition().base.implementation_id.as_str() == worker_id)
+    {
+        return Err(
+            "ambient Face requires one checked projection and its exact admitted worker".into(),
+        );
     }
-    let offer = resident_ambient_home_face_offer()?;
+    let offer = projection.offer()?;
     let mut resources = Vec::with_capacity(offer.resource_requirements.len());
     for requirement in &offer.resource_requirements {
         let mut pools = manifest.resource_budgets.iter().filter(|pool| {
