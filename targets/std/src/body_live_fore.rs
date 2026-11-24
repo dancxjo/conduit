@@ -13,6 +13,7 @@ use std::{
 };
 
 mod document;
+mod face_interaction;
 mod fragment;
 mod numerical;
 mod parsec;

@@ -7,6 +7,8 @@ mod cli;
 mod command_registry;
 mod commands;
 mod evidence;
+#[path = "commands/host_profile_image.rs"]
+mod host_profile_image;
 mod obligation;
 mod output;
 #[cfg(test)]

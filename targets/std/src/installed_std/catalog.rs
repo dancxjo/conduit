@@ -215,6 +215,7 @@ use conduit_core::ImplementationId;
 const FACTORIES: &[&BackFactory] = &[
     &super::ambient_home_factory::FACTORY,
     &super::ambient_home_factory::CLOCK_FACTORY,
+    &super::patchbay_interaction_factory::FACTORY,
     &super::temporal_evidence_back::FACTORY,
     &super::experience_evidence_back::FACTORY,
     &super::experience_evidence_back::MODEL_REQUEST_FACTORY,

@@ -24,11 +24,24 @@ pub(super) struct SingleInput<'a> {
 }
 
 impl<'a> PreparedForeInputs<'a> {
-    pub(super) fn empty_backing_bytes(&self) -> Option<usize> {
+    pub(super) fn funded_backing_bytes(&self) -> Option<usize> {
         match self {
             Self::Single(entries) if entries.is_empty() => entries
                 .capacity()
                 .checked_mul(core::mem::size_of::<SingleInput<'_>>()),
+            Self::Live(feeder) => {
+                use core::mem::size_of;
+                let target_bytes = feeder
+                    .targets
+                    .capacity()
+                    .checked_mul(size_of::<(RemoteEndpointId, CordId)>())?;
+                if feeder.initial_targets.capacity() != 0 {
+                    return None;
+                }
+                size_of::<LiveForeFeeder>()
+                    .checked_add(target_bytes)?
+                    .checked_add(feeder.queue.face_interaction_backing_bytes()?)
+            }
             _ => None,
         }
     }

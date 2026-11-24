@@ -53,6 +53,19 @@ pub(super) fn reviewed_plots(host: &HostAdvertisement) -> Result<Vec<PlotCandida
             4,
         )?);
     }
+    if host.capabilities.iter().any(|offer| {
+        offer.implementation.implementation_id.as_str()
+            == conduit_std_offers::PATCHBAY_INTERACTION_IMPLEMENTATION
+    }) {
+        plots.push(PlotCandidate::from_source(
+            "Patchbay",
+            "plots/patchbay/main.conduit",
+            include_str!("../../../../../plots/patchbay/main.conduit"),
+            "reviewed Patchbay Plot; requires the installed interaction Back",
+            SignId::from("patchbay/front-door/resident-available"),
+            5,
+        )?);
+    }
     if [
         conduit_std_offers::TIME_EVERY_IMPLEMENTATION,
         conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,

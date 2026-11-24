@@ -241,6 +241,8 @@ pub(crate) struct Owner {
     runtime_face_updates: u64,
     runtime_face_inspection: bool,
     runtime_face: Option<conduit_std_host::body_execution::CommittedFaceContribution>,
+    runtime_patchbay: Option<continuing::patchbay_receiver::PreparedPatchbay>,
+    patchbay_inspection: bool,
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
@@ -355,6 +357,8 @@ impl Owner {
             runtime_face_updates: 0,
             runtime_face_inspection: false,
             runtime_face: None,
+            runtime_patchbay: None,
+            patchbay_inspection: false,
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -392,6 +396,8 @@ impl Owner {
             runtime_face_updates: 0,
             runtime_face_inspection: false,
             runtime_face: None,
+            runtime_patchbay: None,
+            patchbay_inspection: false,
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -441,6 +447,14 @@ impl Owner {
     /// Credential matching and current incarnation are checked here, even
     /// though the routed caller has already authenticated the same Line.
     pub(crate) fn face_snapshot(&self, request: &OwnerFaceSnapshotRequest) -> Result<Face, String> {
+        self.validate_face_request(request)?;
+        self.local_face_snapshot()
+    }
+
+    pub(super) fn validate_face_request(
+        &self,
+        request: &OwnerFaceSnapshotRequest,
+    ) -> Result<(), String> {
         let admitted = self.admissions.as_ref().is_some_and(|manager| {
             manager.receipts.iter().any(|receipt| {
                 request.has_exact_basis()
@@ -463,7 +477,7 @@ impl Owner {
         if !present || self.session.evidence().body_id != request.body_id {
             return Err("owner-face-current-part-unavailable".into());
         }
-        self.local_face_snapshot()
+        Ok(())
     }
 
     /// The installed owner's current Face. Only the authenticated local

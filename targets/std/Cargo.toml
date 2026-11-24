@@ -69,7 +69,7 @@ conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-speech = { path = "../../semantics/speech", features = ["kernel", "semantic-bindings"] }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["body-coordination-plan", "plot-catalog", "text-lab-plan", "kernel-step"] }
-conduit-std-offers = { path = "offers", features = ["speech"] }
+conduit-std-offers = { path = "offers", features = ["speech", "patchbay-interaction"] }
 conduit-time = { path = "../../semantics/time", features = ["kernel-step"] }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-tongues = { path = "../../semantics/tongues" }

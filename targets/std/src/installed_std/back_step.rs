@@ -235,6 +235,7 @@ installed_step_dispatch!(
     EpisodeMemory,
     Creche,
     SelectedNativeSource,
+    PatchbayInteraction,
     DistanceFrequency,
     PcmClipFrames,
     AudioTimeAnalysis,

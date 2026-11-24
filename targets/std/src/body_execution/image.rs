@@ -113,6 +113,46 @@ impl StdHost {
         )
     }
 
+    /// Run the local resident interaction Fore and ordinary Face contributions
+    /// in the same funded Body Play. The owner receiver and queue are selected
+    /// before the kernel starts, and neither grants a Mask route.
+    pub fn run_selected_image_body_plan_with_patchbay_to<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        live: WaitingPatchbayFore<'_>,
+        output: &mut W,
+        timer: &mut T,
+        observer: &mut dyn BodyFaceContributionObserver,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<BodyStartedAcknowledgment, String>,
+    {
+        if !self.kernel_resources.has_image_bounds() {
+            return Err("selected Patchbay execution requires IMAGE-bound Host".into());
+        }
+        let mut custody = None;
+        let report = self.run_body_plan_to_with_start_and_clock_and_creche(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            None,
+            Some((live.queue, live.output)),
+            None,
+            None,
+            None,
+            started,
+            Some(&mut custody),
+            Some(observer),
+        )?;
+        Ok(ImageBodyRunReport {
+            report,
+            _memory: custody.ok_or("selected Patchbay result lost its backing custody")?,
+        })
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn run_selected_image_body_plan_with_ack_to<W: Write, T: TimerAdapter, F, A>(
         &mut self,

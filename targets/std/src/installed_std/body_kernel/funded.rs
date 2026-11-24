@@ -1,4 +1,5 @@
 //! Borrowed closed cooperative Tick/startup footprint before materialization.
+mod fore;
 mod startup;
 use super::*;
 use crate::{
@@ -57,6 +58,7 @@ impl TickPreparationLayout {
             false,
             selected_playback,
             None,
+            None,
         )?;
         let extra = crate::body_execution::delegated_preparation_backing_bytes(
             request.plan,
@@ -74,10 +76,11 @@ impl TickPreparationLayout {
         timer: &T,
         has_output: bool,
     ) -> Result<Self, String> {
-        Self::prepare_with_playback(request, host, ledger, timer, has_output, None, None)
+        Self::prepare_with_playback(request, host, ledger, timer, has_output, None, None, None)
     }
     /// Only dimensions and borrowed identities are read here. No Plan validation
     /// clone, lowering, timer observation, Fore payload or value slot is built.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_with_playback<T: TimerAdapter>(
         request: &BodyRunRequest<'_>,
         host: &HostAdvertisement,
@@ -86,6 +89,7 @@ impl TickPreparationLayout {
         has_output: bool,
         selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
         native: Option<&crate::selected_native_source::InitializedNativeSource>,
+        interaction: Option<&BodyLiveForeQueue>,
     ) -> Result<Self, String> {
         if request.keyboard.is_some()
             || request.plan.body_time_requirement.is_some()
@@ -102,6 +106,9 @@ impl TickPreparationLayout {
                 .iter()
                 .flat_map(|part| &part.plan.fragments),
         )?;
+        if let Some(queue) = interaction {
+            fore::validate_interaction(request, queue)?;
+        }
         let first = &request.plan.plots[0].plan;
         let mut plans = [first; conduit_body::MAX_BODY_PLOTS];
         let mut reservations = [(first, false); conduit_body::MAX_BODY_PLOTS];
@@ -130,7 +137,13 @@ impl TickPreparationLayout {
                         | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
-                ) {
+                ) && !(gear.implementation_id.as_str()
+                    == super::super::patchbay_interaction_factory::IMPLEMENTATION
+                    && interaction.is_some_and(|queue| {
+                        queue.matches_plan(&part.plan, request.control)
+                            && queue.port().placement_id == gear.placement_id
+                    }))
+                {
                     return Err(
                         "selected IMAGE receipt has no owned accounting for this Back".into(),
                     );
@@ -188,6 +201,24 @@ impl TickPreparationLayout {
                 add(&mut tick_vectors, backing)?;
             }
             for port in &part.plan.fragments[0].fore_ports {
+                if let Some(queue) = interaction.filter(|queue| queue.port() == port) {
+                    items = items
+                        .checked_add(port.item_capacity)
+                        .ok_or("Tick Fore value items overflow")?;
+                    value_quota = value_quota
+                        .checked_add(port.byte_capacity)
+                        .ok_or("Tick Fore value bytes overflow")?;
+                    maximum = maximum.max(port.byte_capacity);
+                    signs = signs
+                        .checked_add(
+                            queue
+                                .maximum_items()
+                                .checked_add(1)
+                                .ok_or("Tick Fore Sign overflow")?,
+                        )
+                        .ok_or("Tick Fore Sign overflow")?;
+                    continue;
+                }
                 if !has_output
                     || port.direction != PortDirection::Output
                     || port.selected_line.is_some()
@@ -268,7 +299,7 @@ impl TickPreparationLayout {
         add(&mut peak, diagnostic::CAPACITY)?;
         add(&mut peak, diagnostic::CAPACITY)?;
         metadata(&mut peak, &lowered, n)?;
-        fore_backing(&mut peak, request)?;
+        fore::backing(&mut peak, request, interaction)?;
         lifecycle_backing(&mut peak, request, host)?;
         add(
             &mut peak,
@@ -319,74 +350,6 @@ fn metadata(bytes: &mut usize, layout: &FragmentSetLayout, parts: usize) -> Resu
     add(
         bytes,
         array::<&conduit_plan_lowering::lowering::LoweredPlanFragment>(parts)?,
-    )?;
-    Ok(())
-}
-fn fore_backing(bytes: &mut usize, request: &BodyRunRequest<'_>) -> Result<(), String> {
-    use conduit_plan_lowering::lowering::LoweredForePort;
-    let mut outputs = 0usize;
-    for port in request
-        .plan
-        .plots
-        .iter()
-        .flat_map(|p| &p.plan.fragments[0].fore_ports)
-    {
-        let mut descriptor = port
-            .front_port_id
-            .0
-            .len()
-            .checked_add(port.value_kind.0.len())
-            .ok_or("Tick Fore identity overflow")?;
-        if let Some(abnormal) = &port.abnormal_kind {
-            add(&mut descriptor, abnormal.0.len())?;
-        }
-        if let Some(contract) = &port.value_contract {
-            add(&mut descriptor, contract.value_kind.0.len())?;
-        }
-        // ports + output slot each retain an independent descriptor clone.
-        add(bytes, descriptor)?;
-        add(bytes, descriptor)?;
-        add(bytes, size_of::<LoweredForePort>())?;
-        add(bytes, size_of::<fore_route::OutputSlots>())?;
-        add(bytes, size_of::<(usize, &LoweredForePort)>())?;
-        let count = usize::from(port.item_capacity);
-        outputs = outputs
-            .checked_add(count)
-            .ok_or("Tick Fore slot overflow")?;
-        add(bytes, array::<ExternalForeDelivery>(count)?)?;
-        add(bytes, array::<ExternalForeDelivery>(count)?)?;
-        let identity = size_of::<crate::fore_delivery::ExternalForeIdentity>()
-            .checked_add(2 * size_of::<usize>())
-            .and_then(|n| n.checked_add(port.front_port_id.0.len()))
-            .and_then(|n| n.checked_add(port.value_kind.0.len()))
-            .ok_or("Tick Fore identity overflow")?;
-        // Shared identity may be counted conservatively per escaped slot.
-        add(
-            bytes,
-            identity
-                .checked_mul(count)
-                .ok_or("Tick Fore identity backing overflow")?,
-        )?;
-        // Vec-to-Arc publication temporarily retains the source payload too.
-        add(
-            bytes,
-            (port.byte_capacity as usize)
-                .checked_mul(count)
-                .ok_or("Tick Fore payload staging overflow")?,
-        )?;
-        add(
-            bytes,
-            crate::fore_delivery::payload_backing_bytes(port.byte_capacity as usize)
-                .and_then(|size| size.checked_mul(count))
-                .ok_or("Tick Fore payload backing overflow")?,
-        )?;
-    }
-    let _ = outputs;
-    add(
-        bytes,
-        array::<fore_route::AcknowledgedInput>(
-            super::super::keyboard_input_completion::MAX_COMPLETED_INPUT_EVENTS.next_power_of_two(),
-        )?,
     )?;
     Ok(())
 }
@@ -444,6 +407,7 @@ fn lifecycle_backing(
 }
 
 impl<'a> BodyKernel<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_funded(
         partitions: &[BodyPlotPlan],
         parent_play: &conduit_core::ActivePlayId,
@@ -452,6 +416,7 @@ impl<'a> BodyKernel<'a> {
         advertisement: &HostAdvertisement,
         selected_playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
         native: Option<native_source::NativeBodySource<'a, '_>>,
+        interaction: Option<&BodyLiveForeQueue>,
     ) -> Result<Self, String> {
         if partitions
             .iter()
@@ -471,7 +436,7 @@ impl<'a> BodyKernel<'a> {
             &[],
             false,
             has_output,
-            None,
+            interaction,
             None,
             #[cfg(target_os = "linux")]
             None,

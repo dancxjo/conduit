@@ -234,6 +234,35 @@ The local configuration names the civil time zone, the exact weather endpoint,
 and the provider access the operator admits. Photo acquisition is an explicit
 selection. The checked settings take effect on the next Boot.
 
+### Ambient Home and Patchbay on installed Linux
+
+The Linux x86-64 download includes a checked Ambient Home and Patchbay
+configuration and its matching IMAGE. For a new installation, run these
+commands from the extracted release directory. Use a fresh state directory.
+
+```sh
+sh ./install-linux-x86_64.sh --state-dir "$PWD/host-state" --no-start
+./conduit-linux-x86_64 host service configure linux-ambient.host.conduit \
+  --image linux-ambient.image.json --state-dir "$PWD/host-state"
+./conduit-linux-x86_64 host service run --state-dir "$PWD/host-state"
+```
+
+In another terminal, run `./conduit-linux-x86_64 body birth --screen-free
+--state-dir "$PWD/host-state"` and select Ambient Home and Patchbay. This
+packaged profile uses Pacific civil time and admits only the loopback weather
+provider. If that provider is absent, the clock continues and weather is
+unavailable. Photo acquisition is disabled in this profile.
+
+To reproduce the installed journey in pinned Chromium from a checkout, pass
+the exact installer bundle and the extracted browser product's
+`site/handbook` directory. The proof retains a fresh Body, restarts its
+service, exercises the Patchbay graph and returns with the same browser Part.
+
+```sh
+cargo xtask make body prove-installed-patchbay --bundle /path/to/install-bundle \
+  --handbook /path/to/site/handbook --output target/installed-patchbay-proof
+```
+
 ## Exact identities
 
 The following identities never substitute for one another:

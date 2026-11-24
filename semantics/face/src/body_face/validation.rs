@@ -2,6 +2,7 @@
 
 use alloc::{format, vec};
 use conduit_body::{Body, BodyState, Wake, WakePlanState, MAX_BODY_FRIENDLY_NAME_BYTES};
+use conduit_core::{ActivePlayId, PlanId};
 
 use super::{
     interaction_context_identity, CommittedFaceAdmission, FaceContext, FaceContribution, FaceFocus,
@@ -128,13 +129,8 @@ pub(super) fn validate_contributions(
         {
             return Err(FaceRefusal::DuplicatePlay);
         }
-        let current = wake.is_some_and(|wake| {
-            wake.plans.iter().any(|plan| {
-                plan.plan_id == contribution.plan_id
-                    && plan.state == WakePlanState::Playing
-                    && plan.active_play_id.as_ref() == Some(&contribution.active_play_id)
-            })
-        }) || committed.is_some();
+        let current = play_is_current(wake, &contribution.plan_id, &contribution.active_play_id)
+            || committed.is_some();
         if !current {
             return Err(FaceRefusal::PlayNotCurrent);
         }
@@ -151,6 +147,20 @@ pub(super) fn validate_contributions(
         }
     }
     validate_focus(focus, contributions)
+}
+
+pub(super) fn play_is_current(
+    wake: Option<&Wake>,
+    plan_id: &PlanId,
+    play_id: &ActivePlayId,
+) -> bool {
+    wake.is_some_and(|wake| {
+        wake.plans.iter().any(|plan| {
+            plan.plan_id == *plan_id
+                && plan.state == WakePlanState::Playing
+                && plan.active_play_id.as_ref() == Some(play_id)
+        })
+    })
 }
 
 fn validate_contribution(

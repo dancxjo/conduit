@@ -1,5 +1,7 @@
 //! Exact implementation offers owned by the hosted std Host.
 
+mod patchbay_interaction;
+pub use patchbay_interaction::*;
 mod ambient_home_face;
 pub use ambient_home_face::*;
 mod ambient_clock_observation;

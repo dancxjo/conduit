@@ -121,6 +121,7 @@ pub(super) enum InstalledBack {
     ButtonInput(super::keyboard_input_back::button::ButtonBack),
     ButtonMapper(Box<super::keyboard_input_back::button::indicator::Mapper>),
     SelectedNativeSource(conduit_kernel::scheduler::HostCallBack),
+    PatchbayInteraction(conduit_kernel::scheduler::HostCallSinkBack),
     Tick(TickBack),
     PulseObserve(conduit_time::PulseObservationBack),
     #[cfg(test)]

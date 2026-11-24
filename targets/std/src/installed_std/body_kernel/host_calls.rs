@@ -1,6 +1,26 @@
 //! Exact installed Host Call dispatch, preserving the existing selected handlers.
 use super::*;
 impl BodyKernel<'_> {
+    pub(super) fn perform_patchbay_request(
+        &mut self,
+        request: HostCallRequest,
+        fore_output: &mut Option<&mut dyn crate::body_execution::BodyForeOutputAdapter>,
+    ) -> Result<(), String> {
+        let host = fore_output
+            .as_mut()
+            .and_then(|adapter| adapter.patchbay_interaction_host())
+            .ok_or("Patchbay Host Call lost its admitted owner receiver")?;
+        let input = self
+            .scheduler
+            .host_value(request.input.value)
+            .map_err(|error| format!("Patchbay Host Call value: {error:?}"))?;
+        let outcome = host.apply_interaction(input);
+        self.scheduler
+            .complete_host_call(request.node, request.request, outcome)
+            .map_err(|error| format!("Patchbay Host Call completion: {error:?}"))?;
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(super) fn perform_request<W: Write, T: TimerAdapter>(
         &mut self,
@@ -9,6 +29,7 @@ impl BodyKernel<'_> {
         deadlines: &mut super::super::deadline_host::InstalledDeadlineHost<PENDING_REQUESTS>,
         clock: &mut T,
         output: &mut W,
+        fore_output: &mut Option<&mut dyn crate::body_execution::BodyForeOutputAdapter>,
         creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         control: &RunControl,
         external_cancel: &dyn Fn() -> bool,
@@ -39,6 +60,9 @@ impl BodyKernel<'_> {
                     format_args!("Body request has no exact partition operation"),
                 )
             })?;
+        if operation.contract_id.as_str() == super::super::patchbay_interaction_factory::OPERATION {
+            return self.perform_patchbay_request(request, fore_output);
+        }
         if operation.contract_id.as_str()
             == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
         {

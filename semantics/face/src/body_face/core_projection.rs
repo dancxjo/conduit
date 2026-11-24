@@ -9,7 +9,7 @@ use crate::{
 };
 
 use super::{FaceContribution, FaceOperatorAction, FaceOperatorActionKind};
-use crate::FaceContributionRole;
+use crate::{FaceContributionBasis, FaceContributionRole};
 
 pub(super) fn append_execution_truth(
     wake: Option<&Wake>,
@@ -72,6 +72,7 @@ pub(super) fn append_execution_truth(
 pub(super) fn append_operator_actions(
     body: &Body,
     contributions: &[FaceContribution],
+    inspection_routes: &[&FaceContributionBasis],
     body_subject: &str,
     actions: &mut Vec<FaceAction>,
     routing: &mut Vec<FaceOperatorAction>,
@@ -135,7 +136,9 @@ pub(super) fn append_operator_actions(
         });
         let inspection = contributions.iter().any(|item| {
             item.role == FaceContributionRole::Inspection && item.checked_plot_id == *checked
-        });
+        }) || inspection_routes
+            .iter()
+            .any(|route| route.checked_plot_id == *checked);
         push_action(
             body,
             &plot_target,

@@ -1,0 +1,17 @@
+host linux-ambient {
+  schema = 1
+  target = {architecture: "x86_64", machine: "computer", os: "linux"}
+  base = {kind: "ambient/resident-observation", implementation: "std/resident-ambient-observation-worker@1", initialization: {memory_pool: "ambient/worker-memory", photo_source: "disabled", provider_access: "operator-admitted", source_pool: "ambient/source", timezone: "America/Los_Angeles", weather_endpoint: "127.0.0.1:18309"}}
+  base = {kind: "face/ambient-home", implementation: "std/ambient-home-projection@1"}
+  base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
+  capability = {kind: "ambient/resident-observation", pinned_implementation: "std/resident-ambient-observation-worker@1"}
+  capability = {kind: "face/resident-ambient-home", pinned_implementation: "std/resident-ambient-home@1"}
+  capability = {kind: "time/every", pinned_implementation: "std/kernel-time-every@1"}
+  capability = {kind: "patchbay/accept-interaction", pinned_implementation: "std/patchbay-accept-interaction@1"}
+  need = {id: "ambient/face", class: "conduit.resource/face-slot@1", slots: 1, bytes: 1}
+  need = {id: "ambient/face-memory", class: "conduit.resource/runtime-memory@1", slots: 16777216, bytes: 16777216}
+  need = {id: "ambient/source", class: "conduit.resource/resident-ambient-observation-source@1", slots: 1, bytes: 8192}
+  need = {id: "ambient/worker-memory", class: "conduit.resource/runtime-memory@1", slots: 67108864, bytes: 67108864}
+  need = {id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 8, bytes: 512}
+  limits = {static_memory_bytes: 16777216, heap_arena_bytes: 134217728, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
+}
