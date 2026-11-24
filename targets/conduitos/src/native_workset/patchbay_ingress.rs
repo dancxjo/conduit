@@ -10,7 +10,7 @@ use conduit_kernel::NodeId;
 use conduit_plan_lowering::lowering::{
     LoweredForePort, LoweredPlanFragment, lower_plan_fragment_from_plan,
 };
-use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::{ProfileCatalog, StartupCatalog};
 
 pub(super) const IMPLEMENTATION: &str = "conduitos/patchbay-accept-interaction@1";
 pub(super) const OPERATION: &str = "conduit.host/conduitos-patchbay-accept-interaction@1";
@@ -47,21 +47,7 @@ pub(super) fn install_catalogs(
     profile: &mut ProfileCatalog,
 ) -> Result<(), WorksetRefusal> {
     conduit_face::install_mask_plot_value_aliases(startup).map_err(|_| WorksetRefusal::Catalog)?;
-    let kind = patchbay_application::patchbay_interaction_contract();
-    startup
-        .insert(KindSignature {
-            kind: kind.kind_id.as_str().into(),
-            startup_parameters: vec![],
-        })
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    startup
-        .insert_fore(
-            patchbay_application::PATCHBAY_INTERACTION_KIND,
-            kind.checked_front(),
-        )
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    profile
-        .insert_kind(kind)
+    patchbay_application::install_patchbay_interaction_catalog(startup, profile)
         .map_err(|_| WorksetRefusal::Catalog)
 }
 
