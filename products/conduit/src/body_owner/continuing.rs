@@ -40,7 +40,7 @@ pub(crate) struct RunWorker {
     mode: WorkerMode,
 }
 enum WorkerMode {
-    Local(LocalWorker),
+    Local(Box<LocalWorker>),
     Member(super::startup_member::MemberWorker),
 }
 struct LocalWorker {
@@ -233,14 +233,14 @@ impl Owner {
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(RunWorker {
-            mode: WorkerMode::Local(LocalWorker {
+            mode: WorkerMode::Local(Box::new(LocalWorker {
                 control,
                 started: started_rx,
                 faces,
                 patchbay,
                 acknowledge: Some(ack_tx),
                 thread: Some(thread),
-            }),
+            })),
         })
     }
 
