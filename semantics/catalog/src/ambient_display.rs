@@ -98,6 +98,7 @@ pub fn install_ambient_clock_kind(
 pub const AMBIENT_CLOCK_FACE_KIND: &str = "face/ambient-clock-weather";
 pub const AMBIENT_CLOCK_FACE_REVISION: &str = "face/ambient-clock-weather@1";
 
+pub const AMBIENT_CLOCK_SNAPSHOT_FACE_KIND: &str = "face/ambient-clock-weather-snapshot";
 pub const AMBIENT_WALLPAPER_FACE_KIND: &str = "face/ambient-wallpaper-selection";
 pub const AMBIENT_WALLPAPER_FACE_REVISION: &str = "face/ambient-wallpaper-selection@1";
 
@@ -106,6 +107,16 @@ pub fn ambient_clock_face_kind() -> Result<Kind, String> {
         AMBIENT_CLOCK_FACE_KIND,
         AMBIENT_CLOCK_FACE_REVISION,
         observation_contract("AmbientClockWeather", AMBIENT_CLOCK_OBSERVATION_BYTES)?,
+        PortTemporal::Flow { closes: false },
+    )
+}
+
+pub fn ambient_clock_snapshot_face_kind() -> Result<Kind, String> {
+    observation_face_kind(
+        AMBIENT_CLOCK_SNAPSHOT_FACE_KIND,
+        "face/ambient-clock-weather-snapshot@1",
+        observation_contract("AmbientClockWeather", AMBIENT_CLOCK_OBSERVATION_BYTES)?,
+        PortTemporal::Value,
     )
 }
 
@@ -114,6 +125,7 @@ pub fn ambient_wallpaper_face_kind() -> Result<Kind, String> {
         AMBIENT_WALLPAPER_FACE_KIND,
         AMBIENT_WALLPAPER_FACE_REVISION,
         observation_contract("AmbientWallpaperSelection", 4096)?,
+        PortTemporal::Value,
     )
 }
 
@@ -121,9 +133,20 @@ fn observation_face_kind(
     name: &str,
     revision: &str,
     contract: CheckedValueContract,
+    temporal: PortTemporal,
 ) -> Result<Kind, String> {
     let configuration = crate::data_label_configuration();
     let input = port_id("input");
+    let maximum_bytes = contract.maximum_bytes;
+    let mut laws = vec![KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+        location: FrontValueLocation::Input(input.clone()),
+        contract: contract.clone(),
+    }])];
+    if matches!(temporal, PortTemporal::Flow { .. }) {
+        laws.push(KindSemanticLaw::Terminal(
+            KindTerminalBehavior::CompletesWhenInputsClose,
+        ));
+    }
     let kind = Kind {
         kind_id: kind_id(name),
         kind_contract_revision: revision.into(),
@@ -133,22 +156,16 @@ fn observation_face_kind(
             port_id: input.clone(),
             value_kind: contract.value_kind.clone(),
             direction: PortDirection::Input,
-            temporal: PortTemporal::Flow { closes: false },
+            temporal,
             abnormal_kind: None,
         }],
         outputs: vec![],
         configuration,
-        semantic_laws: vec![
-            KindSemanticLaw::ValueContracts(vec![FrontValueContract {
-                location: FrontValueLocation::Input(input),
-                contract: contract.clone(),
-            }]),
-            KindSemanticLaw::Terminal(KindTerminalBehavior::CompletesWhenInputsClose),
-        ],
+        semantic_laws: laws,
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: contract.maximum_bytes,
+            max_queue_bytes: maximum_bytes,
         },
     };
     kind.validate()
@@ -163,6 +180,18 @@ pub fn install_ambient_clock_face_kind(
     install_observation_face_kind(
         AMBIENT_CLOCK_FACE_KIND,
         ambient_clock_face_kind()?,
+        startup,
+        profile,
+    )
+}
+
+pub fn install_ambient_clock_snapshot_face_kind(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    install_observation_face_kind(
+        AMBIENT_CLOCK_SNAPSHOT_FACE_KIND,
+        ambient_clock_snapshot_face_kind()?,
         startup,
         profile,
     )
