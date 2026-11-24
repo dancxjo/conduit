@@ -19,6 +19,49 @@ On user-owned machines, recover space in this order:
 
 Disk cleanup is machine maintenance, not permission to change Conduit source or enlarge an issue's implementation scope.
 
+## Worktree lifecycle
+
+Treat each worktree as a temporary, owned workspace, not a permanent build
+cache. Use the existing worktree for its assigned task when practical; do not
+create duplicate worktrees just to restart a session.
+
+- At task start, inventory registered worktrees with `git worktree list` and
+  check free space on the filesystem that actually holds build output. Before
+  expensive builds, account for expected output growth, including nested
+  target directories, cross-compilation, and concurrent builds. If there is
+  insufficient headroom, clean verified disposable output first or report
+  the blocker. Do not wait for ENOSPC.
+- At task completion, handoff, or abandonment, inspect the worktree's size
+  and ownership; remove superseded, regenerable compilation output when
+  no active process or proof consumer needs it. Check custom Cargo target
+  directories and architecture-specific build profiles, not just
+  `target/debug` and `target/release`. Use exact inspected paths.
+  Never run blanket `cargo clean`, `git clean -fdx`, or recursive deletion
+  over a mixed build/evidence directory. Retain required evidence according
+  to the proof-output lifecycle below.
+- Before retiring a worktree, refresh relevant remote refs and confirm
+  that its owner has finished, no session/build uses it, no active PR or
+  release needs the checkout, and tracked, untracked, and ignored contents
+  have been inspected. Preserve dirty/untracked work separately and verify
+  that the exact HEAD is reachable from a kept local or remote ref or a
+  verified local bundle outside the worktree. A squash merge, age, or a
+  clean tracked-file status alone does not prove custody.
+- For a Codex- or tool-managed worktree, use its supported retirement
+  mechanism if available. Otherwise, from a different checkout of the
+  same repository, use `git worktree remove <path>` without force.
+  Respect locks and refusals; investigate rather than bypass them.
+  Do not retire a worktree still required by the current agent session;
+  hand the retirement action to its owner instead.
+- Inspect stale registrations with `git worktree prune --dry-run --verbose`
+  before pruning. Prune only confirmed stale entries; do not prune a
+  temporarily unavailable checkout. Pruning metadata does not reclaim
+  live worktree files. Never delete a local or remote branch as a side
+  effect of routine worktree retirement.
+- In the handoff or completion report, state what was reclaimed or
+  retired, the remaining free space if cleanup was needed, and any
+  worktrees retained for active ownership or unresolved custody.
+  Do not generate a separate committed report for routine housekeeping.
+
 ## Proof-output lifecycle
 
 Apply [evidence retention](evidence-retention.md) before generating or transferring
