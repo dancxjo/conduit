@@ -333,6 +333,15 @@ mod tests {
     }
 
     #[test]
+    fn installed_catalog_expands_the_shipped_patchbay_interaction_plot() {
+        let source = parse(include_str!("../../../plots/patchbay/main.conduit")).unwrap();
+        let expanded = source.expand_entry_for_authoring().unwrap().expanded;
+        assert_eq!(expanded.name, "patchbay");
+        assert_eq!(expanded.gears.len(), 1);
+        assert_eq!(expanded.input_bindings.len(), 1);
+    }
+
+    #[test]
     fn product_authoring_checks_quoted_ipa_with_the_ordinary_speech_catalog() {
         let source = parse(include_str!(
             "../../../semantics/speech/examples/ipa/quoted-phone.conduit"
