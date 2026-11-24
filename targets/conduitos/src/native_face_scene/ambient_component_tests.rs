@@ -677,3 +677,5 @@ fn picture_clock_continues_with_stale_or_missing_weather() {
         }
     }
 }
+
+mod wallpaper_cover;
