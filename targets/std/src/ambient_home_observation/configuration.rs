@@ -232,32 +232,39 @@ where
     stage_native_worker(image, checked, definition, factory, memory)
 }
 
-/// Finite queue requirements for the connections owned by the Home source.
+/// Finite queue requirements for connections owned by an ambient observation source.
 pub fn ambient_home_connection_limits(
     plot: &conduit_plot::ExpandedCanonicalPlot,
 ) -> std::collections::BTreeMap<
     conduit_planner::ConnectionEndpoints,
     conduit_planner::ConnectionQueueLimits,
 > {
-    let home_gear = |id| {
-        plot.gears
-            .iter()
-            .any(|gear| &gear.gear_id == id && gear.kind_id.as_str() == AMBIENT_HOME_SOURCE_BASE)
+    use conduit_semantic_catalog::{
+        AMBIENT_CLOCK_KIND, AMBIENT_CLOCK_OBSERVATION_BYTES, AMBIENT_HOME_OBSERVE_KIND,
+    };
+    let observation_bytes = |id| {
+        let gear = plot.gears.iter().find(|gear| &gear.gear_id == id)?;
+        match gear.kind_id.as_str() {
+            AMBIENT_HOME_OBSERVE_KIND => Some(super::HOME_OBSERVATION_BYTES as u32),
+            AMBIENT_CLOCK_KIND => Some(AMBIENT_CLOCK_OBSERVATION_BYTES),
+            _ => None,
+        }
     };
     plot.connections
         .iter()
         .filter_map(|connection| {
-            let bytes = if home_gear(&connection.source_gear_id)
-                && connection.source_port_id.as_str() == "observation"
-            {
-                super::HOME_OBSERVATION_BYTES as u32
-            } else if home_gear(&connection.sink_gear_id)
-                && connection.sink_port_id.as_str() == "tick"
-            {
-                conduit_time::TICK_ENCODED_LEN
-            } else {
-                return None;
-            };
+            let bytes = match connection.source_port_id.as_str() {
+                "observation" => observation_bytes(&connection.source_gear_id),
+                _ => None,
+            }
+            .or_else(|| {
+                if connection.sink_port_id.as_str() == "tick" {
+                    observation_bytes(&connection.sink_gear_id)
+                        .map(|_| conduit_time::TICK_ENCODED_LEN)
+                } else {
+                    None
+                }
+            })?;
             Some((
                 (
                     connection.source_gear_id.clone(),
