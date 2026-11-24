@@ -361,7 +361,10 @@ records its source commit, target, proof class, and complete product file hashes
 Products leave the runner in tar archives so executable permissions survive
 artifact transfer. Failed lanes can retain diagnostics, but cannot issue a
 successful product receipt. GitHub's **Re-run failed jobs** keeps successful
-siblings; test failures are never automatically retried.
+siblings; test failures are never automatically retried. For ordinary dev
+publication, a retained product from an earlier attempt must match a successful
+target job and its artifact upload in both that attempt and the final attempt's
+job inventory. The publisher still verifies the exact source, tree, and bytes.
 
 Build proof for firmware and boards without CI hardware remains **build proof
 only**. Executable smoke, browser execution, and ConduitOS emulator boot are
