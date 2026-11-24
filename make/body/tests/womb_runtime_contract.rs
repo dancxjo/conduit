@@ -67,3 +67,34 @@ fn preparation_refusals_remain_classified_and_bound_to_exact_evidence() {
         assert!(WombOutcome::decode(&unknown).is_none());
     }
 }
+
+#[test]
+fn stem_is_a_separately_checked_member_seed_plot() {
+    let legacy =
+        conduit_plot::parse_syntax_document(include_str!("../../../plots/womb/main.conduit"));
+    let current =
+        conduit_plot::parse_syntax_document(include_str!("../../../plots/stem/main.conduit"));
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
+
+    install_stem_catalogs(&mut startup, &mut profile).unwrap();
+    let stem = conduit_plot::check_syntax_document(&current, &startup).unwrap();
+    assert!(conduit_plot::check_syntax_document(&legacy, &startup).is_err());
+    let expanded =
+        conduit_plot::expand_canonical_plot_for_authoring(&stem, "stem/main", &profile).unwrap();
+    assert_eq!(expanded.expanded.gears[0].kind_id.as_str(), STEM_KIND);
+
+    install_womb_catalogs(&mut startup, &mut profile).unwrap();
+    let womb = conduit_plot::check_syntax_document(&legacy, &startup).unwrap();
+    assert_ne!(stem.source_document_id, womb.source_document_id);
+    assert_ne!(stem.plots[0].checked_plot_id, womb.plots[0].checked_plot_id);
+    let kind = stem_kind();
+    assert_eq!(kind.inputs[0].value_kind.as_str(), STEM_REQUEST_KIND);
+    assert_eq!(kind.outputs[0].value_kind.as_str(), STEM_OUTCOME_KIND);
+    let stem_call = stem_host_call_requirement();
+    assert_eq!(stem_call.target_kind, Some(kind.kind_id));
+    assert_ne!(
+        stem_call.contract_id,
+        womb_host_call_requirement().contract_id
+    );
+}

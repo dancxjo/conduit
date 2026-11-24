@@ -10,6 +10,7 @@ pub(super) fn catalogs(
         &mut profile,
     )?;
     conduit_body_make::womb_runtime_catalog::install_womb_catalogs(&mut startup, &mut profile)?;
+    conduit_body_make::womb_runtime_catalog::install_stem_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
