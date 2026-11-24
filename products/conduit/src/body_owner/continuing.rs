@@ -108,6 +108,7 @@ impl Owner {
             Ok(prepared) => prepared,
             Err(error) => {
                 self.host.restore_after_play(host)?;
+                self.retain_finished(root, Err(error.clone()), Vec::new())?;
                 return Err(error);
             }
         };
