@@ -31,7 +31,14 @@ pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
         {
             TODO_ACTION_DEADLINE
         }
-        Request::BodyReturn { .. } => Duration::from_secs(10),
+        // Birth publishes a retained workset and projects its first owner Face.
+        Request::BirthInteraction { interaction, .. }
+            if interaction.action_id == "creche.birth" =>
+        {
+            Duration::from_secs(10)
+        }
+        // Start prepares the selected workset before acknowledging the request.
+        Request::BodyStart { .. } | Request::BodyReturn { .. } => Duration::from_secs(10),
         _ => CONTROL_DEADLINE,
     };
     let mut bytes = serde_json::to_vec(&request)
