@@ -284,6 +284,13 @@ fn run_stem_body_play(case: StemFixture) {
             assert!(length>22); assert_eq!(length as u64,exposure["artifact"]["artifact_bytes"].as_u64().unwrap());
             let bytes=unsafe{core::slice::from_raw_parts(conduit_stem_seed_output_ptr() as *const u8,length)};
             assert_eq!(&bytes[..4],b"PK\x03\x04");
+            if sealed {
+                let output = std::path::PathBuf::from(
+                    std::env::var_os("CONDUIT_STEM_DERIVED_IMAGE").expect("derived IMAGE directory"));
+                std::fs::write(output.join("stem-fixture-seed.zip"), bytes).unwrap();
+                std::fs::write(output.join("stem-fixture-delivery.json"),
+                    serde_json::to_vec_pretty(&exposure).unwrap()).unwrap();
+            }
         }
         let current = workspace(serde_json::json!({"action":"Current"})).1;
         assert_eq!(current["evidence"]["body_id"], born.body_id);
