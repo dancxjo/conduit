@@ -42,7 +42,8 @@ mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
 pub use interaction_contract::{
-    patchbay_interaction_contract, PATCHBAY_INTERACTION_KIND, PATCHBAY_INTERACTION_REVISION,
+    install_patchbay_interaction_catalog, patchbay_interaction_contract, PATCHBAY_INTERACTION_KIND,
+    PATCHBAY_INTERACTION_REVISION,
 };
 mod resident_actions;
 mod resident_mask_face;

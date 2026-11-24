@@ -139,18 +139,7 @@ pub(super) fn catalogs(
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
     conduit_face::install_mask_plot_value_aliases(&mut startup)?;
-    let patchbay = patchbay_application::patchbay_interaction_contract();
-    startup.insert(conduit_plot::KindSignature {
-        kind: patchbay.kind_id.as_str().into(),
-        startup_parameters: vec![],
-    })?;
-    startup.insert_fore(
-        patchbay_application::PATCHBAY_INTERACTION_KIND,
-        patchbay.checked_front(),
-    )?;
-    profile
-        .insert_kind(patchbay)
-        .map_err(|error| error.to_string())?;
+    patchbay_application::install_patchbay_interaction_catalog(&mut startup, &mut profile)?;
     conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profile)?;
     conduit_face::install_spoken_mask_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;

@@ -48,6 +48,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;
     conduit_thermostat_plot::install_catalogs(&mut startup, &mut profiles)?;
     conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+    patchbay_application::install_patchbay_interaction_catalog(&mut startup, &mut profiles)?;
     conduit_body_make::deployment_runtime_catalog::install_creche_catalogs(
         &mut startup,
         &mut profiles,
