@@ -98,13 +98,18 @@ export async function restoreTrainArtifacts({ manifest, observation, acquisition
     restoration.push({ name: item.name, bytes: restored.bytes, members: restored.members });
   }
   const receipts = await verifyBundle({ directory: bundle, sha: verified.source, targets });
+  const inventories = new Map();
+  const jobMetadata = endpoint => {
+    if (!inventories.has(endpoint)) inventories.set(endpoint, metadata(endpoint));
+    return inventories.get(endpoint);
+  };
   for (const target of targets) {
     const filename = path.join(bundle, target.id, 'producer.json');
     const stat = await lstat(filename);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 2 * 1024 * 1024) fail('Invalid producer custody file');
     const producer = JSON.parse(await readFile(filename, 'utf8'));
     const producerRun = await retainedProductRun({ run: initial, producer, target: target.id,
-      artifact: liveProducts.get(target.id), metadata, manifestDigest: manifest.digest });
+      artifact: liveProducts.get(target.id), metadata: jobMetadata, manifestDigest: manifest.digest });
     verifyProductCustody(producer, {
       source: verified.source, tree: verified.tree, target: target.id, run: producerRun, manifestDigest: manifest.digest,
     });
