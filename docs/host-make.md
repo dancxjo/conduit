@@ -253,6 +253,16 @@ packaged profile uses Pacific civil time and admits only the loopback weather
 provider. If that provider is absent, the clock continues and weather is
 unavailable. Photo acquisition is disabled in this profile.
 
+To reproduce the installed journey in pinned Chromium from a checkout, pass
+the exact installer bundle and the extracted browser product's
+`site/handbook` directory. The proof retains a fresh Body, restarts its
+service, exercises the Patchbay graph and returns with the same browser Part.
+
+```sh
+cargo xtask make body prove-installed-patchbay --bundle /path/to/install-bundle \
+  --handbook /path/to/site/handbook --output target/installed-patchbay-proof
+```
+
 ## Exact identities
 
 The following identities never substitute for one another:
