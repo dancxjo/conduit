@@ -39,8 +39,12 @@ impl PreparedWallpaperObservation {
             .find(|case| case.tag() == "unavailable")
             .ok_or("missing wallpaper absence case")?;
         let mut reason = Composer::new(unavailable.payload_type(), 256).map_err(debug_error)?;
-        let reason = canonical(reason.leaf(b"Wallpaper unavailable").map_err(debug_error)?)
-            .map_err(debug_error)?;
+        let reason = canonical(
+            reason
+                .leaf(b"No photograph deck was prepared")
+                .map_err(debug_error)?,
+        )
+        .map_err(debug_error)?;
         let mut absence =
             Composer::new(observation_type, WALLPAPER_OBSERVATION_BYTES).map_err(debug_error)?;
         let unavailable = absence
@@ -135,7 +139,7 @@ mod tests {
             let reason = value.variant_payload("unavailable").unwrap().unwrap();
             assert_eq!(
                 reason.primitive_bytes(conduit_core::TEXT_INFO_ID).unwrap(),
-                b"Wallpaper unavailable"
+                b"No photograph deck was prepared"
             );
         }
     }
