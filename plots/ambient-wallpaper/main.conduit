@@ -20,7 +20,7 @@ plot ambient-wallpaper (
     >> observation: AmbientWallpaperSelection <= 4096B
 ) {
     current: ambient-wallpaper/current
-    inspect: face/structured-info("Wallpaper")
+    inspect: face/ambient-wallpaper-selection("Wallpaper")
     observation >> current.observation
     current.current >> inspect.input
 }
