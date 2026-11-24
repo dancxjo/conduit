@@ -6,6 +6,7 @@
 //! Protocol: <https://github.com/nasa/apod-api/blob/master/README.md>.
 
 pub mod acquisition;
+pub mod observation;
 pub mod selection_wire;
 
 use serde::Deserialize;

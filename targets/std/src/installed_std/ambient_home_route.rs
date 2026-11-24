@@ -164,6 +164,9 @@ impl AmbientHomeRoute {
                     AmbientFaceProjection::Clock => {
                         self.faces.clock_canonical_observation(basis, bytes)
                     }
+                    AmbientFaceProjection::Wallpaper => {
+                        self.faces.wallpaper_canonical_observation(basis, bytes)
+                    }
                 }
                 .map_err(|why| format!("ambient semantic projection: {why:?}"))?;
                 fragment
