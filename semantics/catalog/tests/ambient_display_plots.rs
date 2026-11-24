@@ -7,8 +7,8 @@ use conduit_core::{
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-    CheckedNativeType, CheckedSyntaxDocument, KindSignature, PortableExpressionProgram,
-    ProfileCatalog, StartupCatalog,
+    CheckedNativeType, CheckedSyntaxDocument, PortableExpressionProgram, ProfileCatalog,
+    StartupCatalog,
 };
 
 const TYPES: &str = include_str!("../../../plots/ambient-display/types.conduit");
@@ -17,11 +17,10 @@ const CLOCK_WEATHER: &str = include_str!("../../../plots/ambient-clock-weather/m
 
 fn checked_with(source: &str) -> CheckedSyntaxDocument {
     let mut startup = conduit_face::image_resource_source_catalog().unwrap();
-    startup
-        .insert(KindSignature {
-            kind: conduit_semantic_catalog::STRUCTURED_FACE_KIND.into(),
-            startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
-        })
+    let mut profile = ProfileCatalog::new();
+    conduit_semantic_catalog::install_ambient_wallpaper_face_kind(&mut startup, &mut profile)
+        .unwrap();
+    conduit_semantic_catalog::install_ambient_clock_snapshot_face_kind(&mut startup, &mut profile)
         .unwrap();
     check_syntax_document(&parse_syntax_document(source), &startup).unwrap()
 }
@@ -70,27 +69,23 @@ fn wallpaper_observation_is_bounded_and_provider_neutral() {
     );
     let mut startup = StartupCatalog::new();
     conduit_semantic_catalog::install_ambient_display_types(&mut startup).unwrap();
-    startup
-        .insert(KindSignature {
-            kind: conduit_semantic_catalog::STRUCTURED_FACE_KIND.into(),
-            startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
-        })
+    let mut profile = ProfileCatalog::new();
+    conduit_semantic_catalog::install_ambient_wallpaper_face_kind(&mut startup, &mut profile)
+        .unwrap();
+    conduit_semantic_catalog::install_ambient_clock_snapshot_face_kind(&mut startup, &mut profile)
         .unwrap();
     let consumer = check_syntax_document(&parse_syntax_document(WALLPAPER), &startup).unwrap();
-    let mut profile = ProfileCatalog::new();
-    profile
-        .insert_kind(conduit_semantic_catalog::structured_face_semantic_contract(
-            "AmbientWallpaperSelection",
-            &native(&checked, "AmbientWallpaperSelection").value_type,
-        ))
-        .unwrap();
+
     let expanded =
         expand_canonical_plot_for_authoring(&consumer, "ambient-wallpaper", &profile).unwrap();
-    assert!(expanded
-        .expanded
-        .gears
-        .iter()
-        .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::STRUCTURED_FACE_KIND));
+    assert!(
+        expanded
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str()
+                == conduit_semantic_catalog::AMBIENT_WALLPAPER_FACE_KIND)
+    );
     for source in [TYPES, WALLPAPER, CLOCK_WEATHER] {
         for binding in ["http://", "https://", "Seattle", "motherbrain", "threebee"] {
             assert!(!source.contains(binding), "authored binding: {binding}");
@@ -281,27 +276,21 @@ fn clock_weather_observation_keeps_freshness_and_locality() {
     assert_eq!(cases.len(), 3);
     let mut startup = StartupCatalog::new();
     conduit_semantic_catalog::install_ambient_display_types(&mut startup).unwrap();
-    startup
-        .insert(KindSignature {
-            kind: conduit_semantic_catalog::STRUCTURED_FACE_KIND.into(),
-            startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
-        })
+    let mut profile = ProfileCatalog::new();
+    conduit_semantic_catalog::install_ambient_wallpaper_face_kind(&mut startup, &mut profile)
+        .unwrap();
+    conduit_semantic_catalog::install_ambient_clock_snapshot_face_kind(&mut startup, &mut profile)
         .unwrap();
     let consumer = check_syntax_document(&parse_syntax_document(CLOCK_WEATHER), &startup).unwrap();
-    let mut profile = ProfileCatalog::new();
-    profile
-        .insert_kind(conduit_semantic_catalog::structured_face_semantic_contract(
-            "AmbientClockWeather",
-            &native(&checked, "AmbientClockWeather").value_type,
-        ))
-        .unwrap();
+
     let expanded =
         expand_canonical_plot_for_authoring(&consumer, "ambient-clock-weather", &profile).unwrap();
     assert!(expanded
         .expanded
         .gears
         .iter()
-        .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::STRUCTURED_FACE_KIND));
+        .any(|gear| gear.kind_id.as_str()
+            == conduit_semantic_catalog::AMBIENT_CLOCK_SNAPSHOT_FACE_KIND));
 }
 
 fn empty_case(ty: &StructuredInfoType, tag: &str) -> StructuredInfoValue {

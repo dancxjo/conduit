@@ -9,7 +9,7 @@ plot ambient-clock-weather (
     >> observation: AmbientClockWeather <= 4096B
 ) {
     current: ambient-clock-weather/current
-    inspect: face/structured-info("Date, time and weather")
+    inspect: face/ambient-clock-weather-snapshot("Date, time and weather")
     observation >> current.observation
     current.current >> inspect.input
 }
