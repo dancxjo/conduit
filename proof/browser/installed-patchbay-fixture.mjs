@@ -10,11 +10,15 @@ export async function installPatchbayBody(bundle, evidence) {
   if (Buffer.byteLength(path.join(state, "control.sock")) >= 108) {
     throw new Error("The temporary directory is too long for the installed owner socket.");
   }
-  const product = path.join(bundle, "conduit-linux-x86_64");
+  execFileSync("sh", [path.join(bundle, "install-linux-x86_64.sh"), "--state-dir", state, "--no-start"]);
+  const installation = JSON.parse(readFileSync(path.join(state, "installation.json"), "utf8"));
+  const bundleIdentity = installation.release_bundle_sha256;
+  expect(bundleIdentity).toMatch(/^sha256:[0-9a-f]{64}$/);
+  const product = path.join(state, "releases", bundleIdentity.slice("sha256:".length), "conduit-linux-x86_64");
+  expect(installation.product_executable).toBe(product);
   const command = (...args) => JSON.parse(execFileSync(product, args, {
     encoding: "utf8", timeout: 15_000, stdio: ["ignore", "pipe", "pipe"],
   }));
-  execFileSync("sh", [path.join(bundle, "install-linux-x86_64.sh"), "--state-dir", state, "--no-start"]);
   execFileSync(product, ["host", "service", "configure",
     path.join(bundle, "linux-ambient.host.conduit"), "--image",
     path.join(bundle, "linux-ambient.image.json"), "--state-dir", state]);
