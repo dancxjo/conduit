@@ -100,6 +100,17 @@ pub struct BodyRunRequest<'a> {
 /// storage. Returning an error leaves the kernel output unacknowledged.
 pub trait BodyForeOutputAdapter {
     fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String>;
+
+    /// Return the admitted resident receiver for this live Fore, if selected.
+    fn patchbay_interaction_host(&mut self) -> Option<&mut dyn PatchbayInteractionHost> {
+        None
+    }
+}
+
+/// Installed owner callback for an exact bounded Patchbay Host Call. The
+/// receiver verifies current Face/Show evidence before making any change.
+pub trait PatchbayInteractionHost {
+    fn apply_interaction(&mut self, input: &[u8]) -> conduit_kernel::HostCallOutcome;
 }
 
 /// The selected residence and immutable checkpoint namespace for one Play.
@@ -116,6 +127,12 @@ pub struct BodyForeExchange<'a> {
 
 /// One finite live producer and its acknowledged output for a waiting Play.
 pub struct WaitingTodoFore<'a> {
+    pub queue: &'a BodyLiveForeQueue,
+    pub output: &'a mut dyn BodyForeOutputAdapter,
+}
+
+/// The selected live input queue and its admitted owner receiver.
+pub struct WaitingPatchbayFore<'a> {
     pub queue: &'a BodyLiveForeQueue,
     pub output: &'a mut dyn BodyForeOutputAdapter,
 }

@@ -2,7 +2,7 @@
 use super::PreparedPatchbayIngress;
 use conduit_body::BodyId;
 use conduit_face::{Face, FaceContributionBasis, MaskShow};
-use conduit_kernel::{Failure, FailureCode, HostCallDisposition, HostCallOutcome};
+use conduit_kernel::HostCallOutcome;
 use patchbay_application::{
     PatchbayApplicationPort, PatchbayApplicationRequest, PatchbayCommandRefusal,
 };
@@ -83,37 +83,7 @@ pub(crate) fn apply_to_owner(
     let owner_result = owner
         .port()?
         .apply_face_interaction(input, body, basis, face, show);
-    let (disposition, failure) = match &owner_result {
-        Ok(_) => (HostCallDisposition::Completed, None),
-        Err(PatchbayCommandRefusal::WrongOwner | PatchbayCommandRefusal::InvalidContribution) => (
-            HostCallDisposition::Denied,
-            Some(Failure {
-                code: FailureCode::HostCallDenied,
-                detail: 71,
-            }),
-        ),
-        Err(PatchbayCommandRefusal::Domain(
-            patchbay_application::PatchbayApplicationRefusal::RevisionExhausted,
-        )) => (
-            HostCallDisposition::Failed,
-            Some(Failure {
-                code: FailureCode::IdentityCapacityExhausted,
-                detail: 71,
-            }),
-        ),
-        Err(_) => (
-            HostCallDisposition::Failed,
-            Some(Failure {
-                code: FailureCode::InvalidInput,
-                detail: 71,
-            }),
-        ),
-    };
-    let outcome = HostCallOutcome {
-        disposition,
-        output: None,
-        failure,
-    };
+    let outcome = patchbay_application::patchbay_interaction_outcome(&owner_result);
     let request_delivery = if matches!(&owner_result, Ok(Some(_))) {
         PatchbayRequestDelivery::Returned
     } else {

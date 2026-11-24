@@ -107,6 +107,7 @@ impl StdHost {
             &self.advertisement,
             self.playback.as_ref(),
             None,
+            None,
         )?;
         kernel.require_supported_execution()?;
         let first = &request.plan.plots[0].plan;

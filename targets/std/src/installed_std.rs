@@ -68,6 +68,7 @@ mod instrument_map_back;
 mod ipa_constructor_back;
 mod near_back;
 mod numerical_back;
+mod patchbay_interaction_factory;
 mod pcm_clip_frames_back;
 mod startup_chime_back;
 mod startup_contract;

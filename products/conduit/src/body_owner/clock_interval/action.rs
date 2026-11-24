@@ -36,7 +36,7 @@ impl Owner {
                 Ok(ClockAction::NotebookNavigation)
             }
             ("conduit.intent/open-inspection@1" | "conduit.intent/open-body-overview@1", 0)
-                if self.current_home_fragment().is_some() =>
+                if self.current_home_fragment().is_some() || self.runtime_patchbay.is_some() =>
             {
                 Ok(ClockAction::HomeNavigation)
             }

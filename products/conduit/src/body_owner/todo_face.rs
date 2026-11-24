@@ -241,8 +241,31 @@ impl Owner {
             .unwrap_or_default();
         let mut context = FaceContext::Overview;
         let mut focus = FaceFocus::Body;
-        if let Some(fragment) = self.current_home_fragment() {
-            if self.runtime_face_inspection {
+        let home = self.current_home_fragment();
+        let patchbay = self
+            .runtime_patchbay
+            .as_ref()
+            .map(|patchbay| {
+                patchbay.fragment(
+                    &self.session.evidence().body.body_id,
+                    self.current_play_id(),
+                    self.patchbay_inspection,
+                )
+            })
+            .transpose()?
+            .flatten();
+        let routes = home
+            .into_iter()
+            .chain(patchbay.as_ref())
+            .map(|fragment| &fragment.basis)
+            .collect::<Vec<_>>();
+        let inspection = if self.patchbay_inspection {
+            patchbay.as_ref().or(home)
+        } else {
+            home.or(patchbay.as_ref())
+        };
+        if let Some(fragment) = inspection {
+            if self.runtime_face_inspection || self.patchbay_inspection {
                 context = FaceContext::Inspection(fragment.basis.checked_plot_id.clone());
                 focus = FaceFocus::Contribution {
                     role: FaceContributionRole::Inspection,
@@ -254,7 +277,7 @@ impl Owner {
                 fragment.clone(),
             ));
         }
-        let face = BodyFace::project_with_names(
+        let face = BodyFace::project_with_inspection_routes(
             &self.session.evidence().body,
             self.session
                 .realization()
@@ -267,6 +290,7 @@ impl Owner {
                 body_name: Some(&self.session.evidence().friendly_name),
                 resident_plots: &plot_names,
             },
+            &routes,
         )
         .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
         face.face

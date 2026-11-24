@@ -2788,6 +2788,7 @@ dependencies = [
  "instant-distance",
  "libc",
  "ort-sys",
+ "patchbay-application",
  "rcgen",
  "rustls",
  "rustls-pemfile",
@@ -2832,6 +2833,7 @@ dependencies = [
  "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
+ "patchbay-application",
 ]
 
 [[package]]

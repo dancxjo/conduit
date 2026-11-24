@@ -63,26 +63,12 @@ fn prepare_port(
 ) -> Result<patchbay_application::PatchbayApplicationPort, String> {
     let residents: Vec<_> = plan.plots.iter().map(|part| part.plot.clone()).collect();
     let subjects = crate::creche::inventory_application_subjects(source, &residents)?;
-    let mut active = Vec::with_capacity(plan.plots.len());
-    for (part, (expanded, title)) in plan.plots.iter().zip(subjects) {
-        active.push(
-            patchbay_application::PatchbayActivePlot::project(
-                &expanded,
-                title,
-                part.plot.checked_plot_id.as_str(),
-                part.plan.plan_id.clone(),
-                patchbay_application::PatchbayActivePlotState::Playing,
-                part.plot.checked_plot_id.as_str() == foreground_checked_plot_id,
-            )
-            .map_err(|error| format!("project resident Patchbay Plot: {error:?}"))?,
-        );
-    }
-    patchbay_application::PatchbayApplicationPort::open_active(
-        active,
-        plan.plan_id.clone(),
-        Some(active_play_id.clone()),
+    patchbay_application::PatchbayApplicationPort::open_body_residents(
+        plan,
+        active_play_id,
+        subjects.iter().map(|(plot, title)| (plot, title.as_str())),
+        foreground_checked_plot_id,
     )
-    .map_err(|error| format!("prepare resident Patchbay: {error:?}"))
 }
 
 /// Counterfactual old Source is retained only for named CPU migration fixtures.
@@ -187,6 +173,29 @@ mod tests {
             assert!(prepared.pending_observation().is_none());
         }
     }
+    #[test]
+    fn resident_preparation_refuses_a_mismatched_source_document() {
+        let request = request_from_sources(&[CANONICAL]);
+        let plan = &request.plan;
+        let resident = &plan.plots[0].plot;
+        let mut subjects = crate::creche::inventory_application_subjects(
+            CANONICAL,
+            core::slice::from_ref(resident),
+        )
+        .unwrap();
+        subjects[0].0.source_document_id = "source/different".into();
+        let play = conduit_body::BodyPlayIdentity::bind(plan, request.play_sequence);
+        assert!(matches!(
+            patchbay_application::PatchbayApplicationPort::open_body_residents(
+                plan,
+                &play.active_play_id,
+                subjects.iter().map(|(plot, title)| (plot, title.as_str())),
+                resident.checked_plot_id.as_str(),
+            ),
+            Err(error) if error == "Patchbay inventory differs from the planned resident Plot"
+        ));
+    }
+
     #[test]
     fn canonical_product_retains_exact_body_placement_custody() {
         let request = request_from_sources(&[CANONICAL]);

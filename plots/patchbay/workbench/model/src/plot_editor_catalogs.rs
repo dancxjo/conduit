@@ -24,6 +24,8 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotE
         .map_err(PlotEditorError::Catalog)?;
     conduit_face::install_mask_plot_value_aliases(&mut startup)
         .map_err(PlotEditorError::Catalog)?;
+    patchbay_application::install_patchbay_interaction_catalog(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)

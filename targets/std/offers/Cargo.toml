@@ -30,3 +30,4 @@ conduit-chat = { path = "../../../semantics/chat", features = ["plot-catalog"] }
 conduit-face = { path = "../../../semantics/face" }
 conduit-robotics = { path = "../../../semantics/robotics" }
 conduit-web = { path = "../../../semantics/web" }
+patchbay-application = { path = "../../../plots/patchbay/application" }

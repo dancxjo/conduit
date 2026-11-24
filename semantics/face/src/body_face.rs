@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     CommittedStateBasisRefusal, CommittedStateContributionBasis, CommittedStateSelection, Face,
-    FaceBasis, FaceContextBasis, FaceContributionRole, FaceDisclosure, FaceDisclosureLevel,
-    FaceError, FaceFragment, FaceFragmentError, FaceInteractionContext, FaceProperty,
-    FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
+    FaceBasis, FaceContextBasis, FaceContributionBasis, FaceContributionRole, FaceDisclosure,
+    FaceDisclosureLevel, FaceError, FaceFragment, FaceFragmentError, FaceInteractionContext,
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText,
 };
 
 mod action_resolution;
@@ -198,6 +199,33 @@ impl BodyFace {
             contributions,
             names,
             None,
+            &[],
+        )
+    }
+
+    /// Offer current resident inspection routes while projecting only the
+    /// contribution selected for this Face.
+    #[allow(clippy::too_many_arguments)]
+    pub fn project_with_inspection_routes(
+        body: &Body,
+        wake: Option<&Wake>,
+        revision: u64,
+        context: FaceContext,
+        focus: FaceFocus,
+        contributions: Vec<FaceContribution>,
+        names: FaceNames<'_>,
+        routes: &[&FaceContributionBasis],
+    ) -> Result<Self, FaceRefusal> {
+        Self::project_with_admission(
+            body,
+            wake,
+            revision,
+            context,
+            focus,
+            contributions,
+            names,
+            None,
+            routes,
         )
     }
 
@@ -222,6 +250,7 @@ impl BodyFace {
             vec![contribution],
             names,
             Some(admission),
+            &[],
         )
     }
 
@@ -235,6 +264,7 @@ impl BodyFace {
         mut contributions: Vec<FaceContribution>,
         names: FaceNames<'_>,
         committed: Option<CommittedFaceAdmission<'_>>,
+        routes: &[&FaceContributionBasis],
     ) -> Result<Self, FaceRefusal> {
         body.validate().map_err(|_| FaceRefusal::InvalidBody)?;
         validate_wake(body, wake)?;
@@ -244,6 +274,7 @@ impl BodyFace {
                 .cmp(&(right.role.token(), right.active_play_id.as_str()))
         });
         validate_contributions(body, wake, &context, &focus, &contributions, committed)?;
+        validation::validate_inspection_routes(body, wake, routes)?;
 
         let body_subject = format!("body/{}", body.body_id.as_str());
         let context_subject = format!("{body_subject}/context");
@@ -378,6 +409,7 @@ impl BodyFace {
         append_operator_actions(
             body,
             &contributions,
+            routes,
             &body_subject,
             &mut actions,
             &mut operator_actions,

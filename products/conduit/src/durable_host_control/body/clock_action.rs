@@ -62,6 +62,14 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        if interaction.action_id.starts_with("patchbay.") {
+            let HostSource::Body { owner, .. } = &mut self.host else {
+                return Err("installed Host does not own a live Body session".into());
+            };
+            let deadline = std::time::Instant::now()
+                + super::CONTROL_DEADLINE.saturating_sub(std::time::Duration::from_millis(250));
+            return owner.apply_runtime_patchbay_action(show, interaction, deadline);
+        }
         let action = {
             let HostSource::Body { owner, .. } = &self.host else {
                 return Err("installed Host does not own a live Body session".into());

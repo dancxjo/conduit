@@ -73,6 +73,7 @@ fn package_catalog() -> PackageCatalogContribution {
         .into_iter()
         .chain([
             conduit_std_offers::body_wake_offer(),
+            conduit_std_offers::patchbay_interaction_offer(),
             conduit_std_offers::startup_chime_offer(),
             conduit_std_offers::measurement_plot_std_offer(),
             conduit_std_offers::whisper_clip_speech_offer(),

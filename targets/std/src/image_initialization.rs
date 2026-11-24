@@ -71,6 +71,7 @@ impl StdHost {
                 id,
                 conduit_std_offers::TICK_IMPLEMENTATION
                     | conduit_std_offers::TIME_EVERY_IMPLEMENTATION
+                    | conduit_std_offers::PATCHBAY_INTERACTION_IMPLEMENTATION
             ) || (ambient_face.is_some()
                 && id == conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION)
                 || initial.supports_native_implementation(id)
@@ -245,6 +246,13 @@ impl StdHost {
             {
                 candidate_capabilities.push(conduit_std_offers::body_wake_offer());
             }
+        }
+        if manifest
+            .implementations
+            .iter()
+            .any(|id| id == conduit_std_offers::PATCHBAY_INTERACTION_IMPLEMENTATION)
+        {
+            candidate_capabilities.push(conduit_std_offers::patchbay_interaction_offer());
         }
         initial.project_native(
             &config,

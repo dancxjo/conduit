@@ -48,7 +48,12 @@ impl RuntimeFaceReceiver {
             }) {
                 return Err("Home Face differs from its retained route or request order".into());
             }
-            owner.advance_runtime_face_revision()?;
+            // The selected Patchbay Face only exposes the availability of
+            // the Home route. Replacing a hidden Home frame leaves that Face
+            // and its acknowledged Show current.
+            if !owner.patchbay_inspection || owner.current_home_fragment().is_none() {
+                owner.advance_runtime_face_revision()?;
+            }
             owner.runtime_face = Some(frame);
         }
         Ok(())
@@ -57,7 +62,7 @@ impl RuntimeFaceReceiver {
 
 impl Owner {
     pub(crate) fn has_current_home_navigation(&self, face: &conduit_face::Face) -> bool {
-        self.current_home_fragment().is_some()
+        (self.current_home_fragment().is_some() || self.runtime_patchbay.is_some())
             && face.actions.iter().any(|action| {
                 action.availability.is_available()
                     && action.arguments.is_empty()
@@ -83,19 +88,29 @@ impl Owner {
         let action = current
             .resolve_operator_action(interaction.face_revision, &interaction.action_id)
             .map_err(|error| format!("inspection action refused: {error:?}"))?;
-        let home = self
-            .current_home_fragment()
-            .ok_or("Home inspection is not current")?;
-        let inspect = match &action.kind {
-            FaceOperatorActionKind::OpenInspection(plot) if *plot == home.basis.checked_plot_id => {
-                true
+        let (inspect, patchbay) = match &action.kind {
+            FaceOperatorActionKind::OpenInspection(plot)
+                if self
+                    .runtime_patchbay
+                    .as_ref()
+                    .is_some_and(|route| route.matches_plot(plot)) =>
+            {
+                (false, true)
             }
-            FaceOperatorActionKind::OpenOverview => false,
-            _ => return Err("action does not target the current Home inspection".into()),
+            FaceOperatorActionKind::OpenInspection(plot)
+                if self
+                    .current_home_fragment()
+                    .is_some_and(|home| *plot == home.basis.checked_plot_id) =>
+            {
+                (true, false)
+            }
+            FaceOperatorActionKind::OpenOverview => (false, false),
+            _ => return Err("action does not target a current inspection".into()),
         };
-        if self.runtime_face_inspection != inspect {
+        if self.runtime_face_inspection != inspect || self.patchbay_inspection != patchbay {
             self.advance_runtime_face_revision()?;
             self.runtime_face_inspection = inspect;
+            self.patchbay_inspection = patchbay;
         }
         Ok(serde_json::json!({
             "schema": "conduit.body/inspection-navigation@1",
@@ -103,7 +118,38 @@ impl Owner {
             "prior_face_id": interaction.face_id,
             "prior_show_id": interaction.show_id,
             "interaction_id": interaction.identity.as_str(),
-            "context": if inspect { "inspection" } else { "overview" }
+            "context": if patchbay { "patchbay" } else if inspect { "inspection" } else { "overview" }
+        }))
+    }
+
+    pub(crate) fn apply_runtime_patchbay_action(
+        &mut self,
+        show: &conduit_face::MaskShow,
+        interaction: &conduit_face::FaceInteraction,
+        deadline: std::time::Instant,
+    ) -> Result<serde_json::Value, String> {
+        let face = self.local_face_snapshot()?;
+        if !self.patchbay_inspection {
+            return Err("Patchbay inspection is not current".into());
+        }
+        let request = self
+            .runtime_patchbay
+            .as_ref()
+            .ok_or("Patchbay has no current Play")?
+            .apply(face, show, interaction, deadline)?;
+        self.advance_runtime_face_revision()?;
+        let request = request.map(|request| match request {
+            patchbay_application::PatchbayApplicationRequest::EditCurrent { expanded_plot_id, subject_identity } =>
+                serde_json::json!({"kind": "edit-current", "plot_id": expanded_plot_id, "subject": subject_identity}),
+            patchbay_application::PatchbayApplicationRequest::ChangeMasks { body_plan_id, mode } =>
+                serde_json::json!({"kind": "change-masks", "body_plan_id": body_plan_id, "mode": format!("{mode:?}")}),
+        });
+        Ok(serde_json::json!({
+            "schema": "conduit.patchbay/installed-action@1",
+            "interaction_id": interaction.identity.as_str(),
+            "prior_show_id": show.show_id,
+            "active_play_id": self.current_play_id(),
+            "request": request,
         }))
     }
 
