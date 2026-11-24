@@ -47,7 +47,9 @@ function requestFor(receipt, id, sequence) {
 }
 
 test('static Handbook Thermostat uses one real local Play, acknowledged Face actions, refusals and recovery', async ({}, testInfo) => {
-  testInfo.setTimeout(180_000);
+  // The full serial suite spent 117 seconds on the 220 acknowledged
+  // Heat/Cool pointer actions alone. Leave time for Lull, Wake, and Return.
+  testInfo.setTimeout(240_000);
   const site = await stageStaticApplications();
   const origin = new URL(site.url).origin;
   const url = new URL('handbook/', site.url).href;
