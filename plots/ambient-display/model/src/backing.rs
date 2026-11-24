@@ -11,6 +11,10 @@ impl PreparedAmbientFaces {
     /// Prepared heap payload only, separate from the input, transient projection
     /// workspace and escaped Face. Unknown retained expressions refuse admission.
     pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let validators = self
+            .home_validator
+            .retained_backing_bytes()?
+            .checked_add(self.clock_validator.retained_backing_bytes()?)?;
         [
             &self.wallpaper,
             &self.clock_weather,
@@ -19,9 +23,7 @@ impl PreparedAmbientFaces {
             &self.wallpaper_observation,
         ]
         .into_iter()
-        .try_fold(self.home_validator.retained_backing_bytes()?, |n, ty| {
-            n.checked_add(native(ty)?)
-        })
+        .try_fold(validators, |n, ty| n.checked_add(native(ty)?))
     }
 }
 fn vector<T>(values: &alloc::vec::Vec<T>) -> Option<usize> {

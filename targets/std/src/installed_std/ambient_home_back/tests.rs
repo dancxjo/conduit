@@ -206,7 +206,7 @@ fn oversized_input_is_rejected_before_borrow_or_consumption() {
 
 #[test]
 fn resident_gate_retains_two_call_protocol_past_finite_default_and_fences_request_identity() {
-    let mut back = AmbientHomeBack::prepare_resident("home/resident".into()).unwrap();
+    let mut back = AmbientHomeBack::prepare_resident("home/resident".into(), INPUT_BYTES).unwrap();
     let backing = back.retained_backing_bytes().unwrap();
     let probe = crate::allocation_probe::begin();
     for update in 0..1500 {

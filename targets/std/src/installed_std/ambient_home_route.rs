@@ -10,6 +10,7 @@ use crate::body_execution::{
 use conduit_kernel::{
     scheduler::HostCallRequest, HostCallDisposition, HostCallId, HostCallOutcome, NodeId,
 };
+use conduit_std_offers::AmbientFaceProjection;
 
 // One accepted current frame and one replacement. A receiver retaining both
 // applies pressure until it releases one; total updates do not enlarge storage.
@@ -17,6 +18,7 @@ const RETAINED_HOME_FRAGMENTS: usize = 2;
 
 pub(in crate::installed_std) struct AmbientHomeRoute {
     node: NodeId,
+    projection: AmbientFaceProjection,
     label: String,
     route: PendingFaceContributionRoute,
     faces: conduit_semantic_catalog::PreparedAmbientFaces,
@@ -56,19 +58,18 @@ impl AmbientHomeRoute {
         context: FaceContributionContext<'_>,
         observation: FaceCommitObservation,
         label: &str,
+        projection: AmbientFaceProjection,
     ) -> Result<Self, String> {
-        use conduit_std_offers::{AMBIENT_HOME_CUSTODY_CALL, AMBIENT_HOME_PROJECT_CALL};
+        let (project, custody) = projection.calls();
         if !conduit_core::valid_data_label(label)
             || context.call != HostCallId(0)
-            || context.contract.as_str() != AMBIENT_HOME_PROJECT_CALL
+            || context.contract.as_str() != project
             || !context
                 .partition
                 .host_calls
                 .iter()
                 .any(|(node, call, contract)| {
-                    *node == context.node
-                        && *call == HostCallId(1)
-                        && contract.as_str() == AMBIENT_HOME_CUSTODY_CALL
+                    *node == context.node && *call == HostCallId(1) && contract.as_str() == custody
                 })
         {
             return Err("Home requires its two exact planned operations".into());
@@ -80,6 +81,7 @@ impl AmbientHomeRoute {
             .map_err(|why| format!("Home contribution scope: {why:?}"))?;
         Ok(Self {
             node,
+            projection,
             label: label.to_owned(),
             route,
             faces,
@@ -154,10 +156,16 @@ impl AmbientHomeRoute {
                 let bytes = kernel
                     .host_value(request.input.value)
                     .map_err(|why| format!("Home original input: {why:?}"))?;
-                let mut fragment = self
-                    .faces
-                    .home_canonical_observation(self.route.basis(), bytes)
-                    .map_err(|why| format!("Home semantic projection: {why:?}"))?;
+                let basis = self.route.basis();
+                let mut fragment = match self.projection {
+                    AmbientFaceProjection::Home => {
+                        self.faces.home_canonical_observation(basis, bytes)
+                    }
+                    AmbientFaceProjection::Clock => {
+                        self.faces.clock_canonical_observation(basis, bytes)
+                    }
+                }
+                .map_err(|why| format!("ambient semantic projection: {why:?}"))?;
                 fragment
                     .subjects
                     .first_mut()

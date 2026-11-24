@@ -126,6 +126,7 @@ impl TickPreparationLayout {
                         | conduit_std_offers::TIME_EVERY_IMPLEMENTATION
                         | conduit_std_offers::BODY_WAKE_IMPLEMENTATION
                         | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
@@ -170,8 +171,10 @@ impl TickPreparationLayout {
                         .body_preparation_backing_bound(request.plan, gear)?
                         .checked_add(size_of::<Option<native_source::NativeSourceRoute<'_>>>())
                         .ok_or("Body native source backing overflow")?
-                } else if gear.implementation_id.as_str()
-                    == conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+                } else if conduit_std_offers::AmbientFaceProjection::for_implementation(
+                    gear.implementation_id.as_str(),
+                )
+                .is_some()
                 {
                     super::super::ambient_home_route::AmbientHomeRoute::preparation_backing_bound(
                         request.plan,
