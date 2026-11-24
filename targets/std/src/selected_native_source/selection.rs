@@ -169,9 +169,19 @@ impl InitializedNativeSource {
         }
         let offer = &d.base.capabilities[0];
         let resident_ambient = matches!(self.provider, NativeProvider::Worker(_))
-            && d.kind.kind_id.as_str() == conduit_semantic_catalog::AMBIENT_HOME_OBSERVE_KIND
-            && offer.implementation.implementation_id.as_str()
-                == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+            && matches!(
+                (
+                    d.kind.kind_id.as_str(),
+                    offer.implementation.implementation_id.as_str()
+                ),
+                (
+                    conduit_semantic_catalog::AMBIENT_HOME_OBSERVE_KIND,
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                ) | (
+                    conduit_semantic_catalog::AMBIENT_CLOCK_KIND,
+                    conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                )
+            )
             && offer.implementation.execution_profile_id.as_str() == NATIVE_SOURCE_WORKER_PROFILE;
         // This resident worker uses the nonwrapping Host Call request sequence.
         // Each Play has its own finite authority and only one request in flight.

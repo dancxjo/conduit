@@ -6,7 +6,7 @@ use conduit_std_host::{
     ambient_wallpaper::acquisition::prepare_current_public_deck, StdHost, StdHostConfig,
 };
 use conduit_std_offers::{
-    ambient_home_source_offer, AMBIENT_HOME_SOURCE_AUTHORITY, AMBIENT_HOME_SOURCE_CALL,
+    ambient_clock_source_offer, ambient_home_source_offer, AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
 };
 
 pub(super) fn selected(checked: &CheckedHostConfiguration) -> bool {
@@ -41,11 +41,18 @@ fn admitted_provider(
     checked: &CheckedHostConfiguration,
 ) -> Result<(AuthorityGrant, bool), String> {
     let source = CheckedAmbientHomeSource::from_configuration(checked)?;
-    let offer = ambient_home_source_offer()?;
+    let offer = if source.implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION {
+        ambient_clock_source_offer()?
+    } else {
+        ambient_home_source_offer()?
+    };
+    let [requirement] = offer.authority_requirements.as_slice() else {
+        return Err("checked Ambient worker requires one exact provider grant".into());
+    };
     let grant = AuthorityGrant {
         grant_id: format!("{}/ambient-provider", config.boot_id.as_str()).into(),
-        contract_id: AMBIENT_HOME_SOURCE_AUTHORITY.into(),
-        host_call_contract_id: AMBIENT_HOME_SOURCE_CALL.into(),
+        contract_id: requirement.contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: offer.kind_id,
         host_id: config.host_id.clone(),
         boot_id: config.boot_id.clone(),

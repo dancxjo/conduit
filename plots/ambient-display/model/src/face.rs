@@ -29,6 +29,7 @@ pub struct PreparedAmbientFaces {
     pub(crate) home: CheckedNativeType,
     pub(crate) civil: CheckedNativeType,
     pub(crate) wallpaper_observation: CheckedNativeType,
+    pub(crate) clock_validator: conduit_core::PreparedStructuredValueValidator,
     pub(crate) home_validator: conduit_core::PreparedStructuredValueValidator,
 }
 
@@ -50,10 +51,15 @@ impl PreparedAmbientFaces {
             crate::AMBIENT_HOME_MAXIMUM_BYTES as usize,
         )
         .map_err(|_| AmbientFaceRefusal::TypePreparation)?;
+        let clock_weather = named("AmbientClockWeather")?;
+        let clock_validator =
+            conduit_core::PreparedStructuredValueValidator::new(&clock_weather.value_type, 4096)
+                .map_err(|_| AmbientFaceRefusal::TypePreparation)?;
         Ok(Self {
             home_validator,
+            clock_validator,
             wallpaper: named("AmbientWallpaperSelection")?,
-            clock_weather: named("AmbientClockWeather")?,
+            clock_weather,
             home,
             civil: crate::civil::prepare()?,
             wallpaper_observation: named("AmbientWallpaperObservation")?,
@@ -88,6 +94,19 @@ impl PreparedAmbientFaces {
         );
         output.finish()
     }
+    pub fn clock_canonical_observation(
+        &self,
+        basis: FaceContributionBasis,
+        encoded: &[u8],
+    ) -> Result<FaceFragment, AmbientFaceRefusal> {
+        self.clock_validator
+            .validate(encoded)
+            .map_err(|_| AmbientFaceRefusal::InvalidObservation)?;
+        let observation = StructuredInfoValue::from_canonical_bytes(encoded)
+            .map_err(|_| AmbientFaceRefusal::InvalidObservation)?;
+        self.clock_weather(basis, &observation)
+    }
+
     pub fn clock_weather_type(&self) -> &CheckedNativeType {
         &self.clock_weather
     }

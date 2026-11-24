@@ -4,6 +4,8 @@ mod patchbay_interaction;
 pub use patchbay_interaction::*;
 mod ambient_home_face;
 pub use ambient_home_face::*;
+mod ambient_clock_observation;
+pub use ambient_clock_observation::*;
 mod ambient_home_observation;
 pub use ambient_home_observation::*;
 mod flow_coalesce_finite;

@@ -289,8 +289,10 @@ impl<'a> BodyKernel<'a> {
         for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
             for placement in &fragment.placements {
                 // The exact funded Home route owns and accounts for its label.
-                if placement.implementation_id.as_str()
-                    != conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+                if conduit_std_offers::AmbientFaceProjection::for_implementation(
+                    placement.implementation_id.as_str(),
+                )
+                .is_none()
                     && conduit_semantic_catalog::face_data_label_required(
                         placement.kind_id.as_str(),
                     )
