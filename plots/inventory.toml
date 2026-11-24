@@ -231,6 +231,14 @@ deterministic = { package = "conduit-browser-runtime", test = "lib", case = "res
 browser_safe_not_applicable = "Requires a browser Host with an admitted civil clock slot."
 
 [[plots]]
+slug = "resident-ambient-wallpaper"
+title = "Wallpaper"
+entry = "resident-ambient-wallpaper"
+workspace_catalog = false
+deterministic = { package = "conduit-std-host", test = "lib", case = "funded_standalone_wallpaper_presents_the_prepared_deck_without_weather" }
+browser_safe_not_applicable = "Requires a hosted Wallpaper Back with a bounded prepared image deck."
+
+[[plots]]
 slug = "clock"
 title = "Clock"
 entry = "clock-demo"

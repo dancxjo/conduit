@@ -3,10 +3,15 @@ use conduit_core::AuthorityGrant;
 use conduit_host_make::{CheckedHostConfiguration, HostImage};
 use conduit_std_host::{
     ambient_home_observation::CheckedAmbientHomeSource,
-    ambient_wallpaper::acquisition::prepare_current_public_deck, StdHost, StdHostConfig,
+    ambient_wallpaper::{
+        acquisition::{prepare_current_public_deck, PreparationError},
+        observation::WallpaperPreparation,
+    },
+    StdHost, StdHostConfig,
 };
 use conduit_std_offers::{
-    ambient_clock_source_offer, ambient_home_source_offer, AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+    ambient_clock_source_offer, ambient_home_source_offer, ambient_wallpaper_source_offer,
+    AMBIENT_CLOCK_SOURCE_IMPLEMENTATION, AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
 };
 
 pub(super) fn selected(checked: &CheckedHostConfiguration) -> bool {
@@ -41,10 +46,10 @@ fn admitted_provider(
     checked: &CheckedHostConfiguration,
 ) -> Result<(AuthorityGrant, bool), String> {
     let source = CheckedAmbientHomeSource::from_configuration(checked)?;
-    let offer = if source.implementation == AMBIENT_CLOCK_SOURCE_IMPLEMENTATION {
-        ambient_clock_source_offer()?
-    } else {
-        ambient_home_source_offer()?
+    let offer = match source.implementation {
+        AMBIENT_CLOCK_SOURCE_IMPLEMENTATION => ambient_clock_source_offer()?,
+        AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION => ambient_wallpaper_source_offer()?,
+        _ => ambient_home_source_offer()?,
     };
     let [requirement] = offer.authority_requirements.as_slice() else {
         return Err("checked Ambient worker requires one exact provider grant".into());
@@ -61,17 +66,18 @@ fn admitted_provider(
     Ok((grant, source.acquire_nasa_photos))
 }
 
-fn prepare_photos(
-    acquire: bool,
-) -> Option<conduit_std_host::ambient_wallpaper::acquisition::PreparedDeck> {
+fn prepare_photos(acquire: bool) -> WallpaperPreparation {
     if !acquire {
-        return None;
+        return WallpaperPreparation::NotPrepared;
     }
     match prepare_current_public_deck() {
-        Ok(deck) => Some(deck),
+        Ok(deck) => WallpaperPreparation::Ready(Box::new(deck)),
         Err(error) => {
             eprintln!("Ambient photo preparation unavailable: {error:?}");
-            None
+            match error {
+                PreparationError::ProviderRateLimited => WallpaperPreparation::ProviderRateLimited,
+                _ => WallpaperPreparation::ProviderUnavailable,
+            }
         }
     }
 }

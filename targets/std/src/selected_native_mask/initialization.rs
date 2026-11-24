@@ -46,7 +46,7 @@ impl InitialNativeMask {
 mod ambient;
 
 type DeckFactory<'a> = Box<
-    dyn FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String>
+    dyn FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String>
         + 'a,
 >;
 

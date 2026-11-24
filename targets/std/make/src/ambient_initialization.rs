@@ -20,3 +20,11 @@ pub(super) fn contract() -> BaseInitializationContract {
         ],
     }
 }
+
+pub(super) fn wallpaper_contract() -> BaseInitializationContract {
+    let mut contract = contract();
+    contract
+        .fields
+        .retain(|field| field.key != "weather_endpoint" && field.key != "timezone");
+    contract
+}

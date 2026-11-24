@@ -65,18 +65,25 @@ async function hosted(id, directory) {
         digest(installation.product_executable) !== before) {
       throw new Error('Installer must install the exact retained Linux executable without starting a Host');
     }
-    command(installation.product_executable, ['host', 'service', 'configure',
-      path.join(installer, 'linux-ambient.host.conduit'), '--image',
-      path.join(installer, 'linux-ambient.image.json'), '--state-dir', state],
-    { cwd: configuration.taskRoot });
-    const selected = JSON.parse(readFileSync(path.join(state, 'installation.json'), 'utf8'))
-      .selected_host_configuration?.host_image;
-    const implementations = selected?.payload?.implementations ?? [];
-    if (selected?.manifest?.source_identity !== configuration.snapshot.sourceCommit ||
-        !implementations.includes('std/resident-ambient-home@1') ||
-        !implementations.includes('std/patchbay-accept-interaction@1') ||
-        existsSync(path.join(state, 'runtime.json'))) {
-      throw new Error('The retained installer must configure both checked residents before Boot');
+    const ambientProfiles = [
+      ['linux-ambient-clock', 'std/resident-ambient-clock-face@1'],
+      ['linux-ambient-wallpaper', 'std/resident-ambient-wallpaper-face@1'],
+      ['linux-ambient', 'std/resident-ambient-home@1'],
+    ];
+    for (const [profile, ambientBack] of ambientProfiles) {
+      command(installation.product_executable, ['host', 'service', 'configure',
+        path.join(installer, `${profile}.host.conduit`), '--image',
+        path.join(installer, `${profile}.image.json`), '--state-dir', state],
+      { cwd: configuration.taskRoot });
+      const selected = JSON.parse(readFileSync(path.join(state, 'installation.json'), 'utf8'))
+        .selected_host_configuration?.host_image;
+      const implementations = selected?.payload?.implementations ?? [];
+      if (selected?.manifest?.source_identity !== configuration.snapshot.sourceCommit ||
+          !implementations.includes(ambientBack) ||
+          !implementations.includes('std/patchbay-accept-interaction@1') ||
+          existsSync(path.join(state, 'runtime.json'))) {
+        throw new Error(`The retained installer must configure ${profile} and Patchbay before Boot`);
+      }
     }
     return;
   }

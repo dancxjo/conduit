@@ -7,6 +7,7 @@ host linux-ambient-clock {
   capability = {kind: "ambient/clock-weather-observation", pinned_implementation: "std/ambient-clock-weather-worker@1"}
   capability = {kind: "face/ambient-clock-weather", pinned_implementation: "std/resident-ambient-clock-face@1"}
   capability = {kind: "time/every", pinned_implementation: "std/kernel-time-every@1"}
+  capability = {kind: "patchbay/accept-interaction", pinned_implementation: "std/patchbay-accept-interaction@1"}
   need = {id: "ambient/face", class: "conduit.resource/face-slot@1", slots: 1, bytes: 1}
   need = {id: "ambient/face-memory", class: "conduit.resource/runtime-memory@1", slots: 16777216, bytes: 16777216}
   need = {id: "ambient/source", class: "conduit.resource/ambient-clock-weather-source@1", slots: 1, bytes: 4096}

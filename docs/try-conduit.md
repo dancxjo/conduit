@@ -47,6 +47,9 @@ A Linux download containing `linux-ambient.host.conduit` and
 Follow the [installed Host setup](host-make.md#ambient-home-and-patchbay-on-installed-linux).
 Keep the state directory to return to the same Body after restarting the
 service.
+The bundle also includes `linux-ambient-clock` and `linux-ambient-wallpaper`
+profile and IMAGE pairs. Use the matching `.host.conduit` and `.image.json`
+files in the same setup command, then select Clock or Wallpaper in Crèche.
 
 ### Use a dedicated Linux display at boot
 

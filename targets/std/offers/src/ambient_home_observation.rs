@@ -27,6 +27,7 @@ pub fn ambient_home_source_offer() -> Result<CapabilityOffer, String> {
             include_str!("../../src/ambient_wallpaper.rs"),
             include_str!("../../src/ambient_wallpaper/acquisition.rs"),
             include_str!("../../src/ambient_wallpaper/selection_wire.rs"),
+            include_str!("../../src/ambient_wallpaper/observation.rs"),
             include_str!("../../src/ambient_weather.rs"),
             include_str!("../../src/ambient_weather/current_wire.rs"),
             include_str!("../../src/ambient_weather/current_wire/json.rs"),

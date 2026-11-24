@@ -180,12 +180,34 @@ fn stage_x86_64(executable: &Path, output: &Path) -> Result<(), Box<dyn std::err
     )
 }
 fn seal_x86_64(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
-    const AMBIENT_SOURCE: &str = "linux-ambient.host.conduit";
-    const AMBIENT_IMAGE: &str = "linux-ambient.image.json";
-    let profile = Path::new("targets/std/profiles").join(AMBIENT_SOURCE);
-    let (_, image) = crate::host_profile_image::resolve_profile(&profile, source_identity.into())?;
-    fs::copy(profile, output.join(AMBIENT_SOURCE))?;
-    fs::write(output.join(AMBIENT_IMAGE), image)?;
+    let mut files = vec![
+        (
+            "conduit-linux-x86_64",
+            "application/vnd.conduit.host+executable",
+        ),
+        ("install-linux-x86_64.sh", "application/x-sh"),
+    ];
+    for (source_name, image_name) in [
+        ("linux-ambient.host.conduit", "linux-ambient.image.json"),
+        (
+            "linux-ambient-clock.host.conduit",
+            "linux-ambient-clock.image.json",
+        ),
+        (
+            "linux-ambient-wallpaper.host.conduit",
+            "linux-ambient-wallpaper.image.json",
+        ),
+    ] {
+        let profile = Path::new("targets/std/profiles").join(source_name);
+        let (_, image) =
+            crate::host_profile_image::resolve_profile(&profile, source_identity.into())?;
+        fs::copy(profile, output.join(source_name))?;
+        fs::write(output.join(image_name), image)?;
+        files.extend([
+            (source_name, "text/plain"),
+            (image_name, "application/json"),
+        ]);
+    }
     seal(
         output,
         "hosted-linux-x86_64.json",
@@ -195,15 +217,7 @@ fn seal_x86_64(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
         "conduit-host-hosted/build-native@1",
         "conduit-host-hosted/launch@1",
         source_identity,
-        &[
-            (
-                "conduit-linux-x86_64",
-                "application/vnd.conduit.host+executable",
-            ),
-            ("install-linux-x86_64.sh", "application/x-sh"),
-            (AMBIENT_SOURCE, "text/plain"),
-            (AMBIENT_IMAGE, "application/json"),
-        ],
+        &files,
     )?;
     Ok(())
 }
