@@ -12,7 +12,7 @@ export async function installPatchbayBody(bundle, evidence) {
   }
   const product = path.join(bundle, "conduit-linux-x86_64");
   const command = (...args) => JSON.parse(execFileSync(product, args, {
-    encoding: "utf8", timeout: 15_000,
+    encoding: "utf8", timeout: 15_000, stdio: ["ignore", "pipe", "pipe"],
   }));
   execFileSync("sh", [path.join(bundle, "install-linux-x86_64.sh"), "--state-dir", state, "--no-start"]);
   execFileSync(product, ["host", "service", "configure",
@@ -68,7 +68,17 @@ export async function installPatchbayBody(bundle, evidence) {
     });
     await stopService();
     await startService();
-    await expect.poll(() => status().schema, { timeout: 15_000 }).toBe("conduit.body/owner-truth@1");
+    await expect.poll(() => {
+      if (service.exitCode !== null) throw new Error(errors.join(""));
+      try {
+        return status().schema;
+      } catch (error) {
+        if (String(error.stderr).includes("retained body biography identity is invalid or stale")) {
+          return null;
+        }
+        throw error;
+      }
+    }, { timeout: 15_000 }).toBe("conduit.body/owner-truth@1");
     const returned = status();
     expect(returned.biography.body_id).toBe(first.biography.body_id);
     expect(returned.host.host_id).toBe(first.host.host_id);
