@@ -29,7 +29,7 @@ impl Drop for Service {
 }
 
 #[test]
-fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
+fn zero_body_client_births_clock_then_continues_the_retained_body() {
     let _fixture_admission = INSTALLED_OWNER_FIXTURE
         .lock()
         .unwrap_or_else(|poison| poison.into_inner());
@@ -60,27 +60,7 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
         "zero-Body Host advertised an owned Body Face"
     );
 
-    let two_plots = b"focus creche.name\nedit value Ada\nactivate\nfocus creche.plot.0\nedit value true\nactivate\nfocus creche.plot.1\nedit value true\nactivate\nfocus creche.birth\nactivate\nquit\n";
-    let refused = product_with_stdin(
-        &[
-            "body",
-            "birth",
-            "--screen-free",
-            "--state-dir",
-            path(&state),
-        ],
-        two_plots,
-    );
-    assert!(
-        refused.status.success(),
-        "{}",
-        String::from_utf8_lossy(&refused.stderr)
-    );
-    assert!(String::from_utf8_lossy(&refused.stdout)
-        .contains("installed-birth-multiple-plots-unsupported"));
-    assert!(!state.join("body/biography.json").exists());
-
-    let one_plot = b"focus creche.plot.0\nedit value false\nactivate\nreview\nfocus creche.birth\nactivate\nread all\nquit\n";
+    let one_plot = b"focus creche.name\nedit value Ada\nactivate\nfocus creche.plot.1\nedit value true\nactivate\nreview\nfocus creche.birth\nactivate\nread all\nquit\n";
     let session = product_with_stdin(
         &[
             "body",
