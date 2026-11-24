@@ -15,6 +15,7 @@ use crate::{
 
 mod action_resolution;
 mod core_projection;
+mod inspection;
 mod projection;
 mod validation;
 use core_projection::{append_execution_truth, append_operator_actions};
@@ -203,32 +204,6 @@ impl BodyFace {
         )
     }
 
-    /// Offer current resident inspection routes while projecting only the
-    /// contribution selected for this Face.
-    #[allow(clippy::too_many_arguments)]
-    pub fn project_with_inspection_routes(
-        body: &Body,
-        wake: Option<&Wake>,
-        revision: u64,
-        context: FaceContext,
-        focus: FaceFocus,
-        contributions: Vec<FaceContribution>,
-        names: FaceNames<'_>,
-        routes: &[&FaceContributionBasis],
-    ) -> Result<Self, FaceRefusal> {
-        Self::project_with_admission(
-            body,
-            wake,
-            revision,
-            context,
-            focus,
-            contributions,
-            names,
-            None,
-            routes,
-        )
-    }
-
     /// Project one Owner-verified, checkpoint-backed contribution while the
     /// Body is lulled. The exact read Play supplies the fragment basis; the
     /// separate committed basis binds its preceding write and selection.
@@ -274,7 +249,6 @@ impl BodyFace {
                 .cmp(&(right.role.token(), right.active_play_id.as_str()))
         });
         validate_contributions(body, wake, &context, &focus, &contributions, committed)?;
-        validation::validate_inspection_routes(body, wake, routes)?;
 
         let body_subject = format!("body/{}", body.body_id.as_str());
         let context_subject = format!("{body_subject}/context");

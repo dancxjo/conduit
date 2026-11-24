@@ -277,21 +277,37 @@ impl Owner {
                 fragment.clone(),
             ));
         }
-        let face = BodyFace::project_with_inspection_routes(
-            &self.session.evidence().body,
-            self.session
-                .realization()
-                .map(|realization| &realization.wake),
-            self.projected_face_revision()?,
-            context,
-            focus,
-            contributions,
-            FaceNames {
-                body_name: Some(&self.session.evidence().friendly_name),
-                resident_plots: &plot_names,
-            },
-            &routes,
-        )
+        let body = &self.session.evidence().body;
+        let realization = self.session.realization();
+        let revision = self.projected_face_revision()?;
+        let names = FaceNames {
+            body_name: Some(&self.session.evidence().friendly_name),
+            resident_plots: &plot_names,
+        };
+        let face = if routes.len() <= 1 {
+            BodyFace::project_with_names(
+                body,
+                realization.map(|current| &current.wake),
+                revision,
+                context,
+                focus,
+                contributions,
+                names,
+            )
+        } else {
+            let current = realization.ok_or("inspection has no current Body realization")?;
+            BodyFace::project_with_inspection_routes(
+                body,
+                &current.wake,
+                &current.plan,
+                revision,
+                context,
+                focus,
+                contributions,
+                names,
+                &routes,
+            )
+        }
         .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
         face.face
             .validate()

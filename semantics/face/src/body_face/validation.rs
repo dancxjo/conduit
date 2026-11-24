@@ -8,9 +8,9 @@ use super::{
     interaction_context_identity, CommittedFaceAdmission, FaceContext, FaceContribution, FaceFocus,
     FaceNames, FaceRefusal, MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
 };
+use crate::FaceContributionRole;
 use crate::FaceFragmentError;
 use crate::{face::MAX_FACE_TEXT_BYTES, FaceResidentPlotName};
-use crate::{FaceContributionBasis, FaceContributionRole};
 
 pub(super) fn validate_names(body: &Body, names: FaceNames<'_>) -> Result<(), FaceRefusal> {
     if names
@@ -149,31 +149,11 @@ pub(super) fn validate_contributions(
     validate_focus(focus, contributions)
 }
 
-pub(super) fn validate_inspection_routes(
-    body: &Body,
+pub(super) fn play_is_current(
     wake: Option<&Wake>,
-    routes: &[&FaceContributionBasis],
-) -> Result<(), FaceRefusal> {
-    if routes.len() > body.workset.plots().len() {
-        return Err(FaceRefusal::TooManyContributions);
-    }
-    for route in routes {
-        if !body
-            .workset
-            .plots()
-            .iter()
-            .any(|plot| plot.checked_plot_id == route.checked_plot_id)
-        {
-            return Err(FaceRefusal::PlotNotResident);
-        }
-        if !play_is_current(wake, &route.plan_id, &route.active_play_id) {
-            return Err(FaceRefusal::PlayNotCurrent);
-        }
-    }
-    Ok(())
-}
-
-fn play_is_current(wake: Option<&Wake>, plan_id: &PlanId, play_id: &ActivePlayId) -> bool {
+    plan_id: &PlanId,
+    play_id: &ActivePlayId,
+) -> bool {
     wake.is_some_and(|wake| {
         wake.plans.iter().any(|plan| {
             plan.plan_id == *plan_id
