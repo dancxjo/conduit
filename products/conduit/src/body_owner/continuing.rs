@@ -6,6 +6,8 @@ use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_std_host::body_execution::{
     BodyRunReport, BodyRunRequest, CommittedBodyStartup, ImageBodyRunReport,
 };
+#[path = "continuing/patchbay_receiver.rs"]
+pub(super) mod patchbay_receiver;
 #[path = "continuing/startup.rs"]
 pub(super) mod startup;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
@@ -38,13 +40,14 @@ pub(crate) struct RunWorker {
     mode: WorkerMode,
 }
 enum WorkerMode {
-    Local(LocalWorker),
+    Local(Box<LocalWorker>),
     Member(super::startup_member::MemberWorker),
 }
 struct LocalWorker {
     control: RunControl,
     started: Receiver<(BodyPlayIdentity, Wake)>,
     faces: runtime_face::RuntimeFaceReceiver,
+    patchbay: Option<patchbay_receiver::PreparedPatchbay>,
     acknowledge: Option<SyncSender<Result<Option<CommittedBodyStartup>, String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
 }
@@ -85,7 +88,6 @@ impl Owner {
         // Source/catalog ownership is preparation-only; the one finite worker
         // receives the sealed complete Body Plan, never parser contexts.
         drop(borrowed);
-        drop(sources);
         self.persist(root)?;
         state::require_execution_capacity(root)?;
         let proposed = self
@@ -96,6 +98,22 @@ impl Owner {
         let needs_startup = startup::needs_startup(&proposed.plan);
         let host = self.host.take_for_play()?;
         let control = RunControl::default();
+        let patchbay = match patchbay_receiver::prepare(
+            &host,
+            &proposed.wake,
+            &proposed.plan,
+            &sources,
+            control.clone(),
+        ) {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                self.host.restore_after_play(host)?;
+                self.retain_finished(root, Err(error.clone()), Vec::new())?;
+                return Err(error);
+            }
+        };
+        drop(sources);
+        let worker_patchbay = patchbay.clone();
         let worker_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
         let (ack_tx, ack_rx) = mpsc::sync_channel(1);
@@ -143,7 +161,28 @@ impl Owner {
                             .recv()
                             .map_err(|_| "Body owner start acknowledgement lost".to_string())?
                     };
-                    let result = if needs_startup && host.image_identity().is_some() {
+                    let result = if let Some(mut patchbay) = worker_patchbay {
+                        use conduit_std_host::body_execution::{
+                            BodyStartedAcknowledgment, WaitingPatchbayFore,
+                        };
+                        host.run_selected_image_body_plan_with_patchbay_to(
+                            request,
+                            WaitingPatchbayFore {
+                                queue: &patchbay.queue,
+                                output: &mut patchbay.receiver,
+                            },
+                            &mut output,
+                            &mut timer,
+                            &mut face_sender,
+                            |play, wake| {
+                                Ok(started(play, wake)?.map_or(
+                                    BodyStartedAcknowledgment::LifecycleOnly,
+                                    BodyStartedAcknowledgment::CommittedStartup,
+                                ))
+                            },
+                        )
+                        .map(RunReport::Image)
+                    } else if needs_startup && host.image_identity().is_some() {
                         host.run_selected_image_body_plan_with_startup_and_face_to(
                             request,
                             &mut output,
@@ -194,13 +233,14 @@ impl Owner {
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(RunWorker {
-            mode: WorkerMode::Local(LocalWorker {
+            mode: WorkerMode::Local(Box::new(LocalWorker {
                 control,
                 started: started_rx,
                 faces,
+                patchbay,
                 acknowledge: Some(ack_tx),
                 thread: Some(thread),
-            }),
+            })),
         })
     }
 
@@ -289,6 +329,7 @@ impl LocalWorker {
                     let status = result.as_ref().map(|_| ()).map_err(Clone::clone);
                     let _ = acknowledge.send(result);
                     status?;
+                    owner.runtime_patchbay = self.patchbay.clone();
                 } else {
                     return Err("Body owner received duplicate Started acknowledgment".into());
                 }
@@ -299,6 +340,8 @@ impl LocalWorker {
             self.faces.progress(owner)?;
             return Ok(false);
         }
+        owner.runtime_patchbay = None;
+        owner.patchbay_inspection = false;
         owner.runtime_face_inspection = false;
         if owner.runtime_face.take().is_some() {
             owner.advance_runtime_face_revision()?;

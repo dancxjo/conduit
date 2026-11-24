@@ -142,6 +142,7 @@ enum WindowState {
         line_evidence: Option<Box<BrowserCarrierLineEvidence>>,
         route: Option<Box<RemoteOwnerMaskRouteSeal>>,
         acknowledged_show: Option<Box<conduit_face::MaskShow>>,
+        navigation_face: Option<Box<(conduit_core::ActivePlayId, conduit_face::Face)>>,
     },
 }
 

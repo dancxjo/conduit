@@ -15,6 +15,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 mod browser_admission;
+mod installed_patchbay;
 #[cfg(unix)]
 mod provision_conduitos;
 mod scaffold;
@@ -35,6 +36,8 @@ enum BodyCommand {
     Static(static_application::StaticArgs),
     /// Prove bounded admission, carrier loss and fresh-Boot return with a real browser SDK.
     ProveBrowserAdmission(browser_admission::ProofArgs),
+    /// Prove installed Linux Birth, Patchbay navigation, and same-Body Return.
+    ProveInstalledPatchbay(installed_patchbay::ProofArgs),
     #[cfg(unix)]
     /// Bind one verified ConduitOS ISO to a checked Body and owner invitation.
     ProvisionConduitos(provision_conduitos::Args),
@@ -106,6 +109,7 @@ pub fn run(args: BodyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
     match args.command {
         BodyCommand::Static(args) => static_application::run(args, opts),
         BodyCommand::ProveBrowserAdmission(args) => browser_admission::run(args, opts),
+        BodyCommand::ProveInstalledPatchbay(args) => installed_patchbay::run(args, opts),
         #[cfg(unix)]
         BodyCommand::ProvisionConduitos(args) => provision_conduitos::run(args, opts),
         BodyCommand::New {

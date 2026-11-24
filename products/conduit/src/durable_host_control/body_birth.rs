@@ -98,9 +98,9 @@ impl DurableHostRuntime {
                 .map(BirthTransition::Changed)
                 .map_err(debug),
             BirthActionOutcome::Birth(selection) => {
-                if selection.workset.plots().len() > 1 {
-                    return Err("installed-birth-multiple-plots-unsupported".into());
-                }
+                let complete_sources = (selection.workset.plots().len() > 1)
+                    .then(|| state.door.selected_sources(&selection))
+                    .transpose()?;
                 let primary_source = state
                     .door
                     .primary_selected_source(&selection)?
@@ -116,7 +116,7 @@ impl DurableHostRuntime {
                     .door
                     .clone()
                     .birth_from_creche(selection, state.door.revision())?;
-                let prepared = crate::durable_host::owner::Owner::prepare_born(
+                let mut prepared = crate::durable_host::owner::Owner::prepare_born(
                     born.body().clone(),
                     friendly_name,
                     &advertisement,
@@ -124,9 +124,12 @@ impl DurableHostRuntime {
                 let body_id = prepared.body_id().clone();
                 // Publication can fail after its recoverable journal is written.
                 // The caller must inspect current owner truth, never retry Birth.
-                prepared
-                    .retain(root, primary_source.as_deref().map(str::as_bytes))
-                    .map_err(|_| super::CONTROL_OUTCOME_UNKNOWN.to_owned())?;
+                if let Some(sources) = complete_sources {
+                    prepared.retain_workset(root, sources)
+                } else {
+                    prepared.retain(root, primary_source.as_deref().map(str::as_bytes))
+                }
+                .map_err(|_| super::CONTROL_OUTCOME_UNKNOWN.to_owned())?;
                 let old = std::mem::replace(&mut self.host, HostSource::Transitioning);
                 let HostSource::Bare(host) = old else {
                     self.host = old;

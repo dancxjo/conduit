@@ -220,7 +220,8 @@ pub fn contribution_matches(face: &Face, basis: &FaceContributionBasis) -> bool 
         && face.basis.active_play_id.as_ref() == Some(&basis.active_play_id);
     standalone
         || face.properties.iter().any(|property| {
-            property.subject.starts_with("contribution/foreground/")
+            (property.subject.starts_with("contribution/foreground/")
+                || property.subject.starts_with("contribution/inspection/"))
                 && property.name == "checked-plot-id"
                 && property.value
                     == FacePropertyValue::Identity(basis.checked_plot_id.as_str().into())

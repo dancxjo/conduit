@@ -40,6 +40,14 @@ startup while keeping that state. Starting the Host runs its background
 service. Opening a full-screen Face still requires a configured display
 and a Body that presents one.
 
+### Try Ambient Home and Patchbay
+
+A Linux download containing `linux-ambient.host.conduit` and
+`linux-ambient.image.json` can run both residents from a new Crèche Body.
+Follow the [installed Host setup](host-make.md#ambient-home-and-patchbay-on-installed-linux).
+Keep the state directory to return to the same Body after restarting the
+service.
+
 ### Use a dedicated Linux display at boot
 
 From a separate terminal on a Linux console machine with systemd 256 or newer,

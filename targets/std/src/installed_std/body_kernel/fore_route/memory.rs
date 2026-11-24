@@ -8,7 +8,7 @@ impl BodyForeRoute<'_> {
         {
             return None;
         }
-        let mut bytes = self.inputs.empty_backing_bytes()?;
+        let mut bytes = self.inputs.funded_backing_bytes()?;
         for n in [
             self.ports
                 .capacity()
@@ -61,7 +61,10 @@ impl BodyForeRoute<'_> {
 }
 
 fn tick_port_bytes(port: &LoweredForePort) -> Option<usize> {
-    if port.direction != PortDirection::Output || port.selected_line.is_some() {
+    if port.selected_line.is_some()
+        || (port.direction == PortDirection::Input
+            && port.value_kind.as_str() != conduit_face::FACE_INTERACTION_VALUE_KIND)
+    {
         return None;
     }
     let mut bytes = port

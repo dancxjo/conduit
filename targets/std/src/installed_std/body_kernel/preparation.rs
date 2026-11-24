@@ -111,6 +111,10 @@ impl<'a> BodyKernel<'a> {
                     .as_ref()
                     .is_some_and(|source| source.matches_call(operation.node, operation.call))
                 && !(funding.is_some() && ambient_home::is_home_face_call(operation))
+                && !(funding.is_some()
+                    && live.is_some()
+                    && operation.contract_id.as_str()
+                        == super::super::patchbay_interaction_factory::OPERATION)
                 && operation.contract_id.as_str()
                     != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {

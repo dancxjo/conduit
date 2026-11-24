@@ -2832,6 +2832,7 @@ dependencies = [
  "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
+ "patchbay-application",
 ]
 
 [[package]]
@@ -3068,6 +3069,7 @@ dependencies = [
  "clap",
  "conduit-host-browser-make",
  "conduit-host-make",
+ "conduit-workspace-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",

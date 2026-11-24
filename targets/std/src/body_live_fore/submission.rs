@@ -28,6 +28,11 @@ impl BodyLiveForeQueue {
                 .map_err(|error| format!("waiting checkpoint command: {error:?}"))?;
         }
         let mut state = self.state.lock().expect("live Fore queue lock poisoned");
+        if !state.play_started
+            && self.port.value_kind.as_str() == conduit_face::FACE_INTERACTION_VALUE_KIND
+        {
+            return Err("FaceInteraction ingress requires a started Body Play".into());
+        }
         if self.initial.is_some() && !state.play_started {
             return Err(if self.fragment_id.is_some() {
                 "seeded live Fore input requires a started Play"
