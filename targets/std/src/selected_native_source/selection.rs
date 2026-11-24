@@ -180,6 +180,9 @@ impl InitializedNativeSource {
                 ) | (
                     conduit_semantic_catalog::AMBIENT_CLOCK_KIND,
                     conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                ) | (
+                    conduit_semantic_catalog::RESIDENT_WALLPAPER_KIND,
+                    conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
                 )
             )
             && offer.implementation.execution_profile_id.as_str() == NATIVE_SOURCE_WORKER_PROFILE;

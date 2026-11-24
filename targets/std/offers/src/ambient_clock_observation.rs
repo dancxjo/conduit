@@ -13,7 +13,6 @@ pub const AMBIENT_CLOCK_SOURCE_RESOURCE: &str = "conduit.resource/ambient-clock-
 
 pub fn ambient_clock_source_offer() -> Result<CapabilityOffer, String> {
     let kind = ambient_clock_kind()?;
-    let subject = kind.kind_id.clone();
     let implementation = AMBIENT_CLOCK_SOURCE_IMPLEMENTATION;
     let digest = semantic_digest(
         implementation,
@@ -37,6 +36,27 @@ pub fn ambient_clock_source_offer() -> Result<CapabilityOffer, String> {
         )
         .as_bytes(),
     );
+    Ok(resident_ambient_source_offer(
+        kind,
+        implementation,
+        AMBIENT_CLOCK_SOURCE_CALL,
+        AMBIENT_CLOCK_SOURCE_AUTHORITY,
+        AMBIENT_CLOCK_SOURCE_RESOURCE,
+        AMBIENT_CLOCK_OBSERVATION_BYTES,
+        digest,
+    ))
+}
+
+pub(super) fn resident_ambient_source_offer(
+    kind: conduit_core::Kind,
+    implementation: &str,
+    call: &str,
+    authority: &str,
+    resource: &str,
+    maximum_output_bytes: u32,
+    digest: [u8; 32],
+) -> CapabilityOffer {
+    let subject = kind.kind_id.clone();
     let artifact = format!(
         "sha256:{}",
         digest
@@ -44,7 +64,7 @@ pub fn ambient_clock_source_offer() -> Result<CapabilityOffer, String> {
             .map(|byte| format!("{byte:02x}"))
             .collect::<String>()
     );
-    Ok(BackOfferBuilder::new(
+    BackOfferBuilder::new(
         kind,
         Back {
             capability_id: implementation.into(),
@@ -52,19 +72,19 @@ pub fn ambient_clock_source_offer() -> Result<CapabilityOffer, String> {
             execution_profile_id: super::AMBIENT_HOME_SOURCE_PROFILE.into(),
             artifact_id: artifact.into(),
             host_calls: vec![HostCallRequirement {
-                contract_id: AMBIENT_CLOCK_SOURCE_CALL.into(),
+                contract_id: call.into(),
                 target_kind: Some(subject.clone()),
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_time::TICK_ENCODED_LEN,
-                maximum_output_bytes: AMBIENT_CLOCK_OBSERVATION_BYTES,
+                maximum_output_bytes,
             }],
-            resource_requirements: vec![resource_requirement(AMBIENT_CLOCK_SOURCE_RESOURCE, 1)],
+            resource_requirements: vec![resource_requirement(resource, 1)],
             authority_requirements: vec![AuthorityRequirement {
-                contract_id: AMBIENT_CLOCK_SOURCE_AUTHORITY.into(),
-                host_call_contract_id: AMBIENT_CLOCK_SOURCE_CALL.into(),
+                contract_id: authority.into(),
+                host_call_contract_id: call.into(),
                 subject_kind: subject,
             }],
         },
     )
-    .build())
+    .build()
 }
