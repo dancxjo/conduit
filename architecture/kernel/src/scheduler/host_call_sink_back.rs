@@ -1,17 +1,26 @@
 //! Finite Host Call sink; completion, refusal and cancellation stay distinct.
-use super::{fail, identity_exhausted};
-use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
-use conduit_kernel::{
+use crate::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+use crate::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
-pub(super) struct FaceBack {
-    pub(super) maximum_input_bytes: u32,
-    pub(super) next_request: u32,
-    pub(super) pending: Option<RequestId>,
+pub struct HostCallSinkBack {
+    maximum_input_bytes: u32,
+    next_request: u32,
+    pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for FaceBack {
+impl HostCallSinkBack {
+    pub const fn new(maximum_input_bytes: u32) -> Self {
+        Self {
+            maximum_input_bytes,
+            next_request: 0,
+            pending: None,
+        }
+    }
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for HostCallSinkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -66,4 +75,18 @@ impl<const PORTS: usize> StepBack<PORTS> for FaceBack {
     fn cancel(&mut self) {
         self.pending = None;
     }
+}
+
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
+
+fn identity_exhausted(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::IdentityCapacityExhausted,
+        detail,
+    })
 }

@@ -1,11 +1,13 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
 mod host_call_back;
+mod host_call_sink_back;
 mod host_dispatch;
 mod host_input_ownership;
 mod host_values;
 mod output_readiness;
 pub use host_call_back::HostCallBack;
+pub use host_call_sink_back::HostCallSinkBack;
 pub use host_values::HostValueDiscardRefusal;
 
 use crate::{

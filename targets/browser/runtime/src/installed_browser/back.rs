@@ -1,12 +1,10 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
-mod sink;
 mod unary;
-use sink::FaceBack;
 use unary::UnaryBack;
 
 use conduit_core::Scalar;
-use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+use conduit_kernel::scheduler::{HostCallSinkBack, StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
@@ -97,11 +95,7 @@ impl BrowserBack {
     }
 
     pub(crate) fn face(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
-        Self::installed_step(FaceBack {
-            maximum_input_bytes,
-            next_request: 0,
-            pending: None,
-        })
+        Self::installed_step(HostCallSinkBack::new(maximum_input_bytes))
     }
 
     pub(crate) fn compare_scalar(
