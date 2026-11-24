@@ -78,7 +78,6 @@ impl Owner {
         show: &conduit_face::MaskShow,
         interaction: &conduit_face::FaceInteraction,
     ) -> Result<serde_json::Value, String> {
-        use conduit_face::FaceOperatorActionKind;
         let current = self.project_body_face(None)?;
         show.validate(&current.face)
             .map_err(|error| format!("stale inspection Show: {error:?}"))?;
@@ -88,7 +87,17 @@ impl Owner {
         let action = current
             .resolve_operator_action(interaction.face_revision, &interaction.action_id)
             .map_err(|error| format!("inspection action refused: {error:?}"))?;
-        let (inspect, patchbay) = match &action.kind {
+        self.apply_inspection_navigation(&action.kind, show, interaction)
+    }
+
+    pub(super) fn apply_inspection_navigation(
+        &mut self,
+        action: &conduit_face::FaceOperatorActionKind,
+        show: &conduit_face::MaskShow,
+        interaction: &conduit_face::FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        use conduit_face::FaceOperatorActionKind;
+        let (inspect, patchbay) = match action {
             FaceOperatorActionKind::OpenInspection(plot)
                 if self
                     .runtime_patchbay

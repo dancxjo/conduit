@@ -66,6 +66,15 @@ test("the installed Body opens Patchbay, inspects a resident graph and returns",
       const action = face.locator(`[data-owner-action="${selected.identity}"]`).getByRole("button", {name:selected.name, exact:true});
       await expect(action).toBeEnabled();
       await expect(root).toHaveAttribute("data-owner-show-acknowledged", before.show_id);
+      if (selected.intent === "conduit.intent/open-inspection@1") {
+        // Let an actual Home update supersede the owner's content after the
+        // browser acknowledged its Show. The pointer action still uses that Show.
+        await expect.poll(() => {
+          const current = command("body", "face", "--state-dir", state, "--json").face;
+          return current.identity !== before.face_id;
+        }).toBe(true);
+        await expect(root).toHaveAttribute("data-owner-show-acknowledged", before.show_id);
+      }
       if (selected.intent === "conduit.intent/open-body-overview@1") {
         await action.focus();
         await expect(action).toBeFocused();

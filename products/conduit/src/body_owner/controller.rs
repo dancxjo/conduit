@@ -447,6 +447,14 @@ impl Owner {
     /// Credential matching and current incarnation are checked here, even
     /// though the routed caller has already authenticated the same Line.
     pub(crate) fn face_snapshot(&self, request: &OwnerFaceSnapshotRequest) -> Result<Face, String> {
+        self.validate_face_request(request)?;
+        self.local_face_snapshot()
+    }
+
+    pub(super) fn validate_face_request(
+        &self,
+        request: &OwnerFaceSnapshotRequest,
+    ) -> Result<(), String> {
         let admitted = self.admissions.as_ref().is_some_and(|manager| {
             manager.receipts.iter().any(|receipt| {
                 request.has_exact_basis()
@@ -469,7 +477,7 @@ impl Owner {
         if !present || self.session.evidence().body_id != request.body_id {
             return Err("owner-face-current-part-unavailable".into());
         }
-        self.local_face_snapshot()
+        Ok(())
     }
 
     /// The installed owner's current Face. Only the authenticated local
