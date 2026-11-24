@@ -7,7 +7,8 @@ use conduit_core::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const WALLPAPER_OBSERVATION_BYTES: usize = 8192;
+pub const WALLPAPER_OBSERVATION_BYTES: usize =
+    conduit_semantic_catalog::RESIDENT_WALLPAPER_BYTES as usize;
 
 pub struct PreparedWallpaperObservation {
     deck: Option<PreparedDeck>,

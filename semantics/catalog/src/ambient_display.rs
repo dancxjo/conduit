@@ -224,3 +224,73 @@ fn install_observation_face_kind(
         .insert_kind(kind)
         .map_err(|error| format!("{error:?}"))
 }
+
+pub const RESIDENT_WALLPAPER_KIND: &str = "ambient/wallpaper-observation";
+pub const RESIDENT_WALLPAPER_FACE_KIND: &str = "face/ambient-wallpaper-observation";
+pub const RESIDENT_WALLPAPER_BYTES: u32 = 8192;
+
+pub fn resident_wallpaper_kind() -> Result<Kind, String> {
+    let contract = observation_contract("AmbientWallpaperObservation", RESIDENT_WALLPAPER_BYTES)?;
+    let mut tick = conduit_time::time_every_outputs().remove(0);
+    tick.direction = PortDirection::Input;
+    let observation = port_id("observation");
+    let kind = Kind {
+        kind_id: kind_id(RESIDENT_WALLPAPER_KIND),
+        kind_contract_revision: "ambient/wallpaper-observation@1".into(),
+        startup_parameters: vec![],
+        shorthand: None,
+        inputs: vec![tick],
+        outputs: vec![PortDescriptor {
+            port_id: observation.clone(),
+            value_kind: contract.value_kind.clone(),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
+        }],
+        configuration: vec![],
+        semantic_laws: vec![
+            KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+                location: FrontValueLocation::Output(observation),
+                contract,
+            }]),
+            KindSemanticLaw::Terminal(KindTerminalBehavior::CompletesWhenInputsClose),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: RESIDENT_WALLPAPER_BYTES,
+        },
+    };
+    kind.validate()
+        .map_err(|error| format!("wallpaper observation kind: {error:?}"))?;
+    Ok(kind)
+}
+
+pub fn resident_wallpaper_face_kind() -> Result<Kind, String> {
+    observation_face_kind(
+        RESIDENT_WALLPAPER_FACE_KIND,
+        "face/ambient-wallpaper-observation@1",
+        observation_contract("AmbientWallpaperObservation", RESIDENT_WALLPAPER_BYTES)?,
+    )
+}
+
+pub fn install_resident_wallpaper_kinds(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    let observation = resident_wallpaper_kind()?;
+    startup.insert(conduit_plot::KindSignature {
+        kind: RESIDENT_WALLPAPER_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    startup.insert_fore(RESIDENT_WALLPAPER_KIND, observation.checked_front())?;
+    profile
+        .insert_kind(observation)
+        .map_err(|error| format!("{error:?}"))?;
+    install_observation_face_kind(
+        RESIDENT_WALLPAPER_FACE_KIND,
+        resident_wallpaper_face_kind()?,
+        startup,
+        profile,
+    )
+}
