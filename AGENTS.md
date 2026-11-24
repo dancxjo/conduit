@@ -246,6 +246,16 @@ Use `git worktree remove` without force and retain the needed local branches;
 preserve anything unverifiable. Do not publish an origin archive merely to
 satisfy this custody check.
 
+Worktree hygiene is part of every agent task, not an emergency response to a
+full disk. At task start and before substantial builds, inspect disk headroom
+and registered worktrees. At handoff, completion, or abandonment, reclaim
+verified disposable build output and retire inactive worktrees whose custody
+and ownership checks pass. If the current session still needs its worktree,
+leave it registered and identify the retirement action for its owner. Follow
+the [worktree lifecycle](docs/contributing/agent-operations.md#worktree-lifecycle)
+for the concrete checks. Never delete another active agent's worktree, use
+`--force` to defeat a refusal, or blanket-clean ignored `target/` evidence.
+
 Recover archived ideas only for a current vertical slice. Record the smallest
 reviewed reuse and its provenance in [the reuse ledger](docs/reuse-ledger.md),
 with positive and negative proof. Do not rebuild an archived subsystem wholesale.
