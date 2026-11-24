@@ -68,9 +68,11 @@ export async function installPatchbayBody(bundle, evidence) {
     });
     await stopService();
     await startService();
-    expect(status().biography.body_id).toBe(first.biography.body_id);
-    expect(status().host.host_id).toBe(first.host.host_id);
-    expect(status().host.boot_id).not.toBe(first.host.boot_id);
+    await expect.poll(() => status().schema, { timeout: 15_000 }).toBe("conduit.body/owner-truth@1");
+    const returned = status();
+    expect(returned.biography.body_id).toBe(first.biography.body_id);
+    expect(returned.host.host_id).toBe(first.host.host_id);
+    expect(returned.host.boot_id).not.toBe(first.host.boot_id);
     const [ambient, patchbay] = first.biography.body.workset.plots;
     return { command, state, status, startPlay, stopService, errors, first,
       ambient: ambient.checked_plot_id, patchbay: patchbay.checked_plot_id };
