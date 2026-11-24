@@ -7,6 +7,7 @@ description = "Exact realization offers owned by the hosted std Host"
 [features]
 default = []
 speech = ["dep:conduit-tongues"]
+patchbay-interaction = ["dep:patchbay-application"]
 
 [dependencies]
 conduit-alife = { path = "../../../semantics/alife" }
@@ -30,4 +31,4 @@ conduit-chat = { path = "../../../semantics/chat", features = ["plot-catalog"] }
 conduit-face = { path = "../../../semantics/face" }
 conduit-robotics = { path = "../../../semantics/robotics" }
 conduit-web = { path = "../../../semantics/web" }
-patchbay-application = { path = "../../../plots/patchbay/application" }
+patchbay-application = { path = "../../../plots/patchbay/application", optional = true }

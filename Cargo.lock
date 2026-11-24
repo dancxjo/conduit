@@ -2788,7 +2788,6 @@ dependencies = [
  "instant-distance",
  "libc",
  "ort-sys",
- "patchbay-application",
  "rcgen",
  "rustls",
  "rustls-pemfile",

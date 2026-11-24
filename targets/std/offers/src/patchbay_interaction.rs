@@ -1,11 +1,10 @@
 //! Canonical hosted Back for the resident Patchbay input.
-use conduit_core::{Back, BackOfferBuilder, CapabilityOffer, HostCallRequirement};
-
 pub const PATCHBAY_INTERACTION_IMPLEMENTATION: &str = "std/patchbay-accept-interaction@1";
 pub const PATCHBAY_INTERACTION_OPERATION: &str = "conduit.host/std-patchbay-accept-interaction@1";
-const BYTES: u32 = conduit_face::MAX_FACE_INTERACTION_BYTES as u32;
-
-pub fn patchbay_interaction_offer() -> CapabilityOffer {
+#[cfg(feature = "patchbay-interaction")]
+pub fn patchbay_interaction_offer() -> conduit_core::CapabilityOffer {
+    use conduit_core::{Back, BackOfferBuilder, HostCallRequirement};
+    const BYTES: u32 = conduit_face::MAX_FACE_INTERACTION_BYTES as u32;
     BackOfferBuilder::new(
         patchbay_application::patchbay_interaction_contract(),
         Back {
