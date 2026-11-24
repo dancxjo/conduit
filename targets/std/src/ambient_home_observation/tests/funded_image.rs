@@ -66,10 +66,14 @@ fn checked_image_for(
     } else {
         source
     };
+    checked_source_image(&source)
+}
+
+fn checked_source_image(source: &str) -> (CheckedHostConfiguration, HostImage) {
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
     let checked = check_host_configuration(
-        parse_host_configuration_conduit(&source).unwrap(),
+        parse_host_configuration_conduit(source).unwrap(),
         &catalog,
         &packages,
     )
@@ -100,6 +104,41 @@ fn checked_ambient_image_selects_the_three_runtime_implementations() {
             .implementations
             .iter()
             .any(|implementation| implementation == id));
+    }
+}
+
+#[test]
+fn reviewed_standalone_ambient_profiles_advertise_their_face_and_patchbay() {
+    use conduit_std_offers::{AmbientFaceProjection, PATCHBAY_INTERACTION_IMPLEMENTATION};
+
+    for (source, projection) in [
+        (
+            include_str!("../../../profiles/linux-ambient-clock.host.conduit"),
+            AmbientFaceProjection::Clock,
+        ),
+        (
+            include_str!("../../../profiles/linux-ambient-wallpaper.host.conduit"),
+            AmbientFaceProjection::Wallpaper,
+        ),
+    ] {
+        let (checked, image) = checked_source_image(source);
+        let endpoint = super::CheckedAmbientHomeSource::from_configuration(&checked)
+            .unwrap()
+            .weather_endpoint
+            .unwrap_or_else(|| "127.0.0.1:1".parse().unwrap());
+        let host = initialized_host(&checked, &image, endpoint, false);
+        let advertisement = host.advertisement();
+        for implementation in [
+            projection.implementation(),
+            PATCHBAY_INTERACTION_IMPLEMENTATION,
+        ] {
+            assert!(
+                advertisement.capabilities.iter().any(|offer| {
+                    offer.implementation.implementation_id.as_str() == implementation
+                }),
+                "{implementation}"
+            );
+        }
     }
 }
 
