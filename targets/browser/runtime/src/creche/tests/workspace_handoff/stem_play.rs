@@ -58,7 +58,14 @@ fn pending_producer_cancellation_requires_drain_and_preserves_owner_until_acknow
 fn foreign_fail_job_calls_preserve_the_original_pending_producer() {
     run_stem_body_play(StemFixture::ForeignFail);
 }
+#[test]
+#[ignore = "requires a sealed browser release and its checked derived IMAGE"]
+fn stem_delivers_a_seed_from_a_sealed_browser_release() {
+    run_stem_body_play(StemFixture::SealedRelease);
+}
+
 enum StemFixture {
+    SealedRelease,
     Admit,
     PendingCancel,
     ForeignFail,
@@ -71,7 +78,11 @@ enum StemFixture {
 }
 fn run_stem_body_play(case: StemFixture) {
     let with_release = !matches!(case, StemFixture::NoBuilder);
-    let with_delivery = matches!(case, StemFixture::Deliver | StemFixture::Admit);
+    let with_delivery = matches!(
+        case,
+        StemFixture::Deliver | StemFixture::Admit | StemFixture::SealedRelease
+    );
+    let sealed = matches!(case, StemFixture::SealedRelease);
     let admits = matches!(case, StemFixture::Admit);
     let pending_cancel = matches!(case, StemFixture::PendingCancel);
     let foreign_fail = matches!(case, StemFixture::ForeignFail);
@@ -88,8 +99,17 @@ fn run_stem_body_play(case: StemFixture) {
         assert!(!host.capabilities.iter().any(|offer| offer.kind_id.as_str() == "stem/prepare"));
         assert_eq!(workspace(serde_json::json!({"action":"Arrive","advertisement":host})).0, 0);
         let mut reserve = reservation();
-        let release = with_release.then(||crate::workspace_runtime::stem_provision::test_release::fixture().0);
-        let manifest_bytes = release.as_ref().map(|manifest|serde_json::to_vec(manifest).unwrap());
+        let sealed_root = sealed.then(|| std::path::PathBuf::from(
+            std::env::var_os("CONDUIT_STEM_SEALED_RELEASE").expect("sealed release directory")));
+        let manifest_bytes = if let Some(root) = &sealed_root {
+            Some(std::fs::read(root.join("browser-page.json")).unwrap())
+        } else {
+            with_release.then(|| serde_json::to_vec(
+                &crate::workspace_runtime::stem_provision::test_release::fixture().0,
+            ).unwrap())
+        };
+        let release: Option<conduit_host_make::HostReleaseManifest> = manifest_bytes
+            .as_deref().map(|bytes| serde_json::from_slice(bytes).unwrap());
         if let Some(manifest) = &release {
             use sha2::{Digest,Sha256};
             reserve["reservation"]["expected_release_digest"] = manifest.bundle_sha256.clone().into();
@@ -101,8 +121,20 @@ fn run_stem_body_play(case: StemFixture) {
         if let Some(bytes) = manifest_bytes {
             let stage = |operation|serde_json::json!({"action":"StageStemRelease","stage":{"host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"],"operation":operation}});
             assert_eq!(workspace(stage(serde_json::json!({"kind":"Begin","manifest":bytes}))).0,0);
-            for (file,payload) in [b"\0asm\x01\0\0\0".as_slice(),b"export{}".as_slice()].iter().enumerate() {
-                assert_eq!(workspace(stage(serde_json::json!({"kind":"Chunk","file":file,"offset":0,"bytes":payload}))).0,0);
+            let payloads = if let Some(root) = &sealed_root {
+                release.as_ref().unwrap().files.iter()
+                    .map(|file| std::fs::read(root.join(&file.path)).unwrap()).collect()
+            } else {
+                vec![b"\0asm\x01\0\0\0".to_vec(), b"export{}".to_vec()]
+            };
+            for (file, payload) in payloads.iter().enumerate() {
+                const CHUNK_BYTES: usize = 64 * 1024;
+                for (index, bytes) in payload.chunks(CHUNK_BYTES).enumerate() {
+                    let (code, result) = workspace(stage(serde_json::json!({
+                        "kind":"Chunk", "file":file, "offset":index * CHUNK_BYTES, "bytes":bytes
+                    })));
+                    assert_eq!(code, 0, "{result}");
+                }
             }
             let (code,checked)=workspace(stage(serde_json::json!({"kind":"Finish"})));
             assert_eq!(code,0,"{checked}");
@@ -166,7 +198,14 @@ fn run_stem_body_play(case: StemFixture) {
         if with_release {
             let mut call=run()["call"].clone();
             call["now_millis"]=20.into();
-            let (manifest,image)=crate::workspace_runtime::stem_provision::test_release::output();
+            let (manifest, image) = if sealed {
+                let root = std::path::PathBuf::from(
+                    std::env::var_os("CONDUIT_STEM_DERIVED_IMAGE").expect("derived IMAGE directory"));
+                (std::fs::read(root.join("stem-browser-derived-manifest.json")).unwrap(),
+                 std::fs::read(root.join("stem-browser-image.json")).unwrap())
+            } else {
+                crate::workspace_runtime::stem_provision::test_release::output()
+            };
             assert_eq!(workspace(serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":manifest,"image":image})).1["code"],"Stem.StaleCall");
             let (code,job)=workspace(serde_json::json!({"action":"BeginStemHostJob","call":call}));assert_eq!(code,0,"{job}");
             assert_eq!(workspace(run()).1["code"],"Stem.ProviderPending");
