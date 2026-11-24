@@ -14,7 +14,8 @@ impl PreparedAmbientFaces {
         let validators = self
             .home_validator
             .retained_backing_bytes()?
-            .checked_add(self.clock_validator.retained_backing_bytes()?)?;
+            .checked_add(self.clock_validator.retained_backing_bytes()?)?
+            .checked_add(self.wallpaper_validator.retained_backing_bytes()?)?;
         [
             &self.wallpaper,
             &self.clock_weather,

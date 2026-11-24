@@ -84,6 +84,9 @@ fn package_catalog() -> PackageCatalogContribution {
             conduit_std_offers::AmbientFaceProjection::Clock
                 .offer()
                 .expect("shipped ambient clock Face descriptor"),
+            conduit_std_offers::AmbientFaceProjection::Wallpaper
+                .offer()
+                .expect("shipped ambient wallpaper Face descriptor"),
             conduit_std_offers::ambient_clock_source_offer()
                 .expect("shipped standalone ambient clock observation descriptor"),
             conduit_std_offers::ambient_wallpaper_source_offer()
@@ -124,6 +127,7 @@ fn package_catalog() -> PackageCatalogContribution {
                 implementation.as_str(),
                 conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_WALLPAPER_FACE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION

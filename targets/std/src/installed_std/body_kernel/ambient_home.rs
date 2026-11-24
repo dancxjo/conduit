@@ -68,20 +68,24 @@ impl BodyKernel<'_> {
 }
 
 pub(super) fn is_home_face_call(operation: &LoweredHostCall) -> bool {
-    [AmbientFaceProjection::Home, AmbientFaceProjection::Clock]
-        .into_iter()
-        .any(|projection| {
-            let (project, custody) = projection.calls();
-            (match operation.call.0 {
-                0 => operation.contract_id.as_str() == project,
-                1 => operation.contract_id.as_str() == custody,
-                _ => false,
-            }) && operation
-                .target_kind
-                .as_ref()
-                .is_some_and(|kind| kind.as_str() == projection.kind())
-                && operation.maximum_in_flight == 1
-                && operation.binding.maximum_input_bytes == projection.input_bytes()
-                && operation.binding.maximum_output_bytes == 0
-        })
+    [
+        AmbientFaceProjection::Home,
+        AmbientFaceProjection::Clock,
+        AmbientFaceProjection::Wallpaper,
+    ]
+    .into_iter()
+    .any(|projection| {
+        let (project, custody) = projection.calls();
+        (match operation.call.0 {
+            0 => operation.contract_id.as_str() == project,
+            1 => operation.contract_id.as_str() == custody,
+            _ => false,
+        }) && operation
+            .target_kind
+            .as_ref()
+            .is_some_and(|kind| kind.as_str() == projection.kind())
+            && operation.maximum_in_flight == 1
+            && operation.binding.maximum_input_bytes == projection.input_bytes()
+            && operation.binding.maximum_output_bytes == 0
+    })
 }

@@ -28,6 +28,11 @@ fn checked_image_for(
             conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
             conduit_std_offers::AMBIENT_CLOCK_SOURCE_RESOURCE,
         ),
+        conduit_std_offers::AmbientFaceProjection::Wallpaper => (
+            conduit_semantic_catalog::RESIDENT_WALLPAPER_KIND,
+            conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
+            conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_RESOURCE,
+        ),
     };
     let face_kind = projection.kind();
     let face_implementation = projection.implementation();
@@ -50,6 +55,17 @@ fn checked_image_for(
   limits = {{static_memory_bytes: 16777216, heap_arena_bytes: 134217728, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}}
 }}"#
     );
+    let source = if matches!(
+        projection,
+        conduit_std_offers::AmbientFaceProjection::Wallpaper
+    ) {
+        source.replace(
+            &format!(r#"timezone: "America/Los_Angeles", weather_endpoint: "{endpoint}", "#),
+            "",
+        )
+    } else {
+        source
+    };
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
     let checked = check_host_configuration(
@@ -101,13 +117,22 @@ fn initialized_host(
         boot_id: "boot/ambient-image".into(),
         offer_generation: OfferGeneration(1),
     };
-    let offer = if clock_only {
-        conduit_std_offers::ambient_clock_source_offer()
-    } else {
-        conduit_std_offers::ambient_home_source_offer()
+    let offer = match source.implementation {
+        conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION => {
+            conduit_std_offers::ambient_clock_source_offer()
+        }
+        conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION => {
+            conduit_std_offers::ambient_wallpaper_source_offer()
+        }
+        _ => conduit_std_offers::ambient_home_source_offer(),
     }
     .unwrap();
-    assert_eq!(source.weather_endpoint, Some(endpoint));
+    let standalone_wallpaper =
+        source.implementation == conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION;
+    assert_eq!(
+        source.weather_endpoint,
+        (!standalone_wallpaper).then_some(endpoint)
+    );
     let requirement = &offer.authority_requirements[0];
     let grant = AuthorityGrant {
         grant_id: "grant/fixture-ambient-image".into(),
@@ -177,6 +202,8 @@ fn ambient_plan(
     conduit_semantic_catalog::install_ambient_home_face_kind(&mut startup, &mut profiles).unwrap();
     conduit_semantic_catalog::install_ambient_clock_kind(&mut startup, &mut profiles).unwrap();
     conduit_semantic_catalog::install_ambient_clock_face_kind(&mut startup, &mut profiles).unwrap();
+    conduit_semantic_catalog::install_resident_wallpaper_kinds(&mut startup, &mut profiles)
+        .unwrap();
     let (source, entry) = match projection {
         conduit_std_offers::AmbientFaceProjection::Home => (
             include_str!("../../../../../plots/ambient-home/main.conduit"),
@@ -185,6 +212,10 @@ fn ambient_plan(
         conduit_std_offers::AmbientFaceProjection::Clock => (
             include_str!("../../../../../plots/resident-ambient-clock-weather/main.conduit"),
             "resident-ambient-clock-weather",
+        ),
+        conduit_std_offers::AmbientFaceProjection::Wallpaper => (
+            include_str!("../../../../../plots/resident-ambient-wallpaper/main.conduit"),
+            "resident-ambient-wallpaper",
         ),
     };
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
@@ -267,9 +298,22 @@ fn funded_standalone_clock_repeats_without_preparing_photographs() {
     prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Clock);
 }
 
+#[test]
+fn funded_standalone_wallpaper_presents_the_prepared_deck_without_weather() {
+    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Wallpaper);
+}
+
 fn prove_funded_ambient_projection(projection: conduit_std_offers::AmbientFaceProjection) {
     use crate::{body_execution::BodyRunRequest, RunControl, ThreadTimer};
-    let (endpoint, weather, start) = super::weather_fixture_after_start();
+    let weather = (!matches!(
+        projection,
+        conduit_std_offers::AmbientFaceProjection::Wallpaper
+    ))
+    .then(super::weather_fixture_after_start);
+    let endpoint = weather
+        .as_ref()
+        .map(|(endpoint, _, _)| *endpoint)
+        .unwrap_or_else(|| "127.0.0.1:1".parse().unwrap());
     let (checked, image) = checked_image_for(endpoint, projection);
     let mut host = initialized_host(&checked, &image, endpoint);
     let (wake, plan) = ambient_plan(&host, projection);
@@ -302,7 +346,12 @@ fn prove_funded_ambient_projection(projection: conduit_std_offers::AmbientFacePr
             &mut Vec::new(),
             &mut ThreadTimer,
             &mut observer,
-            |_, _| start.send(()).map_err(|error| error.to_string()),
+            |_, _| {
+                if let Some((_, _, start)) = &weather {
+                    start.send(()).map_err(|error| error.to_string())?;
+                }
+                Ok(())
+            },
         );
         let _ = done.send(());
         report
@@ -323,24 +372,33 @@ fn prove_funded_ambient_projection(projection: conduit_std_offers::AmbientFacePr
     assert_eq!(face.scope().body_play(), &report.report().play);
     assert!(face.scope().is_retired());
     let fragment = face.fragment();
-    assert!(fragment.properties.iter().any(|property| {
-        property.name == "timezone"
-            && property.value == conduit_face::FacePropertyValue::Text("America/Los_Angeles".into())
-    }));
-    assert!(fragment
-        .properties
-        .iter()
-        .any(|property| property.name == "local-date-time"));
-    if matches!(projection, conduit_std_offers::AmbientFaceProjection::Clock) {
-        assert!(fragment.subjects.iter().all(|subject| {
-            subject.role != conduit_face::FaceRole::Semantic(conduit_core::kind_id("media/image"))
+    if let Some((_, weather, _)) = weather {
+        assert!(fragment.properties.iter().any(|property| {
+            property.name == "timezone"
+                && property.value
+                    == conduit_face::FacePropertyValue::Text("America/Los_Angeles".into())
         }));
+        assert!(fragment
+            .properties
+            .iter()
+            .any(|property| property.name == "local-date-time"));
+        weather.join().unwrap();
+        assert!(fragment
+            .properties
+            .iter()
+            .any(|property| property.name == "availability"
+                && property.value == conduit_face::FacePropertyValue::Text("fresh".into())));
+    } else {
+        assert!(fragment.subjects.iter().any(|subject| {
+            subject.role == conduit_face::FaceRole::Semantic(conduit_core::kind_id("media/image"))
+        }));
+        assert!(fragment
+            .properties
+            .iter()
+            .any(|property| property.name == "next-rotation-unix-ms"));
+        assert!(!fragment
+            .properties
+            .iter()
+            .any(|property| property.name == "local-date-time"));
     }
-    weather.join().unwrap();
-    assert!(face
-        .fragment()
-        .properties
-        .iter()
-        .any(|property| property.name == "availability"
-            && property.value == conduit_face::FacePropertyValue::Text("fresh".into())));
 }

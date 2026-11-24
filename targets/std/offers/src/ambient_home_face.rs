@@ -18,10 +18,17 @@ pub const AMBIENT_CLOCK_PROJECT_CALL: &str = "conduit.host/resident-ambient-cloc
 pub const AMBIENT_CLOCK_CUSTODY_CALL: &str =
     "conduit.host/resident-ambient-clock-transfer-custody@1";
 
+pub const AMBIENT_WALLPAPER_FACE_IMPLEMENTATION: &str = "std/resident-ambient-wallpaper-face@1";
+pub const AMBIENT_WALLPAPER_PROJECT_CALL: &str =
+    "conduit.host/resident-ambient-wallpaper-project@1";
+pub const AMBIENT_WALLPAPER_CUSTODY_CALL: &str =
+    "conduit.host/resident-ambient-wallpaper-transfer-custody@1";
+
 #[derive(Clone, Copy)]
 pub enum AmbientFaceProjection {
     Home,
     Clock,
+    Wallpaper,
 }
 
 impl AmbientFaceProjection {
@@ -29,6 +36,7 @@ impl AmbientFaceProjection {
         match id {
             AMBIENT_HOME_FACE_IMPLEMENTATION => Some(Self::Home),
             AMBIENT_CLOCK_FACE_IMPLEMENTATION => Some(Self::Clock),
+            AMBIENT_WALLPAPER_FACE_IMPLEMENTATION => Some(Self::Wallpaper),
             _ => None,
         }
     }
@@ -37,6 +45,7 @@ impl AmbientFaceProjection {
         match self {
             Self::Home => AMBIENT_HOME_FACE_IMPLEMENTATION,
             Self::Clock => AMBIENT_CLOCK_FACE_IMPLEMENTATION,
+            Self::Wallpaper => AMBIENT_WALLPAPER_FACE_IMPLEMENTATION,
         }
     }
 
@@ -44,6 +53,10 @@ impl AmbientFaceProjection {
         match self {
             Self::Home => (AMBIENT_HOME_PROJECT_CALL, AMBIENT_HOME_CUSTODY_CALL),
             Self::Clock => (AMBIENT_CLOCK_PROJECT_CALL, AMBIENT_CLOCK_CUSTODY_CALL),
+            Self::Wallpaper => (
+                AMBIENT_WALLPAPER_PROJECT_CALL,
+                AMBIENT_WALLPAPER_CUSTODY_CALL,
+            ),
         }
     }
 
@@ -51,6 +64,7 @@ impl AmbientFaceProjection {
         match self {
             Self::Home => conduit_semantic_catalog::AMBIENT_HOME_FACE_KIND,
             Self::Clock => conduit_semantic_catalog::AMBIENT_CLOCK_FACE_KIND,
+            Self::Wallpaper => conduit_semantic_catalog::RESIDENT_WALLPAPER_FACE_KIND,
         }
     }
 
@@ -58,6 +72,7 @@ impl AmbientFaceProjection {
         match self {
             Self::Home => AMBIENT_HOME_OBSERVATION_BYTES,
             Self::Clock => conduit_semantic_catalog::AMBIENT_CLOCK_OBSERVATION_BYTES,
+            Self::Wallpaper => conduit_semantic_catalog::RESIDENT_WALLPAPER_BYTES,
         }
     }
 
@@ -65,6 +80,7 @@ impl AmbientFaceProjection {
         let kind = match self {
             Self::Home => ambient_home_face_kind()?,
             Self::Clock => conduit_semantic_catalog::ambient_clock_face_kind()?,
+            Self::Wallpaper => conduit_semantic_catalog::resident_wallpaper_face_kind()?,
         };
         let operation = |contract: &'static str| HostCallRequirement {
             contract_id: contract.into(),
@@ -112,6 +128,7 @@ impl AmbientFaceProjection {
                 execution_profile_id: match self {
                     Self::Home => "std/resident-ambient-home-hosted@1",
                     Self::Clock => "std/resident-ambient-clock-hosted@1",
+                    Self::Wallpaper => "std/resident-ambient-wallpaper-hosted@1",
                 }
                 .into(),
                 artifact_id: artifact.into(),
