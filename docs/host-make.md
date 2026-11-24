@@ -249,7 +249,7 @@ sh ./install-linux-x86_64.sh --state-dir "$PWD/host-state" --no-start
 
 In another terminal, run `./conduit-linux-x86_64 body birth --screen-free
 --state-dir "$PWD/host-state"` and select Ambient Home and Patchbay. This
-packaged profile uses UTC and admits only the configured loopback weather
+packaged profile uses Pacific civil time and admits only the loopback weather
 provider. If that provider is absent, the clock continues and weather is
 unavailable. Photo acquisition is disabled in this profile.
 

@@ -1,7 +1,7 @@
 host linux-ambient {
   schema = 1
   target = {architecture: "x86_64", machine: "computer", os: "linux"}
-  base = {kind: "ambient/resident-observation", implementation: "std/resident-ambient-observation-worker@1", initialization: {memory_pool: "ambient/worker-memory", photo_source: "disabled", provider_access: "operator-admitted", source_pool: "ambient/source", timezone: "UTC", weather_endpoint: "127.0.0.1:18309"}}
+  base = {kind: "ambient/resident-observation", implementation: "std/resident-ambient-observation-worker@1", initialization: {memory_pool: "ambient/worker-memory", photo_source: "disabled", provider_access: "operator-admitted", source_pool: "ambient/source", timezone: "America/Los_Angeles", weather_endpoint: "127.0.0.1:18309"}}
   base = {kind: "face/ambient-home", implementation: "std/ambient-home-projection@1"}
   base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
   capability = {kind: "ambient/resident-observation", pinned_implementation: "std/resident-ambient-observation-worker@1"}
