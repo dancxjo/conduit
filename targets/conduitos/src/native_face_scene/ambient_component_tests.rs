@@ -678,4 +678,5 @@ fn picture_clock_continues_with_stale_or_missing_weather() {
     }
 }
 
+#[path = "ambient_component_tests/wallpaper_cover.rs"]
 mod wallpaper_cover;
