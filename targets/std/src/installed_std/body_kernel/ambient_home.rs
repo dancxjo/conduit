@@ -3,7 +3,7 @@ use super::*;
 use crate::body_execution::face_contribution::FaceContributionContext;
 use crate::installed_std::{ambient_home_factory, ambient_home_route::AmbientHomeRoute};
 use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
-use conduit_std_offers::AMBIENT_HOME_PROJECT_CALL;
+use conduit_std_offers::AmbientFaceProjection;
 
 impl BodyKernel<'_> {
     pub(crate) fn prepare_home_face_routes(
@@ -17,7 +17,7 @@ impl BodyKernel<'_> {
         let projects = self
             .operations
             .iter()
-            .filter(|operation| operation.contract_id.as_str() == AMBIENT_HOME_PROJECT_CALL);
+            .filter(|operation| operation.call.0 == 0 && is_home_face_call(operation));
         if !has_observer && projects.clone().next().is_some() {
             return Err("Home Face requires an installed contribution observer".into());
         }
@@ -59,6 +59,7 @@ impl BodyKernel<'_> {
                 },
                 back.observation(),
                 ambient_home_factory::label(placement)?,
+                ambient_home_factory::projection(placement)?,
             )?);
         }
         self.home_face_routes = routes;
@@ -67,16 +68,20 @@ impl BodyKernel<'_> {
 }
 
 pub(super) fn is_home_face_call(operation: &LoweredHostCall) -> bool {
-    use conduit_std_offers::{AMBIENT_HOME_CUSTODY_CALL, AMBIENT_HOME_PROJECT_CALL};
-    matches!(
-        (operation.call.0, operation.contract_id.as_str()),
-        (0, AMBIENT_HOME_PROJECT_CALL) | (1, AMBIENT_HOME_CUSTODY_CALL)
-    ) && operation
-        .target_kind
-        .as_ref()
-        .is_some_and(|kind| kind.as_str() == conduit_semantic_catalog::AMBIENT_HOME_FACE_KIND)
-        && operation.maximum_in_flight == 1
-        && operation.binding.maximum_input_bytes
-            == conduit_semantic_catalog::AMBIENT_HOME_OBSERVATION_BYTES
-        && operation.binding.maximum_output_bytes == 0
+    [AmbientFaceProjection::Home, AmbientFaceProjection::Clock]
+        .into_iter()
+        .any(|projection| {
+            let (project, custody) = projection.calls();
+            (match operation.call.0 {
+                0 => operation.contract_id.as_str() == project,
+                1 => operation.contract_id.as_str() == custody,
+                _ => false,
+            }) && operation
+                .target_kind
+                .as_ref()
+                .is_some_and(|kind| kind.as_str() == projection.kind())
+                && operation.maximum_in_flight == 1
+                && operation.binding.maximum_input_bytes == projection.input_bytes()
+                && operation.binding.maximum_output_bytes == 0
+        })
 }

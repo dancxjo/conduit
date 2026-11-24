@@ -13,6 +13,7 @@ use conduit_kernel::{
 const INPUT: PortId = PortId(0);
 const PROJECT: HostCallId = HostCallId(0);
 const ACCEPT_CUSTODY: HostCallId = HostCallId(1);
+#[cfg(test)]
 const INPUT_BYTES: u32 = conduit_semantic_catalog::AMBIENT_HOME_OBSERVATION_BYTES;
 
 #[derive(Clone, Copy)]
@@ -29,6 +30,7 @@ enum Candidate {
 
 pub(in crate::installed_std) struct AmbientHomeBack {
     gate: FaceCommitGate,
+    maximum_input_bytes: u32,
     maximum_updates: Option<u32>,
     accepted_updates: u32,
     pending: Option<Pending>,
@@ -48,14 +50,19 @@ impl AmbientHomeBack {
         if maximum_updates == 0 || maximum_updates.checked_mul(2).is_none() {
             return Err("Home requires a finite two-call update scope".into());
         }
-        Self::prepare_limit(placement, Some(maximum_updates))
+        Self::prepare_limit(placement, Some(maximum_updates), INPUT_BYTES)
     }
     pub(in crate::installed_std) fn prepare_resident(
         placement: PlacementId,
+        maximum_input_bytes: u32,
     ) -> Result<Self, String> {
-        Self::prepare_limit(placement, None)
+        Self::prepare_limit(placement, None, maximum_input_bytes)
     }
-    fn prepare_limit(placement: PlacementId, maximum_updates: Option<u32>) -> Result<Self, String> {
+    fn prepare_limit(
+        placement: PlacementId,
+        maximum_updates: Option<u32>,
+        maximum_input_bytes: u32,
+    ) -> Result<Self, String> {
         let gate = match maximum_updates {
             Some(maximum) => FaceCommitGate::prepare(placement, PROJECT, maximum),
             None => FaceCommitGate::prepare_resident(placement, PROJECT),
@@ -63,6 +70,7 @@ impl AmbientHomeBack {
         .map_err(|why| format!("Home Face gate: {why:?}"))?;
         Ok(Self {
             gate,
+            maximum_input_bytes,
             maximum_updates,
             accepted_updates: 0,
             pending: None,
@@ -117,7 +125,8 @@ impl<const PORTS: usize> StepBack<PORTS> for AmbientHomeBack {
                 let Some(next) = request.0.checked_add(1).map(RequestId) else {
                     return failed(FailureCode::StorageExhausted);
                 };
-                let Ok(input) = BoundedValueRef::new(pending.value, INPUT_BYTES) else {
+                let Ok(input) = BoundedValueRef::new(pending.value, self.maximum_input_bytes)
+                else {
                     return failed(FailureCode::InvalidInput);
                 };
                 if io.borrow_input_for_call(INPUT).is_err()
@@ -147,7 +156,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AmbientHomeBack {
                     FailureCode::StorageExhausted
                 });
             };
-            let Ok(input) = BoundedValueRef::new(value, INPUT_BYTES) else {
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                 return failed(FailureCode::InvalidInput);
             };
             if io.borrow_input_for_call(INPUT).is_err()
