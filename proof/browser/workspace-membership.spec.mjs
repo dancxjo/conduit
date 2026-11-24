@@ -613,8 +613,10 @@ test("an already-running host joins without displacing the browser Host or its b
   }
 });
 
-test("loss of a joined Host Line removes only its current offers and keeps the body", async ({ page }) => {
+test("loss of a joined Host Line removes only its current offers and keeps the body", async ({ page }, testInfo) => {
+  test.setTimeout(20_000 + 2 * BROWSER_COLD_PREPARATION_MS);
   const state = encounter;
+  state.deadline = state.started + testInfo.timeout;
   state.cancel = () => page.close();
   const { installed, browser: bodyId } = await prepareInstalledHostEncounter(
     () => state.run("host", () => startInstalledHost(state)), () => state.run("browser", async () => {
