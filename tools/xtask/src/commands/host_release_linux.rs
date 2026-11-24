@@ -183,7 +183,7 @@ fn seal_x86_64(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
     const AMBIENT_SOURCE: &str = "linux-ambient.host.conduit";
     const AMBIENT_IMAGE: &str = "linux-ambient.image.json";
     let profile = Path::new("targets/std/profiles").join(AMBIENT_SOURCE);
-    let (_, image) = crate::commands::host::resolve_profile(&profile, source_identity.into())?;
+    let (_, image) = crate::host_profile_image::resolve_profile(&profile, source_identity.into())?;
     fs::copy(profile, output.join(AMBIENT_SOURCE))?;
     fs::write(output.join(AMBIENT_IMAGE), image)?;
     seal(
