@@ -183,7 +183,10 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                         &checked,
                     )?;
                 }
-                Some(conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION) => {
+                Some(
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+                ) => {
                     conduit_std_host::ambient_home_observation::CheckedAmbientHomeSource::from_configuration(&checked)?;
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
