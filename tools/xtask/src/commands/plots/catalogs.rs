@@ -23,6 +23,7 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_ambient_clock_face_kind(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_ambient_clock_snapshot_face_kind(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_ambient_wallpaper_face_kind(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_resident_wallpaper_kinds(&mut startup, &mut profile)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
     conduit_time::install_historical_timeline_catalog(&mut startup, &mut profile)?;
