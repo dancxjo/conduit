@@ -99,13 +99,19 @@ fn scoped_todo_initial(
 pub(super) fn retained_thermostat_scan(
     root: &Path,
 ) -> Result<Option<(conduit_thermostat_plot::ThermostatState, u16)>, String> {
-    let Some(checked) = checked_retained_source(root)? else {
+    let Some(sources) = retained_source::workset(root)? else {
         return Ok(None);
     };
-    if checked.expanded.name != "thermostat/main" {
+    let Some(source) = sources
+        .iter()
+        .find(|source| source.plot.expanded.name == "thermostat/main")
+    else {
         return Ok(None);
+    };
+    if sources.len() != 1 {
+        return Err("installed Thermostat scan requires a single resident Source".into());
     }
-    scoped_thermostat_initial(&checked)
+    scoped_thermostat_initial(&source.plot)
 }
 
 /// Only a checked, exact Thermostat scan can request the scoped production offer.

@@ -38,6 +38,29 @@ impl ZeroBodyFrontDoor {
             .transpose()
     }
 
+    /// Resolve every selected Plot to its current reviewed Source and entry.
+    pub fn selected_sources(
+        &self,
+        selection: &BirthSelection,
+    ) -> Result<Vec<(String, String)>, String> {
+        selection
+            .workset
+            .plots()
+            .iter()
+            .map(|resident| {
+                let candidate = self
+                    .plots
+                    .iter()
+                    .find(|candidate| {
+                        candidate.source_document_id == resident.source_document_id
+                            && candidate.checked_plot_id == resident.checked_plot_id
+                    })
+                    .ok_or("Crèche Plot is outside current reviewed inventory")?;
+                Ok((candidate.source.clone(), candidate.checked_entry_name()?))
+            })
+            .collect()
+    }
+
     /// Build the shared Crèche draft from current reviewed inventory. Opening
     /// the draft grants no Plot special status and creates no Body.
     pub fn creche_draft(&self, uuid: String) -> Result<BirthDraft, String> {

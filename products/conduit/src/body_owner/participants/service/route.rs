@@ -1,6 +1,7 @@
 //! Owner selection of the ordinary browser Mask on its current admitted carrier.
 use super::*;
 mod component_selection;
+mod navigation;
 use conduit_core::{
     BaseImplementationId, BaseInstanceId, CredentialReferenceId, LineAvailability,
     LinkAuthorityReference, LinkCredentialReference, LinkLimits,
@@ -153,6 +154,7 @@ impl Owner {
                 line_evidence,
                 route,
                 acknowledged_show,
+                navigation_face,
                 ..
             } = &mut window.state
             else {
@@ -234,6 +236,7 @@ impl Owner {
             *route = Some(Box::new(selected.clone()));
             *line_evidence = Some(Box::new(evidence.clone()));
             *acknowledged_show = None;
+            *navigation_face = None;
             Ok(selected)
         })();
         self.pending_browser = Some(window);
@@ -336,6 +339,18 @@ impl Owner {
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
     ) -> Result<(), String> {
+        let face = self.face_snapshot(request)?;
+        self.validate_browser_show_against(window_id, binding, request, show, &face)
+    }
+
+    fn validate_browser_show_against(
+        &self,
+        window_id: &str,
+        binding: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        face: &conduit_face::Face,
+    ) -> Result<(), String> {
         let window = self.pending_browser.as_ref().ok_or("window-not-active")?;
         window.check(window_id).map_err(|_| "window-not-active")?;
         let WindowState::Active {
@@ -361,7 +376,6 @@ impl Owner {
         {
             return Err("browser-route-carrier-mismatch".into());
         }
-        let face = self.face_snapshot(request)?;
         let owner = self.host.advertisement();
         let browser = &observation.advertisement;
         validate_carrier_evidence(
@@ -376,7 +390,7 @@ impl Owner {
         route
             .validate_available_show_with_interaction(
                 &self.session,
-                &face,
+                face,
                 owner,
                 browser,
                 &evidence.face,
@@ -404,14 +418,22 @@ impl Owner {
             _ => return Err("browser-mask-route-not-selected".into()),
         };
         self.acknowledge_selected_browser_show(&seal, show)?;
+        let face = self.local_face_snapshot()?;
+        let navigation = self
+            .current_play_id()
+            .filter(|_| self.has_current_home_navigation(&face))
+            .map(|play| Box::new((play.clone(), face)));
         let window = self.pending_browser.as_mut().ok_or("window-not-active")?;
         let WindowState::Active {
-            acknowledged_show, ..
+            acknowledged_show,
+            navigation_face,
+            ..
         } = &mut window.state
         else {
             return Err("window-not-active".into());
         };
         *acknowledged_show = Some(Box::new(show.clone()));
+        *navigation_face = navigation;
         Ok(())
     }
 }

@@ -65,7 +65,7 @@ impl StdHost {
             bool,
             &'a mut dyn BodyForeOutputAdapter,
         )>,
-        live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
+        mut live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
         checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
         terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
@@ -80,7 +80,6 @@ impl StdHost {
         let funded = if custody.is_some() {
             if correlation.is_some()
                 || execution_bounds.is_some()
-                || live.is_some()
                 || checkpoint.is_some()
                 || terminal.is_some()
                 || creche.is_some()
@@ -90,6 +89,13 @@ impl StdHost {
             {
                 return Err("funded IMAGE supports direct Tick with bounded output only".into());
             }
+            if let Some((_, adapter)) = live.as_mut() {
+                if adapter.patchbay_interaction_host().is_none() {
+                    return Err(
+                        "funded live Fore requires an admitted Patchbay owner receiver".into(),
+                    );
+                }
+            }
             let layout = crate::installed_std::body_kernel::funded::TickPreparationLayout::prepare_with_playback(
                 &request,
                 &self.advertisement,
@@ -98,6 +104,7 @@ impl StdHost {
                 fore.is_some(),
                 self.playback.as_ref(),
                 self.native_source.as_ref(),
+                live.as_ref().map(|(queue, _)| *queue),
             )?;
             let lease = self
                 .kernel_resources
@@ -182,6 +189,7 @@ impl StdHost {
                         play: &prospective_play,
                     }
                 }),
+                live_queue,
             )?
         } else if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(

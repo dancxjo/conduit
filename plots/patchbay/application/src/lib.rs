@@ -32,6 +32,8 @@ mod entrance_equivalence;
 mod face_layout;
 pub mod graph_face;
 mod interaction_contract;
+mod interaction_outcome;
+pub use interaction_outcome::patchbay_interaction_outcome;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
@@ -54,6 +56,7 @@ mod resident_command;
 mod resident_execution;
 mod resident_face;
 mod resident_matching;
+mod resident_preparation;
 pub use resident_command::contribution_matches as patchbay_face_contribution_matches;
 pub use resident_command::{
     PatchbayCommandRefusal, PatchbayResidentCommand, PreparedPatchbayCommand,

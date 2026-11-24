@@ -108,6 +108,9 @@ impl From<CommittedBodyStartup> for BodyStartedAcknowledgment {
 pub(super) trait StartupAcknowledgmentValue: Into<BodyStartedAcknowledgment> {
     const PROVIDES_STARTUP: bool;
 }
+impl StartupAcknowledgmentValue for BodyStartedAcknowledgment {
+    const PROVIDES_STARTUP: bool = true;
+}
 impl StartupAcknowledgmentValue for () {
     const PROVIDES_STARTUP: bool = false;
 }

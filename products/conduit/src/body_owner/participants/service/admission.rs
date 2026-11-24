@@ -322,6 +322,7 @@ impl Owner {
                 line_evidence: None,
                 route: None,
                 acknowledged_show: None,
+                navigation_face: None,
             };
             Ok(snapshot)
         })();

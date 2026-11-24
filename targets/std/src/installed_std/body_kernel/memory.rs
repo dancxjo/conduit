@@ -81,7 +81,9 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
             super::super::startup_source_back::StartupGate::backing_bytes()
                 .ok_or_else(|| "startup gate backing overflow".into())
         }
-        InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
+        InstalledBack::Inactive
+        | InstalledBack::PatchbayInteraction(_)
+        | InstalledBack::SelectedNativeSource(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
     }
 }
