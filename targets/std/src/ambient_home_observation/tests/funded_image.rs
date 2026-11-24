@@ -196,7 +196,7 @@ fn initialized_host(
                     !clock_only,
                     "standalone clock must never acquire photographs"
                 );
-                Ok(has_wallpaper.then(super::fixture_deck))
+                Ok(has_wallpaper.then(super::fixture_deck).into())
             },
         )
     }

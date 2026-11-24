@@ -108,7 +108,7 @@ impl crate::StdHost {
         prepare_deck: F,
     ) -> Result<Self, String>
     where
-        F: FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String>,
+        F: FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String>,
     {
         use crate::{image_initialization::InitialBases, kernel_preparation::StagedImageMemory};
         let memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
@@ -135,7 +135,7 @@ pub(crate) fn stage_ambient_worker<'a, F>(
     memory: &crate::kernel_preparation::StagedImageMemory<'_>,
 ) -> Result<crate::selected_native_source::image_worker::PreparedImageWorker<'a>, String>
 where
-    F: FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String> + 'a,
+    F: FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String> + 'a,
 {
     use crate::selected_native_source::image_worker::{stage_native_worker, ImageWorkerFactory};
     use conduit_core::*;
@@ -235,7 +235,7 @@ where
             let Some((timezone, endpoint)) = parameters.timezone.zip(parameters.weather_endpoint)
             else {
                 return Ok(Box::new(
-                    crate::ambient_wallpaper::observation::PreparedWallpaperObservation::prepare(
+                    crate::ambient_wallpaper::observation::PreparedWallpaperObservation::prepare_from_outcome(
                         prepare_deck()?,
                     )?,
                 ));
@@ -246,7 +246,7 @@ where
                 )?));
             }
             Ok(Box::new(
-                super::PreparedAmbientHomeObservation::prepare_with_optional_deck(
+                super::PreparedAmbientHomeObservation::prepare_with_wallpaper(
                     timezone,
                     endpoint,
                     prepare_deck()?,

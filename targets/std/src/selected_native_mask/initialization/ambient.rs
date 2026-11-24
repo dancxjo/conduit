@@ -20,7 +20,7 @@ impl StdHost {
         prepare_deck: F,
     ) -> Result<Self, String>
     where
-        F: FnOnce() -> Result<Option<crate::ambient_wallpaper::acquisition::PreparedDeck>, String>,
+        F: FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String>,
     {
         Self::from_native_mask_backend(
             config,

@@ -10,6 +10,20 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub const WALLPAPER_OBSERVATION_BYTES: usize =
     conduit_semantic_catalog::RESIDENT_WALLPAPER_BYTES as usize;
 
+/// The finite outcome of the Host's admitted photograph preparation.
+pub enum WallpaperPreparation {
+    Ready(Box<PreparedDeck>),
+    NotPrepared,
+    ProviderRateLimited,
+    ProviderUnavailable,
+}
+
+impl From<Option<PreparedDeck>> for WallpaperPreparation {
+    fn from(deck: Option<PreparedDeck>) -> Self {
+        deck.map_or(Self::NotPrepared, |deck| Self::Ready(Box::new(deck)))
+    }
+}
+
 pub struct PreparedWallpaperObservation {
     deck: Option<PreparedDeck>,
     selection: Option<PreparedWallpaperSelectionWire>,
@@ -18,17 +32,21 @@ pub struct PreparedWallpaperObservation {
 
 impl PreparedWallpaperObservation {
     pub fn prepare(deck: Option<PreparedDeck>) -> Result<Self, String> {
+        Self::prepare_from_outcome(deck.into())
+    }
+
+    pub(crate) fn prepare_from_outcome(outcome: WallpaperPreparation) -> Result<Self, String> {
         let types = conduit_semantic_catalog::prepare_ambient_display_types()?;
         let ty = types
             .native_types
             .iter()
             .find(|ty| ty.name == "AmbientWallpaperObservation")
             .ok_or("missing AmbientWallpaperObservation")?;
-        Self::prepare_with_type(deck, &ty.value_type)
+        Self::prepare_with_type(outcome, &ty.value_type)
     }
 
     pub(crate) fn prepare_with_type(
-        deck: Option<PreparedDeck>,
+        outcome: WallpaperPreparation,
         observation_type: &StructuredInfoType,
     ) -> Result<Self, String> {
         let StructuredInfoTypeShape::Variant { cases, .. } = observation_type.shape() else {
@@ -38,13 +56,19 @@ impl PreparedWallpaperObservation {
             .iter()
             .find(|case| case.tag() == "unavailable")
             .ok_or("missing wallpaper absence case")?;
+        let (deck, explanation) = match outcome {
+            WallpaperPreparation::Ready(deck) => (Some(*deck), "Photograph selection unavailable"),
+            WallpaperPreparation::NotPrepared => (None, "No photograph deck was prepared"),
+            WallpaperPreparation::ProviderRateLimited => {
+                (None, "The photograph provider rate-limited acquisition")
+            }
+            WallpaperPreparation::ProviderUnavailable => {
+                (None, "The photograph provider did not supply a usable deck")
+            }
+        };
         let mut reason = Composer::new(unavailable.payload_type(), 256).map_err(debug_error)?;
-        let reason = canonical(
-            reason
-                .leaf(b"No photograph deck was prepared")
-                .map_err(debug_error)?,
-        )
-        .map_err(debug_error)?;
+        let reason = canonical(reason.leaf(explanation.as_bytes()).map_err(debug_error)?)
+            .map_err(debug_error)?;
         let mut absence =
             Composer::new(observation_type, WALLPAPER_OBSERVATION_BYTES).map_err(debug_error)?;
         let unavailable = absence
@@ -128,6 +152,21 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn provider_rate_limit_reaches_the_typed_wallpaper_observation() {
+        let mut wallpaper = PreparedWallpaperObservation::prepare_from_outcome(
+            WallpaperPreparation::ProviderRateLimited,
+        )
+        .unwrap();
+        let value = canonical(wallpaper.observe_at(300_000)).unwrap();
+        assert_eq!(value.variant_tag().unwrap(), "unavailable");
+        let reason = value.variant_payload("unavailable").unwrap().unwrap();
+        assert_eq!(
+            reason.primitive_bytes(conduit_core::TEXT_INFO_ID).unwrap(),
+            b"The photograph provider rate-limited acquisition"
+        );
+    }
 
     #[test]
     fn an_unavailable_deck_keeps_its_typed_status_across_clock_samples() {

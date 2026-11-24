@@ -2,7 +2,10 @@
 mod configuration;
 use crate::{
     ambient_clock::PreparedLiveClock,
-    ambient_wallpaper::{acquisition::PreparedDeck, observation::PreparedWallpaperObservation},
+    ambient_wallpaper::{
+        acquisition::PreparedDeck,
+        observation::{PreparedWallpaperObservation, WallpaperPreparation},
+    },
     NativeReadContext, NativeSourceWorkerProvider, WorkerFailure,
 };
 use conduit_core::{
@@ -41,6 +44,14 @@ impl PreparedAmbientHomeObservation {
         endpoint: SocketAddr,
         deck: Option<PreparedDeck>,
     ) -> Result<Self, String> {
+        Self::prepare_with_wallpaper(timezone, endpoint, deck.into())
+    }
+
+    pub(crate) fn prepare_with_wallpaper(
+        timezone: &str,
+        endpoint: SocketAddr,
+        wallpaper: WallpaperPreparation,
+    ) -> Result<Self, String> {
         let types = conduit_semantic_catalog::prepare_ambient_display_types()?;
         let ty = &types
             .native_types
@@ -62,7 +73,7 @@ impl PreparedAmbientHomeObservation {
             clock: PreparedLiveClock::prepare(timezone, endpoint)?,
             clock_bytes: vec![0; CLOCK_OBSERVATION_BYTES].into_boxed_slice(),
             wallpaper: PreparedWallpaperObservation::prepare_with_type(
-                deck,
+                wallpaper,
                 wallpaper_field.value_type(),
             )?,
             home: Composer::new(ty, HOME_OBSERVATION_BYTES).map_err(debug_error)?,

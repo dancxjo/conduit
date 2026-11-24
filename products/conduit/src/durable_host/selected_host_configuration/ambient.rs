@@ -3,7 +3,11 @@ use conduit_core::AuthorityGrant;
 use conduit_host_make::{CheckedHostConfiguration, HostImage};
 use conduit_std_host::{
     ambient_home_observation::CheckedAmbientHomeSource,
-    ambient_wallpaper::acquisition::prepare_current_public_deck, StdHost, StdHostConfig,
+    ambient_wallpaper::{
+        acquisition::{prepare_current_public_deck, PreparationError},
+        observation::WallpaperPreparation,
+    },
+    StdHost, StdHostConfig,
 };
 use conduit_std_offers::{
     ambient_clock_source_offer, ambient_home_source_offer, ambient_wallpaper_source_offer,
@@ -62,17 +66,18 @@ fn admitted_provider(
     Ok((grant, source.acquire_nasa_photos))
 }
 
-fn prepare_photos(
-    acquire: bool,
-) -> Option<conduit_std_host::ambient_wallpaper::acquisition::PreparedDeck> {
+fn prepare_photos(acquire: bool) -> WallpaperPreparation {
     if !acquire {
-        return None;
+        return WallpaperPreparation::NotPrepared;
     }
     match prepare_current_public_deck() {
-        Ok(deck) => Some(deck),
+        Ok(deck) => WallpaperPreparation::Ready(Box::new(deck)),
         Err(error) => {
             eprintln!("Ambient photo preparation unavailable: {error:?}");
-            None
+            match error {
+                PreparationError::ProviderRateLimited => WallpaperPreparation::ProviderRateLimited,
+                _ => WallpaperPreparation::ProviderUnavailable,
+            }
         }
     }
 }
