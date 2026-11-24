@@ -177,11 +177,9 @@ mod tests {
         );
         for (bucket, offsets) in index.bucket_offsets.windows(2).enumerate() {
             let range = usize::from(offsets[0])..usize::from(offsets[1]);
-            assert!(
-                index.order[range]
-                    .iter()
-                    .all(|entry| { (entry >> (u16::BITS + BUCKET_SHIFT)) as usize == bucket })
-            );
+            assert!(index.order[range]
+                .iter()
+                .all(|entry| { (entry >> (u16::BITS + BUCKET_SHIFT)) as usize == bucket }));
         }
         assert!(index.contains_all(&values));
     }
