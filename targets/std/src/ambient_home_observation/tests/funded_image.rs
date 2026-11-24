@@ -10,19 +10,40 @@ use conduit_std_offers::{
 };
 
 fn checked_image(endpoint: std::net::SocketAddr) -> (CheckedHostConfiguration, HostImage) {
+    checked_image_for(endpoint, conduit_std_offers::AmbientFaceProjection::Home)
+}
+
+fn checked_image_for(
+    endpoint: std::net::SocketAddr,
+    projection: conduit_std_offers::AmbientFaceProjection,
+) -> (CheckedHostConfiguration, HostImage) {
+    let (source_kind, source_implementation, source_resource) = match projection {
+        conduit_std_offers::AmbientFaceProjection::Home => (
+            AMBIENT_HOME_SOURCE_BASE,
+            AMBIENT_HOME_SOURCE_IMPLEMENTATION,
+            AMBIENT_HOME_SOURCE_RESOURCE,
+        ),
+        conduit_std_offers::AmbientFaceProjection::Clock => (
+            conduit_semantic_catalog::AMBIENT_CLOCK_KIND,
+            conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+            conduit_std_offers::AMBIENT_CLOCK_SOURCE_RESOURCE,
+        ),
+    };
+    let face_kind = projection.kind();
+    let face_implementation = projection.implementation();
     let workspace = conduit_semantic_catalog::ambient_home_workspace_bytes().unwrap();
     let source = format!(
         r#"host ambient-home-fixture {{
   schema = 1
   target = {{architecture: "x86_64", machine: "computer", os: "linux"}}
   base = {{kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}}
-  base = {{kind: "{AMBIENT_HOME_SOURCE_BASE}", implementation: "{AMBIENT_HOME_SOURCE_IMPLEMENTATION}", initialization: {{timezone: "America/Los_Angeles", weather_endpoint: "{endpoint}", source_pool: "ambient/source", memory_pool: "ambient/worker-memory", provider_access: "operator-admitted", photo_source: "disabled"}}}}
+  base = {{kind: "{AMBIENT_HOME_SOURCE_BASE}", implementation: "{source_implementation}", initialization: {{timezone: "America/Los_Angeles", weather_endpoint: "{endpoint}", source_pool: "ambient/source", memory_pool: "ambient/worker-memory", provider_access: "operator-admitted", photo_source: "disabled"}}}}
   base = {{kind: "{AMBIENT_HOME_FACE_BASE}", implementation: "{AMBIENT_HOME_FACE_DRIVER}"}}
   capability = {{kind: "time/every", pinned_implementation: "{TIME_EVERY_IMPLEMENTATION}"}}
-  capability = {{kind: "{AMBIENT_HOME_SOURCE_BASE}", pinned_implementation: "{AMBIENT_HOME_SOURCE_IMPLEMENTATION}"}}
-  capability = {{kind: "face/resident-ambient-home", pinned_implementation: "{AMBIENT_HOME_FACE_IMPLEMENTATION}"}}
+  capability = {{kind: "{source_kind}", pinned_implementation: "{source_implementation}"}}
+  capability = {{kind: "{face_kind}", pinned_implementation: "{face_implementation}"}}
   need = {{id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 8, bytes: 512}}
-  need = {{id: "ambient/source", class: "{AMBIENT_HOME_SOURCE_RESOURCE}", slots: 1, bytes: 8192}}
+  need = {{id: "ambient/source", class: "{source_resource}", slots: 1, bytes: 8192}}
   need = {{id: "ambient/worker-memory", class: "conduit.resource/runtime-memory@1", slots: 67108864, bytes: 67108864}}
   need = {{id: "ambient/face-memory", class: "conduit.resource/runtime-memory@1", slots: {workspace}, bytes: {workspace}}}
   need = {{id: "ambient/face", class: "conduit.resource/face-slot@1", slots: 1, bytes: 1}}
@@ -72,25 +93,26 @@ fn initialized_host(
     endpoint: std::net::SocketAddr,
 ) -> crate::StdHost {
     use conduit_core::{AuthorityGrant, OfferGeneration};
-    use conduit_std_offers::{
-        ambient_home_source_offer, AMBIENT_HOME_SOURCE_AUTHORITY, AMBIENT_HOME_SOURCE_CALL,
-    };
+    let source = super::CheckedAmbientHomeSource::from_configuration(checked).unwrap();
+    let clock_only =
+        source.implementation == conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION;
     let config = crate::StdHostConfig {
         host_id: "fixture/ambient-image".into(),
         boot_id: "boot/ambient-image".into(),
         offer_generation: OfferGeneration(1),
     };
-    let offer = ambient_home_source_offer().unwrap();
-    assert_eq!(
-        super::CheckedAmbientHomeSource::from_configuration(checked)
-            .unwrap()
-            .weather_endpoint,
-        endpoint,
-    );
+    let offer = if clock_only {
+        conduit_std_offers::ambient_clock_source_offer()
+    } else {
+        conduit_std_offers::ambient_home_source_offer()
+    }
+    .unwrap();
+    assert_eq!(source.weather_endpoint, endpoint);
+    let requirement = &offer.authority_requirements[0];
     let grant = AuthorityGrant {
         grant_id: "grant/fixture-ambient-image".into(),
-        contract_id: AMBIENT_HOME_SOURCE_AUTHORITY.into(),
-        host_call_contract_id: AMBIENT_HOME_SOURCE_CALL.into(),
+        contract_id: requirement.contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
         subject_kind: offer.kind_id,
         host_id: config.host_id.clone(),
         boot_id: config.boot_id.clone(),
@@ -104,7 +126,13 @@ fn initialized_host(
             &conduit_workspace_make::catalog(),
             checked,
             grant,
-            || Ok(Some(super::fixture_deck())),
+            || {
+                assert!(
+                    !clock_only,
+                    "standalone clock must never acquire photographs"
+                );
+                Ok(Some(super::fixture_deck()))
+            },
         )
     }
     .unwrap()
@@ -130,7 +158,10 @@ fn original_ambient_image_initializes_the_exact_worker_and_face_offers() {
     }));
 }
 
-fn home_plan(host: &crate::StdHost) -> (conduit_body::Wake, conduit_body::BodyPlan) {
+fn ambient_plan(
+    host: &crate::StdHost,
+    projection: conduit_std_offers::AmbientFaceProjection,
+) -> (conduit_body::Wake, conduit_body::BodyPlan) {
     use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
     use conduit_plot::{
         check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -144,10 +175,20 @@ fn home_plan(host: &crate::StdHost) -> (conduit_body::Wake, conduit_body::BodyPl
     conduit_semantic_catalog::install_ambient_home_observation_kind(&mut startup, &mut profiles)
         .unwrap();
     conduit_semantic_catalog::install_ambient_home_face_kind(&mut startup, &mut profiles).unwrap();
-    let source = include_str!("../../../../../plots/ambient-home/main.conduit");
+    conduit_semantic_catalog::install_ambient_clock_kind(&mut startup, &mut profiles).unwrap();
+    conduit_semantic_catalog::install_ambient_clock_face_kind(&mut startup, &mut profiles).unwrap();
+    let (source, entry) = match projection {
+        conduit_std_offers::AmbientFaceProjection::Home => (
+            include_str!("../../../../../plots/ambient-home/main.conduit"),
+            "ambient-resident",
+        ),
+        conduit_std_offers::AmbientFaceProjection::Clock => (
+            include_str!("../../../../../plots/resident-ambient-clock-weather/main.conduit"),
+            "resident-ambient-clock-weather",
+        ),
+    };
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let authoring =
-        expand_canonical_plot_for_authoring(&checked, "ambient-resident", &profiles).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&checked, entry, &profiles).unwrap();
     let advertisements = std::slice::from_ref(host.advertisement());
     let placements =
         conduit_planner::default_expanded_placements(&authoring.expanded, advertisements).unwrap();
@@ -218,11 +259,20 @@ impl crate::body_execution::BodyFaceContributionObserver for Capture {
 
 #[test]
 fn funded_ambient_play_publishes_worker_observation_then_retires_its_face() {
+    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Home);
+}
+
+#[test]
+fn funded_standalone_clock_repeats_without_preparing_photographs() {
+    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Clock);
+}
+
+fn prove_funded_ambient_projection(projection: conduit_std_offers::AmbientFaceProjection) {
     use crate::{body_execution::BodyRunRequest, RunControl, ThreadTimer};
     let (endpoint, weather, start) = super::weather_fixture_after_start();
-    let (checked, image) = checked_image(endpoint);
+    let (checked, image) = checked_image_for(endpoint, projection);
     let mut host = initialized_host(&checked, &image, endpoint);
-    let (wake, plan) = home_plan(&host);
+    let (wake, plan) = ambient_plan(&host, projection);
     let control = RunControl::default();
     let mut observer = Capture {
         control: control.clone(),
@@ -272,6 +322,20 @@ fn funded_ambient_play_publishes_worker_observation_then_retires_its_face() {
         .expect("funded Body Play committed the worker observation");
     assert_eq!(face.scope().body_play(), &report.report().play);
     assert!(face.scope().is_retired());
+    let fragment = face.fragment();
+    assert!(fragment.properties.iter().any(|property| {
+        property.name == "timezone"
+            && property.value == conduit_face::FacePropertyValue::Text("America/Los_Angeles".into())
+    }));
+    assert!(fragment
+        .properties
+        .iter()
+        .any(|property| property.name == "local-date-time"));
+    if matches!(projection, conduit_std_offers::AmbientFaceProjection::Clock) {
+        assert!(fragment.subjects.iter().all(|subject| {
+            subject.role != conduit_face::FaceRole::Semantic(conduit_core::kind_id("media/image"))
+        }));
+    }
     weather.join().unwrap();
     assert!(face
         .fragment()
