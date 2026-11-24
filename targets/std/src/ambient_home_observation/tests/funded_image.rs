@@ -107,6 +107,7 @@ fn initialized_host(
     checked: &CheckedHostConfiguration,
     image: &HostImage,
     endpoint: std::net::SocketAddr,
+    has_wallpaper: bool,
 ) -> crate::StdHost {
     use conduit_core::{AuthorityGrant, OfferGeneration};
     let source = super::CheckedAmbientHomeSource::from_configuration(checked).unwrap();
@@ -156,7 +157,7 @@ fn initialized_host(
                     !clock_only,
                     "standalone clock must never acquire photographs"
                 );
-                Ok(Some(super::fixture_deck()))
+                Ok(has_wallpaper.then(super::fixture_deck))
             },
         )
     }
@@ -168,7 +169,7 @@ fn original_ambient_image_initializes_the_exact_worker_and_face_offers() {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let endpoint = listener.local_addr().unwrap();
     let (checked, image) = checked_image(endpoint);
-    let host = initialized_host(&checked, &image, endpoint);
+    let host = initialized_host(&checked, &image, endpoint, true);
     assert!(
         host.native_source_worker_inspection()
             .unwrap()
@@ -290,20 +291,28 @@ impl crate::body_execution::BodyFaceContributionObserver for Capture {
 
 #[test]
 fn funded_ambient_play_publishes_worker_observation_then_retires_its_face() {
-    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Home);
+    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Home, true);
 }
 
 #[test]
 fn funded_standalone_clock_repeats_without_preparing_photographs() {
-    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Clock);
+    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Clock, false);
 }
 
 #[test]
 fn funded_standalone_wallpaper_presents_the_prepared_deck_without_weather() {
-    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Wallpaper);
+    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Wallpaper, true);
 }
 
-fn prove_funded_ambient_projection(projection: conduit_std_offers::AmbientFaceProjection) {
+#[test]
+fn funded_standalone_wallpaper_reports_missing_deck_without_publishing_image_content() {
+    prove_funded_ambient_projection(conduit_std_offers::AmbientFaceProjection::Wallpaper, false);
+}
+
+fn prove_funded_ambient_projection(
+    projection: conduit_std_offers::AmbientFaceProjection,
+    has_wallpaper: bool,
+) {
     use crate::{body_execution::BodyRunRequest, RunControl, ThreadTimer};
     let weather = (!matches!(
         projection,
@@ -315,7 +324,7 @@ fn prove_funded_ambient_projection(projection: conduit_std_offers::AmbientFacePr
         .map(|(endpoint, _, _)| *endpoint)
         .unwrap_or_else(|| "127.0.0.1:1".parse().unwrap());
     let (checked, image) = checked_image_for(endpoint, projection);
-    let mut host = initialized_host(&checked, &image, endpoint);
+    let mut host = initialized_host(&checked, &image, endpoint, has_wallpaper);
     let (wake, plan) = ambient_plan(&host, projection);
     let control = RunControl::default();
     let mut observer = Capture {
@@ -392,10 +401,27 @@ fn prove_funded_ambient_projection(projection: conduit_std_offers::AmbientFacePr
         assert!(fragment.subjects.iter().any(|subject| {
             subject.role == conduit_face::FaceRole::Semantic(conduit_core::kind_id("media/image"))
         }));
-        assert!(fragment
-            .properties
-            .iter()
-            .any(|property| property.name == "next-rotation-unix-ms"));
+        assert_eq!(
+            fragment
+                .properties
+                .iter()
+                .any(|property| property.name == "next-rotation-unix-ms"),
+            has_wallpaper
+        );
+        assert_eq!(
+            fragment.properties.iter().any(|property| {
+                property.name == "availability"
+                    && property.value == conduit_face::FacePropertyValue::Text("unavailable".into())
+            }),
+            !has_wallpaper
+        );
+        assert_eq!(
+            fragment
+                .properties
+                .iter()
+                .any(|property| property.name == "image-content"),
+            has_wallpaper
+        );
         assert!(!fragment
             .properties
             .iter()
