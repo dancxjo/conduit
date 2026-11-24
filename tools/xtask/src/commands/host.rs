@@ -380,7 +380,7 @@ pub(crate) fn build_conduitos_live(
     host_target::build_target(&image, &bytes, output, opts)
 }
 
-fn resolve_profile(
+pub(super) fn resolve_profile(
     profile_path: &std::path::Path,
     source_identity: String,
 ) -> Result<(HostImage, Vec<u8>), Box<dyn std::error::Error>> {
