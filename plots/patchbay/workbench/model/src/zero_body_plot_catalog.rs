@@ -66,6 +66,26 @@ pub(super) fn reviewed_plots(host: &HostAdvertisement) -> Result<Vec<PlotCandida
             5,
         )?);
     }
+    if [
+        conduit_std_offers::TIME_EVERY_IMPLEMENTATION,
+        conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION,
+        conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION,
+    ]
+    .iter()
+    .all(|implementation| {
+        host.capabilities
+            .iter()
+            .any(|offer| offer.implementation.implementation_id.as_str() == *implementation)
+    }) {
+        plots.push(PlotCandidate::from_source(
+            "Seattle clock and weather",
+            "plots/resident-ambient-clock-weather/main.conduit",
+            include_str!("../../../../../plots/resident-ambient-clock-weather/main.conduit"),
+            "reviewed clock and weather Plot with selected timer, observation and Face Backs",
+            SignId::from("patchbay/front-door/ambient-clock-available"),
+            6,
+        )?);
+    }
     Ok(plots)
 }
 
