@@ -128,18 +128,21 @@ impl TickPreparationLayout {
                         | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
                 ) {
                     return Err(
                         "selected IMAGE receipt has no owned accounting for this Back".into(),
                     );
                 }
-                let source = if gear.implementation_id.as_str()
-                    == conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
-                {
+                let source = if matches!(
+                    gear.implementation_id.as_str(),
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                        | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
+                ) {
                     Some(
                         native
                             .filter(|source| source.matches(gear))
-                            .ok_or("IMAGE requires the exact installed Home source worker")?,
+                            .ok_or("IMAGE requires the exact installed ambient source worker")?,
                     )
                 } else {
                     None
