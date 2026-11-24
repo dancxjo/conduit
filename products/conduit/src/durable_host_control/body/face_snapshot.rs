@@ -21,8 +21,8 @@ impl DurableHostRuntime {
         } else {
             OwnerFaceSnapshotResponse::Snapshot {
                 schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                interactions_admitted: owner.has_current_home_navigation(&face),
                 face: Box::new(face),
-                interactions_admitted: false,
                 route: None,
             }
         };

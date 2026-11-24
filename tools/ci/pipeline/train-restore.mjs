@@ -9,6 +9,7 @@ import { verifyTrainRun } from './train.mjs';
 import { verifyBundle } from './receipts.mjs';
 import { TARGETS } from './targets.mjs';
 import { verifyProductCustody } from './producer-custody.mjs';
+import { retainedProductRun } from './retained-product-attempt.mjs';
 
 const fail = message => { throw new Error(message); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -49,7 +50,7 @@ export async function restoreTrainArtifacts({ manifest, observation, acquisition
   if (!expected.size || expected.size > 32 || expected.size !== targets.length
       || [...expected].some(name => !/^product-[a-z0-9][a-z0-9_-]*$/.test(name))
       || receipt.artifacts.length !== expected.size) fail('Invalid required product set');
-  const names = new Set(); const ids = new Set(); let compressed = 0;
+  const names = new Set(); const ids = new Set(); const liveProducts = new Map(); let compressed = 0;
   for (const item of receipt.artifacts) {
     if (!expected.has(item.name) || names.has(item.name) || !positive(item.id) || ids.has(item.id)
         || item.archive !== `${item.name}.zip` || !positive(item.bytes) || item.bytes > 4 * 1024 ** 3
@@ -62,6 +63,7 @@ export async function restoreTrainArtifacts({ manifest, observation, acquisition
         || owner?.id !== initial.id || owner.head_sha !== verified.source
         || owner.repository_id !== initial.repository.id
         || owner.head_repository_id !== initial.head_repository.id) fail('Live artifact custody mismatch');
+    liveProducts.set(item.name.slice('product-'.length), live);
     const archive = path.join(acquisition, item.archive);
     const stat = await lstat(archive);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size !== item.bytes) fail('Archive size or type mismatch');
@@ -96,12 +98,20 @@ export async function restoreTrainArtifacts({ manifest, observation, acquisition
     restoration.push({ name: item.name, bytes: restored.bytes, members: restored.members });
   }
   const receipts = await verifyBundle({ directory: bundle, sha: verified.source, targets });
+  const inventories = new Map();
+  const jobMetadata = endpoint => {
+    if (!inventories.has(endpoint)) inventories.set(endpoint, metadata(endpoint));
+    return inventories.get(endpoint);
+  };
   for (const target of targets) {
     const filename = path.join(bundle, target.id, 'producer.json');
     const stat = await lstat(filename);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 2 * 1024 * 1024) fail('Invalid producer custody file');
-    verifyProductCustody(JSON.parse(await readFile(filename, 'utf8')), {
-      source: verified.source, tree: verified.tree, target: target.id, run: initial, manifestDigest: manifest.digest,
+    const producer = JSON.parse(await readFile(filename, 'utf8'));
+    const producerRun = await retainedProductRun({ run: initial, producer, target: target.id,
+      artifact: liveProducts.get(target.id), metadata: jobMetadata, manifestDigest: manifest.digest });
+    verifyProductCustody(producer, {
+      source: verified.source, tree: verified.tree, target: target.id, run: producerRun, manifestDigest: manifest.digest,
     });
   }
   await refresh();
