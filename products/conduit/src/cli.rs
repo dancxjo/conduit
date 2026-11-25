@@ -424,6 +424,9 @@ pub(crate) enum BodyCommand {
         /// Explicit finite selection of one admitted member for the complete retained workset.
         #[arg(long)]
         startup_member: Option<PathBuf>,
+        /// Additional finite local Plays to start after clean deadline stops on this Boot.
+        #[arg(long, default_value_t = 0, value_parser = clap::value_parser!(u16).range(0..=96), conflicts_with_all = ["todo_new_list", "startup_member"])]
+        renewals: u16,
     },
     /// Request that the current service-owned Body Play stop and lull.
     Lull {

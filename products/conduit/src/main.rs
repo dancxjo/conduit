@@ -317,8 +317,8 @@ fn main() {
             command: Some(cli::BodyCommand::MemberCarrierReceiver { state_dir }),
         }) => durable_host_control::startup_member::prepare_owner_identity(&state_dir),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list, startup_member }),
-        }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list, startup_member.as_deref()),
+            command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list, startup_member, renewals }),
+        }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list, startup_member.as_deref(), renewals),
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),

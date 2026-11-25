@@ -178,15 +178,28 @@ impl DurableHostRuntime {
     }
 
     pub(super) fn progress_owned_body(&mut self) -> Result<(), String> {
-        if let HostSource::Body {
+        let HostSource::Body {
             owner,
             root,
-            running: Some(worker),
+            running,
         } = &mut self.host
-        {
-            if worker.progress(owner, root)? {
-                if let HostSource::Body { running, .. } = &mut self.host {
-                    *running = None;
+        else {
+            return Ok(());
+        };
+        let Some(worker) = running else {
+            return Ok(());
+        };
+        if worker.progress(owner, root)? {
+            let deadline = matches!(worker, OwnedRunWorker::General(worker)
+                if worker.retained_clean_deadline());
+            *running = None;
+            if let Some((maximum_millis, remaining)) = self.body_renewal.take() {
+                if deadline {
+                    if let Err(error) =
+                        self.start_owned_body_selected(maximum_millis, None, None, remaining - 1)
+                    {
+                        eprintln!("Body Play renewal refused: {error}");
+                    }
                 }
             }
         }
@@ -198,7 +211,7 @@ impl DurableHostRuntime {
         maximum_millis: u64,
         todo_new_list: Option<String>,
     ) -> Result<(), String> {
-        self.start_owned_body_selected(maximum_millis, todo_new_list, None)
+        self.start_owned_body_selected(maximum_millis, todo_new_list, None, 0)
     }
 
     pub(super) fn start_owned_body_selected(
@@ -206,7 +219,14 @@ impl DurableHostRuntime {
         maximum_millis: u64,
         todo_new_list: Option<String>,
         startup_member: Option<crate::durable_host::owner::StartupMemberSelection>,
+        renewals: u16,
     ) -> Result<(), String> {
+        if renewals > 96 || (renewals > 0 && (startup_member.is_some() || todo_new_list.is_some()))
+        {
+            return Err(
+                "renewal requires a local service run and at most 96 additional Plays".into(),
+            );
+        }
         if startup_member.is_some() && todo_new_list.is_some() {
             return Err("member startup cannot mutate the retained workset".into());
         }
@@ -252,6 +272,11 @@ impl DurableHostRuntime {
             )?));
             return Ok(());
         }
+        if renewals > 0
+            && (next_todo.is_some() || owner.has_open_notebook() || owner.is_thermostat())
+        {
+            return Err("renewal requires a general local Body Play".into());
+        }
         let previous_generation = owner.host.advertisement().offer_generation;
         *running = Some(match (todo_new_list, selected, next_todo) {
             (Some(list_key), Some(selected), None) => {
@@ -290,10 +315,12 @@ impl DurableHostRuntime {
                 current.offer_generation,
             )?;
         }
+        self.body_renewal = (renewals > 0).then_some((maximum_millis, renewals));
         Ok(())
     }
 
     pub(super) fn request_owned_body_lull(&mut self) -> Result<Option<String>, String> {
+        self.body_renewal = None;
         let HostSource::Body {
             owner,
             root,
@@ -323,6 +350,7 @@ pub(crate) fn start_owned_body(
     maximum_millis: u64,
     todo_new_list: Option<String>,
     startup_member: Option<&Path>,
+    renewals: u16,
 ) -> Result<(), String> {
     let startup_member = startup_member
         .map(crate::durable_host::owner::StartupMemberSelection::read)
@@ -336,22 +364,26 @@ pub(crate) fn start_owned_body(
             maximum_millis,
             todo_new_list,
             startup_member,
+            renewals,
         },
     )? {
         Response::BodyRunRequested {
             protocol: PROTOCOL,
             maximum_millis,
-        } => {
+            renewals: acknowledged,
+        } if acknowledged == renewals => {
             println!(
                 "{}",
                 serde_json::json!({
                     "schema":"conduit.body/service-run-requested@1",
                     "maximum_millis":maximum_millis,
+                    "renewals":acknowledged,
                     "play_state":"preparing",
                 })
             );
             Ok(())
         }
+        Response::BodyRunRequested { .. } => Err("Body owner did not acknowledge renewal".into()),
         Response::Refused { code, .. } => Err(format!("Body owner refused start: {code}")),
         _ => Err("Body owner returned the wrong start response".into()),
     }
@@ -396,6 +428,7 @@ pub(crate) fn start_owned_body(
     _maximum_millis: u64,
     _todo_new_list: Option<String>,
     _startup_member: Option<&Path>,
+    _renewals: u16,
 ) -> Result<(), String> {
     Err("service-owned Body Play requires local Unix control".into())
 }

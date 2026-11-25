@@ -159,6 +159,7 @@ pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
     host: HostSource,
+    body_renewal: Option<(u64, u16)>,
     birth: Option<body_birth::ServiceBirth>,
     birth_root: Option<PathBuf>,
     remote_fragment: Option<AdmittedRemoteFragment>,
@@ -192,6 +193,7 @@ impl DurableHostRuntime {
             target_id,
             image_content_digest,
             host: HostSource::Bare(Box::new(host)),
+            body_renewal: None,
             birth: None,
             birth_root: None,
             remote_fragment: None,
@@ -999,6 +1001,8 @@ enum Request {
         todo_new_list: Option<String>,
         #[serde(default)]
         startup_member: Option<Box<crate::durable_host::owner::StartupMemberSelection>>,
+        #[serde(default)]
+        renewals: u16,
     },
     BodyLull {
         protocol: u16,
@@ -1217,6 +1221,8 @@ enum Response {
     BodyRunRequested {
         protocol: u16,
         maximum_millis: u64,
+        #[serde(default)]
+        renewals: u16,
     },
     BodyLullRequested {
         protocol: u16,
@@ -2350,12 +2356,19 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             maximum_millis,
             todo_new_list,
             startup_member,
+            renewals,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body_selected(maximum_millis, todo_new_list, startup_member.map(|s| *s))
+            .start_owned_body_selected(
+                maximum_millis,
+                todo_new_list,
+                startup_member.map(|s| *s),
+                renewals,
+            )
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
+                renewals,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyLull { protocol, .. } if protocol == PROTOCOL => runtime
