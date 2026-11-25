@@ -45,11 +45,16 @@ test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body",
     const output = page.locator('[data-face-kind="face/ambient-wallpaper-observation"]:visible');
     await expect(output.getByRole("img", { name: "Wallpaper photo 1", exact: true })).toBeVisible();
     await expect(output).toContainText("Test photographer");
-    const firstIdentity = await output.locator("canvas").getAttribute("data-identity");
+    const canvas = output.locator("canvas");
+    const readPixel = () => canvas.evaluate(element =>
+      Array.from(element.getContext("2d").getImageData(0, 0, 1, 1).data));
+    expect(await readPixel()).toEqual([255, 0, 0, 255]);
+    const firstIdentity = await canvas.getAttribute("data-identity");
     expect(firstIdentity).toMatch(/^[0-9a-f]{64}$/u);
     await page.clock.setFixedTime(new Date("2026-11-25T12:05:01Z"));
     await expect(output.getByRole("img", { name: "Wallpaper photo 2", exact: true })).toBeVisible();
-    await expect(output.locator("canvas")).not.toHaveAttribute("data-identity", firstIdentity);
+    await expect(canvas).not.toHaveAttribute("data-identity", firstIdentity);
+    expect(await readPixel()).toEqual([0, 128, 0, 255]);
     await page.evaluate(() => globalThis.__conduitWorkspace.settled());
     await page.reload();
     await waitForWorkspacePreparation(page, { surfaceTitle: "Wallpaper" });
