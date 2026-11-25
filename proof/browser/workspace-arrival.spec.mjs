@@ -22,7 +22,7 @@ function selectedSource(bundled, names) {
     .join("\n\n");
 }
 
-test("Crib lists checked Stem and refuses an unavailable builder before Birth", async ({ page }) => {
+test("Crib retains checked Stem at Birth without acquiring builder authority", async ({ page }) => {
   await page.goto(entrance.url);
   const birth = page.locator(".body-birth-runner");
   const stem = birth.getByRole("checkbox", { name: "Stem", exact: true });
@@ -35,8 +35,20 @@ test("Crib lists checked Stem and refuses an unavailable builder before Birth", 
   });
   await stem.check();
   await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await expect(birth.getByText(/initial workload is unrealizable for "stem\/main"/u)).toBeVisible();
-  expect(await page.evaluate(() => globalThis.__conduitWorkspace.current())).toBeNull();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  const resident = page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Stem", exact: true });
+  await expect(resident).toBeVisible();
+  const checkedPlotId = await resident.getAttribute("data-checked-plot-id");
+  const body = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(body.initial_plots).toEqual(expect.arrayContaining([
+    expect.objectContaining({ checked_plot_id: checkedPlotId }),
+  ]));
+  expect(body.active_play_id).toBeFalsy();
+  await page.getByRole("button", { name: "wake body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Refused");
+  const afterRefusal = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(afterRefusal.body_id).toBe(body.body_id);
+  expect(afterRefusal.active_play_id).toBeFalsy();
 });
 
 test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload preserves the body", async ({ page }, testInfo) => {
