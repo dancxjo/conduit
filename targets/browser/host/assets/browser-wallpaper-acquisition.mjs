@@ -1,3 +1,5 @@
+import { prepareWallpaperPixels } from "./browser-wallpaper-pixels.mjs";
+
 // APOD Basic preparation for the Browser Host. Only the admitted Host should
 // invoke this adapter, before Play. The Mask consumes retained resources.
 const LIST = "https://science.nasa.gov/wp-json/wp/v2/apod-basic?per_page=12&_fields=date,title,media_type,hdurl,copyright";
@@ -68,7 +70,7 @@ function candidate(entry, latestDate) {
  * returns an owned photo with canonical identity, or null on refusal. It must
  * not publish resources. The caller can admit custody of the complete deck.
  */
-export async function acquireBrowserWallpaper({ fetch, preparePhoto, latestDate, signal }) {
+export async function acquireBrowserWallpaper({ fetch, preparePhoto = prepareWallpaperPixels, latestDate, signal }) {
   try {
     const list = await readBounded(fetch, LIST, MAXIMUM_LIST_BYTES, signal);
     const entries = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(list));
@@ -86,7 +88,13 @@ export async function acquireBrowserWallpaper({ fetch, preparePhoto, latestDate,
         if (error?.reason === "provider-rate-limited") throw error;
         continue;
       }
-      const prepared = await preparePhoto(photo, bytes, signal);
+      let prepared;
+      try {
+        prepared = await preparePhoto(photo, bytes, signal);
+      } catch {
+        signal.throwIfAborted();
+        continue;
+      }
       signal.throwIfAborted();
       if (prepared === null || identities.has(prepared.identity)) continue;
       identities.add(prepared.identity);
