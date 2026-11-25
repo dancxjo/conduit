@@ -11,6 +11,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{FaceAction, FaceDisclosure, FaceTemporalFact, TemporalReference};
 
+#[path = "face_subject_index.rs"]
+mod subject_index;
+use subject_index::SubjectIndex;
+
 pub const MAX_FACE_SUBJECTS: usize = 1_024;
 pub const MAX_FACE_RELATIONSHIPS: usize = 2_048;
 pub const MAX_FACE_TEXT_ITEMS: usize = 2_048;
@@ -348,16 +352,10 @@ impl Face {
             }
             validate_text(&subject.name)?;
         }
-        for index in 0..self.subjects.len() {
-            if self.subjects[index + 1..]
-                .iter()
-                .any(|subject| subject.identity == self.subjects[index].identity)
-            {
-                return Err(FaceError::DuplicateSubject);
-            }
-        }
+        let subjects = SubjectIndex::new(&self.subjects)?;
         for relationship in &self.relationships {
-            if !self.has_subject(&relationship.source) || !self.has_subject(&relationship.target) {
+            if !subjects.contains(&relationship.source) || !subjects.contains(&relationship.target)
+            {
                 return Err(FaceError::UnknownRelationshipSubject);
             }
             if let FaceRelationshipKind::Semantic(identity) = &relationship.kind {
@@ -365,13 +363,13 @@ impl Face {
             }
         }
         for item in &self.text {
-            if !self.has_subject(&item.subject) {
+            if !subjects.contains(&item.subject) {
                 return Err(FaceError::UnknownTextSubject);
             }
             validate_text(&item.text)?;
         }
         for property in &self.properties {
-            if !self.has_subject(&property.subject) {
+            if !subjects.contains(&property.subject) {
                 return Err(FaceError::UnknownPropertySubject);
             }
             validate_id(&property.name)?;
