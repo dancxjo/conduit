@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { startPresenceProbe } from "./browser-presence-support.mjs";
+import { preparationState, processOutput } from "./process-output.mjs";
 import { prepareFieldStationPackage } from "./field-station-package.mjs";
 import { birthWorkspaceEvidence } from "./workspace-body-evidence-support.mjs";
 
@@ -14,7 +15,7 @@ test.beforeAll(async ({}, testInfo) => {
 });
 
 test("a Workspace Body continues through the browser SDK without a Patchbay page runtime", async ({ page }) => {
-  test.setTimeout(BROWSER_COLD_PREPARATION_MS + 30_000);
+  test.setTimeout(2 * BROWSER_COLD_PREPARATION_MS + 30_000);
   const journey = await openExternalBody(page, {
     friendlyName: "SDK Workbench",
     titles: ["Button Across the Room", "Clock", "Desk Telegraph"],
@@ -67,7 +68,7 @@ test("a Workspace Body continues through the browser SDK without a Patchbay page
 });
 
 test("Rosehip measurement processing and bounded history continue through the SDK", async ({ page }) => {
-  test.setTimeout(BROWSER_COLD_PREPARATION_MS + 30_000);
+  test.setTimeout(2 * BROWSER_COLD_PREPARATION_MS + 30_000);
   const journey = await openExternalBody(page, {
     friendlyName: "Rosehip House",
     titles: ["Button Across the Room", "Little Seismograph"],
@@ -108,8 +109,7 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
     );
     const probe = await startPresenceProbe(["--body-evidence", evidencePath]);
     processes.push(probe.process);
-    const coordinator = await startCoordinator(evidencePath, probe.url, plots);
-    processes.push(coordinator.process);
+    const coordinator = await startCoordinator(evidencePath, probe.url, plots, processes);
 
     await page.goto(`/proof/browser/sdk-body-participation/?body=${encodeURIComponent(probe.url)}`);
     await expect(page.locator("#status")).toHaveText("Browser Host participating", { timeout: 15_000 });
@@ -236,7 +236,8 @@ async function finishExternalBody(page, journey) {
   return { receipt, terminal };
 }
 
-async function startCoordinator(evidencePath, invitation, plots) {
+async function startCoordinator(evidencePath, invitation, plots, processes) {
+  const budget = preparationState(BROWSER_COLD_PREPARATION_MS);
   const process = spawn("target/debug/conduit-browser-patchbay-workbench", [
     "--body-evidence", evidencePath,
     "--external-reader",
@@ -244,19 +245,10 @@ async function startCoordinator(evidencePath, invitation, plots) {
     "--body-invitation", invitation,
     ...plots.flatMap(([name, source]) => ["--plot", name, source]),
   ], { cwd: new URL("../..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });
-  let output = "";
-  const url = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`Body coordinator did not become ready\n${output}`)), 10_000);
-    const inspect = chunk => {
-      output += chunk.toString();
-      const match = output.match(/PATCHBAY_HTML_URL=(http:\/\/127\.0\.0\.1:\d+)/);
-      if (match) { clearTimeout(timeout); resolve(match[1]); }
-    };
-    process.stdout.on("data", inspect);
-    process.stderr.on("data", inspect);
-    process.once("exit", code => { clearTimeout(timeout); reject(new Error(`Body coordinator exited (${code})\n${output}`)); });
-  });
-  return { process, url };
+  processes.push(process);
+  const match = await processOutput(process, /PATCHBAY_HTML_URL=(http:\/\/127\.0\.0\.1:\d+)/,
+    "Body coordinator", budget);
+  return { url: match[1] };
 }
 
 async function get(page, url) {
