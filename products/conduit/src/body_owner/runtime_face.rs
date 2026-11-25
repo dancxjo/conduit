@@ -71,7 +71,8 @@ impl RuntimeFaceReceiver {
             }
             self.last_request.set(Some(frame.request()));
             if owner.current_home_fragment().is_some_and(|previous| {
-                ambient_cadence::same_presented_minute(previous, frame.fragment())
+                previous == frame.fragment()
+                    || ambient_cadence::same_presented_minute(previous, frame.fragment())
             }) {
                 return Ok(());
             }
