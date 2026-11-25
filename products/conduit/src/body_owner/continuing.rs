@@ -66,6 +66,7 @@ impl Owner {
         &mut self,
         root: &Path,
         maximum_millis: u64,
+        authorize_startup_chime: bool,
     ) -> Result<RunWorker, String> {
         if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
             return Err("service run duration must be 1..900000 milliseconds".into());
@@ -86,7 +87,22 @@ impl Owner {
             .iter()
             .map(|source| (&source.source, &source.plot))
             .collect();
-        self.plan_workset_with_sources(&borrowed)?;
+        let chime = if authorize_startup_chime {
+            if !sources.iter().any(|source| {
+                source.plot.expanded.gears.iter().any(|gear| {
+                    gear.kind_id.as_str() == conduit_semantic_catalog::STARTUP_CHIME_KIND
+                })
+            }) {
+                return Err("Body has no retained Startup Chime".into());
+            }
+            let mut nonce = [0_u8; 16];
+            getrandom::fill(&mut nonce).map_err(|_| "startup chime grant entropy unavailable")?;
+            let grant_id = format!("wake/startup-chime/{:032x}", u128::from_be_bytes(nonce));
+            Some(self.host.startup_chime_authority_grant(&grant_id)?)
+        } else {
+            None
+        };
+        self.plan_workset_for_wake(&borrowed, chime.as_ref())?;
         // Source/catalog ownership is preparation-only; the one finite worker
         // receives the sealed complete Body Plan, never parser contexts.
         drop(borrowed);

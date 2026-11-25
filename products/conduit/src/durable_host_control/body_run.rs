@@ -195,9 +195,13 @@ impl DurableHostRuntime {
             *running = None;
             if let Some((maximum_millis, remaining)) = self.body_renewal.take() {
                 if deadline {
-                    if let Err(error) =
-                        self.start_owned_body_selected(maximum_millis, None, None, remaining - 1)
-                    {
+                    if let Err(error) = self.start_owned_body_selected(
+                        maximum_millis,
+                        None,
+                        None,
+                        remaining - 1,
+                        false,
+                    ) {
                         eprintln!("Body Play renewal refused: {error}");
                     }
                 }
@@ -211,7 +215,7 @@ impl DurableHostRuntime {
         maximum_millis: u64,
         todo_new_list: Option<String>,
     ) -> Result<(), String> {
-        self.start_owned_body_selected(maximum_millis, todo_new_list, None, 0)
+        self.start_owned_body_selected(maximum_millis, todo_new_list, None, 0, false)
     }
 
     pub(super) fn start_owned_body_selected(
@@ -220,7 +224,13 @@ impl DurableHostRuntime {
         todo_new_list: Option<String>,
         startup_member: Option<crate::durable_host::owner::StartupMemberSelection>,
         renewals: u16,
+        authorize_startup_chime: bool,
     ) -> Result<(), String> {
+        if authorize_startup_chime
+            && (renewals > 0 || startup_member.is_some() || todo_new_list.is_some())
+        {
+            return Err("startup chime authorization requires a single local Wake".into());
+        }
         if renewals > 96 || (renewals > 0 && (startup_member.is_some() || todo_new_list.is_some()))
         {
             return Err(
@@ -264,6 +274,11 @@ impl DurableHostRuntime {
         if running.is_some() {
             return Err("Body Play is already running".into());
         }
+        if authorize_startup_chime
+            && (next_todo.is_some() || owner.has_open_notebook() || owner.is_thermostat())
+        {
+            return Err("startup chime authorization requires a general local Body Play".into());
+        }
         if let Some(selection) = startup_member {
             *running = Some(OwnedRunWorker::General(owner.start_member_service_run(
                 root,
@@ -301,7 +316,11 @@ impl DurableHostRuntime {
                         owner.start_thermostat_run(root, maximum_millis)?,
                     ))
                 } else {
-                    OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?)
+                    OwnedRunWorker::General(owner.start_service_run(
+                        root,
+                        maximum_millis,
+                        authorize_startup_chime,
+                    )?)
                 }
             }
             _ => return Err("selected Todo list and Host residence differ".into()),
@@ -360,6 +379,7 @@ pub(crate) fn start_owned_body(
     todo_new_list: Option<String>,
     startup_member: Option<&Path>,
     renewals: u16,
+    authorize_startup_chime: bool,
 ) -> Result<(), String> {
     let startup_member = startup_member
         .map(crate::durable_host::owner::StartupMemberSelection::read)
@@ -373,6 +393,7 @@ pub(crate) fn start_owned_body(
             maximum_millis,
             todo_new_list,
             startup_member,
+            authorize_startup_chime: authorize_startup_chime.then_some(true),
         }
     } else {
         Request::BodyStartRenewing {
@@ -446,6 +467,7 @@ pub(crate) fn start_owned_body(
     _todo_new_list: Option<String>,
     _startup_member: Option<&Path>,
     _renewals: u16,
+    _authorize_startup_chime: bool,
 ) -> Result<(), String> {
     Err("service-owned Body Play requires local Unix control".into())
 }
