@@ -19,7 +19,7 @@ const ACCESS: &str = "conduit.resource/image-content@1";
 #[serde(untagged)]
 enum Deck {
     Ready {
-        metadata: [Photo; WALLPAPER_DECK_LEN],
+        metadata: Box<[Photo; WALLPAPER_DECK_LEN]>,
     },
     Unavailable {
         reason: Reason,
@@ -83,7 +83,7 @@ impl BrowserWallpaperObservation {
                 let ty = &named("AmbientWallpaperImage")?.value_type;
                 let mut values = Vec::with_capacity(WALLPAPER_DECK_LEN);
                 let mut identities = [[0; 32]; WALLPAPER_DECK_LEN];
-                for (index, photo) in metadata.into_iter().enumerate() {
+                for (index, photo) in (*metadata).into_iter().enumerate() {
                     let identity = digest(&photo.reference.identity)?;
                     if identities[..index].contains(&identity) {
                         return Err("browser wallpaper deck repeats an image identity".into());

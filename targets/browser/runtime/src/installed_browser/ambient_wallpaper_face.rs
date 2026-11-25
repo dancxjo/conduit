@@ -73,7 +73,7 @@ pub(crate) enum WallpaperPresentation {
         attribution: String,
         license: String,
         source: String,
-        reference: WallpaperReference,
+        reference: Box<WallpaperReference>,
     },
     Unavailable {
         reason: String,
@@ -115,7 +115,7 @@ pub(crate) fn decode(input: &[u8]) -> Result<WallpaperPresentation, String> {
                 attribution: text("attribution")?,
                 license: text("license")?,
                 source: text("source")?,
-                reference: WallpaperReference {
+                reference: Box::new(WallpaperReference {
                     identity: digest_text(resource.identity.digest()),
                     version: digest_text(resource.lifetime.version.digest()),
                     width: *image.extent().width(),
@@ -123,7 +123,7 @@ pub(crate) fn decode(input: &[u8]) -> Result<WallpaperPresentation, String> {
                     bytes: resource.extent.bytes,
                     content_profile: resource.content_profile.as_str().into(),
                     access_class: resource.access_class.as_str().into(),
-                },
+                }),
             })
         }
         _ => Err("unsupported browser wallpaper observation availability".into()),
