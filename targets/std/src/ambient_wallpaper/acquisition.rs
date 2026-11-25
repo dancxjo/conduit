@@ -8,7 +8,7 @@ use std::{io::Cursor, time::Duration};
 
 mod apod_basic;
 
-pub const DECK_LEN: usize = 4;
+pub use conduit_semantic_catalog::WALLPAPER_DECK_LEN as DECK_LEN;
 pub const MAXIMUM_ATTEMPTS: usize = 12;
 pub const MAXIMUM_COMPRESSED_BYTES: usize = 4 * 1024 * 1024;
 pub const MAXIMUM_CREDIT_BYTES: usize = 256;
