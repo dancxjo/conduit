@@ -128,28 +128,35 @@ impl<'a> FingerprintPrefix<'a> {
     }
     fn fingerprint(&mut self, key: (&'a str, &str)) -> u16 {
         if self.primary != Some(key.0) {
-            let mut hash = 2_166_136_261u32;
-            for byte in key.0.bytes().chain(core::iter::once(255)) {
-                hash = (hash ^ u32::from(byte)).wrapping_mul(16_777_619);
-                #[cfg(test)]
-                {
-                    self.hashed_bytes += 1;
-                }
-            }
+            self.state = self.hash_part(2_166_136_261, key.0);
             self.primary = Some(key.0);
-            self.state = hash;
         }
-        let mut hash = self.state;
-        for byte in key.1.bytes().chain(core::iter::once(255)) {
-            hash = (hash ^ u32::from(byte)).wrapping_mul(16_777_619);
-            #[cfg(test)]
-            {
-                self.hashed_bytes += 1;
-            }
-        }
+        let hash = self.hash_part(self.state, key.1);
         (hash ^ (hash >> 16)) as u16
     }
+
+    fn hash_part(&mut self, mut hash: u32, part: &str) -> u32 {
+        fn step(hash: u32, byte: u8) -> u32 {
+            (hash ^ u32::from(byte)).wrapping_mul(16_777_619)
+        }
+
+        // Keep the exact FNV stream while reducing loop control in the
+        // size-optimized native application domain.
+        let (words, tail) = part.as_bytes().as_chunks::<4>();
+        for &[a, b, c, d] in words {
+            hash = step(step(step(step(hash, a), b), c), d);
+        }
+        for &byte in tail {
+            hash = step(hash, byte);
+        }
+        #[cfg(test)]
+        {
+            self.hashed_bytes += part.len() + 1;
+        }
+        step(hash, 255)
+    }
 }
+
 // Independent original scalar definition, retained as the exact test oracle.
 #[cfg(test)]
 fn fingerprint(key: (&str, &str)) -> u16 {
