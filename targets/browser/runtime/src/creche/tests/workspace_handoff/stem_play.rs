@@ -1,0 +1,372 @@
+//! Actual kernel/provider completion and original issuer retirement proofs.
+use super::*;
+
+#[test]
+fn stem_inventory_refuses_the_retired_womb_identity() {
+    let current = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../plots/stem/main.conduit"
+    ));
+    let historical = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../plots/womb/main.conduit"
+    ));
+    let inventory = crate::creche::initial_plots::reviewed_inventory(current).unwrap();
+    assert_eq!(inventory.plots[0].name, "stem/main");
+    assert!(crate::creche::initial_plots::reviewed_inventory(historical).is_err());
+
+    let mut retired = reservation();
+    retired["action"] = "ReserveWomb".into();
+    let (code, refusal) = workspace(retired);
+    assert_eq!(code, -2);
+    assert_eq!(refusal["code"], "InvalidRequest");
+}
+
+#[test]
+fn ordinary_stem_body_play_requires_started_and_retained_provider_evidence() {
+    run_stem_body_play(StemFixture::NoBuilder);
+}
+#[test]
+fn ordinary_stem_body_play_prepares_private_seed_from_original_invitation() {
+    run_stem_body_play(StemFixture::Prepared);
+}
+#[test]
+fn stem_delivery_requires_kernel_prepared_and_prevents_revoking_exposed_seed() {
+    run_stem_body_play(StemFixture::Deliver);
+}
+#[test]
+fn stem_rechecks_invitation_expiry_after_selected_browser_producer_await() {
+    run_stem_body_play(StemFixture::Expire);
+}
+#[test]
+fn stem_cancelled_producer_rejects_late_image_completion() {
+    run_stem_body_play(StemFixture::Cancel);
+}
+#[test]
+fn stem_failed_producer_retains_failed_outcome_without_seed_or_membership() {
+    run_stem_body_play(StemFixture::Failed);
+}
+#[test]
+fn original_manager_consumption_releases_the_delivered_seed_without_revoking_membership() {
+    run_stem_body_play(StemFixture::Admit);
+}
+#[test]
+fn pending_producer_cancellation_requires_drain_and_preserves_owner_until_acknowledged() {
+    run_stem_body_play(StemFixture::PendingCancel);
+}
+#[test]
+fn foreign_fail_job_calls_preserve_the_original_pending_producer() {
+    run_stem_body_play(StemFixture::ForeignFail);
+}
+#[test]
+#[ignore = "requires a sealed browser release and its checked derived IMAGE"]
+fn stem_delivers_a_seed_from_a_sealed_browser_release() {
+    run_stem_body_play(StemFixture::SealedRelease);
+}
+
+enum StemFixture {
+    SealedRelease,
+    Admit,
+    PendingCancel,
+    ForeignFail,
+    NoBuilder,
+    Prepared,
+    Deliver,
+    Expire,
+    Cancel,
+    Failed,
+}
+fn run_stem_body_play(case: StemFixture) {
+    let with_release = !matches!(case, StemFixture::NoBuilder);
+    let with_delivery = matches!(
+        case,
+        StemFixture::Deliver | StemFixture::Admit | StemFixture::SealedRelease
+    );
+    let sealed = matches!(case, StemFixture::SealedRelease);
+    let admits = matches!(case, StemFixture::Admit);
+    let pending_cancel = matches!(case, StemFixture::PendingCancel);
+    let foreign_fail = matches!(case, StemFixture::ForeignFail);
+    let expires_after_await = matches!(case, StemFixture::Expire);
+    let cancels_after_await = matches!(case, StemFixture::Cancel);
+    let fails_after_await = matches!(case, StemFixture::Failed);
+    std::thread::spawn(move || {
+        let source = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../plots/stem/main.conduit"));
+        session::clear_for_test();
+        let born = birth(741);
+        let previous = born.raw_body.workset.plots()[0].clone();
+        session::attach_here("browser/creche", "browser-boot/creche", 742).unwrap();
+        let host = crate::installed_browser::advertisement("browser/creche".into(), "browser-boot/creche".into());
+        assert!(!host.capabilities.iter().any(|offer| offer.kind_id.as_str() == "stem/prepare"));
+        assert_eq!(workspace(serde_json::json!({"action":"Arrive","advertisement":host})).0, 0);
+        let mut reserve = reservation();
+        let sealed_root = sealed.then(|| std::path::PathBuf::from(
+            std::env::var_os("CONDUIT_STEM_SEALED_RELEASE").expect("sealed release directory")));
+        let manifest_bytes = if let Some(root) = &sealed_root {
+            Some(std::fs::read(root.join("browser-page.json")).unwrap())
+        } else {
+            with_release.then(|| serde_json::to_vec(
+                &crate::workspace_runtime::stem_provision::test_release::fixture().0,
+            ).unwrap())
+        };
+        let release: Option<conduit_host_make::HostReleaseManifest> = manifest_bytes
+            .as_deref().map(|bytes| serde_json::from_slice(bytes).unwrap());
+        if let Some(manifest) = &release {
+            use sha2::{Digest,Sha256};
+            reserve["reservation"]["expected_release_digest"] = manifest.bundle_sha256.clone().into();
+            reserve["reservation"]["release_pin"] = serde_json::json!({"manifest_digest":format!("sha256:{:x}",Sha256::digest(manifest_bytes.as_ref().unwrap())),"source_identity":manifest.source_identity});
+        }
+        let (code, reserved) = workspace(reserve);
+
+        assert_eq!(code, 0, "{reserved}");
+        if let Some(bytes) = manifest_bytes {
+            let stage = |operation|serde_json::json!({"action":"StageStemRelease","stage":{"host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"],"operation":operation}});
+            assert_eq!(workspace(stage(serde_json::json!({"kind":"Begin","manifest":bytes}))).0,0);
+            let payloads = if let Some(root) = &sealed_root {
+                release.as_ref().unwrap().files.iter()
+                    .map(|file| std::fs::read(root.join(&file.path)).unwrap()).collect()
+            } else {
+                vec![b"\0asm\x01\0\0\0".to_vec(), b"export{}".to_vec()]
+            };
+            for (file, payload) in payloads.iter().enumerate() {
+                const CHUNK_BYTES: usize = 64 * 1024;
+                for (index, bytes) in payload.chunks(CHUNK_BYTES).enumerate() {
+                    let (code, result) = workspace(stage(serde_json::json!({
+                        "kind":"Chunk", "file":file, "offset":index * CHUNK_BYTES, "bytes":bytes
+                    })));
+                    assert_eq!(code, 0, "{result}");
+                }
+            }
+            let (code,checked)=workspace(stage(serde_json::json!({"kind":"Finish"})));
+            assert_eq!(code,0,"{checked}");
+        }
+        let host = crate::installed_browser::advertisement("browser/creche".into(), "browser-boot/creche".into());
+        assert_eq!(host.capabilities.iter().filter(|offer| offer.kind_id.as_str() == "stem/prepare").count(), 1);
+        let inventory = crate::creche::initial_plots::reviewed_inventory(source).unwrap();
+        let selected = &inventory.plots[0];
+        let plot = conduit_body::ResidentPlot::new(selected.source_document_id.clone().into(), selected.checked_plot_id.clone().into());
+        let (code, installed) = workspace(serde_json::json!({"action":"ChangeWorkset", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "expected_revision":born.workload_revision, "plot":plot, "source":source, "edit":{"Replace":{"previous":previous}}}));
+        assert_eq!(code, 0, "{installed}");
+        let (code, proposal) = workspace(serde_json::json!({"action":"Propose", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "source":source, "joined_lines":[], "browser_audio_authority":false}));
+        assert_eq!(code, 0, "{proposal}");
+        let plan: conduit_body::BodyPlan = serde_json::from_value(proposal["plan"].clone()).unwrap();
+        plan.verify_seal().unwrap();
+        let gear = &plan.plots[0].plan.fragments[0].placements[0];
+        assert_eq!(gear.kind_id.as_str(), "stem/prepare");
+        let factory = crate::installed_browser::factory(&gear.implementation_id).unwrap();
+        let mut values = conduit_kernel::HostedValueStore::new(2, 65, 97).unwrap();
+        let mut foreign = gear.clone();
+        foreign.resources[0].pool_id = "browser/stem/foreign".into();
+        assert!((factory.prepare)(&foreign, &mut values).is_err());
+        let request = || serde_json::json!({"action":"StemInput", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "reservation_id":reserved["reservation_id"]});
+        assert_eq!(workspace(request()).1["code"], "Stem.NotStarted");
+        let play = conduit_body::BodyPlayIdentity::bind(&plan, 1);
+        assert_ne!(workspace(serde_json::json!({"action":"Started", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "play":play, "wake_at_start":proposal["wake"]})).0, 0);
+        assert_eq!(workspace(request()).1["code"], "Stem.NotStarted");
+        let observations = host.resources.iter().enumerate().map(|(index, pool)| conduit_core::ResourceObservation {
+            host_id: host.host_id.clone(), boot_id: host.boot_id.clone(), offer_generation: host.offer_generation,
+            pool_id: pool.pool_id.clone(), class_id: pool.class_id.clone(), health: conduit_core::ResourceHealth::Ready,
+            unreserved_units: pool.capacity_units, utilized_units: 0, sign_id: format!("sign/stem-observed-{index}").into(),
+        }).collect::<Vec<_>>();
+        let (code, started) = start_browser_body(serde_json::json!({
+            "wake":proposal["wake"], "plan":plan, "play_sequence":1,
+            "local_host_id":"browser/creche", "local_boot_id":"browser-boot/creche",
+            "observations":observations, "body_evidence":proposal["body_evidence"],
+            "source":source, "foreground_checked_plot_id":plan.plots[0].plot.checked_plot_id,
+        }));
+        assert_eq!(code, 0, "{started}");
+        assert_eq!(started["progress"]["effect_kind"], "stem-prepare");
+        assert_eq!(workspace(request()).1["code"], "Stem.NotStarted");
+        let effect = &started["progress"];
+        let run = || serde_json::json!({"action":"RunStemProvider", "call":{
+            "host_id":"browser/creche", "boot_id":"browser-boot/creche", "reservation_id":reserved["reservation_id"],
+            "active_play_id":started["play"]["active_play_id"], "placement_id":effect["placement_id"],
+            "request_sequence":effect["request_sequence"], "now_millis":if expires_after_await {1000} else {20},
+        }});
+        assert_eq!(workspace(run()).1["code"], "Stem.NotStarted");
+        assert_eq!(workspace(serde_json::json!({"action":"Started", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "play":started["play"], "wake_at_start":started["wake_at_start"]})).0, 0);
+        let (code, admitted_request) = workspace(request());
+        assert_eq!(code, 0, "{admitted_request}");
+        let request_bytes: [u8;32] = serde_json::from_value(admitted_request["request"].clone()).unwrap();
+        let forged = conduit_body_make::stem_runtime::StemOutcome {
+            request: conduit_body_make::stem_runtime::StemRequest(request_bytes),
+            disposition: conduit_body_make::stem_runtime::StemDisposition::Prepared, evidence_digest:[99;32],
+        }.encode();
+        let play = started["play"]["active_play_id"].as_str().unwrap();
+        let placement = effect["placement_id"].as_str().unwrap();
+        let sequence = effect["request_sequence"].as_u64().unwrap() as u32;
+        assert_ne!(complete_browser_effect(play, placement, sequence, &forged).0, 0);
+        if with_release {
+            let mut call=run()["call"].clone();
+            call["now_millis"]=20.into();
+            let (manifest, image) = if sealed {
+                let root = std::path::PathBuf::from(
+                    std::env::var_os("CONDUIT_STEM_DERIVED_IMAGE").expect("derived IMAGE directory"));
+                (std::fs::read(root.join("stem-browser-derived-manifest.json")).unwrap(),
+                 std::fs::read(root.join("stem-browser-image.json")).unwrap())
+            } else {
+                crate::workspace_runtime::stem_provision::test_release::output()
+            };
+            assert_eq!(workspace(serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":manifest,"image":image})).1["code"],"Stem.StaleCall");
+            let (code,job)=workspace(serde_json::json!({"action":"BeginStemHostJob","call":call}));assert_eq!(code,0,"{job}");
+            assert_eq!(workspace(run()).1["code"],"Stem.ProviderPending");
+            if pending_cancel {
+                let before = workspace(serde_json::json!({"action":"Durable"})).1;
+                assert_eq!(crate::plot_runner::abi::conduit_tour_cancel(), 0);
+                assert_eq!(workspace(serde_json::json!({"action":"Lull","host_id":"browser/creche","boot_id":"browser-boot/creche","terminated_play":started["play"]})).0,0);
+                let cancel = ||serde_json::json!({"action":"CancelStemReservation","host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"]});
+                let after_lull=workspace(serde_json::json!({"action":"Durable"})).1;
+                assert_eq!(workspace(cancel()).1["code"],"Stem.DrainRequired");
+                assert_eq!(workspace(serde_json::json!({"action":"Durable"})).1,after_lull);
+                assert_eq!(before["admission"],after_lull["admission"]);
+                assert_eq!(workspace(serde_json::json!({"action":"FailStemHostJob","call":call,"cancelled":true})).0,0);
+                let (code,cancelled)=workspace(cancel());assert_eq!(code,0,"{cancelled}");assert_eq!(cancelled["invitation_revoked"],true);
+                let after=workspace(serde_json::json!({"action":"Durable"})).1;
+                assert!(after["admission"]["invitations"].as_array().unwrap().is_empty());
+                assert_eq!(after["evidence"]["membership"],before["evidence"]["membership"]);
+                assert_eq!(unsafe{conduit_stem_seed_output_len()},0);
+                assert!(workspace(serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":manifest,"image":image})).0<0);
+                return;
+            }
+            if foreign_fail {
+                let before=workspace(serde_json::json!({"action":"Durable"})).1;
+                for field in ["host_id","boot_id","reservation_id","active_play_id","placement_id","request_sequence"] {
+                    let mut foreign=call.clone();
+                    foreign[field]=match field {
+                        "reservation_id"=>serde_json::json!(vec![99;32]),
+                        "request_sequence"=>serde_json::json!(sequence+1),
+                        _=>serde_json::json!(format!("fixture/foreign-{field}")),
+                    };
+                    assert!(workspace(serde_json::json!({"action":"FailStemHostJob","call":foreign,"cancelled":false})).0<0,"foreign {field}");
+                    assert_eq!(workspace(serde_json::json!({"action":"Durable"})).1,before,"foreign {field}");
+                    assert_eq!(workspace(run()).1["code"],"Stem.ProviderPending","foreign {field}");
+                }
+            }
+            let malformed=serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":[123],"image":image});
+            assert_eq!(workspace(malformed).1["code"],"Stem.InvalidRelease");
+            let mut foreign:serde_json::Value=serde_json::from_slice(&manifest).unwrap();foreign["source_identity"]="source/foreign".into();
+            assert_eq!(workspace(serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":serde_json::to_vec(&foreign).unwrap(),"image":image})).1["code"],"Stem.InvalidRelease");
+            let mut changed=image.clone();changed[0]^=1;
+            assert_eq!(workspace(serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":manifest,"image":changed})).1["code"],"Stem.InvalidRelease");
+            if cancels_after_await || fails_after_await {
+                assert_eq!(workspace(serde_json::json!({"action":"FailStemHostJob","call":call,"cancelled":cancels_after_await})).0,0);
+                assert_eq!(workspace(serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":manifest,"image":image})).1["code"],"Stem.StaleCall");
+            } else if expires_after_await {
+                let stale=run()["call"].clone();
+                assert_eq!(workspace(serde_json::json!({"action":"CompleteStemHostJob","call":stale,"manifest":manifest,"image":image})).1["code"],"Admission.Expired");
+                assert_eq!(workspace(serde_json::json!({"action":"FailStemHostJob","call":stale,"cancelled":false})).0,0);
+            } else {
+            let (code,retained)=workspace(serde_json::json!({"action":"CompleteStemHostJob","call":call,"manifest":manifest,"image":image}));assert_eq!(code,0,"{retained}");
+            }
+        }
+        let (code, completed) = workspace(run());
+        assert_eq!(code, 0, "{completed}");
+        assert_eq!(workspace(run()).1, completed, "the same pending call retains one paid result");
+        let outcome_bytes: Vec<u8> = serde_json::from_value(completed["outcome"].clone()).unwrap();
+        let outcome = conduit_body_make::stem_runtime::StemOutcome::decode(&outcome_bytes).unwrap();
+        assert_eq!(outcome.disposition, if cancels_after_await {conduit_body_make::stem_runtime::StemDisposition::Cancelled} else if fails_after_await {conduit_body_make::stem_runtime::StemDisposition::Failed} else if expires_after_await {conduit_body_make::stem_runtime::StemDisposition::StaleInvitation} else if with_release {conduit_body_make::stem_runtime::StemDisposition::Prepared} else {conduit_body_make::stem_runtime::StemDisposition::UnavailableBuilder});
+        assert_eq!(unsafe{conduit_stem_seed_output_ptr()},0);
+        let delivery=|now|serde_json::json!({"action":"BeginStemDelivery","host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"],"now_millis":now});
+        assert!(workspace(delivery(20)).0 < 0,"provider completion alone cannot expose a Seed");
+        let (code, receipt) = complete_browser_effect(play, placement, sequence, &outcome_bytes);
+        assert_eq!(code, 0, "{receipt}");
+        assert_eq!(receipt["disposition"], "completed");
+        let (code, result) = workspace(serde_json::json!({"action":"StemResult", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "reservation_id":reserved["reservation_id"]}));
+        assert_eq!(code, 0, "{result}");
+        assert_eq!(result["kernel_outcome"], completed["outcome"]);
+        assert_eq!(result["artifact_prepared"], with_release && !expires_after_await && !cancels_after_await && !fails_after_await);
+        assert_eq!(result["membership_claimed"], false);
+        if with_delivery {
+            assert!(workspace(delivery(1000)).0 < 0);
+            assert_eq!(unsafe{conduit_stem_seed_output_ptr()},0);
+            let (code,exposure)=workspace(delivery(20)); assert_eq!(code,0,"{exposure}");
+            assert_eq!(exposure["delivery_committed"],true); assert_eq!(exposure["invitation_delivered"],false);
+            let length=unsafe{conduit_stem_seed_output_len()};
+            assert!(length>22); assert_eq!(length as u64,exposure["artifact"]["artifact_bytes"].as_u64().unwrap());
+            let bytes=unsafe{core::slice::from_raw_parts(conduit_stem_seed_output_ptr() as *const u8,length)};
+            assert_eq!(&bytes[..4],b"PK\x03\x04");
+            if sealed {
+                let output = std::path::PathBuf::from(
+                    std::env::var_os("CONDUIT_STEM_DERIVED_IMAGE").expect("derived IMAGE directory"));
+                std::fs::write(output.join("stem-fixture-seed.zip"), bytes).unwrap();
+                std::fs::write(output.join("stem-fixture-delivery.json"),
+                    serde_json::to_vec_pretty(&exposure).unwrap()).unwrap();
+            }
+        }
+        let current = workspace(serde_json::json!({"action":"Current"})).1;
+        assert_eq!(current["evidence"]["body_id"], born.body_id);
+        assert_eq!(current["evidence"]["membership"]["parts"].as_array().unwrap().len(), 1);
+        assert_eq!(workspace(serde_json::json!({"action":"Lull", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "terminated_play":started["play"]})).0, 0);
+        let (code, cancelled) = workspace(serde_json::json!({"action":"CancelStemReservation", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "reservation_id":reserved["reservation_id"]}));
+        if with_delivery {
+            assert_eq!(cancelled["code"],"Stem.DeliveryCommitted");
+            let (code,release)=workspace(serde_json::json!({"action":"ReleaseStemAfterAdmission","host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"]}));
+            assert!(code<0);assert_eq!(release["code"],"Stem.NotAdmitted");
+            assert!(unsafe{conduit_stem_seed_output_len()}>0,"refused retirement preserves the exposed candidate");
+            if sealed {
+                let output = std::path::PathBuf::from(
+                    std::env::var_os("CONDUIT_STEM_DERIVED_IMAGE").expect("derived IMAGE directory"));
+                let proof_script = concat!(
+                    env!("CARGO_MANIFEST_DIR"), "/../../../proof/browser/stem-seed-carrier.mjs"
+                );
+                let carrier = std::process::Command::new("node").arg(proof_script)
+                    .arg(&output).output().unwrap();
+                assert!(carrier.status.success(), "{}", String::from_utf8_lossy(&carrier.stderr));
+                let observation: serde_json::Value = serde_json::from_slice(
+                    &std::fs::read(output.join("stem-browser-carrier.json")).unwrap()).unwrap();
+                assert_eq!(observation["body"], born.body_id);
+                let (code, accepted) = workspace(serde_json::json!({
+                    "action": "AdmitInvitation", "host_id": "browser/creche",
+                    "boot_id": "browser-boot/creche", "now_millis": 20,
+                    "advertisement": observation["admission"]["advertisement"],
+                    "proof": observation["admission"]["proof"],
+                }));
+                assert_eq!(code, 0, "{accepted}");
+                let evidence = &accepted["body"]["evidence"];
+                assert_eq!(evidence["body_id"], born.body_id);
+                let parts = evidence["membership"]["parts"].as_array().unwrap();
+                assert_eq!(parts.len(), 2);
+                assert!(parts.iter().any(|part| part["current"]["host_id"] == observation["host"]
+                    && part["current"]["boot_id"] == observation["boot"]));
+                std::fs::write(output.join("stem-fixture-admission.json"),
+                    serde_json::to_vec_pretty(&serde_json::json!({
+                        "body": evidence["body_id"], "membership": evidence["membership"],
+                        "seed": observation["seed"], "recipient_host": observation["host"],
+                        "recipient_boot": observation["boot"], "recipient_offers": observation["offers"],
+                    })).unwrap()).unwrap();
+                let (code, released) = workspace(serde_json::json!({
+                    "action": "ReleaseStemAfterAdmission", "host_id": "browser/creche",
+                    "boot_id":"browser-boot/creche", "reservation_id":reserved["reservation_id"]
+                }));
+                assert_eq!(code, 0, "{released}");
+                assert_eq!(released["candidate_released"], true);
+                assert_eq!(unsafe { conduit_stem_seed_output_len() }, 0);
+            }
+            if admits {
+                let original=workspace(serde_json::json!({"action":"Durable"})).1;
+                let record=&original["admission"]["invitations"][0];
+                assert_eq!(record["used"],false);
+                let claim=conduit_body::SpawnInvitationClaim {
+                    invitation_id:serde_json::from_value(record["invitation_id"].clone()).unwrap(),
+                    body_id:serde_json::from_value(original["evidence"]["body_id"].clone()).unwrap(), nonce:[72;32], expires_at_millis:1000,
+                };
+                let target=crate::installed_browser::advertisement("browser/target".into(),"browser-boot/target".into());
+                let signature=SpawnInvitationSecret::from_csprng_bytes([71;32]).unwrap().sign(&claim.signing_transcript(&target.host_id,&target.boot_id,target.offer_generation));
+                let proof=serde_json::json!({"invitation_id":claim.invitation_id,"body_id":claim.body_id,"host_id":target.host_id,"boot_id":target.boot_id,"nonce":claim.nonce,"signature":signature.as_slice()});
+                let (code,accepted)=workspace(serde_json::json!({"action":"AdmitInvitation","host_id":"browser/creche","boot_id":"browser-boot/creche","advertisement":target,"proof":proof,"now_millis":20}));
+                assert_eq!(code,0,"{accepted}");
+                assert_eq!(accepted["body"]["evidence"]["membership"]["parts"].as_array().unwrap().len(),2);
+                let used=workspace(serde_json::json!({"action":"Durable"})).1;
+                assert_eq!(used["admission"]["invitations"][0]["used"],true);
+                let (code,released)=workspace(serde_json::json!({"action":"ReleaseStemAfterAdmission","host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"]}));
+                assert_eq!(code,0,"{released}");assert_eq!(released["invitation_consumed"],true);assert_eq!(released["candidate_released"],true);
+                assert_eq!(unsafe{conduit_stem_seed_output_len()},0);
+                assert_eq!(workspace(serde_json::json!({"action":"Durable"})).1,used,"retirement does not mutate membership or the consumed original manager");
+            }
+            return;
+        }
+        assert_eq!(code, 0, "{cancelled}");
+        assert_eq!(cancelled["provider_started"], true);
+        let host = crate::installed_browser::advertisement("browser/creche".into(), "browser-boot/creche".into());
+        assert!(!host.capabilities.iter().any(|offer| offer.kind_id.as_str() == "stem/prepare"));
+    }).join().unwrap();
+}

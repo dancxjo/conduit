@@ -1,5 +1,8 @@
 # Womb
 
+This page records the historical Womb contract. The current member Seed
+preparation contract is [Stem](../stem/README.md).
+
 Crib makes Bodies; Womb makes member Seeds for an existing Body.
 
 `main.conduit` is the ordinary checked Plot for preparing a new member Seed for

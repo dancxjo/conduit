@@ -4,6 +4,25 @@ use super::session::DurableBodySession;
 
 pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
     let receipt = &snapshot.receipt;
+    let reviewed = &receipt.initial_review;
+    let valid_review = match reviewed.disposition.as_str() {
+        "realizable" => reviewed.reviewed_realization_count == receipt.initial_plots.len(),
+        super::review::STEM_AWAITING_BUILDER => {
+            reviewed
+                .required_kinds
+                .iter()
+                .any(|kind| kind == conduit_body_make::stem_runtime::STEM_KIND)
+                && receipt
+                    .initial_plots
+                    .iter()
+                    .filter(|plot| plot.name == "stem/main")
+                    .count()
+                    == 1
+                && reviewed.reviewed_realization_count.checked_add(1)
+                    == Some(receipt.initial_plots.len())
+        }
+        _ => false,
+    };
     if snapshot.schema != "conduit.creche/durable-session@1"
         || receipt.schema != "conduit.creche/body-birth@2"
         || receipt.disposition != "born"
@@ -13,7 +32,7 @@ pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
         || receipt.source_interaction.semantic_id != "interaction/executable-tour-source"
         || receipt.source_interaction.value_kind != conduit_human::TEXT_INFO_ID
         || receipt.initial_review.schema != "conduit.creche/initial-workload-review@1"
-        || receipt.initial_review.disposition != "realizable"
+        || !valid_review
         || receipt.initial_review.selected_plot_count != receipt.initial_plots.len()
         || receipt.initial_review.authority_acquired
         || receipt.initial_review.resources_acquired

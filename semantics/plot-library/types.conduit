@@ -5,6 +5,9 @@ type LibraryAvailability =
     | needs_capability {
         reason: Text <= 512B not in [""]
     }
+    | awaits_preparation {
+        reason: Text <= 512B not in [""]
+    }
 
 type LibraryRefusal =
     invalid_inventory

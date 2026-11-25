@@ -4,7 +4,7 @@ import { acquireBrowserBodyHost } from "../../targets/browser/host/assets/browse
 
 const ABI_IDENTITY = new TextEncoder().encode("conduit.browser/runtime-abi");
 
-function fixture({ applicationEvent = false, timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, clock = false, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
+function fixture({ applicationEvent = false, stem = false, timer = false, timerEffects = timer ? 1 : 0, timerDuration = 10_000, clock = false, inputUnits = 0, text = "hello", quiescent = false, immediate = false } = {}) {
   const memory = new WebAssembly.Memory({ initial: 8 });
   let length = 0, starts = 0, cancels = 0, polls = 0, completions = 0, request;
   const output = value => {
@@ -13,7 +13,7 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
   };
   new Uint8Array(memory.buffer, 448 * 1024, ABI_IDENTITY.length).set(ABI_IDENTITY);
   const effect = index => ({ host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: `placement-${index}`, plan_id: "partition", request_sequence: index,
-    ...(applicationEvent ? { effect_kind: "application-event", checked_plot_id: "checked/application", request_sequence: index } : timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : {
+    ...(stem ? { effect_kind: "stem-prepare", maximum_output_bytes: 65 } : applicationEvent ? { effect_kind: "application-event", checked_plot_id: "checked/application", request_sequence: index } : timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : {
       effect_kind: "manifestation", face_id: "face", observation_sequence: index,
       face_kind: "face/text", data_label: "Greeting", text,
     }) });
@@ -55,12 +55,14 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
     ownerDocument: document,
     getBoundingClientRect: () => ({ width: 1, height: 1, left: 0, top: 0 }),
   });
-  const resource = inputUnits > 0
+  const resource = stem
+    ? { pool_id: "browser/stem/private", class_id: "conduit.resource/stem-provision@1", units: 1 }
+    : inputUnits > 0
     ? { pool_id: "browser/window-input", class_id: "conduit.resource/browser-window-input@1", units: inputUnits }
     : clock ? { pool_id: "browser/monotonic-millisecond-timer", class_id: "conduit.resource/monotonic-millisecond-timer-slot@1", units: 1 }
     : timerEffects ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
       : { pool_id: "browser/face", class_id: "conduit.resource/face-slot@1", units: 1 };
-  const placements = Array.from({ length: timerEffects || 1 }, (_, index) => ({ placement_id: `placement-${index}`, gear_id: `gear-${index}`, resources: [resource] }));
+  const placements = Array.from({ length: timerEffects || 1 }, (_, index) => ({ placement_id: `placement-${index}`, gear_id: `gear-${index}`, ...(stem ? { kind_id: "stem/prepare" } : {}), resources: [resource] }));
   const proposal = { schema: "conduit.body/execution-proposal@1", wake: {
     wake_id: "wake", lifecycle: "AwaitingPlan", plans: [],
   }, plan: { plan_id: "body-plan", body_id: "body", plots: [{ plan: { fragments: [{
@@ -68,6 +70,35 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
   }] } }] } };
   return { api, proposal, outputRoot, inputTarget, hostId: "host", bootId: "boot", count: () => ({ starts, cancels }), request: () => request, output };
 }
+
+test("Stem uses the selected private observation and the ordinary effect dispatcher", async () => {
+  const f = fixture({ stem: true });
+  assert.throws(() => acquireBrowserBodyHost(f), /selected private preparation owner/);
+  const observed = { pool_id: "browser/stem/private", sign_id: "stem-resource/current" };
+  const performed = [];
+  const owner = acquireBrowserBodyHost({
+    ...f,
+    stemProvider: {
+      observe(placement) {
+        assert.equal(placement.placement_id, "placement-0");
+        return observed;
+      },
+      perform(effect) {
+        performed.push(effect);
+        return new Uint8Array(65);
+      },
+    },
+  });
+  try {
+    owner.start(1);
+    assert.deepEqual(f.request().observations, [observed]);
+    assert.equal((await owner.run()).disposition, "completed");
+    assert.deepEqual(performed.map(effect => [effect.active_play_id, effect.placement_id, effect.request_sequence]),
+      [["play", "placement-0", 0]]);
+  } finally {
+    owner.close();
+  }
+});
 
 test("one acquired window-input adapter reports every admitted logical input unit", () => {
   const f = fixture({ inputUnits: 16 });

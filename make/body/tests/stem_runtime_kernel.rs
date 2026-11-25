@@ -6,29 +6,29 @@ mod allocation_probe;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[path = "common/preparation_kernel.rs"]
 mod preparation_kernel;
-use conduit_body_make::{womb_runtime::*, womb_runtime_catalog::*};
+use conduit_body_make::{stem_runtime::*, stem_runtime_catalog::*};
 use conduit_kernel::{scheduler::*, *};
 use preparation_kernel::{prepared_kernel, TestKernel};
 
-type Kernel = TestKernel<WombBack>;
+type Kernel = TestKernel<StemBack>;
 fn kernel() -> Kernel {
     let mut kernel = prepared_kernel(
-        WombBack::for_admitted_host(HostCallId(0)),
-        womb_kernel_call_binding(HostCallId(0)),
+        StemBack::for_admitted_host(HostCallId(0)),
+        stem_kernel_call_binding(HostCallId(0)),
     );
     kernel
         .admit_remote_input(RemoteEndpointId(0), CordId(0), 0, &[5; 32])
         .unwrap();
     kernel
 }
-fn outcome(disposition: WombDisposition) -> WombOutcome {
-    WombOutcome {
-        request: WombRequest([5; 32]),
+fn outcome(disposition: StemDisposition) -> StemOutcome {
+    StemOutcome {
+        request: StemRequest([5; 32]),
         disposition,
         evidence_digest: [9; 32],
     }
 }
-fn complete(kernel: &mut Kernel, call: HostCallRequest, outcome: WombOutcome) {
+fn complete(kernel: &mut Kernel, call: HostCallRequest, outcome: StemOutcome) {
     let value = kernel.store_host_value(&outcome.encode()).unwrap();
     kernel
         .complete_host_call(
@@ -36,7 +36,7 @@ fn complete(kernel: &mut Kernel, call: HostCallRequest, outcome: WombOutcome) {
             call.request,
             HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
-                output: Some(BoundedValueRef::new(value, WOMB_OUTCOME_BYTES as u32).unwrap()),
+                output: Some(BoundedValueRef::new(value, STEM_OUTCOME_BYTES as u32).unwrap()),
                 failure: None,
             },
         )
@@ -46,14 +46,14 @@ fn complete(kernel: &mut Kernel, call: HostCallRequest, outcome: WombOutcome) {
 #[test]
 fn every_classified_outcome_crosses_one_call_and_remains_retained_until_accepted() {
     for disposition in [
-        WombDisposition::Prepared,
-        WombDisposition::UnavailableBuilder,
-        WombDisposition::UnsupportedTarget,
-        WombDisposition::StaleInvitation,
-        WombDisposition::Denied,
-        WombDisposition::Cancelled,
-        WombDisposition::Failed,
-        WombDisposition::InvalidSelection,
+        StemDisposition::Prepared,
+        StemDisposition::UnavailableBuilder,
+        StemDisposition::UnsupportedTarget,
+        StemDisposition::StaleInvitation,
+        StemDisposition::Denied,
+        StemDisposition::Cancelled,
+        StemDisposition::Failed,
+        StemDisposition::InvalidSelection,
     ] {
         let mut kernel = kernel();
         let (_, memory) = allocation_probe::observe(|| {
@@ -68,7 +68,7 @@ fn every_classified_outcome_crosses_one_call_and_remains_retained_until_accepted
                 .unwrap()
                 .unwrap();
             assert_eq!(
-                WombOutcome::decode(kernel.values().get(offered.value).unwrap()),
+                StemOutcome::decode(kernel.values().get(offered.value).unwrap()),
                 Some(outcome(disposition))
             );
             for _ in 0..4 {
@@ -100,8 +100,8 @@ fn another_request_cannot_complete_the_admitted_propagation() {
     let mut kernel = kernel();
     kernel.step().unwrap();
     let call = kernel.next_host_request().unwrap();
-    let mut other = outcome(WombDisposition::Prepared);
-    other.request = WombRequest([7; 32]);
+    let mut other = outcome(StemDisposition::Prepared);
+    other.request = StemRequest([7; 32]);
     complete(&mut kernel, call, other);
     assert!(matches!(
         kernel.step(),

@@ -122,6 +122,7 @@ test("selected target alone is fetched, verified, and reused from immutable cach
     deployment_adapter: manifest.deployment_adapter,
   };
   const first = await release.acquire(profile);
+  assert.deepEqual(first.manifestBytes, manifestBytes);
   assert.deepEqual(first.payloads[0].bytes, payload);
   assert.equal(requests.some((url) => url.includes("unselected")), false);
   const fetchedAfterFirst = requests.length;

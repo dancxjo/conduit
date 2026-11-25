@@ -165,8 +165,8 @@ pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
     #[cfg(feature = "creche-surface")]
     {
         let mut result = result;
-        if crate::workspace_runtime::womb_provision::has_scoped_offer() {
-            result.push(super::womb::offer().capability_id);
+        if crate::workspace_runtime::stem_provision::has_scoped_offer() {
+            result.push(super::stem::offer().capability_id);
         }
         result
     }
@@ -188,7 +188,7 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
     #[cfg(feature = "creche-surface")]
     {
         let mut host = host;
-        crate::workspace_runtime::womb_provision::augment_advertisement(&mut host);
+        crate::workspace_runtime::stem_provision::augment_advertisement(&mut host);
         host
     }
     #[cfg(not(feature = "creche-surface"))]

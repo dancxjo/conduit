@@ -1,4 +1,6 @@
 //! Deterministic combined review of a proposed Body workload against Host offers.
+pub(super) const STEM_AWAITING_BUILDER: &str = "checked-stem-awaiting-builder";
+
 mod patchbay;
 #[cfg(test)]
 mod patchbay_tests;
@@ -79,6 +81,7 @@ pub(super) fn review_from_inventory(
         return Err("initial Plot selection exceeds Body capacity".into());
     }
     let mut required_kinds = BTreeSet::new();
+    let mut stem_awaiting_builder = false;
     let mut resource_totals = BTreeMap::<(HostId, ResourceClassId), u32>::new();
     let mut capability_totals = BTreeMap::<(HostId, CapabilityId), u32>::new();
 
@@ -143,6 +146,21 @@ pub(super) fn review_from_inventory(
                 .iter()
                 .map(|gear| gear.kind_id.as_str().to_string()),
         );
+        // The exact checked Stem Fore may be retained by a Lulled Body.
+        // Preparation requires issuer possession from that Body and is planned at Wake.
+        if plot.name == "stem/main"
+            && expanded.gears.len() == 1
+            && expanded.gears[0].kind_id.as_str() == conduit_body_make::stem_runtime::STEM_KIND
+            && !hosts
+                .iter()
+                .flat_map(|host| &host.capabilities)
+                .any(|offer| expanded.gears[0].accepts_realization(offer))
+        {
+            if std::mem::replace(&mut stem_awaiting_builder, true) {
+                return Err("Stem was selected more than once".into());
+            }
+            continue;
+        }
         let placements =
             conduit_planner::default_expanded_placements(&expanded, hosts).map_err(|error| {
                 format!(
@@ -202,7 +220,12 @@ pub(super) fn review_from_inventory(
     Ok(WorkloadReview {
         review: InitialWorkloadReview {
             schema: "conduit.creche/initial-workload-review@1".into(),
-            disposition: "realizable".into(),
+            disposition: if stem_awaiting_builder {
+                STEM_AWAITING_BUILDER
+            } else {
+                "realizable"
+            }
+            .into(),
             selected_plot_count: selected.len(),
             required_kinds: required_kinds.into_iter().collect(),
             proposed_hosts: hosts
@@ -214,7 +237,7 @@ pub(super) fn review_from_inventory(
                     offer_generation: host.offer_generation.0,
                 })
                 .collect(),
-            reviewed_realization_count: selected.len(),
+            reviewed_realization_count: selected.len() - usize::from(stem_awaiting_builder),
             body_plan_created: false,
             play_created: false,
             authority_acquired: false,
@@ -362,6 +385,29 @@ mod tests {
             HostId::from(host),
             BootId::from(format!("boot/{host}")),
         )
+    }
+
+    #[test]
+    fn stem_review_retains_checked_selection_without_claiming_a_builder() {
+        let source = include_str!("../../../../../plots/stem/main.conduit");
+        let selected = selection(source, &["stem/main"]);
+        let hosts = [browser("stem-review")];
+        let bases = crate::installed_browser::local_bases();
+        let result = review(source, &selected, &hosts, &bases).unwrap();
+        assert_eq!(result.review.disposition, STEM_AWAITING_BUILDER);
+        assert_eq!(result.review.selected_plot_count, 1);
+        assert_eq!(result.review.reviewed_realization_count, 0);
+        assert!(!result.review.authority_acquired);
+        assert!(!result.review.body_plan_created);
+        assert!(result.required_capabilities.is_empty());
+        assert!(result.required_resources.is_empty());
+        assert!(review(
+            source,
+            &selection(source, &["stem/main", "stem/main"]),
+            &hosts,
+            &bases
+        )
+        .is_err());
     }
 
     #[test]

@@ -1,6 +1,6 @@
 # Crib and Birth draft
 
-Crib makes Bodies through explicit Birth. Womb prepares member Seeds for a
+Crib makes Bodies through explicit Birth. Stem prepares member Seeds for a
 Body that already exists. This package owns the shared Birth encounter used
 by Crib; admission and the resulting Body identity remain lifecycle-owned.
 

@@ -1,4 +1,4 @@
-//! Private immutable release input, acquired before proposing the Womb Play.
+//! Private immutable release input, acquired before proposing the Stem Play.
 use super::*;
 use conduit_host_make::{
     verify_host_release_bytes, HostReleaseBounds, HostReleaseManifest, ReleaseTargetProfile,
@@ -65,32 +65,32 @@ pub(in crate::workspace_runtime) fn stage(
     require_issuer(body, &stage.host_id, &stage.boot_id)?;
     if body.evidence().body.state != BodyState::Lulled {
         return Err(Refusal::new(
-            "Womb.NotLulled",
+            "Stem.NotLulled",
             "Stage release inputs before proposing a Play",
         ));
     }
     crate::plot_runner::workspace::require_empty()?;
     PROVISION.with(|slot| {
         let mut slot = slot.borrow_mut();
-        let provision = slot.as_mut().ok_or("Womb has no private provision")?;
+        let provision = slot.as_mut().ok_or("Stem has no private provision")?;
         if provision.id != stage.reservation_id
             || provision.host != stage.host_id
             || provision.boot != stage.boot_id
         {
             return Err(Refusal::new(
-                "Womb.StaleReservation",
+                "Stem.StaleReservation",
                 "Release input names another reservation",
             ));
         }
         if provision.binding.is_some() || provision.provider_attempted {
             return Err(Refusal::new(
-                "Womb.AlreadyBound",
+                "Stem.AlreadyBound",
                 "Release inputs are immutable after Back preparation",
             ));
         }
         let pin = provision.release_pin.as_ref().ok_or_else(|| {
             Refusal::new(
-                "Womb.UnpinnedRelease",
+                "Stem.UnpinnedRelease",
                 "Reserve an exact reviewed manifest and source before staging",
             )
         })?;
@@ -100,7 +100,7 @@ pub(in crate::workspace_runtime) fn stage(
                     return Err("Release input staging already began".into());
                 }
                 let material = begin(manifest, pin, &provision.expected_release_digest)
-                    .map_err(|error| Refusal::new("Womb.InvalidRelease", error))?;
+                    .map_err(|error| Refusal::new("Stem.InvalidRelease", error))?;
                 provision.material = Some(material);
                 false
             }
@@ -156,7 +156,7 @@ pub(in crate::workspace_runtime) fn stage(
                         },
                         || false,
                     )
-                    .map_err(|error| Refusal::new("Womb.InvalidRelease", error))?;
+                    .map_err(|error| Refusal::new("Stem.InvalidRelease", error))?;
                     material.verified = Some(verified);
                 }
                 if material.seed.is_none() {
@@ -166,7 +166,7 @@ pub(in crate::workspace_runtime) fn stage(
             }
         };
         encode(
-            &serde_json::json!({"schema":"conduit.womb/release-input@1", "bytes_verified":verified,
+            &serde_json::json!({"schema":"conduit.stem/release-input@1", "bytes_verified":verified,
             "artifact_prepared":false,"invitation_delivered":false,"membership_claimed":false}),
         )
     })

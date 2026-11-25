@@ -23,8 +23,8 @@ use preparation::{prepare_scheduler, validate_envelope};
 #[path = "engine_timer.rs"]
 mod timer;
 use timer::decode_timer_duration;
-#[path = "engine_womb.rs"]
-mod womb;
+#[path = "engine_stem.rs"]
+mod stem;
 
 #[cfg(test)]
 #[path = "quantity_tests.rs"]
@@ -95,7 +95,7 @@ pub(super) struct TourScheduler {
     applications: Vec<Option<Box<super::application_state::PreparedApplication>>>,
     thermostat: Option<thermostat::ThermostatFore>,
     patchbay_fore: Vec<patchbay_fore::PatchbayFore>,
-    womb_fore: Option<womb::WombFore>,
+    stem_fore: Option<stem::StemFore>,
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -202,7 +202,7 @@ fn drive_with_boundary<'a>(
     remote_egress: &[(conduit_kernel::RemoteEndpointId, CordId)],
 ) -> Result<DriveStatus, String> {
     loop {
-        womb::capture(scheduler)?;
+        stem::capture(scheduler)?;
         thermostat::capture_output(scheduler)?;
         for &(endpoint, cord) in remote_egress {
             if scheduler
@@ -235,11 +235,11 @@ fn drive_with_boundary<'a>(
                 .get(usize::from(request.call.0))
                 .ok_or_else(|| "browser request has no planned Host Call".to_string())?;
             if operation.contract_id.as_str()
-                == conduit_body_make::womb_runtime_catalog::WOMB_HOST_CALL
+                == conduit_body_make::stem_runtime_catalog::STEM_HOST_CALL
             {
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
-                    effect: BrowserHostEffect::WombPrepare,
+                    effect: BrowserHostEffect::StemPrepare,
                 }));
             }
             if resource_effect::matches(operation.contract_id.as_str()) {

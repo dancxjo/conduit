@@ -48,7 +48,7 @@ fn malformed_catalogue_never_reuses_previous_admission() {
     LIBRARY_ADMISSION.with(|cache| {
         *cache.borrow_mut() = Some(LibraryAdmission {
             key: [7; 32],
-            available: vec![true],
+            available: vec![LibraryAvailability::Available],
         })
     });
     assert!(
@@ -88,4 +88,43 @@ fn theremin_shelf_admission_derives_exact_dynamic_backs_from_its_source() {
         &mut super::super::catalog_preparation::CatalogPreparation::default(),
     )
     .unwrap();
+}
+
+#[test]
+fn stem_shelf_can_retain_a_checked_plot_that_awaits_a_builder() {
+    let source = include_str!("../../../../../../plots/stem/main.conduit");
+    let bundle = serde_json::json!({
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [{"slug": "stem", "entry": "stem/main", "face_profile": 1, "source": source}]
+    })
+    .to_string();
+    let inventory = super::super::initial_plots::reviewed_inventory(&bundle).unwrap();
+    let plot = &inventory.plots[0];
+    let entry = CatalogPlot {
+        slug: "stem".into(),
+        title: "Stem".into(),
+        entry: plot.name.clone(),
+        source: source.into(),
+        source_document_id: plot.source_document_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
+        face_profile: 1,
+        required_kinds: plot.required_kinds.clone(),
+        unavailable_hint: "Requires an admitted Seed builder".into(),
+        graceful_fallback: None,
+    };
+    let host = HostId::from("browser/stem-shelf");
+    let boot = BootId::from("boot/stem-shelf");
+    let observed = crate::installed_browser::advertisement(host.clone(), boot.clone());
+    let result = catalog_plot_plan(
+        &entry,
+        &[observed],
+        &host,
+        &boot,
+        &[],
+        &mut super::super::catalog_preparation::CatalogPreparation::default(),
+    );
+    assert!(matches!(
+        result.unwrap(),
+        LibraryAvailability::AwaitsPreparation(_)
+    ));
 }
