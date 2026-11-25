@@ -140,7 +140,9 @@ fn reviewed_choice_after_the_resident_limit_can_be_selected_after_removal() {
         .unwrap();
     let selected = draft.selection(draft.revision()).unwrap();
     assert_eq!(selected.workset.len(), MAX_BODY_PLOTS);
-    assert!(selected
-        .workset
-        .contains(&draft.choices()[MAX_BODY_PLOTS].plot));
+    assert!(
+        selected
+            .workset
+            .contains(&draft.choices()[MAX_BODY_PLOTS].plot)
+    );
 }

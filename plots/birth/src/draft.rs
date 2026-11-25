@@ -1,8 +1,8 @@
 //! Renderer-neutral naming and exact initial plot selection for the Birth plot.
 use alloc::{collections::BTreeSet, string::String, vec::Vec};
-use conduit_body::{BodyWorkset, ResidentPlot, MAX_BODY_PLOTS, MAX_REVIEWED_INITIAL_BODY_PLOTS};
+use conduit_body::{BodyWorkset, MAX_BODY_PLOTS, MAX_REVIEWED_INITIAL_BODY_PLOTS, ResidentPlot};
 
-use crate::names::{NameSuggestion, NamingCatalog, NamingRefusal, MAX_FRIENDLY_NAME_BYTES};
+use crate::names::{MAX_FRIENDLY_NAME_BYTES, NameSuggestion, NamingCatalog, NamingRefusal};
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BirthPlotChoice {
