@@ -93,7 +93,17 @@ async function hosted(id, directory) {
     if (process.arch !== 'arm64') throw new Error('The macOS installer requires an AArch64 runner');
     const installer = path.join(directory, 'install-bundle');
     xtask('make', 'host', 'release', '--platform', 'macos', '--output', installer);
-    copyFile(path.join(installer, 'conduit-macos-aarch64'), binary);
+    const installExecutable = path.join(installer, 'conduit-macos-aarch64');
+    copyFile(installExecutable, binary);
+    const state = path.join(path.dirname(directory), 'macos-installer-proof-state');
+    command('sh', [path.join(installer, 'install-macos-aarch64.sh'), '--state-dir', state, '--no-start']);
+    const installation = JSON.parse(readFileSync(path.join(state, 'installation.json'), 'utf8'));
+    if (installation.schema !== 'conduit.install/durable-host@1' || !installation.host_id ||
+        !existsSync(path.join(state, 'org.conduit.host.plist')) ||
+        existsSync(path.join(state, 'runtime.json')) ||
+        digest(installation.product_executable) !== digest(binary)) {
+      throw new Error('Installer must install the retained macOS executable without starting a Host');
+    }
   } else {
     cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit');
     copyFile(cargoArtifact('release', name), binary);
