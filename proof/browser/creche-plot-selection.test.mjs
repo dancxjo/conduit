@@ -89,3 +89,23 @@ test("invalid, duplicate, and over-capacity state is explicit", () => {
   assert.throws(() => togglePlot({ ...inventory, maximum_selection: 0, plots: [] }, [], "clock"), /absent/);
   assert.throws(() => searchPlots(inventory, "x".repeat(129)), /bound/);
 });
+
+test("reviewed choices can outnumber the Body's resident selection", () => {
+  const expanded = {
+    ...inventory,
+    maximum_selection: 16,
+    plots: Array.from({ length: 17 }, (_, index) => ({
+      ...inventory.plots[0],
+      name: `plot-${index}`,
+      source_document_id: `source/${index}`,
+      checked_plot_id: `checked/${index}`,
+    })),
+  };
+  assert.deepEqual(openPlotSelection(expanded).selected, []);
+  assert.equal(setPlotSelected(expanded, [], "plot-16", true)[0].name, "plot-16");
+  assert.throws(() => setPlotSelected(expanded, expanded.plots.slice(0, 16), "plot-16", true),
+    /selection capacity/);
+  assert.throws(() => openPlotSelection({
+    ...expanded, plots: [...expanded.plots, ...expanded.plots],
+  }), /over capacity/);
+});
