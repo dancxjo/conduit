@@ -7,7 +7,9 @@ const ASSET_ORIGIN = "https://assets.science.nasa.gov";
 const ASSET_PATH = /^\/dynamicimage\/assets\/science\/[A-Za-z0-9_/-]+\.(?:jpe?g|png)$/i;
 const ATTEMPTS = 12;
 const DECK_LENGTH = 4;
-const MAXIMUM_LIST_BYTES = 256 * 1024;
+const MAXIMUM_LIST_BYTES = 64 * 1024;
+const MAXIMUM_TITLE_BYTES = 160;
+const MAXIMUM_CREDIT_BYTES = 256;
 const MAXIMUM_IMAGE_BYTES = 4 * 1024 * 1024;
 const encoder = new TextEncoder();
 
@@ -52,12 +54,13 @@ function candidate(entry, latestDate) {
   if (entry?.media_type !== "image" || typeof entry.date !== "string"
       || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date) || entry.date > latestDate
       || typeof entry.title !== "string" || !entry.title.trim()
-      || encoder.encode(entry.title).length > 512
+      || encoder.encode(entry.title).length > MAXIMUM_TITLE_BYTES
       || typeof entry.hdurl !== "string" || entry.hdurl.length > 2048) {
     return null;
   }
   const credit = entry.copyright ?? "Creator credit not supplied by NASA APOD";
-  if (typeof credit !== "string" || encoder.encode(credit).length > 256) return null;
+  if (typeof credit !== "string" || !credit.trim()
+      || encoder.encode(credit).length > MAXIMUM_CREDIT_BYTES) return null;
   const url = URL.parse(entry.hdurl);
   if (!url || url.origin !== ASSET_ORIGIN || url.username || url.password
       || !ASSET_PATH.test(url.pathname) || url.hash) return null;
