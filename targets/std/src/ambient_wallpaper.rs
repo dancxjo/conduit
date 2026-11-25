@@ -61,6 +61,10 @@ pub fn decode_apod_candidate(body: &[u8]) -> Result<ApodImageCandidate, ApodRefu
     }
     let response: Response<'_> =
         serde_json::from_slice(body).map_err(|_| ApodRefusal::MalformedResponse)?;
+    decode_response(response)
+}
+
+fn decode_response(response: Response<'_>) -> Result<ApodImageCandidate, ApodRefusal> {
     if response.media_type != "image" {
         return Err(ApodRefusal::UnsupportedMedia);
     }
