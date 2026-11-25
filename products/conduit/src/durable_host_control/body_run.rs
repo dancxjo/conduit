@@ -356,17 +356,24 @@ pub(crate) fn start_owned_body(
         .map(crate::durable_host::owner::StartupMemberSelection::read)
         .transpose()?
         .map(Box::new);
-    match call(
-        state_dir,
+    let token = token(state_dir)?;
+    let request = if renewals == 0 {
         Request::BodyStart {
             protocol: PROTOCOL,
-            token: token(state_dir)?,
+            token,
             maximum_millis,
             todo_new_list,
             startup_member,
+        }
+    } else {
+        Request::BodyStartRenewing {
+            protocol: PROTOCOL,
+            token,
+            maximum_millis,
             renewals,
-        },
-    )? {
+        }
+    };
+    match call(state_dir, request)? {
         Response::BodyRunRequested {
             protocol: PROTOCOL,
             maximum_millis,

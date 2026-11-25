@@ -1001,7 +1001,11 @@ enum Request {
         todo_new_list: Option<String>,
         #[serde(default)]
         startup_member: Option<Box<crate::durable_host::owner::StartupMemberSelection>>,
-        #[serde(default)]
+    },
+    BodyStartRenewing {
+        protocol: u16,
+        token: Vec<u8>,
+        maximum_millis: u64,
         renewals: u16,
     },
     BodyLull {
@@ -1732,6 +1736,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
+        | Request::BodyStartRenewing { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
@@ -2356,15 +2361,22 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             maximum_millis,
             todo_new_list,
             startup_member,
-            renewals,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body_selected(
+            .start_owned_body_selected(maximum_millis, todo_new_list, startup_member.map(|s| *s), 0)
+            .map(|()| Response::BodyRunRequested {
+                protocol: PROTOCOL,
                 maximum_millis,
-                todo_new_list,
-                startup_member.map(|s| *s),
-                renewals,
-            )
+                renewals: 0,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyStartRenewing {
+            protocol,
+            maximum_millis,
+            renewals,
+            ..
+        } if protocol == PROTOCOL && renewals > 0 => runtime
+            .start_owned_body_selected(maximum_millis, None, None, renewals)
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
