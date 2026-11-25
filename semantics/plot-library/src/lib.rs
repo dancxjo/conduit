@@ -10,7 +10,7 @@ mod generated {
 pub use generated::{LibraryAvailability, LibraryAvailabilityNeedsCapability, LibraryRefusal};
 
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_body::{BodyLifecycleSession, ResidentPlot, MAX_BODY_PLOTS};
+use conduit_body::{BodyLifecycleSession, MAX_BODY_PLOTS, ResidentPlot};
 use conduit_face::{
     ActionAvailability, ApplicationEventKind, FaceMechanism, FieldKind, FormField, SemanticAction,
     SemanticApplicationView, SemanticFaceNode, StatusKind,
