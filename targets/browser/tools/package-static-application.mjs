@@ -127,6 +127,9 @@ try {
           && !/<(?:!doctype|html|head|body)\b/i.test(html)) continue;
         const secured = applyStaticApplicationCsp(html, {
           loopbackOwnerWindow: template.loopback_owner_window === true && resource?.path === 'index.html',
+          wallpaperProvider: template.application_id === 'conduit.application/workspace'
+            && resource?.path === 'index.html'
+            && template.resources.some(entry => entry.role === 'browser-wallpaper-acquisition'),
         });
         if (Buffer.byteLength(secured) > 16 * 1024 * 1024) throw new Error('Static HTML exceeds its finite file bound');
         await writeFile(file, secured);
