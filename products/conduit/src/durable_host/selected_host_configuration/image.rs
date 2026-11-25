@@ -135,10 +135,7 @@ impl Selection {
             return Err("selected scanout requires the native-display product feature and actual initialized output".into());
         }
         if ambient_selected {
-            if selected.is_some() {
-                return Err("selected screen-free Ambient IMAGE does not compose playback".into());
-            }
-            return super::ambient::initialize(config, image, &checked);
+            return super::ambient::initialize(config, image, &checked, selected.as_ref());
         }
         if let Some(selected) = selected {
             StdHost::from_selected_timer_and_playback_image(

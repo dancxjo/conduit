@@ -31,11 +31,10 @@ pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
         {
             TODO_ACTION_DEADLINE
         }
-        // Birth publishes a retained workset and projects its first owner Face.
-        Request::BirthInteraction { interaction, .. }
-            if interaction.action_id == "creche.birth" =>
-        {
-            Duration::from_secs(10)
+        // Crib projects the checked inventory and verifies the current Show
+        // on every typed edit. Birth also publishes the retained workset.
+        Request::BirthWidgetFace { .. } | Request::BirthInteraction { .. } => {
+            Duration::from_secs(20)
         }
         // Start prepares the selected workset before acknowledging the request.
         Request::BodyStart { .. }
