@@ -9,6 +9,7 @@ import { BrowserStorageRefusal } from "./browser-application-storage.mjs";
 import { executeResourceStorageEffect } from "./browser-resource-storage.mjs";
 import { CIVIL_CLOCK_REPLY_BYTES, prepareBrowserCivilClockReply } from "./browser-civil-clock.mjs";
 import { createBrowserMonotonicTimer } from "./browser-monotonic-timer.mjs";
+import { prepareBrowserWallpaperDeck } from "./browser-wallpaper-deck.mjs";
 import { manifestApplicationView } from "./application-face.mjs";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
@@ -144,7 +145,6 @@ export async function prepareBrowserBodyHost(options) {
       && fragment.placements.some(placement => placement.implementation_id === "browser/ambient-wallpaper@1")));
   if (!planned) return acquireBrowserBodyHost(options);
 
-  const { prepareBrowserWallpaperDeck } = await import("./browser-wallpaper-deck.mjs");
   const deadline = AbortSignal.timeout(15_000);
   let wallpaperDeck;
   try {
