@@ -35,3 +35,10 @@ test('explicit owner window widens only its document to bounded loopback WebSock
   assert.doesNotMatch(applyStaticApplicationCsp(source), /ws:\/\/127\.0\.0\.1/);
   assert.doesNotMatch(secured, /connect-src[^;]*wss:\/\//);
 });
+
+test('selected wallpaper application can connect to the two APOD origins', () => {
+  const source = '<html><head></head><body></body></html>';
+  const policy = applyStaticApplicationCsp(source, { wallpaperProvider: true });
+  assert.match(policy, /connect-src 'self' https:\/\/science\.nasa\.gov https:\/\/assets\.science\.nasa\.gov;/);
+  assert.doesNotMatch(applyStaticApplicationCsp(source), /science\.nasa\.gov/);
+});

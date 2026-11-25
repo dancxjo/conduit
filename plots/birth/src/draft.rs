@@ -1,6 +1,6 @@
 //! Renderer-neutral naming and exact initial plot selection for the Birth plot.
-use alloc::{string::String, vec::Vec};
-use conduit_body::{BodyWorkset, MAX_BODY_PLOTS, ResidentPlot};
+use alloc::{collections::BTreeSet, string::String, vec::Vec};
+use conduit_body::{BodyWorkset, MAX_BODY_PLOTS, MAX_REVIEWED_INITIAL_BODY_PLOTS, ResidentPlot};
 
 use crate::names::{MAX_FRIENDLY_NAME_BYTES, NameSuggestion, NamingCatalog, NamingRefusal};
 
@@ -53,16 +53,25 @@ impl BirthDraft {
     /// The caller supplies checked identities and actual local capability review.
     /// This draft never grants authority, creates a body, or starts a play.
     pub fn new(uuid: String, choices: Vec<BirthPlotChoice>) -> Result<Self, BirthDraftRefusal> {
+        let mut identities = BTreeSet::new();
         if choices.is_empty()
-            || choices.len() > MAX_BODY_PLOTS
+            || choices.len() > MAX_REVIEWED_INITIAL_BODY_PLOTS
             || choices.iter().any(|choice| {
                 choice.title.is_empty()
                     || choice.title.len() > 64
                     || choice.search_text.len() > 2_048
                     || choice.refusal.as_ref().is_some_and(|text| text.len() > 256)
                     || (choice.selected && choice.refusal.is_some())
+                    || !identities.insert(&choice.plot)
+                    || BodyWorkset::one(choice.plot.clone()).is_err()
             })
-            || BodyWorkset::from_plots(choices.iter().map(|choice| choice.plot.clone())).is_err()
+            || BodyWorkset::from_plots(
+                choices
+                    .iter()
+                    .filter(|choice| choice.selected)
+                    .map(|choice| choice.plot.clone()),
+            )
+            .is_err()
         {
             return Err(BirthDraftRefusal::InvalidInventory);
         }
@@ -158,12 +167,25 @@ impl BirthDraft {
         let next = self.next_revision(revision)?;
         let choice = self
             .choices
-            .get_mut(index)
+            .get(index)
             .ok_or(BirthDraftRefusal::UnknownChoice)?;
         if selected && choice.refusal.is_some() {
             return Err(BirthDraftRefusal::UnavailablePlot);
         }
-        choice.selected = selected;
+        if selected && !choice.selected {
+            let choices = self.choices.iter().filter(|choice| choice.selected);
+            if choices.clone().count() >= MAX_BODY_PLOTS
+                || BodyWorkset::from_plots(
+                    choices
+                        .chain(core::iter::once(choice))
+                        .map(|choice| choice.plot.clone()),
+                )
+                .is_err()
+            {
+                return Err(BirthDraftRefusal::InvalidInventory);
+            }
+        }
+        self.choices[index].selected = selected;
         self.revision = next;
         Ok(())
     }

@@ -135,11 +135,19 @@ impl TourSession {
                     choice: None,
                 })))
             }
-            engine::BrowserHostEffect::ClockObservation => Ok(TourHostEffect::ClockObservation(
+            engine::BrowserHostEffect::ClockObservation
+            | engine::BrowserHostEffect::WallpaperClock => Ok(TourHostEffect::ClockObservation(
                 Box::new(TourKeyEventEffect {
                     editor: None,
                     schema: "conduit.browser/clock-observation-effect@1",
-                    effect_kind: "clock-observation",
+                    effect_kind: if matches!(
+                        pending.effect,
+                        engine::BrowserHostEffect::WallpaperClock
+                    ) {
+                        "wallpaper-clock"
+                    } else {
+                        "clock-observation"
+                    },
                     source_document_id: fragment.source_document_id.as_str().into(),
                     checked_plot_id: fragment.checked_plot_id.as_str().into(),
                     expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
@@ -367,6 +375,14 @@ impl TourSession {
                     unit_millis,
                     segments,
                     text,
+                    wallpaper: (manifestation.kind_id
+                        == conduit_semantic_catalog::RESIDENT_WALLPAPER_FACE_KIND)
+                        .then(|| {
+                            crate::installed_browser::ambient_wallpaper_face::decode(
+                                &manifestation.canonical_value,
+                            )
+                        })
+                        .transpose()?,
                     application_view: (manifestation.kind_id
                         == conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND)
                         .then(|| manifestation.canonical_value.clone()),

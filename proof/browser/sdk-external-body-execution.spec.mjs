@@ -124,7 +124,9 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
     await post(page, api("body-host-offer-evidence"), observed.offer);
     const requirements = await get(page, api("body-planning-requirements"));
     const executable = await page.evaluate(() => globalThis.__conduitSdkParticipation.executionCapabilities());
-    expect(executable).toHaveLength(126);
+    expect(executable).toHaveLength(128);
+    expect(executable).toContain("browser/ambient-wallpaper@1");
+    expect(executable).toContain("browser/face-ambient-wallpaper@1");
     expect(executable).toContain("browser/patchbay-accept-interaction@1");
     expect(executable).toContain("browser/kernel-text-edit-document@1");
     expect(executable).toContain("browser/dom-text-editor@1");

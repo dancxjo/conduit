@@ -74,6 +74,7 @@ export default defineConfig({
     "workspace-mixed-membership.spec.mjs",
     "workspace-membership.spec.mjs",
     "workspace-library.spec.mjs",
+    "workspace-wallpaper.spec.mjs",
     "workspace-resident-applications.spec.mjs",
     "workspace-continuity.spec.mjs",
     "browser-media-host.spec.mjs",

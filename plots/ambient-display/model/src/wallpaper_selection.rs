@@ -1,10 +1,11 @@
 //! Bounded rotation over checked wallpaper metadata held by the selected Host.
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
 use conduit_core::{
     validate_canonical_structured_value as canonical, PreparedStructuredComposer as Composer,
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
 };
-use conduit_plot::rust_binding::{self, semantic_core as conduit_core};
+use conduit_face::ImageResource;
+use conduit_plot::rust_binding::{self, semantic_core as conduit_core, NativeRustBinding};
 const LIMIT: usize = 8192;
 pub const WALLPAPER_DECK_LEN: usize = 4;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -213,6 +214,37 @@ fn record(
         .collect::<Result<Vec<_>>>()?;
     StructuredInfoValue::record(ty.clone(), fields).map_err(contract)
 }
+/// Descriptive metadata for an exact prepared image resource.
+pub struct WallpaperImageMetadata<'a> {
+    pub title: &'a str,
+    pub caption: &'a str,
+    pub attribution: &'a str,
+    pub license: &'a str,
+    pub source: &'a str,
+}
+
+impl WallpaperImageMetadata<'_> {
+    pub fn compose(
+        self,
+        ty: &StructuredInfoType,
+        image: ImageResource,
+    ) -> Result<StructuredInfoValue> {
+        let image = image.into_structured().map_err(contract)?;
+        record(ty, |name, ty| {
+            let text = match name {
+                "image" => return Ok(image.clone()),
+                "title" => self.title,
+                "caption" => self.caption,
+                "attribution" => self.attribution,
+                "license" => self.license,
+                "source" => self.source,
+                _ => return Err(SelectionRefusal::NativeContract),
+            };
+            rust_binding::primitive_into_structured(ty.clone(), &text.to_string()).map_err(contract)
+        })
+    }
+}
+
 fn selection_value(
     ty: &StructuredInfoType,
     image: StructuredInfoValue,

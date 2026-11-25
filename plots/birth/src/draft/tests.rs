@@ -111,3 +111,38 @@ fn presentation_readiness_matches_owned_selection_across_public_edits() {
     draft = draft.allow_idle_body();
     check(&draft);
 }
+
+#[test]
+fn reviewed_choice_after_the_resident_limit_can_be_selected_after_removal() {
+    let choices = (0..=MAX_BODY_PLOTS)
+        .map(|index| BirthPlotChoice {
+            title: format!("Plot {index}"),
+            search_text: String::new(),
+            plot: ResidentPlot::new(
+                format!("source/{index}").into(),
+                format!("checked/{index}").into(),
+            ),
+            refusal: None,
+            selected: index < MAX_BODY_PLOTS,
+        })
+        .collect();
+    let mut draft =
+        BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap();
+    let revision = draft.revision();
+    assert_eq!(
+        draft.select(revision, MAX_BODY_PLOTS, true),
+        Err(BirthDraftRefusal::InvalidInventory)
+    );
+    assert_eq!(draft.revision(), revision);
+    draft.select(revision, 0, false).unwrap();
+    draft
+        .select(draft.revision(), MAX_BODY_PLOTS, true)
+        .unwrap();
+    let selected = draft.selection(draft.revision()).unwrap();
+    assert_eq!(selected.workset.len(), MAX_BODY_PLOTS);
+    assert!(
+        selected
+            .workset
+            .contains(&draft.choices()[MAX_BODY_PLOTS].plot)
+    );
+}

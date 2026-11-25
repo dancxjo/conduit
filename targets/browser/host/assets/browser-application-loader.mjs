@@ -3,7 +3,7 @@ import { createApplicationFaceHost } from "./application-face.mjs";
 
 const PACKAGE_SCHEMA = "conduit.browser/application-package@1";
 const MAXIMUM_PACKAGE_BYTES = 48 * 1024;
-const MAXIMUM_RESOURCES = 96;
+const MAXIMUM_RESOURCES = 100;
 const MAXIMUM_DEPENDENCIES = 16;
 const MAXIMUM_HOST_IMPLEMENTATIONS = 16;
 const MAXIMUM_RESOURCE_BYTES = 16 * 1024 * 1024;

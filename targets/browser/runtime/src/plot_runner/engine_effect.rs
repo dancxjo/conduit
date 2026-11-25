@@ -14,6 +14,7 @@ pub(in crate::plot_runner) enum BrowserHostEffect {
     PitchTone { hertz: u32 },
     ClockObservation,
     CivilClockObservation,
+    WallpaperClock,
     Timer { duration_millis: u64 },
     Snapshot { publish: bool },
     KeyEvent,

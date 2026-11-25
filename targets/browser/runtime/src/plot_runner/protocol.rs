@@ -40,6 +40,9 @@ pub(super) struct TourEffect {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) application_view: Option<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) wallpaper:
+        Option<crate::installed_browser::ambient_wallpaper_face::WallpaperPresentation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) source_interaction: Option<SourceInteractionEvidence>,
 }
 
@@ -371,6 +374,7 @@ pub(super) fn decode_manifestation(
                 .map_err(|_| "planned count manifestation is not an exact Count")?;
             Ok((0, Vec::new(), Some(u64::from_le_bytes(encoded).to_string())))
         }
+        conduit_semantic_catalog::RESIDENT_WALLPAPER_FACE_KIND => Ok((0, Vec::new(), None)),
         conduit_semantic_catalog::AMBIENT_CLOCK_FACE_KIND => Ok((
             0,
             Vec::new(),

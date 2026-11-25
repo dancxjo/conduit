@@ -171,6 +171,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "sdk-external-body-execution.spec.mjs",
                     "workspace-membership.spec.mjs",
                     "workspace-library.spec.mjs",
+                    "workspace-wallpaper.spec.mjs",
                     "workspace-resident-applications.spec.mjs",
                     "workspace-continuity.spec.mjs",
                 ],
