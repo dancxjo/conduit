@@ -4,14 +4,28 @@ use conduit_std_host::body_execution::{
     BodyFaceContributionObserver, CommittedFaceContribution, FaceContributionRefusal,
     ReturnedFaceContribution,
 };
-use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
+use std::{
+    cell::Cell,
+    sync::mpsc::{self, Receiver, SyncSender, TrySendError},
+};
+#[path = "runtime_face/ambient_cadence.rs"]
+mod ambient_cadence;
 
 pub(super) struct RuntimeFaceSender(SyncSender<CommittedFaceContribution>);
-pub(super) struct RuntimeFaceReceiver(Receiver<CommittedFaceContribution>);
+pub(super) struct RuntimeFaceReceiver {
+    incoming: Receiver<CommittedFaceContribution>,
+    last_request: Cell<Option<conduit_kernel::RequestId>>,
+}
 
 pub(super) fn channel() -> (RuntimeFaceSender, RuntimeFaceReceiver) {
     let (sender, receiver) = mpsc::sync_channel(1);
-    (RuntimeFaceSender(sender), RuntimeFaceReceiver(receiver))
+    (
+        RuntimeFaceSender(sender),
+        RuntimeFaceReceiver {
+            incoming: receiver,
+            last_request: Cell::new(None),
+        },
+    )
 }
 
 impl BodyFaceContributionObserver for RuntimeFaceSender {
@@ -34,7 +48,7 @@ impl BodyFaceContributionObserver for RuntimeFaceSender {
 
 impl RuntimeFaceReceiver {
     pub(super) fn progress(&self, owner: &mut Owner) -> Result<(), String> {
-        if let Ok(frame) = self.0.try_recv() {
+        if let Ok(frame) = self.incoming.try_recv() {
             if frame.scope().is_retired() {
                 return Ok(());
             }
@@ -47,6 +61,20 @@ impl RuntimeFaceReceiver {
                         || previous.request() >= frame.request())
             }) {
                 return Err("Home Face differs from its retained route or request order".into());
+            }
+            if self
+                .last_request
+                .get()
+                .is_some_and(|previous| previous >= frame.request())
+            {
+                return Err("Home Face request did not advance".into());
+            }
+            self.last_request.set(Some(frame.request()));
+            if owner.current_home_fragment().is_some_and(|previous| {
+                previous == frame.fragment()
+                    || ambient_cadence::same_presented_minute(previous, frame.fragment())
+            }) {
+                return Ok(());
             }
             // The selected Patchbay Face only exposes the availability of
             // the Home route. Replacing a hidden Home frame leaves that Face
