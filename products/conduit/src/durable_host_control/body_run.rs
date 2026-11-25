@@ -437,3 +437,7 @@ pub(crate) fn start_owned_body(
 pub(crate) fn lull_owned_body(_state_dir: &Path) -> Result<(), String> {
     Err("service-owned Body Play requires local Unix control".into())
 }
+
+#[cfg(all(test, unix))]
+#[path = "body_run/renewal_tests.rs"]
+mod renewal_tests;
