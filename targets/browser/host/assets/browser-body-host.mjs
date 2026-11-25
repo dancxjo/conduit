@@ -95,6 +95,47 @@ export function manifestBrowserText(output, effect) {
   }
 }
 
+function manifestWallpaper(output, wallpaper, deck) {
+  if (wallpaper?.status === "unavailable") {
+    output.textContent = `Wallpaper unavailable: ${wallpaper.reason}`;
+    return;
+  }
+  if (wallpaper?.status !== "available") throw new Error("invalid wallpaper presentation");
+  const { reference, title, caption, attribution, license, source } = wallpaper;
+  if (!Number.isInteger(reference?.width) || reference.width < 1 || reference.width > 1024
+      || !Number.isInteger(reference.height) || reference.height < 1 || reference.height > 600) {
+    throw new Error("wallpaper dimensions exceed the admitted display bound");
+  }
+  const current = output.querySelector(":scope > figure > canvas");
+  const wording = [title, caption, attribution, license, source].filter(Boolean).join(" · ");
+  if (current?.dataset.version === reference.version && current?.dataset.identity === reference.identity) {
+    current.parentElement.querySelector("figcaption").textContent = wording;
+    return;
+  }
+  const canvas = output.ownerDocument.createElement("canvas");
+  canvas.width = reference.width;
+  canvas.height = reference.height;
+  canvas.style.maxWidth = "100%";
+  canvas.style.height = "auto";
+  canvas.dataset.version = reference.version;
+  canvas.dataset.identity = reference.identity;
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", title);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("wallpaper canvas is unavailable");
+  const pixels = context.createImageData(reference.width, reference.height);
+  if (!deck?.copyPixels?.(reference, pixels.data)) {
+    throw new Error("wallpaper resource differs from the admitted image");
+  }
+  context.putImageData(pixels, 0, 0);
+  const figure = output.ownerDocument.createElement("figure");
+  figure.style.margin = "0";
+  const label = output.ownerDocument.createElement("figcaption");
+  label.textContent = wording;
+  figure.append(canvas, label);
+  output.replaceChildren(figure);
+}
+
 export async function prepareBrowserBodyHost(options) {
   const { proposal, hostId, bootId, externallyManagedPlanIds = [] } = options;
   const planned = proposal?.plan?.plots?.some(({ plan }) =>
@@ -632,6 +673,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         output.setAttribute("aria-label", dataLabel);
       }
       const namedValue = value => typeof dataLabel === "string" ? `${dataLabel}: ${value}` : value;
+      if (effect.face_kind === "face/ambient-wallpaper-observation") {
+        manifestWallpaper(output, effect.wallpaper, wallpaperDeck);
+        return;
+      }
       if (effect.face_kind === "face/application-view" && Array.isArray(effect.application_view)) {
         if (canonicalPatchbayOwners.has(effect.checked_plot_id)) {
           // Startup presents the prepared publication independently. This old

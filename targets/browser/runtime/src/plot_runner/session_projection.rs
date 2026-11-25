@@ -375,6 +375,14 @@ impl TourSession {
                     unit_millis,
                     segments,
                     text,
+                    wallpaper: (manifestation.kind_id
+                        == conduit_semantic_catalog::RESIDENT_WALLPAPER_FACE_KIND)
+                        .then(|| {
+                            crate::installed_browser::ambient_wallpaper_face::decode(
+                                &manifestation.canonical_value,
+                            )
+                        })
+                        .transpose()?,
                     application_view: (manifestation.kind_id
                         == conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND)
                         .then(|| manifestation.canonical_value.clone()),

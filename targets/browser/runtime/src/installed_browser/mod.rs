@@ -17,6 +17,7 @@ pub(crate) use conduit_browser_mask_offer as dom_mask;
 mod ambient_clock;
 pub(crate) mod ambient_clock_face;
 pub(crate) mod ambient_wallpaper;
+pub(crate) mod ambient_wallpaper_face;
 mod face;
 mod factory;
 mod final_normalized_pattern;
