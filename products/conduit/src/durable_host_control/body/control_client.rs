@@ -38,7 +38,9 @@ pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
             Duration::from_secs(10)
         }
         // Start prepares the selected workset before acknowledging the request.
-        Request::BodyStart { .. } | Request::BodyReturn { .. } => Duration::from_secs(10),
+        Request::BodyStart { .. }
+        | Request::BodyStartRenewing { .. }
+        | Request::BodyReturn { .. } => Duration::from_secs(10),
         _ => CONTROL_DEADLINE,
     };
     let mut bytes = serde_json::to_vec(&request)
@@ -144,6 +146,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
+        | Request::BodyStartRenewing { token, .. }
         | Request::StartupMember { token, .. }
         | Request::BodyMemberCarrierReceiver { token, .. }
         | Request::BodyLull { token, .. }

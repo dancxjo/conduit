@@ -156,7 +156,7 @@ impl DurableHostRuntime {
                 }))
             }
             crate::durable_host::owner::ClockAction::Lull => {
-                let play = self.request_owned_body_lull()?;
+                let (play, _) = self.request_owned_body_lull()?;
                 Ok(serde_json::json!({
                     "schema":"conduit.body/clock-lull-requested@1",
                     "body_id":show.show.body_id,

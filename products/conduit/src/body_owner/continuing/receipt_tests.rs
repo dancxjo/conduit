@@ -75,6 +75,7 @@ fn local_worker_persists_the_stop_it_consumed() {
     }
 
     let retained = state::execution(&root).unwrap().unwrap();
+    assert!(!worker.retained_clean_deadline());
     assert_eq!(retained["accepted_stop_request_id"], "owner/service-lull");
     assert_eq!(
         retained["terminal"]["Cancelled"]["reason"],
@@ -107,6 +108,7 @@ fn local_worker_persists_an_elapsed_deadline_separately_from_lull() {
     }
 
     let retained = state::execution(&root).unwrap().unwrap();
+    assert!(worker.retained_clean_deadline());
     assert_eq!(
         retained["accepted_stop_request_id"],
         "owner/service-deadline"
