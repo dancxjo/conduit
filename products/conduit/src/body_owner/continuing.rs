@@ -108,7 +108,7 @@ impl Owner {
             Ok(prepared) => prepared,
             Err(error) => {
                 self.host.restore_after_play(host)?;
-                self.retain_finished(root, Err(error.clone()), Vec::new())?;
+                self.retain_finished(root, Err(error.clone()), Vec::new(), None)?;
                 return Err(error);
             }
         };
@@ -271,6 +271,7 @@ impl Owner {
         root: &Path,
         result: Result<RunReport, String>,
         output: Vec<u8>,
+        accepted_stop: Option<&RunControlRequestId>,
     ) -> Result<(), String> {
         let authority = self.host.advertisement();
         let proposed = self
@@ -295,6 +296,7 @@ impl Owner {
                     "wake_id":proposed.wake.wake_id, "play":report.play,
                     "wake_at_start":report.wake_at_start, "terminal":report.terminal,
                     "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+                    "accepted_stop_request_id":accepted_stop.map(RunControlRequestId::as_str),
                     "startup_chimes":report.startup_chimes,
                     "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
                     "terminal_sign":report.terminal_sign,
@@ -353,7 +355,8 @@ impl LocalWorker {
             .join()
             .map_err(|_| "Body Play worker panicked; owner service must restart".to_string())?;
         owner.host.restore_after_play(host)?;
-        owner.retain_finished(root, result, output)?;
+        let accepted_stop = self.control.accepted_stop_request();
+        owner.retain_finished(root, result, output, accepted_stop.as_ref())?;
         Ok(true)
     }
 
