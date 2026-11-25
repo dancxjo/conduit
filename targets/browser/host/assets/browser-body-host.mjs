@@ -24,6 +24,7 @@ const MEMORY = "conduit.resource/runtime-memory@1";
 // The Rust scheduler prepares and checks this finite backing/scratch pool
 // before start; the page owns its admission observation, not a second allocation.
 const MEMORY_CAPACITY = 8 * 1024 * 1024;
+const STEM = "conduit.resource/stem-provision@1";
 const SNAPSHOT = "resource/snapshot@1";
 const SNAPSHOT_PUBLISH = "conduit.host/resource-snapshot-publish@1";
 const SNAPSHOT_READ = "conduit.host/resource-snapshot-read@1";
@@ -92,7 +93,7 @@ export function manifestBrowserText(output, effect) {
 }
 
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
-  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onPatchbayPublication, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
+  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onPatchbayPublication, onTutorialPresenterRequest, stemProvider, storage, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -170,10 +171,19 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   if (!placements.length) throw new Error("browser Body requires at least one locally managed Plot");
   const demand = new Map();
   const snapshotPlacements = new Map();
+  let stemPlacement = null;
   const civilClocks = new Map();
   for (const placement of placements) {
     if (!Array.isArray(placement.resources) || placement.resources.length > 64) throw new Error("browser resource binding bound exceeded");
     for (const resource of placement.resources) {
+      if (resource.class_id === STEM) {
+        if (stemPlacement || resource.units !== 1 || placement.kind_id !== "stem/prepare"
+            || typeof stemProvider?.observe !== "function" || typeof stemProvider?.perform !== "function") {
+          throw new Error("Stem requires one selected private preparation owner");
+        }
+        stemPlacement = placement;
+        continue;
+      }
       if (resource.class_id === SNAPSHOT) {
         const content = resource.content;
         const contract = placement.host_calls?.[0]?.contract_id;
@@ -427,6 +437,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     for (const { poolId } of snapshotPlacements.values()) {
       snapshotPools.set(poolId, (snapshotPools.get(poolId) ?? 0) + 1);
     }
+    if (stemPlacement) ordinary.push(stemProvider.observe(stemPlacement));
     return ordinary.concat([...snapshotPools].map(([pool_id, unreserved_units]) => ({
       host_id: hostId, boot_id: bootId, offer_generation: 1,
       pool_id, class_id: SNAPSHOT, health: "Ready", unreserved_units,
@@ -439,6 +450,12 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     assertCurrent();
     if (effect.host_id !== hostId || effect.boot_id !== bootId ||
         effect.active_play_id !== started.play.active_play_id) throw new Error("browser effect identity mismatch");
+    if (effect.effect_kind === "stem-prepare") {
+      if (stemPlacement?.placement_id !== effect.placement_id) {
+        throw new Error("Stem effect differs from its selected preparation owner");
+      }
+      return stemProvider.perform(effect, signal);
+    }
     if (effect.effect_kind === "resource-publish" || effect.effect_kind === "resource-read") {
       const selected = snapshotPlacements.get(effect.placement_id);
       const expected = effect.effect_kind === "resource-publish" ? SNAPSHOT_PUBLISH : SNAPSHOT_READ;

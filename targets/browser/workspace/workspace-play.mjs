@@ -32,7 +32,7 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
     publish('Lulled', 'This body is retained. Wake it to start its plots.');
   }
   return Object.freeze({
-    async wake(authorizeAudio = false) {
+    async wake(authorizeAudio = false, stemProvider) {
       if (adapter || transition) return;
       transition = true; terminal = null; started = null; rendererRetired = false;
       publish('Preparing', 'Checking the installed plots');
@@ -48,7 +48,7 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
             if (!patchbay || patchbay.state !== 'playing') throw new Error('Patchbay Play is unavailable');
             return onPatchbayPublication({ ...request, play: patchbay });
           },
-          onTutorialPresenterRequest, storage,
+          onTutorialPresenterRequest, stemProvider, storage,
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         patchbay = bindPatchbay(adapter, started);
