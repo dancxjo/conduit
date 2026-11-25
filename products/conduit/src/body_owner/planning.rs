@@ -169,10 +169,42 @@ impl Owner {
         }
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
-        let home_observation_queues =
+        let mut connection_queues =
             conduit_std_host::ambient_home_observation::ambient_home_connection_limits(
                 &plot.expanded,
             );
+        for connection in &plot.expanded.connections {
+            let has_kind = |gear_id, kind| {
+                plot.expanded
+                    .gears
+                    .iter()
+                    .any(|gear| &gear.gear_id == gear_id && gear.kind_id.as_str() == kind)
+            };
+            if connection.source_port_id.as_str() == "pulse"
+                && connection.sink_port_id.as_str() == "pulse"
+                && has_kind(
+                    &connection.source_gear_id,
+                    conduit_semantic_catalog::BODY_WAKE_KIND,
+                )
+                && has_kind(
+                    &connection.sink_gear_id,
+                    conduit_semantic_catalog::STARTUP_CHIME_KIND,
+                )
+            {
+                connection_queues.insert(
+                    (
+                        connection.source_gear_id.clone(),
+                        connection.source_port_id.clone(),
+                        connection.sink_gear_id.clone(),
+                        connection.sink_port_id.clone(),
+                    ),
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: conduit_core::BOOL_ENCODED_LEN as u32,
+                    },
+                );
+            }
+        }
         let mut boundaries = BTreeMap::new();
         let has_patchbay_owner = match plot.input_bindings.as_slice() {
             [binding]
@@ -222,7 +254,7 @@ impl Owner {
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
-            &home_observation_queues,
+            &connection_queues,
             &boundaries,
         )
         .map_err(debug)?;
