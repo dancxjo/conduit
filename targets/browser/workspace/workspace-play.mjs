@@ -1,4 +1,4 @@
-import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
+import { prepareBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 import { renderPatchbayPublication } from "../sdk/browser-sdk-patchbay.mjs";
 import { bindWorkspacePatchbay, checkedWorkspaceTerminal, cleanupWorkspacePlay } from "./workspace-play-owner.mjs";
 
@@ -6,7 +6,7 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
   faceRootFor, onApplicationEvent, onPatchbayOwnerRequest,
   onPatchbayPublication = renderPatchbayPublication,
   onTutorialPresenterRequest,
-  prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
+  prepareExternal = async () => null, acquireBody = prepareBrowserBodyHost }) {
   let adapter = null, external = null, proposal = null, started = null, terminal = null, transition = false;
   let playbackState = null, rendererRetired = false, activeStem = null;
   const publish = (state, detail = '', error = null) => {
@@ -44,7 +44,7 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
         publish('Preparing', 'Acquiring the required capabilities');
         external = await prepareExternal(proposal);
         let patchbay = null;
-        adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
+        adapter = await acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
           inputTarget, outputRoot, foregroundPlot, faceRootFor, onApplicationEvent, onPatchbayOwnerRequest,
           onPatchbayPublication: request => {
             if (!patchbay || patchbay.state !== 'playing') throw new Error('Patchbay Play is unavailable');

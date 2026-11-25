@@ -21,6 +21,8 @@ pub(super) struct BodyStartRequest {
     /// deliberately absent from this local scheduler.
     #[serde(default)]
     pub externally_managed_plan_ids: Vec<conduit_core::PlanId>,
+    #[serde(default)]
+    pub wallpaper: Option<crate::installed_browser::ambient_wallpaper::PreparedWallpaper>,
     /// Supplied by the trusted page Host adapter, not inferred from offers.
     pub observations: Vec<ResourceObservation>,
     /// Exact retained history before this start. Required for lifecycle sources;
@@ -338,6 +340,7 @@ pub(super) fn prepare(
             active_play_id: &play.active_play_id,
             body_evidence: started_evidence.as_ref(),
             source: &request.source,
+            wallpaper: request.wallpaper.as_ref(),
             foreground_checked_plot_id: &request.foreground_checked_plot_id,
         }),
     )?;

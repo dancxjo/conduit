@@ -230,7 +230,7 @@ export class BrowserBody {
           ?? (await import("./browser-sdk-patchbay.mjs")).renderPatchbayPublication;
         return render({ ...request, play: renderingPlay });
       };
-      adapter = this.#acquireBodyHost({
+      adapter = await this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
         storage: this.#storage,
         inputTarget: root, outputRoot: root, faceRootFor, onPatchbayOwnerRequest, onPatchbayPublication: renderPatchbay,

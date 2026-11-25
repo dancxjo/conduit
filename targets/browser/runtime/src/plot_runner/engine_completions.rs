@@ -45,6 +45,12 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
         BrowserHostEffect::ClockObservation => {
             return attempt::complete_clock(scheduler, pending, output)
         }
+        BrowserHostEffect::WallpaperClock => {
+            if output.len() != 8 {
+                return Err("wallpaper clock reply must contain exactly eight bytes".into());
+            }
+            8
+        }
         BrowserHostEffect::CivilClockObservation => {
             crate::browser_civil_clock::CivilClockReply::decode(output)
                 .map_err(|error| format!("decode civil clock reply: {error:?}"))?;
