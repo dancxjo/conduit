@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
+import { observeRealAudio } from "./browser-audio-proof.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 
 test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body", async ({ page }) => {
   test.setTimeout(30_000 + 3 * BROWSER_COLD_PREPARATION_MS);
   const entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/");
   try {
+    await observeRealAudio(page);
     await page.clock.setFixedTime(new Date("2026-11-25T12:00:00Z"));
     await page.goto(entrance.url);
     const photos = await page.evaluate(() => ["red", "green", "blue", "black"].map(color => {
@@ -35,13 +37,16 @@ test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body",
     });
     const wallpaper = page.getByRole("checkbox", { name: "Wallpaper", exact: true });
     await expect(wallpaper).toBeVisible({ timeout: BROWSER_COLD_PREPARATION_MS });
-    await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+    await expect(page.getByRole("checkbox", { name: "Startup Chime", exact: true })).toBeChecked();
+    await page.getByRole("checkbox", { name: "Local Clock and Weather", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Patchbay", exact: true }).check();
     await wallpaper.check();
     await page.getByRole("button", { name: "Birth Body", exact: true }).click();
     await page.getByRole("button", { name: "wake body", exact: true }).click();
     await waitForWorkspacePreparation(page);
     const current = () => page.evaluate(() => globalThis.__conduitWorkspace.current());
     const first = await current();
+    await expect.poll(() => page.evaluate(() => globalThis.__cueAudio.ended)).toBe(1);
     await page.getByRole("navigation", { name: "Your plots" })
       .getByRole("button", { name: "Wallpaper", exact: true }).click();
     const output = page.locator('[data-face-kind="face/ambient-wallpaper-observation"]:visible');
@@ -66,6 +71,26 @@ test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body",
     expect(returned.body_id).toBe(first.body_id);
     expect(returned.host_id).toBe(first.host_id);
     expect(returned.boot_id).not.toBe(first.boot_id);
+    const residents = page.getByRole("navigation", { name: "Your plots" });
+    await residents.getByRole("button", { name: "Local Clock and Weather", exact: true }).click();
+    await expect(page.locator('[data-face-kind="face/ambient-clock-weather"]:visible'))
+      .toContainText("America/Los_Angeles");
+    const checkedWallpaper = await residents.getByRole("button", { name: "Wallpaper", exact: true })
+      .getAttribute("data-checked-plot-id");
+    expect(checkedWallpaper).toBeTruthy();
+    await residents.getByRole("button", { name: "Patchbay", exact: true }).click();
+    const patchbay = page.locator('[data-plot-output] > output:not([hidden]) conduit-owner-face');
+    await expect(patchbay).toHaveAttribute("aria-busy", "false");
+    const menu = patchbay.locator("details[data-body-menu]");
+    await menu.locator(":scope > summary").click();
+    const inspect = menu.getByRole("button", { name: "Inspect Wallpaper", exact: true });
+    expect(JSON.parse(await inspect.getAttribute("data-owner-focus"))).toEqual([
+      returned.body_id, expect.stringMatching(/^patchbay\.plot\.\d+$/u), `plot/${checkedWallpaper}`, "submit",
+    ]);
+    const face = await patchbay.getAttribute("data-face-id");
+    await inspect.click();
+    await expect(patchbay).not.toHaveAttribute("data-face-id", face);
+    expect((await current()).active_play_id).toBe(returned.active_play_id);
   } finally {
     entrance.child.kill();
   }
