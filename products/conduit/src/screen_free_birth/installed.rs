@@ -349,7 +349,7 @@ fn run_body(
             execution = HostedTerminalMaskExecution::new(&advertisement).map_err(debug_error)?;
             show = present(&face, &mut execution, output)?;
             reader
-                .refresh(face.clone(), show.clone())
+                .refresh_silently(face.clone(), show.clone())
                 .map_err(debug_error)?;
             wardrobe = None;
             writeln!(
@@ -364,18 +364,6 @@ fn run_body(
                     "Refused the pending command because it named an older Face."
                 )
                 .map_err(|error| error.to_string())?;
-                emit_readout(
-                    state_dir,
-                    input,
-                    playback.as_ref(),
-                    &mut reader,
-                    &face,
-                    &show,
-                    &advertisement,
-                    &mut sequence,
-                    OutputPhase::Body,
-                    output,
-                )?;
                 continue;
             }
         }

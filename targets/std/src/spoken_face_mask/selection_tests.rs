@@ -66,7 +66,7 @@ fn explicit_pages_keep_exact_show_and_resume_without_duplicates() {
 }
 
 #[test]
-fn refresh_refuses_an_old_page_until_a_new_selection_is_requested() {
+fn passive_refresh_is_silent_and_requires_a_new_page_selection() {
     let face = long_list();
     let show = common::available_mask_show(&face);
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
@@ -86,7 +86,11 @@ fn refresh_refuses_an_old_page_until_a_new_selection_is_requested() {
     )
     .unwrap();
     let next_show = common::available_mask_show(&next);
-    reader.refresh(next.clone(), next_show.clone()).unwrap();
+    reader
+        .refresh_silently(next.clone(), next_show.clone())
+        .unwrap();
+    assert!(reader.next_segment().unwrap().is_none());
+    assert!(reader.take_text_readout().unwrap().is_none());
     assert_eq!(
         reader.command(&next, &next_show, ReaderCommand::MoreItems, 2),
         Err(SpokenFaceRefusal::StaleFace)
