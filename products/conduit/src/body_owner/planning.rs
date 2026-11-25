@@ -2,7 +2,8 @@
 use super::{debug, Owner};
 use conduit_body::{BodyPlotPlan, BodyState, BodyWorkset, ResidentPlot};
 use conduit_core::{
-    port_id, BaseImplementationId, ConnectionTrack, HostAdvertisement, PortDirection,
+    port_id, AuthorityGrant, BaseImplementationId, ConnectionTrack, HostAdvertisement,
+    PortDirection,
 };
 use std::collections::BTreeMap;
 
@@ -57,8 +58,19 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
+        self.plan_workset_for_wake(sources, None)
+    }
+
+    pub(super) fn plan_workset_for_wake(
+        &mut self,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        chime: Option<&AuthorityGrant>,
+    ) -> Result<(), String> {
         let partitions =
-            self.prepare_workset_partitions_for(&self.session.evidence().body.workset, sources)?;
+            self.prepare_partitions(&self.session.evidence().body.workset, sources, chime)?;
         let advertised = self.host.advertisement();
         self.session
             .propose(partitions, &advertised.host_id, &advertised.boot_id)
@@ -73,6 +85,18 @@ impl Owner {
             &crate::plot_source::CanonicalSource,
             &conduit_plot::ExpandedAuthoringPlot,
         )],
+    ) -> Result<Vec<BodyPlotPlan>, String> {
+        self.prepare_partitions(workset, sources, None)
+    }
+
+    fn prepare_partitions(
+        &self,
+        workset: &BodyWorkset,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        chime: Option<&AuthorityGrant>,
     ) -> Result<Vec<BodyPlotPlan>, String> {
         self.require_workset_recovered()?;
         if self.session.evidence().body.state != BodyState::Lulled
@@ -108,6 +132,7 @@ impl Owner {
                 &checked,
                 &resident,
                 self.host.advertisement(),
+                chime,
             )?);
         }
         Ok(partitions)
@@ -118,6 +143,24 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
+        self.plan_partition_for_wake(plot, resident, None)
+    }
+
+    fn plan_partition_for_wake(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        chime: Option<&AuthorityGrant>,
+    ) -> Result<BodyPlotPlan, String> {
+        let mut grants = self.host.native_source_planning_grants().to_vec();
+        if let Some(grant) = chime.filter(|_| {
+            plot.expanded
+                .gears
+                .iter()
+                .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::STARTUP_CHIME_KIND)
+        }) {
+            grants.push(grant.clone());
+        }
         let hosts = [self.host.advertisement().clone()];
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
@@ -126,10 +169,42 @@ impl Owner {
         }
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
-        let home_observation_queues =
+        let mut connection_queues =
             conduit_std_host::ambient_home_observation::ambient_home_connection_limits(
                 &plot.expanded,
             );
+        for connection in &plot.expanded.connections {
+            let has_kind = |gear_id, kind| {
+                plot.expanded
+                    .gears
+                    .iter()
+                    .any(|gear| &gear.gear_id == gear_id && gear.kind_id.as_str() == kind)
+            };
+            if connection.source_port_id.as_str() == "pulse"
+                && connection.sink_port_id.as_str() == "pulse"
+                && has_kind(
+                    &connection.source_gear_id,
+                    conduit_semantic_catalog::BODY_WAKE_KIND,
+                )
+                && has_kind(
+                    &connection.sink_gear_id,
+                    conduit_semantic_catalog::STARTUP_CHIME_KIND,
+                )
+            {
+                connection_queues.insert(
+                    (
+                        connection.source_gear_id.clone(),
+                        connection.source_port_id.clone(),
+                        connection.sink_gear_id.clone(),
+                        connection.sink_port_id.clone(),
+                    ),
+                    conduit_planner::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: conduit_core::BOOL_ENCODED_LEN as u32,
+                    },
+                );
+            }
+        }
         let mut boundaries = BTreeMap::new();
         let has_patchbay_owner = match plot.input_bindings.as_slice() {
             [binding]
@@ -175,11 +250,11 @@ impl Owner {
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                authority_grants: self.host.native_source_planning_grants(),
+                authority_grants: &grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
-            &home_observation_queues,
+            &connection_queues,
             &boundaries,
         )
         .map_err(debug)?;
@@ -198,9 +273,10 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
         advertisement: &HostAdvertisement,
+        chime: Option<&AuthorityGrant>,
     ) -> Result<BodyPlotPlan, String> {
         if plot.expanded.activations.is_empty() {
-            return self.plan_partition(plot, resident);
+            return self.plan_partition_for_wake(plot, resident, chime);
         }
         let (state_bytes, command_bytes) = match plot.expanded.name.as_str() {
             "todo/main" => {

@@ -1001,6 +1001,8 @@ enum Request {
         todo_new_list: Option<String>,
         #[serde(default)]
         startup_member: Option<Box<crate::durable_host::owner::StartupMemberSelection>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        authorize_startup_chime: Option<bool>,
     },
     BodyStartRenewing {
         protocol: u16,
@@ -2363,9 +2365,16 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             maximum_millis,
             todo_new_list,
             startup_member,
+            authorize_startup_chime,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body_selected(maximum_millis, todo_new_list, startup_member.map(|s| *s), 0)
+            .start_owned_body_selected(
+                maximum_millis,
+                todo_new_list,
+                startup_member.map(|s| *s),
+                0,
+                authorize_startup_chime.unwrap_or(false),
+            )
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
@@ -2378,7 +2387,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             renewals,
             ..
         } if protocol == PROTOCOL && renewals > 0 => runtime
-            .start_owned_body_selected(maximum_millis, None, None, renewals)
+            .start_owned_body_selected(maximum_millis, None, None, renewals, false)
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,

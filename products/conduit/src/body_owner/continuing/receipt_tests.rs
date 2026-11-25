@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn local_persistence_retains_exact_negative_chime_receipt_beside_global_terminal() {
     let (root, mut owner) = super::super::service_workset_tests::fixture();
-    let mut worker = owner.start_service_run(&root, 5000).unwrap();
+    let mut worker = owner.start_service_run(&root, 5000, false).unwrap();
     let WorkerMode::Local(local) = &mut worker.mode else {
         panic!("local worker fixture")
     };
@@ -62,7 +62,7 @@ fn local_persistence_retains_exact_negative_chime_receipt_beside_global_terminal
 #[test]
 fn local_worker_persists_the_stop_it_consumed() {
     let (root, mut owner) = super::super::service_workset_tests::fixture();
-    let mut worker = owner.start_service_run(&root, 5_000).unwrap();
+    let mut worker = owner.start_service_run(&root, 5_000, false).unwrap();
     let WorkerMode::Local(local) = &mut worker.mode else {
         panic!("local worker fixture")
     };
@@ -87,7 +87,7 @@ fn local_worker_persists_the_stop_it_consumed() {
 #[test]
 fn local_worker_persists_an_elapsed_deadline_separately_from_lull() {
     let (root, mut owner) = super::super::service_workset_tests::fixture();
-    let mut worker = owner.start_service_run(&root, 100).unwrap();
+    let mut worker = owner.start_service_run(&root, 100, false).unwrap();
     let WorkerMode::Local(local) = &worker.mode else {
         panic!("local worker fixture")
     };

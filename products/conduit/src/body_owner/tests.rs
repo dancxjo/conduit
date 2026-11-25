@@ -49,7 +49,7 @@ fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
     let mut owner = Owner::open(scoped, resident(&plot), None, "Groceries").unwrap();
     let unrelated = crate::plot_source::parse(SOURCE).unwrap();
     assert!(owner
-        .plan_partition_with_source(&unrelated, &plot, &resident(&plot), &advertised)
+        .plan_partition_with_source(&unrelated, &plot, &resident(&plot), &advertised, None)
         .is_err());
     owner.plan_with_source(&source, &plot).unwrap();
     let planned = &owner.session.realization().unwrap().plan.plots[0].plan;
@@ -455,9 +455,9 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
     owner.persist(&root).unwrap();
     std::fs::write(root.join("body/source.conduit"), CLOCK_SOURCE).unwrap();
 
-    let mut worker = owner.start_service_run(&root, 5000).unwrap();
+    let mut worker = owner.start_service_run(&root, 5000, false).unwrap();
     assert!(owner.host.is_playing());
-    assert!(owner.start_service_run(&root, 5000).is_err());
+    assert!(owner.start_service_run(&root, 5000, false).is_err());
     let start = Instant::now();
     while owner.current_play_id().is_none() {
         assert!(
@@ -552,7 +552,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
     );
 
     std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
-    assert!(owner.start_service_run(&root, 5000).is_err());
+    assert!(owner.start_service_run(&root, 5000, false).is_err());
     assert!(owner.session.realization().is_none());
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -626,7 +626,7 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
         state::load(&root).unwrap().unwrap(),
         *owner.session.evidence()
     );
-    let mut worker = owner.start_service_run(&root, 5_000).unwrap();
+    let mut worker = owner.start_service_run(&root, 5_000, false).unwrap();
     let started = Instant::now();
     while owner.current_play_id().is_none() {
         assert!(started.elapsed() < Duration::from_secs(3));
