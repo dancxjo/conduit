@@ -171,6 +171,7 @@ export function openWorkspaceStem({ host, session, faceFor, root, wake, onChange
   let eligible = false;
   let preparing = false;
   let provider, ready = false;
+  let pendingEffect;
   const update = () => {
     root.hidden = !eligible;
     if (eligible && !preparing) root.replaceChildren(outfitter.render(ready));
@@ -186,12 +187,29 @@ export function openWorkspaceStem({ host, session, faceFor, root, wake, onChange
         const distribution = await acquireConfiguredHostRelease(host, BROWSER_DISTRIBUTION_PROFILE, signal);
         if (!eligible || session.current()?.state !== "LULLED") return;
         provider = await session.prepareStem(selection, distribution, signal);
-        await wake(Object.freeze({ ...provider, completed() {
-          const result = provider.result();
-          ready = Boolean(result.artifact_prepared && result.kernel_outcome);
-          if (!ready) onError(new Error("Stem did not prepare a Seed"));
-          onChanged();
-        } }));
+        await wake(Object.freeze({
+          ...provider,
+          perform(effect, signal) {
+            pendingEffect = provider.perform(effect, signal);
+            return pendingEffect;
+          },
+          completed() {
+            const result = provider.result();
+            ready = Boolean(result.artifact_prepared && result.kernel_outcome);
+            onChanged();
+            if (!ready) onError(new Error("Stem did not prepare a Seed"));
+          },
+          async afterLull() {
+            await pendingEffect?.catch(() => {});
+            if (provider && !provider.result().delivery_committed) {
+              provider.cancel();
+              provider = null;
+              await session.save();
+            }
+            ready = false;
+            update();
+          },
+        }));
         if (session.current()?.state === "LULLED") {
           provider.cancel();
           provider = null;

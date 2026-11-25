@@ -8,7 +8,7 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
   onTutorialPresenterRequest,
   prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
   let adapter = null, external = null, proposal = null, started = null, terminal = null, transition = false;
-  let playbackState = null, rendererRetired = false;
+  let playbackState = null, rendererRetired = false, activeStem = null;
   const publish = (state, detail = '', error = null) => {
     playbackState = state;
     onState({ state, detail, play: started?.play, terminal,
@@ -25,6 +25,8 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
     if (!terminal) requireTerminal(closed?.receipt);
     adapter = null;
     await session.lull(started.play);
+    await activeStem?.afterLull();
+    activeStem = null;
   };
   if (session.current()?.state === 'FULFILLED') {
     publish('Fulfilled', 'This body is complete. Its biography remains available for inspection.');
@@ -53,10 +55,10 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
         started = adapter.start(1);
         patchbay = bindPatchbay(adapter, started);
         await session.started(started);
+        activeStem = stemProvider;
         await external?.updateContext?.();
         publish('Playing', 'Plots are awake');
         const running = adapter;
-        const runningPlay = started.play;
         const localRun = adapter.run();
         const externalRun = external?.run();
         Promise.all([localRun, externalRun]).then(([receipt, externalReceipt]) => {
@@ -78,10 +80,7 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
             return;
           }
           try {
-            const closed = running.close();
-            requireTerminal(closed?.receipt);
-            adapter = null;
-            await session.lull(runningPlay);
+            await stop();
             publish('Lulled', 'Its input paused when this browser window lost focus. Choose Wake Body to continue.');
           } catch (cleanupError) {
             publish('Failed', `${error.message} · ${cleanupError.message}`, cleanupError);

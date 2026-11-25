@@ -69,6 +69,11 @@ test("resident Stem prepares and joins a local Host into the same Body", async (
   await configuration.getByRole("button", { name: "Prepare Seed", exact: true }).click();
   const launch = configuration.getByRole("button", { name: "Launch and join browser Host", exact: true });
   await expect(launch).toBeVisible({ timeout: 75_000 });
+  await page.getByRole("button", { name: "lull body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).body_id).toBe(before.body_id);
+  await configuration.getByRole("button", { name: "Prepare Seed", exact: true }).click();
+  await expect(launch).toBeVisible({ timeout: 75_000 });
   await launch.click();
   await expect(launch).toBeHidden();
   await expect.poll(() => page.evaluate(() =>
