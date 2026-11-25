@@ -19,6 +19,10 @@ fn fixture() -> (std::path::PathBuf, DurableHostRuntime) {
 fn clean_deadline_starts_one_additional_play_on_the_same_boot() {
     let (root, mut runtime) = fixture();
     let original_boot = runtime.host.advertisement().boot_id.clone();
+    let HostSource::Body { owner, .. } = &runtime.host else {
+        panic!("expected installed owner");
+    };
+    let original_body = owner.truth()["biography"]["body_id"].clone();
     runtime
         .start_owned_body_selected(100, None, None, 1)
         .unwrap();
@@ -33,6 +37,10 @@ fn clean_deadline_starts_one_additional_play_on_the_same_boot() {
     }
     assert!(runtime.host.body_is_running(), "one renewal must start");
     assert_eq!(runtime.host.advertisement().boot_id, original_boot);
+    let HostSource::Body { owner, .. } = &runtime.host else {
+        panic!("expected installed owner after renewal");
+    };
+    assert_eq!(owner.truth()["biography"]["body_id"], original_body);
 
     while runtime.host.body_is_running() {
         runtime.progress_owned_body().unwrap();
