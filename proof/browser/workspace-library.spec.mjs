@@ -26,6 +26,25 @@ async function birth(page) {
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
 }
+test("the ordinary library installs checked Stem without waking the retained Body", async ({ page }) => {
+  test.setTimeout(45_000 + BROWSER_COLD_PREPARATION_MS);
+  await birth(page);
+  const before = await current(page);
+  await openLibrary(page);
+  await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("Stem");
+  const stem = card(page, "Stem");
+  await expect(stem).toContainText("Requires preparation");
+  await stem.getByRole("button", { name: "Use", exact: true }).click();
+  await expect(page.locator("#surface-title")).toHaveText("Stem");
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
+  const after = await current(page);
+  expect(after.body_id).toBe(before.body_id);
+  expect(after.here_part_id).toBe(before.here_part_id);
+  expect(after.workload_revision).toBe(before.workload_revision + 1);
+  expect(after.active_play_id).toBeFalsy();
+  await expect(page.locator("[data-workspace-stem]").getByRole("button", { name: "Review Host", exact: true })).toBeVisible();
+});
+
 test("five ordinary plots start together beyond the old aggregate placement ceiling", async ({ page }) => {
   // Include cold Body preparation without reducing the interaction assertions.
   test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);

@@ -10,7 +10,7 @@ mod generated {
 pub use generated::{LibraryAvailability, LibraryAvailabilityNeedsCapability, LibraryRefusal};
 
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_body::{BodyLifecycleSession, MAX_BODY_PLOTS, ResidentPlot};
+use conduit_body::{BodyLifecycleSession, ResidentPlot, MAX_BODY_PLOTS};
 use conduit_face::{
     ActionAvailability, ApplicationEventKind, FaceMechanism, FieldKind, FormField, SemanticAction,
     SemanticApplicationView, SemanticFaceNode, StatusKind,
@@ -79,7 +79,11 @@ impl PlotLibrary {
         let mut matches = 0_usize;
         for (index, entry) in self.entries.iter().enumerate() {
             let text = format!("{} {}", entry.title, entry.search_text).to_lowercase();
-            let available = matches!(entry.availability, LibraryAvailability::Available);
+            let available = !matches!(entry.availability, LibraryAvailability::NeedsCapability(_));
+            let awaits_preparation = matches!(
+                entry.availability,
+                LibraryAvailability::AwaitsPreparation(_)
+            );
             if (!terms.is_empty() && !terms.iter().all(|term| text.contains(term)))
                 || (terms.is_empty() && !available)
             {
@@ -131,6 +135,8 @@ impl PlotLibrary {
                         "Needs capability"
                     } else if body_at_capacity {
                         "Body at capacity"
+                    } else if awaits_preparation {
+                        "Requires preparation"
                     } else {
                         "Not in your body"
                     }
@@ -138,6 +144,7 @@ impl PlotLibrary {
                     detail: match &entry.availability {
                         LibraryAvailability::Available => String::new(),
                         LibraryAvailability::NeedsCapability(payload) => payload.reason().clone(),
+                        LibraryAvailability::AwaitsPreparation(payload) => payload.reason().clone(),
                     },
                 },
                 vec![],
@@ -152,6 +159,9 @@ impl PlotLibrary {
                             LibraryAvailability::Available => {
                                 "This fallback has a reviewed realization on the current host."
                                     .into()
+                            }
+                            LibraryAvailability::AwaitsPreparation(payload) => {
+                                format!("The fallback requires preparation: {}", payload.reason())
                             }
                             LibraryAvailability::NeedsCapability(payload) => {
                                 format!("The fallback still needs capability: {}", payload.reason())

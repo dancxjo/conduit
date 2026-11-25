@@ -430,7 +430,7 @@ export async function startApplication(application) {
         selected = session.foreground()?.checked_plot_id;
         library.hide(); inspection.hidden = true;
         render();
-        if (!installed || session.current().state === 'LULLED') await play.wake(true);
+        if (plot.entry !== 'stem/main' && (!installed || session.current().state === 'LULLED')) await play.wake(true);
         if (!input.disabled && !input.hidden) input.focus();
       } finally { editing = false; }
     };

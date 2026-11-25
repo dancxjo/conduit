@@ -48,7 +48,7 @@ fn malformed_catalogue_never_reuses_previous_admission() {
     LIBRARY_ADMISSION.with(|cache| {
         *cache.borrow_mut() = Some(LibraryAdmission {
             key: [7; 32],
-            available: vec![true],
+            available: vec![LibraryAvailability::Available],
         })
     });
     assert!(
@@ -91,7 +91,7 @@ fn theremin_shelf_admission_derives_exact_dynamic_backs_from_its_source() {
 }
 
 #[test]
-fn stem_shelf_requires_an_admitted_builder_on_the_current_host() {
+fn stem_shelf_can_retain_a_checked_plot_that_awaits_a_builder() {
     let source = include_str!("../../../../../../plots/stem/main.conduit");
     let bundle = serde_json::json!({
         "schema": "conduit.creche/reviewed-plot-bundle@2",
@@ -123,5 +123,8 @@ fn stem_shelf_requires_an_admitted_builder_on_the_current_host() {
         &[],
         &mut super::super::catalog_preparation::CatalogPreparation::default(),
     );
-    assert!(result.is_err());
+    assert!(matches!(
+        result.unwrap(),
+        LibraryAvailability::AwaitsPreparation(_)
+    ));
 }
