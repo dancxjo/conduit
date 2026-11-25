@@ -1,6 +1,6 @@
 import { createExistingComputerAdapter } from "./creche-existing-computer.mjs";
 import { readBodyBoundZip } from "./creche-native-zip.mjs";
-import { BROWSER_RELEASE_PROFILE } from "../deployment/browser/creche-adapter.mjs";
+import { BROWSER_DISTRIBUTION_PROFILE, BROWSER_RELEASE_PROFILE } from "../deployment/browser/creche-adapter.mjs";
 import { acquireConfiguredHostRelease } from "./creche-release-catalog.mjs";
 import { buildBrowserBundleImage } from "../deployment/browser/browser-bundle.mjs";
 import { createBrowserConfigurationOutfitter as createExactOutfitter } from "./browser-host-configuration.mjs";
@@ -183,7 +183,7 @@ export function openWorkspaceStem({ host, session, faceFor, root, wake, onChange
       root.replaceChildren();
       try {
         const signal = AbortSignal.timeout(120_000);
-        const distribution = await acquireConfiguredHostRelease(host, BROWSER_RELEASE_PROFILE, signal);
+        const distribution = await acquireConfiguredHostRelease(host, BROWSER_DISTRIBUTION_PROFILE, signal);
         if (!eligible || session.current()?.state !== "LULLED") return;
         provider = await session.prepareStem(selection, distribution, signal);
         await wake(Object.freeze({ ...provider, completed() {

@@ -22,6 +22,11 @@ export const BROWSER_RELEASE_PROFILE = Object.freeze({
   browser_carrier: true,
 });
 
+export const BROWSER_DISTRIBUTION_PROFILE = Object.freeze({
+  ...BROWSER_RELEASE_PROFILE,
+  builder_adapter: "conduit-host-browser/build-wasm@1",
+});
+
 export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
   schema: "conduit.creche/physical-host-target-entry@1",
   family: Object.freeze({ id: "conduit-target-family/browser@1", label: "Browser Hosts" }),
@@ -75,10 +80,7 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
       async obtain({ mode, signal }) {
         const checked = outfitter?.checked();
         if (!checked) throw new Error("review the browser Host configuration before BUILD");
-        const distribution = await acquireHostRelease({
-          ...BROWSER_RELEASE_PROFILE,
-          builder_adapter: "conduit-host-browser/build-wasm@1",
-        }, signal);
+        const distribution = await acquireHostRelease(BROWSER_DISTRIBUTION_PROFILE, signal);
         const release = await buildBrowserBundleImage({ checked, distribution });
         return Object.freeze({
           resultKind: "installation",
