@@ -1,4 +1,4 @@
-import { openWorkspaceStem } from "./workspace-stem-provider.mjs";
+import { openWorkspaceStem } from "./workspace-host-configuration.mjs";
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner } from "./body-bootstrap.mjs";
 import { readReviewedPlotInventory, openPlotSelection, persistedPlotSelection } from "./reviewed-plot-selection.mjs";

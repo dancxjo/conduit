@@ -1,4 +1,4 @@
-import { prepareWorkspaceStemProvider } from "./workspace-stem-provider.mjs";
+import { prepareWorkspaceStemProvider } from "./workspace-host-configuration.mjs";
 import { bindBrowserRuntimeBridge } from "../../../targets/browser/host/assets/browser-runtime-bridge.mjs";
 
 // Workspace orchestration of the existing Crèche lifecycle. Rust owns Body truth.
