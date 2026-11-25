@@ -13,7 +13,7 @@ mod refusal;
 use refusal::Refusal;
 mod browser_spore;
 mod requests;
-pub(crate) mod womb_provision;
+pub(crate) mod stem_provision;
 use requests::Request;
 #[path = "workspace_patchbay_planning.rs"]
 pub(crate) mod patchbay_planning;
@@ -200,18 +200,18 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
         let mut candidate = current.clone();
         match request {
             Request::Current => return snapshot(current),
-            Request::ReleaseWombAfterAdmission {host_id,boot_id,reservation_id} => return womb_provision::release_after_admission(current,&host_id,&boot_id,reservation_id),
-            Request::BeginWombDelivery {host_id,boot_id,reservation_id,now_millis} => return womb_provision::begin_delivery(current,&host_id,&boot_id,reservation_id,now_millis),
-            Request::StageWombRelease { stage } => return womb_provision::stage(current, stage),
-            Request::ObserveWombResource {host_id,boot_id,reservation_id,placement} => return womb_provision::observe(current,&host_id,&boot_id,reservation_id,*placement),
-            Request::BeginWombHostJob {call} => return womb_provision::begin_job(current,call),
-            Request::CompleteWombHostJob {call,manifest,image} => return womb_provision::complete_job(current,call,manifest,image),
-            Request::FailWombHostJob {call,cancelled} => return womb_provision::fail_job(current,call,cancelled),
-            Request::RunWombProvider { call } => return womb_provision::run(current, call),
-            Request::WombResult { host_id, boot_id, reservation_id } => return womb_provision::result(current, &host_id, &boot_id, reservation_id),
-            Request::WombInput { host_id, boot_id, reservation_id } => return womb_provision::request_for_started(current, &host_id, &boot_id, reservation_id),
-            Request::ReserveWomb { reservation } => return womb_provision::reserve(current, reservation),
-            Request::CancelWombReservation { host_id, boot_id, reservation_id } => return womb_provision::cancel(current, &host_id, &boot_id, reservation_id),
+            Request::ReleaseStemAfterAdmission {host_id,boot_id,reservation_id} => return stem_provision::release_after_admission(current,&host_id,&boot_id,reservation_id),
+            Request::BeginStemDelivery {host_id,boot_id,reservation_id,now_millis} => return stem_provision::begin_delivery(current,&host_id,&boot_id,reservation_id,now_millis),
+            Request::StageStemRelease { stage } => return stem_provision::stage(current, stage),
+            Request::ObserveStemResource {host_id,boot_id,reservation_id,placement} => return stem_provision::observe(current,&host_id,&boot_id,reservation_id,*placement),
+            Request::BeginStemHostJob {call} => return stem_provision::begin_job(current,call),
+            Request::CompleteStemHostJob {call,manifest,image} => return stem_provision::complete_job(current,call,manifest,image),
+            Request::FailStemHostJob {call,cancelled} => return stem_provision::fail_job(current,call,cancelled),
+            Request::RunStemProvider { call } => return stem_provision::run(current, call),
+            Request::StemResult { host_id, boot_id, reservation_id } => return stem_provision::result(current, &host_id, &boot_id, reservation_id),
+            Request::StemInput { host_id, boot_id, reservation_id } => return stem_provision::request_for_started(current, &host_id, &boot_id, reservation_id),
+            Request::ReserveStem { reservation } => return stem_provision::reserve(current, reservation),
+            Request::CancelStemReservation { host_id, boot_id, reservation_id } => return stem_provision::cancel(current, &host_id, &boot_id, reservation_id),
             Request::ConversationContext => return encode(&conversation_context(current)?),
             Request::Durable => return ADMISSIONS.with(|admissions| {
                 let admissions = admissions.borrow();
@@ -566,7 +566,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .started(&host_id, &boot_id, play, wake_at_start)
                     .map_err(debug)?;
                 let bytes = snapshot(&candidate)?;
-                womb_provision::confirm_started(&candidate)?;
+                stem_provision::confirm_started(&candidate)?;
                 *slot = Some(candidate);
                 crate::plot_runner::workspace::acknowledge_start();
                 return Ok(bytes);

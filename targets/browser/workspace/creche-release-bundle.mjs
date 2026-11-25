@@ -43,7 +43,7 @@ export async function acquireHostRelease(profile, signal, {
   }
   const bundleDigest = await digestFileIdentities(payloads);
   if (bundleDigest !== manifest.bundle_sha256) refuse("StaleArtifact", "reviewed host release bundle identity is stale", undefined, true);
-  return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
+  return Object.freeze({ manifest: Object.freeze(manifest), manifestBytes: manifestResource.bytes, payloads: Object.freeze(payloads), totalBytes });
 }
 
 export async function acquireExactReleaseBytes({ url, expected, maximumBytes, signal, fetcher, cache, label, artifactWorkStarted = false }) {

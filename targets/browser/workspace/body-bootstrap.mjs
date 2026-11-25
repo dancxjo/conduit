@@ -7,6 +7,8 @@ import {
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const STEM_AWAITING_BUILDER = "checked-stem-awaiting-builder";
+const STEM_BUILDER_NEEDED = "Stem prepares a Seed to add another Host to this Body. Wake requires an admitted Stem builder.";
 
 export function createBodyBirthRunner({ source, sourceKey, listingId, host, faceFor, inventory, initialSelection, onSelection, nextSequence, onBodyChanged, onContinue }) {
   const runner = document.createElement("section");
@@ -213,6 +215,9 @@ function review(runner, host, state, controls) {
     );
     const plotCount = state.initialPlots.length;
     state.status = `Ready to birth with ${plotCount} ${plotCount === 1 ? 'plot' : 'plots'}.`;
+    if (state.review.review.disposition === STEM_AWAITING_BUILDER) {
+      state.status += ` ${STEM_BUILDER_NEEDED}`;
+    }
     state.outcome = "success-status";
   } catch (error) {
     state.review = null;
@@ -303,6 +308,9 @@ function renderReceipt(runner, receipt, retained, state, faceOptions) {
   state.status = retained
     ? "Same LULLED Body retained — Crèche face controls did not recreate it."
     : `Born — ${receipt.initial_plots.length} checked plot(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
+  if (receipt.initial_review.disposition === STEM_AWAITING_BUILDER) {
+    state.status += ` ${STEM_BUILDER_NEEDED}`;
+  }
   state.outcome = "success-status";
   if (!retained) faceOptions.onSelection(null);
   presentBirthControls(runner, state, faceOptions);

@@ -274,11 +274,11 @@ impl TourSession {
                         .clone(),
                 }),
             )),
-            engine::BrowserHostEffect::WombPrepare => {
-                Ok(TourHostEffect::WombPrepare(Box::new(TourKeyEventEffect {
+            engine::BrowserHostEffect::StemPrepare => {
+                Ok(TourHostEffect::StemPrepare(Box::new(TourKeyEventEffect {
                     editor: None,
-                    schema: "conduit.womb/prepare-effect@1",
-                    effect_kind: "womb-prepare",
+                    schema: "conduit.stem/prepare-effect@1",
+                    effect_kind: "stem-prepare",
                     source_document_id: fragment.source_document_id.as_str().into(),
                     checked_plot_id: fragment.checked_plot_id.as_str().into(),
                     expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
@@ -289,7 +289,7 @@ impl TourSession {
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
                     request_sequence: pending.request.request.0,
-                    maximum_output_bytes: conduit_body_make::womb_runtime::WOMB_OUTCOME_BYTES
+                    maximum_output_bytes: conduit_body_make::stem_runtime::STEM_OUTCOME_BYTES
                         as u32,
                     source_interaction: self.source_interaction.clone(),
                     choice: None,

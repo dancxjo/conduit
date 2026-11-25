@@ -10,7 +10,7 @@ pub(crate) fn fixture() -> (HostReleaseManifest, CheckedHostConfiguration) {
         "browser/pointer-events@1",
     ];
     let configuration =
-        crate::creche::check_womb_configuration(crate::creche::BrowserConfigurationSelection {
+        crate::creche::check_stem_configuration(crate::creche::BrowserConfigurationSelection {
             catalog_generation: 1,
             implementations: ids.iter().map(|id| (*id).into()).collect(),
         })

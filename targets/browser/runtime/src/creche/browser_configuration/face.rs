@@ -16,6 +16,7 @@ const MINIMAL_PRESET_ACTION: &str = "configuration.preset.minimal";
 const INTERACTIVE_PRESET_ACTION: &str = "configuration.preset.interactive";
 const CUSTOM_PRESET_ACTION: &str = "configuration.preset.custom";
 const REVIEW_ACTION: &str = "configuration.review";
+const STEM_PREPARE_ACTION: &str = "stem.prepare";
 const EDIT_ACTION: &str = "configuration.edit";
 
 struct BrowserConfigurationActions {
@@ -44,6 +45,7 @@ struct BrowserConfigurationReviewFace {
     join_mode: String,
     canonical_source: String,
     does_not_create: Vec<String>,
+    stem_action: Option<(&'static str, &'static str)>,
 }
 
 impl BrowserConfigurationActions {
@@ -164,6 +166,39 @@ impl BrowserConfigurationReviewFace {
             )
         })
         .collect();
+        let mut children = vec![
+            node(
+                "configuration-review-values",
+                FaceMechanism::DefinitionTable {
+                    title: "Exact configuration identities".into(),
+                },
+                definitions,
+            ),
+            node(
+                "configuration-source",
+                FaceMechanism::CodeBlock {
+                    language: "conduit".into(),
+                    code: self.canonical_source.clone(),
+                },
+                vec![],
+            ),
+            node(
+                "configuration-absent",
+                FaceMechanism::Status {
+                    kind: StatusKind::Ordinary,
+                    title: format!(
+                        "Configuration creates no {}.",
+                        self.does_not_create.join(", ")
+                    ),
+                    detail: String::new(),
+                },
+                vec![],
+            ),
+            action("edit-browser-configuration", EDIT_ACTION, "Back / Edit"),
+        ];
+        if let Some((identity, label)) = self.stem_action {
+            children.push(action("stem-action", identity, label));
+        }
         view(
             self.revision,
             node(
@@ -174,36 +209,7 @@ impl BrowserConfigurationReviewFace {
                     identity: self.configuration_id.clone(),
                     provenance: "checked browser make configuration".into(),
                 }),
-                vec![
-                    node(
-                        "configuration-review-values",
-                        FaceMechanism::DefinitionTable {
-                            title: "Exact configuration identities".into(),
-                        },
-                        definitions,
-                    ),
-                    node(
-                        "configuration-source",
-                        FaceMechanism::CodeBlock {
-                            language: "conduit".into(),
-                            code: self.canonical_source.clone(),
-                        },
-                        vec![],
-                    ),
-                    node(
-                        "configuration-absent",
-                        FaceMechanism::Status {
-                            kind: StatusKind::Ordinary,
-                            title: format!(
-                                "Configuration creates no {}.",
-                                self.does_not_create.join(", ")
-                            ),
-                            detail: String::new(),
-                        },
-                        vec![],
-                    ),
-                    action("edit-browser-configuration", EDIT_ACTION, "Back / Edit"),
-                ],
+                children,
             ),
         )
     }
@@ -296,13 +302,18 @@ fn face_view(request: BrowserConfigurationViewRequest) -> Result<Vec<u8>, String
             }
             .face()
         }
-        "review" => {
+        "review" | "stem-review" | "stem-ready" => {
             let (reviewed, _, _) = review(BrowserConfigurationSelection {
                 catalog_generation: request.catalog_generation,
                 implementations: request.implementations,
             })?;
             BrowserConfigurationReviewFace {
                 revision: request.revision,
+                stem_action: match request.mode.as_str() {
+                    "stem-review" => Some((STEM_PREPARE_ACTION, "Prepare Seed")),
+                    "stem-ready" => Some(("stem.launch", "Launch and join browser Host")),
+                    _ => None,
+                },
                 target_id: reviewed.target_id.into(),
                 selected_implementations: reviewed.selected_implementations.clone(),
                 configuration_id: reviewed.configuration_id.clone(),
@@ -370,6 +381,31 @@ pub extern "C" fn conduit_creche_browser_configuration_view(length: usize) -> i3
 mod tests {
     use super::*;
     use crate::creche::browser_configuration::DEFAULT_IMPLEMENTATIONS;
+
+    #[test]
+    fn only_stem_review_exposes_the_typed_prepare_action() {
+        for (mode, expected) in [("review", false), ("stem-review", true)] {
+            let encoded = face_view(BrowserConfigurationViewRequest {
+                revision: 1,
+                mode: mode.into(),
+                catalog_generation: CATALOG_GENERATION,
+                implementations: DEFAULT_IMPLEMENTATIONS
+                    .iter()
+                    .map(|value| (*value).into())
+                    .collect(),
+                group: None,
+                diagnostic: None,
+            })
+            .unwrap();
+            let view = conduit_face::ApplicationView::decode(&encoded).unwrap();
+            assert_eq!(
+                view.actions
+                    .iter()
+                    .any(|action| action.id == STEM_PREPARE_ACTION),
+                expected
+            );
+        }
+    }
 
     #[test]
     fn configuration_views_are_target_semantics_with_bounded_catalog_inputs() {

@@ -78,7 +78,7 @@ export function createPitchTonePerformer(window) {
 // Shared page-Host dispatch for effects requested by the one WASM kernel.
 // It does not plan work or schedule semantic operations.
 export async function drainBrowserEffects({ api, initialProgress, readOutput, perform,
-  isCurrent = () => true, onWaiting = () => {}, bridge = null, signal, admittedInput = null }) {
+  isCurrent = () => true, onWaiting = () => {}, onCompleted = () => {}, bridge = null, signal, admittedInput = null }) {
   if (!bridge) throw new Error("browser runtime bridge is required");
   const effects = new Map();
   const playbackControllers = new Map();
@@ -186,6 +186,7 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
         throw new Error(`effect completion refused (${completion})${refusal?.message ? `: ${refusal.message}` : ""}`);
       }
       progress = readOutput();
+      onCompleted(effect);
     }
     return current() ? progress : undefined;
   } finally {

@@ -23,55 +23,55 @@ pub(super) enum Request {
         advertisement: HostAdvertisement,
     },
     Durable,
-    ReserveWomb {
-        reservation: super::womb_provision::Reservation,
+    ReserveStem {
+        reservation: super::stem_provision::Reservation,
     },
-    CancelWombReservation {
+    CancelStemReservation {
         host_id: HostId,
         boot_id: BootId,
         reservation_id: [u8; 32],
     },
-    ReleaseWombAfterAdmission {
+    ReleaseStemAfterAdmission {
         host_id: HostId,
         boot_id: BootId,
         reservation_id: [u8; 32],
     },
-    BeginWombDelivery {
+    BeginStemDelivery {
         host_id: HostId,
         boot_id: BootId,
         reservation_id: [u8; 32],
         now_millis: u64,
     },
-    StageWombRelease {
-        stage: super::womb_provision::Stage,
+    StageStemRelease {
+        stage: super::stem_provision::Stage,
     },
-    ObserveWombResource {
+    ObserveStemResource {
         host_id: HostId,
         boot_id: BootId,
         reservation_id: [u8; 32],
         placement: Box<conduit_core::PlannedGear>,
     },
-    BeginWombHostJob {
-        call: super::womb_provision::ProviderCall,
+    BeginStemHostJob {
+        call: super::stem_provision::ProviderCall,
     },
-    CompleteWombHostJob {
-        call: super::womb_provision::ProviderCall,
+    CompleteStemHostJob {
+        call: super::stem_provision::ProviderCall,
         manifest: Vec<u8>,
         image: Vec<u8>,
     },
-    FailWombHostJob {
-        call: super::womb_provision::ProviderCall,
+    FailStemHostJob {
+        call: super::stem_provision::ProviderCall,
         cancelled: bool,
     },
-    RunWombProvider {
-        call: super::womb_provision::ProviderCall,
+    RunStemProvider {
+        call: super::stem_provision::ProviderCall,
     },
-    WombResult {
+    StemResult {
         host_id: HostId,
         boot_id: BootId,
         reservation_id: [u8; 32],
     },
-    WombInput {
+    StemInput {
         host_id: HostId,
         boot_id: BootId,
         reservation_id: [u8; 32],

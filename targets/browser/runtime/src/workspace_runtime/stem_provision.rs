@@ -20,7 +20,7 @@ pub(super) use delivery::{begin_delivery, release_after_admission};
 mod staging;
 #[cfg(test)]
 pub(crate) mod test_release;
-use conduit_body_make::womb_runtime::WombOutcome;
+use conduit_body_make::stem_runtime::StemOutcome;
 pub(crate) use provider::{record_kernel_outcome, validate_completion};
 pub(super) use provider::{result, run, ProviderCall};
 pub(super) use staging::{stage, Stage};
@@ -60,13 +60,13 @@ struct Provision {
     release_pin: Option<staging::ReleasePin>,
     material: Option<staging::Material>,
     binding: Option<binding::Binding>,
-    provider_outcome: Option<WombOutcome>,
+    provider_outcome: Option<StemOutcome>,
     provider_attempted: bool,
     delivery_committed: bool,
     target_job_pending: bool,
     target_job_sequence: Option<u32>,
-    target_job_failure: Option<conduit_body_make::womb_runtime::WombDisposition>,
-    kernel_outcome: Option<WombOutcome>,
+    target_job_failure: Option<conduit_body_make::stem_runtime::StemDisposition>,
+    kernel_outcome: Option<StemOutcome>,
     provider_evidence: Vec<u8>,
 }
 thread_local! {
@@ -87,7 +87,7 @@ fn require_issuer(
             Ok(())
         } else {
             Err(Refusal::new(
-                "Womb.Denied",
+                "Stem.Denied",
                 "This Boot has no retained Birth issuer custody",
             ))
         }
@@ -97,12 +97,12 @@ fn require_issuer(
 impl Provision {
     fn response(&self) -> Result<Vec<u8>, Refusal> {
         encode(&serde_json::json!({
-            "schema": "conduit.womb/reservation@1", "disposition": "reserved",
+            "schema": "conduit.stem/reservation@1", "disposition": "reserved",
             "reservation_id": self.id, "body_id": self.invitation.body_id,
             "configuration_id": self.configuration.configuration_id(),
             "target_id": self.configuration.profile().target.key(),
             "expected_release_digest": self.expected_release_digest,
-            "checked": crate::creche::womb_configuration_review(&self.configuration).map_err(|error|Refusal::new("Womb.Configuration",error))?,
+            "checked": crate::creche::stem_configuration_review(&self.configuration).map_err(|error|Refusal::new("Stem.Configuration",error))?,
             "artifact_prepared": false, "invitation_delivered": false,
             "membership_claimed": false,
         }))
@@ -116,13 +116,13 @@ pub(super) fn reserve(
     require_issuer(body, &request.host_id, &request.boot_id)?;
     if body.evidence().body.state != BodyState::Lulled {
         return Err(Refusal::new(
-            "Womb.NotLulled",
-            "Reserve provisioning before proposing the Womb Play",
+            "Stem.NotLulled",
+            "Reserve provisioning before proposing the Stem Play",
         ));
     }
     if request.target_id != "browser/wasm32/page" {
         return Err(Refusal::new(
-            "Womb.UnsupportedTarget",
+            "Stem.UnsupportedTarget",
             "This selected provider prepares browser page Hosts only",
         ));
     }
@@ -131,8 +131,8 @@ pub(super) fn reserve(
         let mut slot = slot.borrow_mut();
         if slot.is_some() {
             return Err(Refusal::new(
-                "Womb.Busy",
-                "One private Womb provision is already reserved",
+                "Stem.Busy",
+                "One private Stem provision is already reserved",
             ));
         }
         let digest = request.expected_release_digest.as_bytes();
@@ -142,15 +142,15 @@ pub(super) fn reserve(
             || digest[7..].iter().any(u8::is_ascii_uppercase)
         {
             return Err(Refusal::new(
-                "Womb.InvalidSelection",
+                "Stem.InvalidSelection",
                 "Select one exact reviewed release digest",
             ));
         }
-        let configuration = crate::creche::check_womb_configuration(request.selection)
-            .map_err(|error| Refusal::new("Womb.InvalidSelection", error))?;
+        let configuration = crate::creche::check_stem_configuration(request.selection)
+            .map_err(|error| Refusal::new("Stem.InvalidSelection", error))?;
         let secret = <[u8; 32]>::try_from(request.secret.0.as_slice()).map_err(|_| {
             Refusal::new(
-                "Womb.InvalidSelection",
+                "Stem.InvalidSelection",
                 "Invitation entropy must have 32 bytes",
             )
         })?;
@@ -167,7 +167,7 @@ pub(super) fn reserve(
                 .ok_or("Workspace admission state is missing")?;
             if manager.body_id != body.evidence().body_id {
                 return Err(Refusal::new(
-                    "Womb.Denied",
+                    "Stem.Denied",
                     "Issuer manager names another Body",
                 ));
             }
@@ -185,7 +185,7 @@ pub(super) fn reserve(
                     )
                 })?;
             let identity = serde_json::to_vec(&(
-                "conduit.womb/private-reservation@1",
+                "conduit.stem/private-reservation@1",
                 &request.target_id,
                 &request.host_id,
                 &request.boot_id,
@@ -202,11 +202,11 @@ pub(super) fn reserve(
                         .revoke_pending_spawn_invitation(&invitation)
                         .map_err(|failure| {
                             Refusal::new(
-                                &format!("Womb.Cleanup.{failure:?}"),
+                                &format!("Stem.Cleanup.{failure:?}"),
                                 "Owned invitation cleanup refused",
                             )
                         })?;
-                    return Err(Refusal::new("Womb.Encode", error.to_string()));
+                    return Err(Refusal::new("Stem.Encode", error.to_string()));
                 }
             };
             let provision = Provision {
@@ -238,7 +238,7 @@ pub(super) fn reserve(
                         .revoke_pending_spawn_invitation(&provision.invitation)
                         .map_err(|failure| {
                             Refusal::new(
-                                &format!("Womb.Cleanup.{failure:?}"),
+                                &format!("Stem.Cleanup.{failure:?}"),
                                 "Owned invitation cleanup refused",
                             )
                         })?;
@@ -276,12 +276,12 @@ impl Provision {
         let pool = self
             .id
             .iter()
-            .fold(String::from("browser/womb/"), |mut pool, byte| {
+            .fold(String::from("browser/stem/"), |mut pool, byte| {
                 use core::fmt::Write;
                 write!(&mut pool, "{byte:02x}").expect("write String");
                 pool
             });
-        conduit_core::resource_offer(&pool, crate::installed_browser::womb::RESOURCE, 1)
+        conduit_core::resource_offer(&pool, crate::installed_browser::stem::RESOURCE, 1)
     }
 }
 
@@ -311,7 +311,7 @@ pub(crate) fn has_scoped_offer() -> bool {
 
 pub(crate) fn augment_advertisement(host: &mut HostAdvertisement) {
     if let Some(resource) = scoped_resource(&host.host_id, &host.boot_id) {
-        let offer = crate::installed_browser::womb::offer();
+        let offer = crate::installed_browser::stem::offer();
         host.capabilities
             .retain(|prior| prior.capability_id != offer.capability_id);
         host.resources
@@ -334,23 +334,23 @@ pub(super) fn cancel(
     // Synchronous provider work has returned before this owner can reborrow.
     // Retire the live kernel before discarding a private candidate.
     crate::plot_runner::workspace::require_empty()
-        .map_err(|error| Refusal::new("Womb.DrainRequired", error))?;
+        .map_err(|error| Refusal::new("Stem.DrainRequired", error))?;
     PROVISION.with(|slot| {
         let mut slot = slot.borrow_mut();
-        let provision = slot.as_ref().ok_or("No private Womb reservation exists")?;
+        let provision = slot.as_ref().ok_or("No private Stem reservation exists")?;
         if provision.id != id || &provision.host != host || &provision.boot != boot {
-            return Err(Refusal::new("Womb.StaleReservation", "Cancellation names another reservation"));
+            return Err(Refusal::new("Stem.StaleReservation", "Cancellation names another reservation"));
         }
-        if provision.target_job_pending {return Err(Refusal::new("Womb.DrainRequired","Await the selected browser producer before cancellation"));}
+        if provision.target_job_pending {return Err(Refusal::new("Stem.DrainRequired","Await the selected browser producer before cancellation"));}
         if provision.delivery_committed {
-            return Err(Refusal::new("Womb.DeliveryCommitted", "Exposed invitation bytes cannot be retracted by cancellation"));
+            return Err(Refusal::new("Stem.DeliveryCommitted", "Exposed invitation bytes cannot be retracted by cancellation"));
         }
-        let response = encode(&serde_json::json!({"schema":"conduit.womb/reservation-cancelled@1", "reservation_id":id, "disposition":"cancelled", "invitation_revoked":true, "provider_started":provision.provider_attempted}))?;
+        let response = encode(&serde_json::json!({"schema":"conduit.stem/reservation-cancelled@1", "reservation_id":id, "disposition":"cancelled", "invitation_revoked":true, "provider_started":provision.provider_attempted}))?;
         ADMISSIONS.with(|manager| {
             let mut manager = manager.borrow_mut();
             manager.as_mut().ok_or("Workspace admission state is missing")?
                 .revoke_pending_spawn_invitation(&provision.invitation)
-                .map_err(|failure| Refusal::new(&format!("Womb.Revocation.{failure:?}"), "Owned invitation revocation refused"))
+                .map_err(|failure| Refusal::new(&format!("Stem.Revocation.{failure:?}"), "Owned invitation revocation refused"))
         })?;
         slot.take();
         Ok(response)

@@ -16,6 +16,7 @@
       "path": "workspace.mjs",
       "maximum_bytes": 32768,
       "dependencies": [
+        { "role": "workspace-host-configuration", "specifier": "./workspace-host-configuration.mjs" },
         {
           "role": "browser-host-bootstrap",
           "specifier": "../../../targets/browser/host/assets/browser-host-bootstrap.mjs"
@@ -162,6 +163,7 @@
       "path": "workspace-session.mjs",
       "maximum_bytes": 12288,
       "dependencies": [
+        { "role": "workspace-host-configuration", "specifier": "./workspace-host-configuration.mjs" },
         {
           "role": "browser-runtime-bridge",
           "specifier": "../../../targets/browser/host/assets/browser-runtime-bridge.mjs"
@@ -215,8 +217,13 @@
       "role": "workspace-host-configuration",
       "kind": "module",
       "path": "workspace-host-configuration.mjs",
-      "maximum_bytes": 8192,
+      "maximum_bytes": 16384,
       "dependencies": [
+        { "role": "browser-bundle-builder", "specifier": "../deployment/browser/browser-bundle.mjs" },
+        { "role": "creche-existing-computer", "specifier": "./creche-existing-computer.mjs" },
+        { "role": "creche-native-zip", "specifier": "./creche-native-zip.mjs" },
+        { "role": "browser-adapter", "specifier": "../deployment/browser/creche-adapter.mjs" },
+        { "role": "creche-release-catalog", "specifier": "./creche-release-catalog.mjs" },
         {
           "role": "browser-host-configuration",
           "specifier": "./browser-host-configuration.mjs"

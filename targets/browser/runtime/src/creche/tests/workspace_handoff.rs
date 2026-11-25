@@ -82,7 +82,7 @@ fn workspace(request: serde_json::Value) -> (i32, serde_json::Value) {
     (code, serde_json::from_slice(output).unwrap())
 }
 fn reservation() -> serde_json::Value {
-    serde_json::json!({"action":"ReserveWomb", "reservation":{
+    serde_json::json!({"action":"ReserveStem", "reservation":{
         "host_id":"browser/creche", "boot_id":"browser-boot/creche", "target_id":"browser/wasm32/page",
         "secret":vec![71;32], "nonce":vec![72;32], "now_millis":10, "expires_at_millis":1000,
         "selection":{"catalog_generation":1,"implementations":["browser/dom@1","browser/keyboard-events@1","browser/pointer-events@1"]},
@@ -91,8 +91,8 @@ fn reservation() -> serde_json::Value {
 }
 
 unsafe extern "C" {
-    fn conduit_womb_seed_output_ptr() -> usize;
-    fn conduit_womb_seed_output_len() -> usize;
+    fn conduit_stem_seed_output_ptr() -> usize;
+    fn conduit_stem_seed_output_len() -> usize;
     fn conduit_browser_body_input_ptr() -> usize;
     fn conduit_browser_body_input_capacity() -> usize;
     fn conduit_browser_body_start(length: usize) -> i32;
@@ -161,10 +161,10 @@ fn workspace_reserves_and_revokes_only_its_private_undelivered_provision() {
         assert_eq!(workspace(serde_json::json!({"action":"Arrive","advertisement":host})).0, 0);
         let mut unsupported = reservation();
         unsupported["reservation"]["target_id"] = "unsupported/target".into();
-        assert_eq!(workspace(unsupported).1["code"], "Womb.UnsupportedTarget");
+        assert_eq!(workspace(unsupported).1["code"], "Stem.UnsupportedTarget");
         let mut stale_boot = reservation();
         stale_boot["reservation"]["boot_id"] = serde_json::json!("browser-boot/restarted");
-        assert_eq!(workspace(stale_boot).1["code"], "Womb.Denied");
+        assert_eq!(workspace(stale_boot).1["code"], "Stem.Denied");
         let (code, reserved) = workspace(reservation());
         assert_eq!(code, 0, "{reserved}");
         assert_eq!(reserved["disposition"], "reserved");
@@ -177,11 +177,11 @@ fn workspace_reserves_and_revokes_only_its_private_undelivered_provision() {
         assert_eq!(code, 0, "{unrelated}");
         let before = workspace(serde_json::json!({"action":"Durable"})).1;
         assert_eq!(before["admission"]["invitations"].as_array().unwrap().len(), 2);
-        assert_eq!(workspace(reservation()).1["code"], "Womb.Busy");
+        assert_eq!(workspace(reservation()).1["code"], "Stem.Busy");
         let mut wrong = reserved["reservation_id"].clone();
         wrong[0] = serde_json::json!(wrong[0].as_u64().unwrap() ^ 1);
-        let cancel = |id| serde_json::json!({"action":"CancelWombReservation", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "reservation_id":id});
-        assert_eq!(workspace(cancel(wrong)).1["code"], "Womb.StaleReservation");
+        let cancel = |id| serde_json::json!({"action":"CancelStemReservation", "host_id":"browser/creche", "boot_id":"browser-boot/creche", "reservation_id":id});
+        assert_eq!(workspace(cancel(wrong)).1["code"], "Stem.StaleReservation");
         assert_eq!(workspace(serde_json::json!({"action":"Durable"})).1, before);
         let (code, cancelled) = workspace(cancel(reserved["reservation_id"].clone()));
         assert_eq!(code, 0, "{cancelled}");
@@ -211,16 +211,16 @@ fn public_admitted_snapshot_cannot_reserve_issuer_provisioning() {
         let host = crate::installed_browser::advertisement("browser/creche".into(), "browser-boot/creche".into());
         assert_eq!(workspace(serde_json::json!({"action":"OpenAdmitted", "evidence":evidence, "admission":manager,"host_id":"browser/creche","boot_id":"browser-boot/creche","advertisement":host})).0, 0);
         let before = workspace(serde_json::json!({"action":"Durable"})).1;
-        assert_eq!(workspace(reservation()).1["code"], "Womb.Denied");
+        assert_eq!(workspace(reservation()).1["code"], "Stem.Denied");
         assert_eq!(workspace(serde_json::json!({"action":"Durable"})).1, before);
     }).join().unwrap();
 }
 
-#[path = "workspace_handoff/womb_play.rs"]
-mod womb_play;
+#[path = "workspace_handoff/stem_play.rs"]
+mod stem_play;
 
 #[test]
-fn womb_release_staging_keeps_exact_bytes_private_and_refuses_reordered_chunks() {
+fn stem_release_staging_keeps_exact_bytes_private_and_refuses_reordered_chunks() {
     std::thread::spawn(|| {
         use sha2::{Digest, Sha256};
         session::clear_for_test();
@@ -245,7 +245,7 @@ fn womb_release_staging_keeps_exact_bytes_private_and_refuses_reordered_chunks()
         request["reservation"]["expected_release_digest"] = digest.into();
         request["reservation"]["release_pin"] = serde_json::json!({"manifest_digest":format!("sha256:{:x}",Sha256::digest(&manifest)),"source_identity":"source/fixture"});
         let (code,reserved) = workspace(request); assert_eq!(code,0,"{reserved}");
-        let stage = |operation| serde_json::json!({"action":"StageWombRelease","stage":{
+        let stage = |operation| serde_json::json!({"action":"StageStemRelease","stage":{
             "host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"],"operation":operation}});
         assert_eq!(workspace(stage(serde_json::json!({"kind":"Begin","manifest":manifest}))).0,0);
         assert!(workspace(stage(serde_json::json!({"kind":"Finish"}))).0 < 0);
@@ -257,8 +257,8 @@ fn womb_release_staging_keeps_exact_bytes_private_and_refuses_reordered_chunks()
         assert!(workspace(stage(serde_json::json!({"kind":"Chunk","file":0,"offset":8,"bytes":[0]}))).0 < 0);
         let mut foreign = stage(serde_json::json!({"kind":"Finish"}));
         foreign["stage"]["boot_id"] = "browser-boot/foreign".into();
-        assert_eq!(workspace(foreign).1["code"],"Womb.Denied");
-        assert_eq!(workspace(serde_json::json!({"action":"CancelWombReservation","host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"]})).0,0);
+        assert_eq!(workspace(foreign).1["code"],"Stem.Denied");
+        assert_eq!(workspace(serde_json::json!({"action":"CancelStemReservation","host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"]})).0,0);
         assert!(workspace(stage(serde_json::json!({"kind":"Finish"}))).0 < 0);
     }).join().unwrap();
 }

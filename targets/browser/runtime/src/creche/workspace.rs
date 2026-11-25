@@ -4,6 +4,7 @@ mod handoff;
 use super::{JoinedLineObservation, PlanningAuthority};
 use conduit_body::{BodyBiographyEvidence, BodyPlotPlan};
 use conduit_core::{BootId, HostAdvertisement, HostId};
+use conduit_plot_library::LibraryAvailability;
 pub(crate) use handoff::{handoff_workspace, WorkspaceIssuerCustody};
 use sha2::{Digest, Sha256};
 use std::{cell::RefCell, collections::BTreeMap};
@@ -12,7 +13,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 // dynamic planning fact are bound; workset, query and view revision remain live.
 struct LibraryAdmission {
     key: [u8; 32],
-    available: Vec<bool>,
+    available: Vec<LibraryAvailability>,
 }
 thread_local! {
     static LIBRARY_ADMISSION: RefCell<Option<LibraryAdmission>> = const { RefCell::new(None) };
@@ -117,30 +118,25 @@ pub(crate) fn workspace_library(
             let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
             let mut order: Vec<usize> = (0..plots.len()).collect();
             order.sort_by_key(|index| plots[*index].face_profile);
-            let mut available = vec![false; plots.len()];
+            let mut available = vec![LibraryAvailability::Available; plots.len()];
             for index in order {
+                let entry = &plots[index];
                 available[index] = catalog_plot_plan(
-                    &plots[index],
+                    entry,
                     observed_hosts,
                     host,
                     boot,
                     joined_lines,
                     &mut catalogs,
                 )
-                .is_ok();
+                .unwrap_or_else(|_| {
+                    LibraryAvailability::needs_capability(entry.unavailable_hint.clone())
+                        .expect("reviewed library capability hint is bounded")
+                });
             }
             available
         });
-    let availability = |index: usize| {
-        if available[index] {
-            conduit_plot_library::LibraryAvailability::Available
-        } else {
-            conduit_plot_library::LibraryAvailability::needs_capability(
-                plots[index].unavailable_hint.clone(),
-            )
-            .expect("reviewed library capability hint is bounded")
-        }
-    };
+    let availability = |index: usize| available[index].clone();
     let library = PlotLibrary::new(
         plots
             .iter()
@@ -192,7 +188,7 @@ fn catalog_plot_plan(
     boot: &BootId,
     joined_lines: &[JoinedLineObservation],
     catalogs: &mut super::catalog_preparation::CatalogPreparation,
-) -> Result<(), String> {
+) -> Result<LibraryAvailability, String> {
     let face = match entry.face_profile {
         0 => crate::installed_browser::FaceProfile::Annotation,
         1 => crate::installed_browser::FaceProfile::Quantity,
@@ -257,9 +253,27 @@ fn catalog_plot_plan(
             &document, &plot.name, &profile, &backs,
         )
         .map_err(|error| format!("Workspace resident Fore expansion refused: {error:?}"))?;
+        let stem = authoring
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == conduit_body_make::stem_runtime::STEM_KIND);
+        if stem {
+            super::review::resident_fore::require_resident_fore(&authoring)?;
+            if plot.name == "stem/main"
+                && !hosts[local]
+                    .capabilities
+                    .iter()
+                    .any(|offer| authoring.expanded.gears[0].accepts_realization(offer))
+            {
+                return LibraryAvailability::awaits_preparation(
+                    "Review a browser Host configuration and admit a Seed builder before Stem can run.".into(),
+                ).map_err(|error| format!("Stem library status refused: {error:?}"));
+            }
+        }
         let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
             .map_err(|error| error.to_string())?;
-        conduit_planner::plan_expanded_authoring_with_activations(
+        let plan = conduit_planner::plan_expanded_authoring_with_activations(
             &document,
             &authoring,
             &profile,
@@ -279,7 +293,10 @@ fn catalog_plot_plan(
             &super::review::resident_fore::fore_bounds(&authoring),
         )
         .map_err(|error| error.to_string())?;
-        return Ok(());
+        if stem {
+            super::review::resident_fore::require_planned_fore(&plan)?;
+        }
+        return Ok(LibraryAvailability::Available);
     }
     let expanded =
         conduit_plot::expand_canonical_plot_with_backs(&document, &plot.name, &profile, &backs)
@@ -307,7 +324,7 @@ fn catalog_plot_plan(
             browser_audio: true,
         },
     )?;
-    Ok(())
+    Ok(LibraryAvailability::Available)
 }
 
 pub(crate) fn plan_workspace_plots(
@@ -374,7 +391,7 @@ pub(crate) fn plan_workspace_plots(
                 .expanded
                 .gears
                 .iter()
-                .any(|gear| gear.kind_id.as_str() == conduit_body_make::womb_runtime::WOMB_KIND)
+                .any(|gear| gear.kind_id.as_str() == conduit_body_make::stem_runtime::STEM_KIND)
             {
                 super::review::resident_fore::require_resident_fore(&authoring)?;
             }

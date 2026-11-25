@@ -25,7 +25,7 @@ pub(super) fn retain(
     }
     let manifest: HostReleaseManifest =
         serde_json::from_slice(&manifest_bytes).map_err(|error| error.to_string())?;
-    let review = crate::creche::womb_configuration_review(configuration)?;
+    let review = crate::creche::stem_configuration_review(configuration)?;
     if manifest.source_identity != material.manifest.source_identity
         || manifest.files.len() != material.manifest.files.len() + 1
         || manifest.files[..material.manifest.files.len()] != material.manifest.files
