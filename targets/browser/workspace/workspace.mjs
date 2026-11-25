@@ -1,3 +1,4 @@
+import { openWorkspaceStem } from "./workspace-stem-provider.mjs";
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-bootstrap.mjs";
 import { createBodyBirthRunner, createFirstHostRunner } from "./body-bootstrap.mjs";
 import { readReviewedPlotInventory, openPlotSelection, persistedPlotSelection } from "./reviewed-plot-selection.mjs";
@@ -120,6 +121,10 @@ export async function startApplication(application) {
     let playback = { state: 'Lulled', detail: 'Its plots can wake here.' };
     let play = null, currentMask = null;
     let library = null, membership = null, editing = false;
+    const stem = openWorkspaceStem({ host, session, faceFor: application.faceFor,
+      root: root.querySelector('[data-workspace-stem]'),
+      wake: provider => play.wake(true, provider), onError: fail,
+    });
     const tutorialInstalled = () => session.current()?.initial_plots.some(plot => plot.checked_plot_id === tutorialPlot.checked_plot_id) ?? false;
     const handleTutorialEvent = (event, resident = false) => {
       if ((!resident && event.revision !== tutorialRevision) || event.kind !== 1 || event.value.length !== 0) {
@@ -260,6 +265,7 @@ export async function startApplication(application) {
         .filter(item => item.face?.plot?.checked_plot_id === selected)
         .flatMap(topology => topology.chains.slice(0, 1)
           .flatMap(chain => chain.plan.fragments.flatMap(fragment => fragment.placements)));
+      stem.show(plot?.entry === 'stem/main' && session.current()?.state === 'LULLED');
       root.querySelector('#surface-title').textContent = plot?.title ?? 'No Plots installed';
       root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition, playback.detail, maskPlacements);
       root.querySelector('[data-current-plot-label]').textContent = plot?.title ?? 'Your plots';
@@ -393,6 +399,7 @@ export async function startApplication(application) {
             run: () => voice.run(), close: () => voice.close() });
         }, onState(state) {
         playback = state;
+        showSelected();
         renderTutorial();
         root.querySelector('[data-play-state]').textContent = state.state;
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();

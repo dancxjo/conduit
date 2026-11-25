@@ -3,7 +3,7 @@ const REVIEW_SCHEMA = "conduit.creche/checked-browser-configuration@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSelection = null, onChange }) {
+export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSelection = null, onChange, onPrepareStem }) {
   const catalog = call(host.runtime, "conduit_creche_browser_configuration_catalog");
   requireCatalog(catalog);
   let selected = new Set(restoredSelection?.implementations ?? catalog.defaults);
@@ -29,10 +29,12 @@ export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSel
       const face = faceFor(root);
       if (checked) {
         const slot = faceSlot(root, "browser-configuration-review");
-        presentView(face, slot.dataset.applicationSlot, "review", null, (event) => {
+        presentView(face, slot.dataset.applicationSlot, onPrepareStem ? "stem-review" : "review", null, (event) => {
           if (event.action === "configuration.edit") {
             checked = null;
             onChange();
+          } else if (onPrepareStem && event.action === "stem.prepare" && event.kind === 1 && event.value.length === 0) {
+            onPrepareStem(selection());
           }
         });
         return root;
@@ -74,7 +76,7 @@ export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSel
         const request = encoder.encode(JSON.stringify({
           revision: ++faceRevision,
           mode,
-          catalog_generation: mode === "review" ? checked.catalog_generation : catalog.generation,
+          catalog_generation: checked?.catalog_generation ?? catalog.generation,
           implementations: [...selected].sort(),
           group,
           diagnostic: mode === "actions" ? diagnostic : null,

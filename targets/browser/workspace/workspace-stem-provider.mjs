@@ -1,3 +1,6 @@
+import { BROWSER_RELEASE_PROFILE } from "../deployment/browser/creche-adapter.mjs";
+import { createBrowserConfigurationOutfitter } from "./browser-host-configuration.mjs";
+import { acquireConfiguredHostRelease } from "./creche-release-catalog.mjs";
 import { buildBrowserBundleImage } from "../deployment/browser/browser-bundle.mjs";
 
 const encoder = new TextEncoder();
@@ -71,5 +74,46 @@ export async function prepareWorkspaceStemProvider({ request, here, selection, d
     result: () => request("StemResult", owner),
     beginDelivery: () => request("BeginStemDelivery", { ...owner, now_millis: Date.now() }),
     cancel,
+  });
+}
+
+export function openWorkspaceStem({ host, session, faceFor, root, wake, onError }) {
+  let eligible = false;
+  let preparing = false;
+  const update = () => {
+    root.hidden = !eligible;
+    if (eligible && !preparing) root.replaceChildren(outfitter.render());
+  };
+  const outfitter = createBrowserConfigurationOutfitter({
+    host, faceFor, onChange: update,
+    async onPrepareStem(selection) {
+      if (!eligible || preparing || session.current()?.state !== "LULLED") return;
+      preparing = true;
+      root.replaceChildren();
+      let provider;
+      try {
+        const signal = AbortSignal.timeout(120_000);
+        const distribution = await acquireConfiguredHostRelease(host, BROWSER_RELEASE_PROFILE, signal);
+        if (!eligible || session.current()?.state !== "LULLED") return;
+        provider = await session.prepareStem(selection, distribution, signal);
+        await wake(provider);
+        if (session.current()?.state === "LULLED") {
+          provider.cancel();
+          await session.save();
+        }
+      } catch (error) {
+        onError(error);
+      } finally {
+        preparing = false;
+        update();
+      }
+    },
+  });
+  return Object.freeze({
+    show(visible) {
+      if (eligible === visible) return;
+      eligible = visible;
+      update();
+    },
   });
 }

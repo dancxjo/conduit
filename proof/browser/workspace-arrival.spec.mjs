@@ -44,6 +44,11 @@ test("Crib retains checked Stem at Birth without acquiring builder authority", a
     expect.objectContaining({ checked_plot_id: checkedPlotId }),
   ]));
   expect(body.active_play_id).toBeFalsy();
+  await resident.click();
+  const configuration = page.locator("[data-workspace-stem]");
+  await configuration.getByRole("button", { name: "Review Host", exact: true }).click();
+  await expect(configuration.getByRole("button", { name: "Prepare Seed", exact: true })).toBeVisible();
+  expect((await page.evaluate(() => globalThis.__conduitWorkspace.current())).active_play_id).toBeFalsy();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Refused");
   const afterRefusal = await page.evaluate(() => globalThis.__conduitWorkspace.current());

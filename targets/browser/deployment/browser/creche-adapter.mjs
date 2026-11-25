@@ -9,7 +9,7 @@ const TARGET = Object.freeze({
   model_id: "conduit.host/browser-page@1",
   profile_id: "browser-wasm32-page",
 });
-const PROFILE = Object.freeze({
+export const BROWSER_RELEASE_PROFILE = Object.freeze({
   target: TARGET,
   target_id: TARGET.id,
   manifest_path: new URL("../../../artifacts/browser-page.json", import.meta.url).href,
@@ -55,7 +55,7 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
     unavailable_carriers: ["already-running"],
   }),
   createAdapter: ({ host, faceFor, configurationSelection = null, prepareSpore = null }) => {
-    const existing = createExistingComputerAdapter({ host, profile: PROFILE });
+    const existing = createExistingComputerAdapter({ host, profile: BROWSER_RELEASE_PROFILE });
     let outfitter;
     return Object.freeze({
       ...existing,
@@ -76,7 +76,7 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
         const checked = outfitter?.checked();
         if (!checked) throw new Error("review the browser Host configuration before BUILD");
         const distribution = await acquireHostRelease({
-          ...PROFILE,
+          ...BROWSER_RELEASE_PROFILE,
           builder_adapter: "conduit-host-browser/build-wasm@1",
         }, signal);
         const release = await buildBrowserBundleImage({ checked, distribution });
@@ -87,7 +87,7 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
             schema: "conduit.browser/bundle-build-receipt@1",
             mode,
             result_kind: "installation",
-            target_id: PROFILE.target_id,
+            target_id: BROWSER_RELEASE_PROFILE.target_id,
             profile_id: checked.profile_id,
             source_configuration_id: checked.configuration_id,
             build_id: release.manifest.browser_build_id,
@@ -98,7 +98,7 @@ export const BROWSER_EXISTING_COMPUTER_CONTRIBUTION = Object.freeze({
             distribution_sha256: release.manifest.distribution_sha256,
             builder_adapter: release.manifest.builder_adapter,
             compiler_started: false,
-            network_fetches: [new URL(PROFILE.manifest_path).pathname, ...distribution.payloads.map((item) => item.path)],
+            network_fetches: [new URL(BROWSER_RELEASE_PROFILE.manifest_path).pathname, ...distribution.payloads.map((item) => item.path)],
             does_not_prove: ["body-binding", "start", "boot-observation", "join", "membership"],
           }),
         });
