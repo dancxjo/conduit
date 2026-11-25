@@ -168,7 +168,7 @@ try {
     }
   }
   template.resources.push(...sdkResources);
-  if (template.resources.length > 96 || template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0) > 32 * 1024 * 1024) {
+  if (template.resources.length > 100 || template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0) > 32 * 1024 * 1024) {
     throw new Error('Static application exceeds existing application package bounds');
   }
   for (const resource of template.resources) {

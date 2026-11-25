@@ -234,9 +234,9 @@ browser_safe_not_applicable = "Requires a browser Host with an admitted civil cl
 slug = "resident-ambient-wallpaper"
 title = "Wallpaper"
 entry = "resident-ambient-wallpaper"
-workspace_catalog = false
+workspace_catalog = true
 deterministic = { package = "conduit-std-host", test = "lib", case = "funded_standalone_wallpaper_presents_the_prepared_deck_without_weather" }
-browser_safe_not_applicable = "Requires a hosted Wallpaper Back with a bounded prepared image deck."
+browser_safe_not_applicable = "Requires a Host with a bounded, admitted wallpaper deck slot."
 
 [[plots]]
 slug = "clock"
