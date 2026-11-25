@@ -2,6 +2,8 @@
 mod controller;
 #[cfg(test)]
 pub(crate) use controller::published_todo_test_fixture;
+#[cfg(test)]
+pub(crate) use controller::service_workset_tests::fixture as service_workset_fixture;
 mod image;
 mod native_observation;
 mod retained_source;

@@ -21,6 +21,7 @@ use std::{
 pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
 // The installed kernel's finite inline scratch exceeds the platform default
 // worker stack. This is one service worker per owned Body Play, never a pool.
+const SERVICE_DEADLINE_REQUEST: &str = "owner/service-deadline";
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 enum RunReport {
     Reference(BodyRunReport),
@@ -50,6 +51,7 @@ struct LocalWorker {
     patchbay: Option<patchbay_receiver::PreparedPatchbay>,
     acknowledge: Option<SyncSender<Result<Option<CommittedBodyStartup>, String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
+    retained_deadline: bool,
 }
 
 impl Owner {
@@ -137,7 +139,7 @@ impl Owner {
                             .is_err()
                         {
                             let _ = deadline_control.request_stop(
-                                RunControlRequestId::new("owner/service-deadline")
+                                RunControlRequestId::new(SERVICE_DEADLINE_REQUEST)
                                     .expect("bounded request"),
                             );
                         }
@@ -240,6 +242,7 @@ impl Owner {
                 patchbay,
                 acknowledge: Some(ack_tx),
                 thread: Some(thread),
+                retained_deadline: false,
             })),
         })
     }
@@ -356,7 +359,19 @@ impl LocalWorker {
             .map_err(|_| "Body Play worker panicked; owner service must restart".to_string())?;
         owner.host.restore_after_play(host)?;
         let accepted_stop = self.control.accepted_stop_request();
+        let clean_deadline = accepted_stop.as_ref().map(RunControlRequestId::as_str)
+            == Some(SERVICE_DEADLINE_REQUEST)
+            && result.as_ref().is_ok_and(|report| {
+                let report = report.report();
+                matches!(
+                    report.terminal,
+                    conduit_core::TerminalDisposition::Cancelled { .. }
+                ) && report.failure.is_none()
+                    && report.kernel_failure.is_none()
+                    && report.cleanup_failure.is_none()
+            });
         owner.retain_finished(root, result, output, accepted_stop.as_ref())?;
+        self.retained_deadline = clean_deadline;
         Ok(true)
     }
 
@@ -368,6 +383,20 @@ impl LocalWorker {
 }
 
 impl RunWorker {
+    pub(crate) fn retained_clean_deadline(&self) -> bool {
+        matches!(&self.mode, WorkerMode::Local(worker) if worker.retained_deadline)
+    }
+
+    pub(crate) fn request_renewing_lull(&self) -> Result<(), String> {
+        let WorkerMode::Local(worker) = &self.mode else {
+            return Err("renewing Lull requires a local Body Play".into());
+        };
+        match worker.request_lull() {
+            Err(_) if worker.control.stop_requested() => Ok(()),
+            result => result,
+        }
+    }
+
     pub(super) fn from_member(worker: super::startup_member::MemberWorker) -> Self {
         Self {
             mode: WorkerMode::Member(worker),

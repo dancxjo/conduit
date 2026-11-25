@@ -159,6 +159,7 @@ pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
     host: HostSource,
+    body_renewal: Option<(u64, u16)>,
     birth: Option<body_birth::ServiceBirth>,
     birth_root: Option<PathBuf>,
     remote_fragment: Option<AdmittedRemoteFragment>,
@@ -192,6 +193,7 @@ impl DurableHostRuntime {
             target_id,
             image_content_digest,
             host: HostSource::Bare(Box::new(host)),
+            body_renewal: None,
             birth: None,
             birth_root: None,
             remote_fragment: None,
@@ -1000,6 +1002,12 @@ enum Request {
         #[serde(default)]
         startup_member: Option<Box<crate::durable_host::owner::StartupMemberSelection>>,
     },
+    BodyStartRenewing {
+        protocol: u16,
+        token: Vec<u8>,
+        maximum_millis: u64,
+        renewals: u16,
+    },
     BodyLull {
         protocol: u16,
         token: Vec<u8>,
@@ -1217,10 +1225,14 @@ enum Response {
     BodyRunRequested {
         protocol: u16,
         maximum_millis: u64,
+        #[serde(default)]
+        renewals: u16,
     },
     BodyLullRequested {
         protocol: u16,
         active_play_id: Option<String>,
+        #[serde(default)]
+        stop_requested: bool,
     },
     Join {
         protocol: u16,
@@ -1726,6 +1738,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
+        | Request::BodyStartRenewing { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
@@ -2352,18 +2365,35 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             startup_member,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_owned_body_selected(maximum_millis, todo_new_list, startup_member.map(|s| *s))
+            .start_owned_body_selected(maximum_millis, todo_new_list, startup_member.map(|s| *s), 0)
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
+                renewals: 0,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyStartRenewing {
+            protocol,
+            maximum_millis,
+            renewals,
+            ..
+        } if protocol == PROTOCOL && renewals > 0 => runtime
+            .start_owned_body_selected(maximum_millis, None, None, renewals)
+            .map(|()| Response::BodyRunRequested {
+                protocol: PROTOCOL,
+                maximum_millis,
+                renewals,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyLull { protocol, .. } if protocol == PROTOCOL => runtime
             .request_owned_body_lull()
-            .map(|active_play_id| Response::BodyLullRequested {
-                protocol: PROTOCOL,
-                active_play_id,
-            })
+            .map(
+                |(active_play_id, stop_requested)| Response::BodyLullRequested {
+                    protocol: PROTOCOL,
+                    active_play_id,
+                    stop_requested,
+                },
+            )
             .unwrap_or_else(|code| refused(&code)),
         Request::Join {
             protocol,
