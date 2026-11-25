@@ -33,8 +33,10 @@ test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body",
         headers: cors, contentType: "image/png", body: Buffer.from(photos[index], "base64"),
       });
     });
+    const wallpaper = page.getByRole("checkbox", { name: "Wallpaper", exact: true });
+    await expect(wallpaper).toBeVisible({ timeout: BROWSER_COLD_PREPARATION_MS });
     await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
-    await page.getByRole("checkbox", { name: "Wallpaper", exact: true }).check();
+    await wallpaper.check();
     await page.getByRole("button", { name: "Birth Body", exact: true }).click();
     await page.getByRole("button", { name: "wake body", exact: true }).click();
     await waitForWorkspacePreparation(page);
