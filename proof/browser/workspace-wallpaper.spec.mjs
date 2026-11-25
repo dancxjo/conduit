@@ -22,7 +22,7 @@ test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body",
       headers: cors,
       json: photos.map((_, index) => ({
         date: `2026-11-${24 - index}`, title: `Wallpaper photo ${index + 1}`,
-        media_type: "image", hdurl: `${provider}photo-${index}.png`, copyright: "Test photographer",
+        media_type: "image", hdurl: `${provider}photo-${index}.png`, copyright: "<a href='https://example.invalid/credit'>Test photographer</a>",
       })),
     }));
     await page.route(`${provider}**`, route => {
@@ -47,6 +47,7 @@ test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body",
     const output = page.locator('[data-face-kind="face/ambient-wallpaper-observation"]:visible');
     await expect(output.getByRole("img", { name: "Wallpaper photo 1", exact: true })).toBeVisible();
     await expect(output).toContainText("Test photographer");
+    await expect(output).not.toContainText("<a href");
     const canvas = output.locator("canvas");
     const readPixel = () => canvas.evaluate(element =>
       Array.from(element.getContext("2d").getImageData(0, 0, 1, 1).data));
