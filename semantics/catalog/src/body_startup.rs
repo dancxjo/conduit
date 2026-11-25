@@ -7,6 +7,8 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal, BOOL_INFO_ID,
 };
 
+/// Bounded reviewed choices offered before a Body selects its resident workset.
+pub const MAX_REVIEWED_INITIAL_BODY_PLOTS: usize = 32;
 pub const BODY_WAKE_KIND: &str = "body/wake";
 pub const BODY_FIRST_WAKE_KIND: &str = "body/first-wake";
 pub const BODY_WAKE_REVISION: &str = "conduit.body/wake@1";
