@@ -106,6 +106,25 @@ pub(super) fn reviewed_plots(host: &HostAdvertisement) -> Result<Vec<PlotCandida
             7,
         )?);
     }
+    if [
+        conduit_std_offers::BODY_WAKE_IMPLEMENTATION,
+        conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION,
+    ]
+    .iter()
+    .all(|implementation| {
+        host.capabilities
+            .iter()
+            .any(|offer| offer.implementation.implementation_id.as_str() == *implementation)
+    }) {
+        plots.push(PlotCandidate::from_source(
+            "Startup Chime",
+            "plots/startup-chime/main.conduit",
+            include_str!("../../../../../plots/startup-chime/main.conduit"),
+            "reviewed Startup Chime Plot; playback requires an authorized Wake",
+            SignId::from("patchbay/front-door/startup-chime-available"),
+            8,
+        )?);
+    }
     Ok(plots)
 }
 
