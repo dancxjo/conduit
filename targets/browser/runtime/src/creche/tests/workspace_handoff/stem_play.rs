@@ -302,6 +302,45 @@ fn run_stem_body_play(case: StemFixture) {
             let (code,release)=workspace(serde_json::json!({"action":"ReleaseStemAfterAdmission","host_id":"browser/creche","boot_id":"browser-boot/creche","reservation_id":reserved["reservation_id"]}));
             assert!(code<0);assert_eq!(release["code"],"Stem.NotAdmitted");
             assert!(unsafe{conduit_stem_seed_output_len()}>0,"refused retirement preserves the exposed candidate");
+            if sealed {
+                let output = std::path::PathBuf::from(
+                    std::env::var_os("CONDUIT_STEM_DERIVED_IMAGE").expect("derived IMAGE directory"));
+                let proof_script = concat!(
+                    env!("CARGO_MANIFEST_DIR"), "/../../../proof/browser/stem-seed-carrier.mjs"
+                );
+                let carrier = std::process::Command::new("node").arg(proof_script)
+                    .arg(&output).output().unwrap();
+                assert!(carrier.status.success(), "{}", String::from_utf8_lossy(&carrier.stderr));
+                let observation: serde_json::Value = serde_json::from_slice(
+                    &std::fs::read(output.join("stem-browser-carrier.json")).unwrap()).unwrap();
+                assert_eq!(observation["body"], born.body_id);
+                let (code, accepted) = workspace(serde_json::json!({
+                    "action": "AdmitInvitation", "host_id": "browser/creche",
+                    "boot_id": "browser-boot/creche", "now_millis": 20,
+                    "advertisement": observation["admission"]["advertisement"],
+                    "proof": observation["admission"]["proof"],
+                }));
+                assert_eq!(code, 0, "{accepted}");
+                let evidence = &accepted["body"]["evidence"];
+                assert_eq!(evidence["body_id"], born.body_id);
+                let parts = evidence["membership"]["parts"].as_array().unwrap();
+                assert_eq!(parts.len(), 2);
+                assert!(parts.iter().any(|part| part["current"]["host_id"] == observation["host"]
+                    && part["current"]["boot_id"] == observation["boot"]));
+                std::fs::write(output.join("stem-fixture-admission.json"),
+                    serde_json::to_vec_pretty(&serde_json::json!({
+                        "body": evidence["body_id"], "membership": evidence["membership"],
+                        "seed": observation["seed"], "recipient_host": observation["host"],
+                        "recipient_boot": observation["boot"], "recipient_offers": observation["offers"],
+                    })).unwrap()).unwrap();
+                let (code, released) = workspace(serde_json::json!({
+                    "action": "ReleaseStemAfterAdmission", "host_id": "browser/creche",
+                    "boot_id":"browser-boot/creche", "reservation_id":reserved["reservation_id"]
+                }));
+                assert_eq!(code, 0, "{released}");
+                assert_eq!(released["candidate_released"], true);
+                assert_eq!(unsafe { conduit_stem_seed_output_len() }, 0);
+            }
             if admits {
                 let original=workspace(serde_json::json!({"action":"Durable"})).1;
                 let record=&original["admission"]["invitations"][0];
