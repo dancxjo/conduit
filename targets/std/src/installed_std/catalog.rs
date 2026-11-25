@@ -245,6 +245,7 @@ const FACTORIES: &[&BackFactory] = &[
     &AUDIO_TONE_FACTORY,
     &super::measurement_plot_back::FACTORY,
     &super::startup_chime_back::FACTORY,
+    &super::startup_chime_back::SILENT_FACTORY,
     &super::startup_source_back::FACTORY,
     &super::native_speech_back::FACTORY,
     &super::ipa_constructor_back::PHONE,

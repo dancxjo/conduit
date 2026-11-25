@@ -35,6 +35,25 @@ pub fn startup_chime_offer() -> CapabilityOffer {
     .build()
 }
 
+pub const SILENT_STARTUP_CHIME_IMPLEMENTATION: &str = "std/kernel-silent-startup-chime@1";
+
+pub fn silent_startup_chime_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::startup_chime_contract()
+            .into_semantic_contract(conduit_semantic_catalog::STARTUP_CHIME_REVISION),
+        Back {
+            capability_id: "silent-startup-chime".into(),
+            execution_profile_id: "std/startup-chime-silent@1".into(),
+            implementation_id: SILENT_STARTUP_CHIME_IMPLEMENTATION.into(),
+            artifact_id: "conduit-std-host/silent-startup-chime@1".into(),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
+}
+
 pub const BODY_WAKE_IMPLEMENTATION: &str = "std/kernel-body-wake@1";
 pub const BODY_WAKE_CAPABILITY: &str = "body-wake";
 pub const BODY_WAKE_PROFILE: &str = "std/retained-body-wake@1";
