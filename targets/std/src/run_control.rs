@@ -5,7 +5,7 @@ use std::time::Duration;
 const MAXIMUM_CONTROL_REQUEST_ID_BYTES: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RunControlRequestId(String);
+pub struct RunControlRequestId(Arc<str>);
 
 impl RunControlRequestId {
     pub fn new(value: impl Into<String>) -> Result<Self, String> {
@@ -13,7 +13,7 @@ impl RunControlRequestId {
         if value.is_empty() || value.len() > MAXIMUM_CONTROL_REQUEST_ID_BYTES {
             return Err("run control request identity must contain 1..=128 bytes".into());
         }
-        Ok(Self(value))
+        Ok(Self(value.into()))
     }
 
     pub fn as_str(&self) -> &str {
@@ -49,7 +49,7 @@ pub struct RunControl {
 #[derive(Debug, Default)]
 struct RunControlState {
     requested: Option<RunControlRequestId>,
-    accepted: bool,
+    accepted: Option<RunControlRequestId>,
     quiescent: bool,
     activity_generation: u64,
 }
@@ -66,7 +66,7 @@ impl RunControl {
         request_id: RunControlRequestId,
     ) -> Result<(), RejectedRunControlRequest> {
         let mut state = self.state.0.lock().expect("run control lock poisoned");
-        if state.requested.is_some() || state.accepted {
+        if state.requested.is_some() || state.accepted.is_some() {
             return Err(RejectedRunControlRequest {
                 request_id,
                 disposition: RunControlDisposition::RejectedAlreadyRequested,
@@ -106,7 +106,7 @@ impl RunControl {
                 .wait_while(state, |state| {
                     state.activity_generation == observed
                         && state.requested.is_none()
-                        && !state.accepted
+                        && state.accepted.is_none()
                 })
                 .expect("run control lock poisoned"),
         );
@@ -122,29 +122,39 @@ impl RunControl {
             .wait_timeout_while(state, timeout, |state| {
                 state.activity_generation == observed
                     && state.requested.is_none()
-                    && !state.accepted
+                    && state.accepted.is_none()
             })
             .expect("run control lock poisoned");
         result.timed_out()
             && state.activity_generation == observed
             && state.requested.is_none()
-            && !state.accepted
+            && state.accepted.is_none()
     }
 
     /// Observe cancellation during a Host effect without consuming the exact
     /// request that the runner must acknowledge in its lifecycle evidence.
     pub fn stop_requested(&self) -> bool {
         let state = self.state.0.lock().expect("run control lock poisoned");
-        state.requested.is_some() || state.accepted
+        state.requested.is_some() || state.accepted.is_some()
     }
 
     pub(crate) fn requested_stop(&self) -> Option<RunControlRequestId> {
         let mut state = self.state.0.lock().expect("run control lock poisoned");
         let requested = state.requested.take();
-        if requested.is_some() {
-            state.accepted = true;
+        if let Some(request) = &requested {
+            state.accepted = Some(request.clone());
         }
         requested
+    }
+
+    /// Observe the original stop only after the runner has taken it.
+    pub fn accepted_stop_request(&self) -> Option<RunControlRequestId> {
+        self.state
+            .0
+            .lock()
+            .expect("run control lock poisoned")
+            .accepted
+            .clone()
     }
 
     pub(crate) fn mark_quiescent(&self) {
@@ -184,7 +194,9 @@ mod tests {
             control.stop_requested(),
             "Host observation must not consume the request"
         );
+        assert_eq!(control.accepted_stop_request(), None);
         assert_eq!(control.requested_stop().unwrap().as_str(), "first");
+        assert_eq!(control.accepted_stop_request().unwrap().as_str(), "first");
         assert!(control.stop_requested());
         assert_eq!(control.requested_stop(), None);
         assert_eq!(

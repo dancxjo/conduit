@@ -48,12 +48,37 @@ fn local_persistence_retains_exact_negative_chime_receipt_beside_global_terminal
     let terminal = serde_json::to_value(report.terminal).unwrap();
     let wake = serde_json::to_value(&report.wake_at_start).unwrap();
     owner
-        .retain_finished(&root, Ok(RunReport::Reference(report)), output)
+        .retain_finished(&root, Ok(RunReport::Reference(report)), output, None)
         .unwrap();
     let retained = state::execution(&root).unwrap().unwrap();
     assert_eq!(retained["startup_chimes"], expected);
     assert_eq!(retained["startup_chimes"][0]["disposition"], "denied");
     assert_eq!(retained["terminal"], terminal);
+    assert!(retained["accepted_stop_request_id"].is_null());
     assert_eq!(retained["wake_at_start"], wake);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn local_worker_persists_the_stop_it_consumed() {
+    let (root, mut owner) = super::super::service_workset_tests::fixture();
+    let mut worker = owner.start_service_run(&root, 5_000).unwrap();
+    let WorkerMode::Local(local) = &mut worker.mode else {
+        panic!("local worker fixture")
+    };
+    local.request_lull().unwrap();
+
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !worker.progress(&mut owner, &root).unwrap() {
+        assert!(Instant::now() < deadline, "stopped worker must terminate");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+
+    let retained = state::execution(&root).unwrap().unwrap();
+    assert_eq!(retained["accepted_stop_request_id"], "owner/service-lull");
+    assert_eq!(
+        retained["terminal"]["Cancelled"]["reason"],
+        "OperatorRequested"
+    );
     std::fs::remove_dir_all(root).unwrap();
 }
