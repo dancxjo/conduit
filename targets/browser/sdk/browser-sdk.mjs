@@ -18,7 +18,7 @@ const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
 const BROWSER_PARTICIPATION_KEY = Symbol("Conduit BrowserBodyParticipation");
 const BROWSER_PREPARATION_KEY = Symbol("Conduit BrowserBodyPreparation");
 import { BrowserPlot, birthBrowserBody, recoverBrowserBody, reviewBrowserPlots, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-plots.mjs";
-import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
+import { acquireBrowserBodyHost, prepareBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
 import { joinBrowserBody } from "../host/assets/browser-membership.js";
 export { BrowserPlot, BrowserBody } from "./browser-sdk-plots.mjs";
@@ -868,7 +868,7 @@ function acquireSdkBodyHost(options) {
       message: "Browser Body execution requires a connected application-owned root supplied to Conduit.browser({ root })",
       identities: { hostId: options.hostId, bootId: options.bootId } });
   }
-  return acquireBrowserBodyHost(options);
+  return prepareBrowserBodyHost(options);
 }
 
 function sameOriginDirectory(value) {

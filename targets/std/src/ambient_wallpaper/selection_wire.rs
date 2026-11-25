@@ -1,13 +1,17 @@
 //! Prepare wallpaper metadata from the hosted APOD deck.
 use super::acquisition::{PreparedDeck, PreparedPhoto};
+#[cfg(test)]
+use conduit_core::StructuredInfoTypeShape;
 use conduit_core::{
     BoundedResourceRef, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
-    ResourceVersionIdentity, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue,
+    ResourceVersionIdentity, StructuredInfoType, StructuredInfoValue,
 };
 use conduit_face::{ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource};
+#[cfg(test)]
 use conduit_plot::{rust_binding, rust_binding::NativeRustBinding};
-use conduit_semantic_catalog::{PreparedWallpaperSelection, SelectionRefusal};
+use conduit_semantic_catalog::{
+    PreparedWallpaperSelection, SelectionRefusal, WallpaperImageMetadata,
+};
 
 type Result<T> = core::result::Result<T, SelectionRefusal>;
 
@@ -30,21 +34,6 @@ pub fn prepare(deck: &PreparedDeck, rotation_seconds: u64) -> Result<PreparedWal
     PreparedWallpaperSelection::prepare(metadata.try_into().map_err(contract)?, rotation_seconds)
 }
 
-fn record(
-    ty: &StructuredInfoType,
-    mut value: impl FnMut(&str, &StructuredInfoType) -> Result<StructuredInfoValue>,
-) -> Result<StructuredInfoValue> {
-    let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
-        return Err(contract(()));
-    };
-    let fields = fields
-        .iter()
-        .map(|f| {
-            StructuredFieldValue::new(f.name(), value(f.name(), f.value_type())?).map_err(contract)
-        })
-        .collect::<Result<Vec<_>>>()?;
-    StructuredInfoValue::record(ty.clone(), fields).map_err(contract)
-}
 fn photo_metadata(photo: &PreparedPhoto, ty: &StructuredInfoType) -> Result<StructuredInfoValue> {
     let pixel_bytes = u64::from(photo.width())
         .checked_mul(u64::from(photo.height()))
@@ -73,29 +62,22 @@ fn photo_metadata(photo: &PreparedPhoto, ty: &StructuredInfoType) -> Result<Stru
         ImageFormat::rgba8(),
         format!("apod/{}", photo.candidate().date),
     )
-    .map_err(contract)?
-    .into_structured()
     .map_err(contract)?;
     let source = format!("NASA APOD/{}", photo.candidate().date);
-    record(ty, |name, ty| {
-        if name == "image" {
-            return Ok(image.clone());
-        }
-        let text = match name {
-            "title" => photo.candidate().title.as_str(),
-            "caption" => "",
-            "attribution" => photo
-                .candidate()
-                .credit
-                .as_deref()
-                .unwrap_or("Creator credit not supplied by NASA APOD"),
-            "license" => "License not supplied by provider",
-            "source" => &source,
-            _ => return Err(contract(())),
-        };
-        rust_binding::primitive_into_structured(ty.clone(), &text.to_owned()).map_err(contract)
-    })
+    WallpaperImageMetadata {
+        title: &photo.candidate().title,
+        caption: "",
+        attribution: photo
+            .candidate()
+            .credit
+            .as_deref()
+            .unwrap_or("Creator credit not supplied by NASA APOD"),
+        license: "License not supplied by provider",
+        source: &source,
+    }
+    .compose(ty, image)
 }
+
 #[cfg(test)]
 #[path = "selection_wire/tests.rs"]
 mod tests;

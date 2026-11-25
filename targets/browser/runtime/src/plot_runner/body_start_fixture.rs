@@ -146,6 +146,7 @@ pub(in crate::plot_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
         local_host_id: host.host_id.clone(),
         local_boot_id: host.boot_id.clone(),
         externally_managed_plan_ids: Vec::new(),
+        wallpaper: None,
         wake,
         plan,
         play_sequence: 7,

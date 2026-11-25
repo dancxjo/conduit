@@ -463,6 +463,7 @@ impl Session {
             segments,
             text,
             application_view: None,
+            wallpaper: None,
             source_interaction: Some(self.source_interaction.clone()),
         })
     }

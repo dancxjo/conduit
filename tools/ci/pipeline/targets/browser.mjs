@@ -15,7 +15,7 @@ import { retainThermostatEvidence } from './thermostat-evidence.mjs';
 // represented as successful by this lane.
 const SPECS = [
   'workspace-arrival', 'workspace-birth-naming', 'sdk-external-body-execution',
-  'workspace-membership', 'workspace-library', 'workspace-resident-applications',
+  'workspace-membership', 'workspace-library', 'workspace-wallpaper', 'workspace-resident-applications',
   'workspace-continuity', 'workspace-shared-journey',
   'field-station-clock',
   'sdk-body-participation',

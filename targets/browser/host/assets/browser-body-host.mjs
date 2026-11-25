@@ -9,6 +9,7 @@ import { BrowserStorageRefusal } from "./browser-application-storage.mjs";
 import { executeResourceStorageEffect } from "./browser-resource-storage.mjs";
 import { CIVIL_CLOCK_REPLY_BYTES, prepareBrowserCivilClockReply } from "./browser-civil-clock.mjs";
 import { createBrowserMonotonicTimer } from "./browser-monotonic-timer.mjs";
+import { prepareBrowserWallpaperDeck } from "./browser-wallpaper-deck.mjs";
 import { manifestApplicationView } from "./application-face.mjs";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
@@ -19,6 +20,8 @@ const SAVED_CHOICE = "conduit.resource/saved-choice-slot@1";
 const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
 const CIVIL_CLOCK = "conduit.resource/browser-civil-clock-slot@1";
+const WALLPAPER = "conduit.resource/browser-wallpaper-slot@1";
+const WALLPAPER_CLOCK = "conduit.host/browser-wallpaper-clock@1";
 const CIVIL_CLOCK_OPERATION = "conduit.host/browser-civil-clock@1";
 const MEMORY = "conduit.resource/runtime-memory@1";
 // The Rust scheduler prepares and checks this finite backing/scratch pool
@@ -32,6 +35,7 @@ const pools = new Map([
   [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
   [PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL], [PCM_PLAY_RESOURCE, PCM_PLAY_POOL],
   [CIVIL_CLOCK, "browser/civil-clock"],
+  [WALLPAPER, "browser/wallpaper"],
   [MEMORY, "browser/runtime-memory"],
   [FACE, "browser/face"], [INPUT, "browser/window-input"],
   [SAVED_CHOICE, "browser/saved-choice"], [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
@@ -92,8 +96,77 @@ export function manifestBrowserText(output, effect) {
   }
 }
 
+function manifestWallpaper(output, wallpaper, deck) {
+  if (wallpaper?.status === "unavailable") {
+    output.textContent = `Wallpaper unavailable: ${wallpaper.reason}`;
+    return;
+  }
+  if (wallpaper?.status !== "available") throw new Error("invalid wallpaper presentation");
+  const { reference, title, caption, attribution, license, source } = wallpaper;
+  if (!Number.isInteger(reference?.width) || reference.width < 1 || reference.width > 1024
+      || !Number.isInteger(reference.height) || reference.height < 1 || reference.height > 600) {
+    throw new Error("wallpaper dimensions exceed the admitted display bound");
+  }
+  const current = output.querySelector(":scope > figure > canvas");
+  const wording = [title, caption, attribution, license, source].filter(Boolean).join(" · ");
+  if (current?.dataset.version === reference.version && current?.dataset.identity === reference.identity) {
+    current.parentElement.querySelector("figcaption").textContent = wording;
+    return;
+  }
+  const canvas = output.ownerDocument.createElement("canvas");
+  canvas.width = reference.width;
+  canvas.height = reference.height;
+  canvas.style.maxWidth = "100%";
+  canvas.style.height = "auto";
+  canvas.dataset.version = reference.version;
+  canvas.dataset.identity = reference.identity;
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", title);
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("wallpaper canvas is unavailable");
+  const pixels = context.createImageData(reference.width, reference.height);
+  if (!deck?.copyPixels?.(reference, pixels.data)) {
+    throw new Error("wallpaper resource differs from the admitted image");
+  }
+  context.putImageData(pixels, 0, 0);
+  const figure = output.ownerDocument.createElement("figure");
+  figure.style.margin = "0";
+  const label = output.ownerDocument.createElement("figcaption");
+  label.textContent = wording;
+  figure.append(canvas, label);
+  output.replaceChildren(figure);
+}
+
+export async function prepareBrowserBodyHost(options) {
+  const { proposal, hostId, bootId, externallyManagedPlanIds = [] } = options;
+  const planned = proposal?.plan?.plots?.some(({ plan }) =>
+    !externallyManagedPlanIds.includes(plan.plan_id) && plan.fragments.some(fragment =>
+      fragment.host_id === hostId && fragment.boot_id === bootId
+      && fragment.placements.some(placement => placement.implementation_id === "browser/ambient-wallpaper@1")));
+  if (!planned) return acquireBrowserBodyHost(options);
+
+  const deadline = AbortSignal.timeout(15_000);
+  let wallpaperDeck;
+  try {
+    wallpaperDeck = await prepareBrowserWallpaperDeck({
+      fetch: globalThis.fetch.bind(globalThis),
+      latestDate: new Date().toISOString().slice(0, 10),
+      signal: deadline,
+    });
+  } catch (error) {
+    if (!deadline.aborted) throw error;
+    wallpaperDeck = { reason: "provider-unavailable" };
+  }
+  try {
+    return acquireBrowserBodyHost({ ...options, wallpaperDeck });
+  } catch (error) {
+    wallpaperDeck.release?.();
+    throw error;
+  }
+}
+
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
-  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onPatchbayPublication, onTutorialPresenterRequest, stemProvider, storage, externallyManagedPlanIds = [] }) {
+  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onPatchbayPublication, onTutorialPresenterRequest, stemProvider, storage, wallpaperDeck, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -173,6 +246,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const snapshotPlacements = new Map();
   let stemPlacement = null;
   const civilClocks = new Map();
+  let wallpaperPlacement = null;
   for (const placement of placements) {
     if (!Array.isArray(placement.resources) || placement.resources.length > 64) throw new Error("browser resource binding bound exceeded");
     for (const resource of placement.resources) {
@@ -213,6 +287,15 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (pools.get(resource.class_id) !== resource.pool_id ||
           !Number.isSafeInteger(resource.units) || resource.units < 1) {
         throw new Error("unsupported browser Body resource binding");
+      }
+      if (resource.class_id === WALLPAPER) {
+        const call = placement.host_calls?.[0];
+        if (!wallpaperDeck || wallpaperPlacement || resource.units !== 1
+            || placement.host_calls?.length !== 1 || call?.contract_id !== WALLPAPER_CLOCK
+            || call.maximum_output_bytes !== 8 || call.maximum_input_bytes !== 0) {
+          throw new Error("wallpaper binding differs from its prepared Host resource");
+        }
+        wallpaperPlacement = placement.placement_id;
       }
       if (resource.class_id === CIVIL_CLOCK) {
         const call = placement.host_calls?.[0];
@@ -430,7 +513,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Adapter counts come from acquired state; memory names the finite
       // runtime pool whose exact prepared demand is checked at start.
-      unreserved_units: class_id === CIVIL_CLOCK ? civilClocks.size : class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === FACE ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === SAVED_CHOICE ? demand.get(SAVED_CHOICE) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
+      unreserved_units: class_id === CIVIL_CLOCK ? civilClocks.size : class_id === WALLPAPER ? Number(Boolean(wallpaperPlacement)) : class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === FACE ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === SAVED_CHOICE ? demand.get(SAVED_CHOICE) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
     const snapshotPools = new Map();
@@ -499,6 +582,17 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         if (!(error instanceof RangeError)) throw error;
         throw new BrowserHostEffectRefusal("failed", 223, "civil clock reading outside the admitted profile");
       }
+    }
+    if (effect.effect_kind === "wallpaper-clock") {
+      if (effect.placement_id !== wallpaperPlacement || effect.maximum_output_bytes !== 8) {
+        throw new Error("wallpaper clock differs from its acquired placement");
+      }
+      signal.throwIfAborted();
+      const now = window.Date.now();
+      if (!Number.isSafeInteger(now) || now < 0) throw new Error("wallpaper clock unavailable");
+      const bytes = new Uint8Array(8);
+      new DataView(bytes.buffer).setBigUint64(0, BigInt(now), true);
+      return bytes;
     }
     if (effect.effect_kind === "clock-observation") {
       if (!clock) throw new Error("browser clock not acquired");
@@ -579,6 +673,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         output.setAttribute("aria-label", dataLabel);
       }
       const namedValue = value => typeof dataLabel === "string" ? `${dataLabel}: ${value}` : value;
+      if (effect.face_kind === "face/ambient-wallpaper-observation") {
+        manifestWallpaper(output, effect.wallpaper, wallpaperDeck);
+        return;
+      }
       if (effect.face_kind === "face/application-view" && Array.isArray(effect.application_view)) {
         if (canonicalPatchbayOwners.has(effect.checked_plot_id)) {
           // Startup presents the prepared publication independently. This old
@@ -657,6 +755,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         foreground_checked_plot_id: foregroundPlot?.() ?? proposal.plan.plots[0].plot?.checked_plot_id ?? proposal.plan.plots[0].plan.checked_plot_id,
         play_sequence: playSequence,
         observations: observations(),
+        wallpaper: wallpaperPlacement ? {
+          placement_id: wallpaperPlacement,
+          observation: JSON.stringify(wallpaperDeck.metadata
+            ? { metadata: wallpaperDeck.metadata } : { reason: wallpaperDeck.reason }),
+        } : null,
       };
       startOutcome = "unknown";
       const { status: startStatus, outputJson } = bridge.browserBodyStart(request);
@@ -728,6 +831,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (closed) return closeResult;
       closed = true;
       dispatchController.abort();
+      wallpaperDeck?.release?.();
       for (const editor of textEditors.values()) editor.close();
       for (const choice of savedChoices.values()) choice.close();
       monotonicTimer?.close();

@@ -150,7 +150,7 @@ function validateInventory(inventory) {
     || !Number.isSafeInteger(inventory.maximum_selection)
     || inventory.maximum_selection < 0
     || !Array.isArray(inventory.plots)
-    || inventory.plots.length > inventory.maximum_selection) {
+    || inventory.plots.length > 32) {
     throw new Error("reviewed plot inventory is malformed or over capacity");
   }
   const names = new Set();
