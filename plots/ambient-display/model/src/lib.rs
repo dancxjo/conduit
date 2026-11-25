@@ -6,7 +6,9 @@ mod wallpaper_selection;
 pub use types::{
     install_ambient_display_types, prepare_ambient_display_types, AMBIENT_DISPLAY_TYPES_SOURCE,
 };
-pub use wallpaper_selection::{PreparedWallpaperSelection, SelectionRefusal, WALLPAPER_DECK_LEN};
+pub use wallpaper_selection::{
+    PreparedWallpaperSelection, SelectionRefusal, WallpaperImageMetadata, WALLPAPER_DECK_LEN,
+};
 
 mod availability;
 mod civil;

@@ -9,11 +9,12 @@ export const STATIC_APPLICATION_CSP = [
   "worker-src 'none'",
 ].join('; ');
 
-export function applyStaticApplicationCsp(html, { loopbackOwnerWindow = false } = {}) {
+export function applyStaticApplicationCsp(html, { loopbackOwnerWindow = false, wallpaperProvider = false } = {}) {
   if (!/<head\b[^>]*>/i.test(html)) throw new Error('Static application HTML requires an explicit head for CSP');
   // Additional authored policies remain in force; never loosen or erase them.
-  const policy = loopbackOwnerWindow
-    ? STATIC_APPLICATION_CSP.replace("connect-src 'self'", "connect-src 'self' ws://127.0.0.1:*")
-    : STATIC_APPLICATION_CSP;
+  const connections = ["connect-src 'self'"];
+  if (loopbackOwnerWindow) connections.push("ws://127.0.0.1:*");
+  if (wallpaperProvider) connections.push("https://science.nasa.gov", "https://assets.science.nasa.gov");
+  const policy = STATIC_APPLICATION_CSP.replace("connect-src 'self'", connections.join(' '));
   return html.replace(/<head\b[^>]*>/i, head => `${head}<meta http-equiv="Content-Security-Policy" content="${policy}">`);
 }

@@ -24,6 +24,7 @@ pub(in crate::plot_runner) struct ApplicationPreparation<'a> {
     pub body_evidence: Option<&'a conduit_body::BodyBiographyEvidence>,
     pub source: &'a str,
     pub foreground_checked_plot_id: &'a str,
+    pub wallpaper: Option<&'a crate::installed_browser::ambient_wallpaper::PreparedWallpaper>,
 }
 
 /// Compose already-lowered exact partitions without synthesizing a plan.
@@ -281,22 +282,26 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
                 resource_effect::SnapshotState::prepare(placement)?,
             ));
         }
-        operations.push(
-            match crate::installed_browser::body_startup::prepare_for_body(
-                placement,
-                &mut values,
-                startup,
-            )? {
-                Some(operation) => operation,
-                None => match scans.remove(&placement.placement_id) {
-                    Some(back) => BrowserBack::installed_step(back),
-                    None if placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND => {
-                        inputs::keymap_back(partitions, node.node, placement, &mut values)?
-                    }
-                    None => (installation.prepare)(placement, &mut values)?,
-                },
+        let wallpaper = crate::installed_browser::ambient_wallpaper::prepare_for_body(
+            placement,
+            &mut values,
+            application.as_ref().and_then(|context| context.wallpaper),
+        )?;
+        let startup = crate::installed_browser::body_startup::prepare_for_body(
+            placement,
+            &mut values,
+            startup,
+        )?;
+        operations.push(match wallpaper.or(startup) {
+            Some(operation) => operation,
+            None => match scans.remove(&placement.placement_id) {
+                Some(back) => BrowserBack::installed_step(back),
+                None if placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND => {
+                    inputs::keymap_back(partitions, node.node, placement, &mut values)?
+                }
+                None => (installation.prepare)(placement, &mut values)?,
             },
-        );
+        });
         comparisons[usize::from(node.node.0)] =
             crate::installed_browser::pattern_comparison::prepare_codec(placement)?;
         attempts[usize::from(node.node.0)] =

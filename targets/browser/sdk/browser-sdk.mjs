@@ -18,7 +18,7 @@ const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
 const BROWSER_PARTICIPATION_KEY = Symbol("Conduit BrowserBodyParticipation");
 const BROWSER_PREPARATION_KEY = Symbol("Conduit BrowserBodyPreparation");
 import { BrowserPlot, birthBrowserBody, recoverBrowserBody, reviewBrowserPlots, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-plots.mjs";
-import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
+import { acquireBrowserBodyHost, prepareBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
 import { joinBrowserBody } from "../host/assets/browser-membership.js";
 export { BrowserPlot, BrowserBody } from "./browser-sdk-plots.mjs";
@@ -56,9 +56,9 @@ setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError
 
 /** Validate the finite installed-executor disclosure without acquiring a Body. */
 export function checkedBrowserExecutionCapabilities(value) {
-  // This includes the civil clock source and Face executors.
-  // The 126 executors are distinct from the 142-offer membership advertisement.
-  const maximumExecutionCapabilities = 126;
+  // Includes the resident clock and Wallpaper source and Face executors,
+  // with a slot for the scoped Stem offer. Membership has a separate inventory.
+  const maximumExecutionCapabilities = 128;
   if (value?.schema !== "conduit.browser/body-capabilities@1"
       || !Array.isArray(value.capability_ids)
       || value.capability_ids.length > maximumExecutionCapabilities
@@ -868,7 +868,7 @@ function acquireSdkBodyHost(options) {
       message: "Browser Body execution requires a connected application-owned root supplied to Conduit.browser({ root })",
       identities: { hostId: options.hostId, bootId: options.bootId } });
   }
-  return acquireBrowserBodyHost(options);
+  return prepareBrowserBodyHost(options);
 }
 
 function sameOriginDirectory(value) {

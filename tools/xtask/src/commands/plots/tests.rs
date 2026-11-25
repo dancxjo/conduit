@@ -244,6 +244,7 @@ fn initial_body_bundle_is_selected_by_the_shared_inventory() {
             "resident-ambient-clock-weather",
         ),
         ("stem", "stem/main"),
+        ("resident-ambient-wallpaper", "resident-ambient-wallpaper"),
     ];
     assert_eq!(plots.len(), expected.len());
     for (plot, (slug, entry)) in plots.iter().zip(expected) {

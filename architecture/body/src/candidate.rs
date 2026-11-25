@@ -24,9 +24,10 @@ pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// admitted source-configured component Mask Back, saved-choice operation,
 /// independently selected continuous PCM playback Back, and the two revisioned
 /// text-document and DOM editor Backs, and the canonical Patchbay typed
-/// FaceInteraction owner ingress Back and the two ambient civil clock Backs.
+/// FaceInteraction owner ingress Back, two ambient civil clock Backs, and two
+/// resident Wallpaper Backs.
 /// The encoded advertisement byte bound remains independent.
-pub const MAX_CANDIDATE_CAPABILITIES: usize = 142;
+pub const MAX_CANDIDATE_CAPABILITIES: usize = 144;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

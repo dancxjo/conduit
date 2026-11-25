@@ -437,6 +437,9 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     BrowserHostEffect::ClockObservation => {
                         object.insert("effect_kind".into(), "clock-observation".into());
                     }
+                    BrowserHostEffect::WallpaperClock => {
+                        return Err("wallpaper requires its prepared local Body Host".into())
+                    }
                     BrowserHostEffect::CivilClockObservation => {
                         object.insert("effect_kind".into(), "civil-clock-observation".into());
                         object.insert(

@@ -280,6 +280,11 @@ pub(crate) fn advertisement_for_machinery(
     ));
     super::button_attempt::admit_clock_resource(&mut resources);
     resources.push(resource_offer(
+        super::ambient_wallpaper::POOL,
+        super::ambient_wallpaper::RESOURCE,
+        1,
+    ));
+    resources.push(resource_offer(
         crate::browser_civil_clock::CIVIL_CLOCK_POOL,
         crate::browser_civil_clock::CIVIL_CLOCK_RESOURCE,
         1,

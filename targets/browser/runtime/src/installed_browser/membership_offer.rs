@@ -48,8 +48,8 @@ mod tests {
         let local = crate::installed_browser::advertisement(host, boot);
         let execution = crate::installed_browser::execution_capability_ids();
         assert_eq!(execution.len(), local.capabilities.len());
-        assert_eq!(execution.len(), 126);
-        assert_eq!(advertised.capabilities.len(), 142);
+        assert_eq!(execution.len(), 128);
+        assert_eq!(advertised.capabilities.len(), 144);
         assert!(execution.contains(&"browser/patchbay-accept-interaction@1".into()));
         let patchbay = super::super::patchbay_ingress::offer();
         assert!(advertised.capabilities.contains(&patchbay));

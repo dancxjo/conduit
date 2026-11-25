@@ -547,6 +547,7 @@
       "path": "browser-body-host.mjs",
       "maximum_bytes": 49152,
       "dependencies": [
+        { "role": "browser-wallpaper-deck", "specifier": "./browser-wallpaper-deck.mjs" },
         { "role": "browser-text-editor", "specifier": "./browser-text-editor.mjs" },
         {
           "role": "browser-saved-choice",
@@ -635,6 +636,31 @@
       "kind": "module",
       "path": "browser-civil-clock.mjs",
       "maximum_bytes": 4096,
+      "dependencies": []
+    },
+    {
+      "role": "browser-wallpaper-deck",
+      "kind": "module",
+      "path": "browser-wallpaper-deck.mjs",
+      "maximum_bytes": 4096,
+      "dependencies": [
+        { "role": "browser-wallpaper-acquisition", "specifier": "./browser-wallpaper-acquisition.mjs" }
+      ]
+    },
+    {
+      "role": "browser-wallpaper-acquisition",
+      "kind": "module",
+      "path": "browser-wallpaper-acquisition.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        { "role": "browser-wallpaper-pixels", "specifier": "./browser-wallpaper-pixels.mjs" }
+      ]
+    },
+    {
+      "role": "browser-wallpaper-pixels",
+      "kind": "module",
+      "path": "browser-wallpaper-pixels.mjs",
+      "maximum_bytes": 8192,
       "dependencies": []
     },
     {
