@@ -207,3 +207,54 @@ fn digest(hex: &str) -> Result<[u8; 32], String> {
 fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("browser wallpaper preparation: {error:?}")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn prepared_browser_deck_rotates_and_rejects_wrong_pixel_extent() {
+        let photos: [_; WALLPAPER_DECK_LEN] = std::array::from_fn(|index| {
+            json!({
+                "reference": {
+                    "identity": format!("{:064x}", index + 1),
+                    "version": format!("{:064x}", index + 10),
+                    "width": 2, "height": 1, "bytes": 8,
+                    "contentProfile": PROFILE, "accessClass": ACCESS
+                },
+                "title": format!("Photo {index}"), "caption": "", "attribution": "Observer",
+                "license": "License not supplied by provider",
+                "source": format!("NASA APOD/example-{index}"),
+                "imageFrame": format!("apod/example-{index}")
+            })
+        });
+        let mut request = json!({ "metadata": photos });
+        let mut observation =
+            BrowserWallpaperObservation::prepare(&serde_json::to_vec(&request).unwrap()).unwrap();
+        let first = observation.observe_at(1_000).to_vec();
+        assert_eq!(
+            canonical(&first).unwrap().variant_tag().unwrap(),
+            "available"
+        );
+        assert_eq!(observation.observe_at(300_999), first);
+        assert_ne!(observation.observe_at(301_000), first);
+        request["metadata"][0]["reference"]["bytes"] = json!(7);
+        assert!(
+            BrowserWallpaperObservation::prepare(&serde_json::to_vec(&request).unwrap()).is_err()
+        );
+    }
+
+    #[test]
+    fn unavailable_provider_stays_a_typed_observation() {
+        let mut observation =
+            BrowserWallpaperObservation::prepare(br#"{"reason":"provider-rate-limited"}"#).unwrap();
+        assert_eq!(
+            canonical(observation.observe_at(0))
+                .unwrap()
+                .variant_tag()
+                .unwrap(),
+            "unavailable"
+        );
+    }
+}
