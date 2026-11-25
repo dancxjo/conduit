@@ -1,6 +1,7 @@
 //! Assembly entrance to the ambient observation domain.
 pub use conduit_ambient_display::{
-    install_ambient_display_types, prepare_ambient_display_types, AMBIENT_DISPLAY_TYPES_SOURCE,
+    install_ambient_display_types, prepare_ambient_display_types, PreparedWallpaperSelection,
+    SelectionRefusal, AMBIENT_DISPLAY_TYPES_SOURCE, WALLPAPER_DECK_LEN,
 };
 
 use alloc::{format, string::String, vec};

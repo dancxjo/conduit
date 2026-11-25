@@ -1,10 +1,11 @@
 //! Prepare one bounded wallpaper observation from an explicitly acquired deck.
-use super::{acquisition::PreparedDeck, selection_wire::PreparedWallpaperSelectionWire};
+use super::{acquisition::PreparedDeck, selection_wire};
 use crate::{NativeReadContext, NativeSourceWorkerProvider, WorkerFailure};
 use conduit_core::{
     validate_canonical_structured_value as canonical, PreparedStructuredComposer as Composer,
     StructuredInfoType, StructuredInfoTypeShape,
 };
+use conduit_semantic_catalog::PreparedWallpaperSelection;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const WALLPAPER_OBSERVATION_BYTES: usize =
@@ -26,7 +27,7 @@ impl From<Option<PreparedDeck>> for WallpaperPreparation {
 
 pub struct PreparedWallpaperObservation {
     deck: Option<PreparedDeck>,
-    selection: Option<PreparedWallpaperSelectionWire>,
+    selection: Option<PreparedWallpaperSelection>,
     unavailable: Box<[u8]>,
 }
 
@@ -77,7 +78,7 @@ impl PreparedWallpaperObservation {
             .into();
         let selection = deck
             .as_ref()
-            .map(PreparedWallpaperSelectionWire::prepare)
+            .map(|deck| selection_wire::prepare(deck, 300))
             .transpose()
             .map_err(debug_error)?;
         Ok(Self {
@@ -96,7 +97,7 @@ impl PreparedWallpaperObservation {
             + self
                 .selection
                 .as_ref()
-                .map_or(0, PreparedWallpaperSelectionWire::prepared_heap_bytes)
+                .map_or(0, PreparedWallpaperSelection::prepared_heap_bytes)
             + self.unavailable.len()
     }
 

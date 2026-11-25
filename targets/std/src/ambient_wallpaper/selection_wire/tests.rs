@@ -42,7 +42,7 @@ fn unsigned(v: &StructuredInfoValue) -> u64 {
 #[test]
 fn actual_four_generations_rotate_only_on_selection_and_match_checked_domain() {
     let deck = deck();
-    let mut wire = PreparedWallpaperSelectionWire::prepare(&deck).unwrap();
+    let mut wire = prepare(&deck, 300).unwrap();
     let types = conduit_semantic_catalog::prepare_ambient_display_types().unwrap();
     let ty = types
         .native_types
@@ -62,7 +62,7 @@ fn actual_four_generations_rotate_only_on_selection_and_match_checked_domain() {
     let first = wire.encode(1000).unwrap().to_vec();
     assert_eq!(wire.encode(300999).unwrap(), first);
     assert_eq!(wire.encode(1000), Err(SelectionRefusal::BackwardsTime));
-    let mut wire = PreparedWallpaperSelectionWire::prepare(&deck).unwrap();
+    let mut wire = prepare(&deck, 300).unwrap();
     for (index, now) in [1000, 301000, 601000, 901000, 1201000]
         .into_iter()
         .enumerate()
@@ -120,13 +120,12 @@ fn encode_errors_and_rotations_have_no_heap_growth() {
     let deck = deck();
     for interval in [0, 29, 3601, u64::MAX] {
         assert!(matches!(
-            PreparedWallpaperSelectionWire::prepare_with_interval(&deck, interval),
+            prepare(&deck, interval),
             Err(SelectionRefusal::InvalidInterval)
         ));
     }
     for interval in [30, 300, 3600] {
-        let mut wire =
-            PreparedWallpaperSelectionWire::prepare_with_interval(&deck, interval).unwrap();
+        let mut wire = prepare(&deck, interval).unwrap();
         let heap = wire.prepared_heap_bytes();
         let probe = crate::allocation_probe::begin();
         assert_eq!(
