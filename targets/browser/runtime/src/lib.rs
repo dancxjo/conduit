@@ -33,6 +33,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 pub mod browser_civil_clock;
 pub mod browser_pointer;
 pub mod browser_wallpaper;
+pub mod browser_wallpaper_back;
 #[cfg(feature = "creche-surface")]
 mod creche;
 mod device_base;
