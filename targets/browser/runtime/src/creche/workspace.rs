@@ -257,9 +257,17 @@ fn catalog_plot_plan(
             &document, &plot.name, &profile, &backs,
         )
         .map_err(|error| format!("Workspace resident Fore expansion refused: {error:?}"))?;
+        let stem = authoring
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == conduit_body_make::stem_runtime::STEM_KIND);
+        if stem {
+            super::review::resident_fore::require_resident_fore(&authoring)?;
+        }
         let placements = conduit_planner::default_expanded_placements(&authoring.expanded, &hosts)
             .map_err(|error| error.to_string())?;
-        conduit_planner::plan_expanded_authoring_with_activations(
+        let plan = conduit_planner::plan_expanded_authoring_with_activations(
             &document,
             &authoring,
             &profile,
@@ -279,6 +287,9 @@ fn catalog_plot_plan(
             &super::review::resident_fore::fore_bounds(&authoring),
         )
         .map_err(|error| error.to_string())?;
+        if stem {
+            super::review::resident_fore::require_planned_fore(&plan)?;
+        }
         return Ok(());
     }
     let expanded =

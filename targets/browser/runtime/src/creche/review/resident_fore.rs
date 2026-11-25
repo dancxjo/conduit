@@ -75,7 +75,7 @@ pub(in crate::creche) fn fore_bounds(
     bounds
 }
 
-pub(super) fn require_planned_fore(plan: &conduit_core::Plan) -> Result<(), String> {
+pub(in crate::creche) fn require_planned_fore(plan: &conduit_core::Plan) -> Result<(), String> {
     if !plan
         .fragments
         .iter()
