@@ -64,7 +64,7 @@ fn explicit_lull_disarms_renewal_even_when_deadline_already_requested_stop() {
     std::thread::sleep(Duration::from_millis(200));
     // A competing deadline may already own the single stop slot. Lull still
     // withdraws the separate authority to start a successor Play.
-    let _ = runtime.request_owned_body_lull();
+    assert_eq!(runtime.request_owned_body_lull().unwrap(), (None, true));
     assert!(runtime.body_renewal.is_none());
 
     let wait = Instant::now() + Duration::from_secs(10);

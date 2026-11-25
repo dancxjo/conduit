@@ -1231,6 +1231,8 @@ enum Response {
     BodyLullRequested {
         protocol: u16,
         active_play_id: Option<String>,
+        #[serde(default)]
+        stop_requested: bool,
     },
     Join {
         protocol: u16,
@@ -2385,10 +2387,13 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyLull { protocol, .. } if protocol == PROTOCOL => runtime
             .request_owned_body_lull()
-            .map(|active_play_id| Response::BodyLullRequested {
-                protocol: PROTOCOL,
-                active_play_id,
-            })
+            .map(
+                |(active_play_id, stop_requested)| Response::BodyLullRequested {
+                    protocol: PROTOCOL,
+                    active_play_id,
+                    stop_requested,
+                },
+            )
             .unwrap_or_else(|code| refused(&code)),
         Request::Join {
             protocol,

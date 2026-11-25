@@ -319,8 +319,8 @@ impl DurableHostRuntime {
         Ok(())
     }
 
-    pub(super) fn request_owned_body_lull(&mut self) -> Result<Option<String>, String> {
-        self.body_renewal = None;
+    pub(super) fn request_owned_body_lull(&mut self) -> Result<(Option<String>, bool), String> {
+        let was_renewing = self.body_renewal.take().is_some();
         let HostSource::Body {
             owner,
             root,
@@ -329,6 +329,15 @@ impl DurableHostRuntime {
         else {
             return Err("installed Host does not own a live Body session".into());
         };
+        if let Some(OwnedRunWorker::General(worker)) = running {
+            if was_renewing {
+                worker.request_renewing_lull()?;
+                return Ok((
+                    owner.current_play_id().map(|id| id.as_str().to_owned()),
+                    true,
+                ));
+            }
+        }
         if let Some(worker) = running {
             let play = owner
                 .current_play_id()
@@ -336,11 +345,11 @@ impl DurableHostRuntime {
                 .as_str()
                 .to_owned();
             worker.request_lull()?;
-            return Ok(Some(play));
+            return Ok((Some(play), true));
         }
         owner.lull()?;
         owner.persist(root)?;
-        Ok(None)
+        Ok((None, false))
     }
 }
 
@@ -408,8 +417,9 @@ pub(crate) fn lull_owned_body(state_dir: &Path) -> Result<(), String> {
         Response::BodyLullRequested {
             protocol: PROTOCOL,
             active_play_id,
+            stop_requested,
         } => {
-            let play_state = if active_play_id.is_some() {
+            let play_state = if stop_requested || active_play_id.is_some() {
                 "stop-requested"
             } else {
                 "lulled"

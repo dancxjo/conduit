@@ -387,6 +387,16 @@ impl RunWorker {
         matches!(&self.mode, WorkerMode::Local(worker) if worker.retained_deadline)
     }
 
+    pub(crate) fn request_renewing_lull(&self) -> Result<(), String> {
+        let WorkerMode::Local(worker) = &self.mode else {
+            return Err("renewing Lull requires a local Body Play".into());
+        };
+        match worker.request_lull() {
+            Err(_) if worker.control.stop_requested() => Ok(()),
+            result => result,
+        }
+    }
+
     pub(super) fn from_member(worker: super::startup_member::MemberWorker) -> Self {
         Self {
             mode: WorkerMode::Member(worker),
