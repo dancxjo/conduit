@@ -82,3 +82,34 @@ fn local_worker_persists_the_stop_it_consumed() {
     );
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn local_worker_persists_an_elapsed_deadline_separately_from_lull() {
+    let (root, mut owner) = super::super::service_workset_tests::fixture();
+    let mut worker = owner.start_service_run(&root, 100).unwrap();
+    let WorkerMode::Local(local) = &worker.mode else {
+        panic!("local worker fixture")
+    };
+
+    // Hold the Started acknowledgment until the deadline actually requests
+    // a stop. This makes the deadline independent of how fast the Plot runs.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !local.control.stop_requested() {
+        assert!(
+            Instant::now() < deadline,
+            "service deadline must request stop"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    while !worker.progress(&mut owner, &root).unwrap() {
+        assert!(Instant::now() < deadline, "expired worker must terminate");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+
+    let retained = state::execution(&root).unwrap().unwrap();
+    assert_eq!(
+        retained["accepted_stop_request_id"],
+        "owner/service-deadline"
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
