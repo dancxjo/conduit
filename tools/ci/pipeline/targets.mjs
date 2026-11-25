@@ -87,12 +87,27 @@ async function hosted(id, directory) {
     }
     return;
   }
-  // The old Linux release command also cross-builds Raspberry Pi. Keep this
-  // native executable lane independent of every embedded compiler.
-  cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit');
-  const name = process.platform === 'win32' ? 'conduit.exe' : 'conduit';
+  const name = platform === 'windows' ? 'conduit.exe' : 'conduit';
   const binary = path.join(directory, name);
-  copyFile(cargoArtifact('release', name), binary);
+  if (platform === 'macos') {
+    if (process.arch !== 'arm64') throw new Error('The macOS installer requires an AArch64 runner');
+    const installer = path.join(directory, 'install-bundle');
+    xtask('make', 'host', 'release', '--platform', 'macos', '--output', installer);
+    const installExecutable = path.join(installer, 'conduit-macos-aarch64');
+    copyFile(installExecutable, binary);
+    const state = path.join(path.dirname(directory), 'macos-installer-proof-state');
+    command('sh', [path.join(installer, 'install-macos-aarch64.sh'), '--state-dir', state, '--no-start']);
+    const installation = JSON.parse(readFileSync(path.join(state, 'installation.json'), 'utf8'));
+    if (installation.schema !== 'conduit.install/durable-host@1' || !installation.host_id ||
+        !existsSync(path.join(state, 'org.conduit.host.plist')) ||
+        existsSync(path.join(state, 'runtime.json')) ||
+        digest(installation.product_executable) !== digest(binary)) {
+      throw new Error('Installer must install the retained macOS executable without starting a Host');
+    }
+  } else {
+    cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit');
+    copyFile(cargoArtifact('release', name), binary);
+  }
   const before = digest(binary);
   const report = path.join(directory, 'hello-report.json');
   const result = command(binary, ['run', 'plots/hello/main.conduit', '--await-terminal', '--report', report,
