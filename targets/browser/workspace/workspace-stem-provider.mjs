@@ -1,3 +1,5 @@
+import { createExistingComputerAdapter } from "./creche-existing-computer.mjs";
+import { readBodyBoundZip } from "./creche-native-zip.mjs";
 import { BROWSER_RELEASE_PROFILE } from "../deployment/browser/creche-adapter.mjs";
 import { createBrowserConfigurationOutfitter } from "./browser-host-configuration.mjs";
 import { acquireConfiguredHostRelease } from "./creche-release-catalog.mjs";
@@ -73,16 +75,18 @@ export async function prepareWorkspaceStemProvider({ request, here, selection, d
     },
     result: () => request("StemResult", owner),
     beginDelivery: () => request("BeginStemDelivery", { ...owner, now_millis: Date.now() }),
+    retire: () => request("ReleaseStemAfterAdmission", owner),
     cancel,
   });
 }
 
-export function openWorkspaceStem({ host, session, faceFor, root, wake, onError }) {
+export function openWorkspaceStem({ host, session, faceFor, root, wake, onChanged, onError }) {
   let eligible = false;
   let preparing = false;
+  let provider, ready = false;
   const update = () => {
     root.hidden = !eligible;
-    if (eligible && !preparing) root.replaceChildren(outfitter.render());
+    if (eligible && !preparing) root.replaceChildren(outfitter.render(ready));
   };
   const outfitter = createBrowserConfigurationOutfitter({
     host, faceFor, onChange: update,
@@ -90,15 +94,20 @@ export function openWorkspaceStem({ host, session, faceFor, root, wake, onError 
       if (!eligible || preparing || session.current()?.state !== "LULLED") return;
       preparing = true;
       root.replaceChildren();
-      let provider;
       try {
         const signal = AbortSignal.timeout(120_000);
         const distribution = await acquireConfiguredHostRelease(host, BROWSER_RELEASE_PROFILE, signal);
         if (!eligible || session.current()?.state !== "LULLED") return;
         provider = await session.prepareStem(selection, distribution, signal);
-        await wake(provider);
+        await wake(Object.freeze({ ...provider, completed() {
+          const result = provider.result();
+          ready = Boolean(result.artifact_prepared && result.kernel_outcome);
+          if (!ready) onError(new Error("Stem did not prepare a Seed"));
+          onChanged();
+        } }));
         if (session.current()?.state === "LULLED") {
           provider.cancel();
+          provider = null;
           await session.save();
         }
       } catch (error) {
@@ -108,12 +117,59 @@ export function openWorkspaceStem({ host, session, faceFor, root, wake, onError 
         update();
       }
     },
+    async onLaunchStem() {
+      if (!eligible || preparing || !ready || session.current()?.state === "LULLED") return;
+      preparing = true;
+      root.replaceChildren();
+      try {
+        await launchSeed(host, session, provider);
+        provider.retire();
+        provider = null;
+        ready = false;
+        onChanged();
+      } catch (error) {
+        onError(error);
+      } finally {
+        preparing = false;
+        update();
+      }
+    },
   });
   return Object.freeze({
-    show(visible) {
+    show(selected) {
+      const visible = selected && (session.current()?.state === "LULLED" || ready);
       if (eligible === visible) return;
       eligible = visible;
       update();
     },
   });
+}
+
+async function launchSeed(host, session, provider) {
+  const { artifact } = provider.beginDelivery();
+  const start = host.runtime.conduit_stem_seed_output_ptr();
+  const length = host.runtime.conduit_stem_seed_output_len();
+  const buffer = host.runtime.memory.buffer;
+  if (!Number.isSafeInteger(start) || start <= 0 || length !== artifact.artifact_bytes ||
+      length < 22 || length > 64 * 1024 * 1024 || start + length > buffer.byteLength) {
+    throw new Error("Retained Stem Seed differs from its bounded package receipt");
+  }
+  const bytes = new Uint8Array(buffer, start, length).slice();
+  try {
+    const { provision } = readBodyBoundZip(bytes);
+    const binding = {
+      prepared: { ...provision.spore, invitation_id: provision.invitation_provision.invitation_id,
+        invitation_nonce: provision.invitation_provision.nonce },
+      nativeSpore: { bytes, content_digest: artifact.artifact_content_sha256 },
+    };
+    const adapter = createExistingComputerAdapter({ host, profile: BROWSER_RELEASE_PROFILE });
+    const mode = "install-existing";
+    const signal = AbortSignal.timeout(120_000);
+    await adapter.realize({ mode, binding, signal, obtainment: { private: { release: { manifest: provision.release_manifest } } } });
+    const { join } = await adapter.observe({ mode, binding, signal });
+    const { advertisement, observed_at_millis, invitation_id, body_id, host_id, boot_id, nonce, signature } = join;
+    await session.admitInvitation(advertisement, { invitation_id, body_id, host_id, boot_id, nonce, signature }, observed_at_millis);
+  } finally {
+    bytes.fill(0);
+  }
 }

@@ -123,7 +123,7 @@ export async function startApplication(application) {
     let library = null, membership = null, editing = false;
     const stem = openWorkspaceStem({ host, session, faceFor: application.faceFor,
       root: root.querySelector('[data-workspace-stem]'),
-      wake: provider => play.wake(true, provider), onError: fail,
+      wake: provider => play.wake(true, provider), onChanged: render, onError: fail,
     });
     const tutorialInstalled = () => session.current()?.initial_plots.some(plot => plot.checked_plot_id === tutorialPlot.checked_plot_id) ?? false;
     const handleTutorialEvent = (event, resident = false) => {
@@ -265,7 +265,7 @@ export async function startApplication(application) {
         .filter(item => item.face?.plot?.checked_plot_id === selected)
         .flatMap(topology => topology.chains.slice(0, 1)
           .flatMap(chain => chain.plan.fragments.flatMap(fragment => fragment.placements)));
-      stem.show(plot?.entry === 'stem/main' && session.current()?.state === 'LULLED');
+      stem.show(plot?.entry === 'stem/main');
       root.querySelector('#surface-title').textContent = plot?.title ?? 'No Plots installed';
       root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition, playback.detail, maskPlacements);
       root.querySelector('[data-current-plot-label]').textContent = plot?.title ?? 'Your plots';
@@ -399,7 +399,6 @@ export async function startApplication(application) {
             run: () => voice.run(), close: () => voice.close() });
         }, onState(state) {
         playback = state;
-        showSelected();
         renderTutorial();
         root.querySelector('[data-play-state]').textContent = state.state;
         root.querySelector('[data-body-state]').textContent = session.current().state.toLowerCase();

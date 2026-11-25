@@ -56,6 +56,29 @@ test("Crib retains checked Stem at Birth without acquiring builder authority", a
   expect(afterRefusal.active_play_id).toBeFalsy();
 });
 
+test("resident Stem prepares and joins a local Host into the same Body", async ({ page }) => {
+  test.setTimeout(150_000);
+  await page.goto(entrance.url);
+  const birth = page.locator(".body-birth-runner");
+  await birth.getByRole("checkbox", { name: "Stem", exact: true }).check();
+  await birth.getByRole("button", { name: "Birth Body", exact: true }).click();
+  await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Stem", exact: true }).click();
+  const before = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  const configuration = page.locator("[data-workspace-stem]");
+  await configuration.getByRole("button", { name: "Review Host", exact: true }).click();
+  await configuration.getByRole("button", { name: "Prepare Seed", exact: true }).click();
+  const launch = configuration.getByRole("button", { name: "Launch and join browser Host", exact: true });
+  await expect(launch).toBeVisible({ timeout: 75_000 });
+  await launch.click();
+  await expect(launch).toBeHidden();
+  await expect.poll(() => page.evaluate(() =>
+    globalThis.__conduitWorkspace.evidence().evidence.membership.parts.length), { timeout: 45_000 }).toBe(2);
+  const after = await page.evaluate(() => globalThis.__conduitWorkspace.current());
+  expect(after.body_id).toBe(before.body_id);
+  expect(after.host_id).toBe(before.host_id);
+  expect(after.boot_id).toBe(before.boot_id);
+});
+
 test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload preserves the body", async ({ page }, testInfo) => {
   test.setTimeout(20_000 + 2 * BROWSER_COLD_PREPARATION_MS);
   await page.setViewportSize({ width: 1280, height: 1000 });

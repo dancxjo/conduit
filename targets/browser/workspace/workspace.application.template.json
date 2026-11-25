@@ -177,6 +177,8 @@
       "maximum_bytes": 8192,
       "dependencies": [
         { "role": "browser-bundle-builder", "specifier": "../deployment/browser/browser-bundle.mjs" },
+        { "role": "creche-existing-computer", "specifier": "./creche-existing-computer.mjs" },
+        { "role": "creche-native-zip", "specifier": "./creche-native-zip.mjs" },
         { "role": "browser-adapter", "specifier": "../deployment/browser/creche-adapter.mjs" },
         { "role": "browser-host-configuration", "specifier": "./browser-host-configuration.mjs" },
         { "role": "creche-release-catalog", "specifier": "./creche-release-catalog.mjs" }

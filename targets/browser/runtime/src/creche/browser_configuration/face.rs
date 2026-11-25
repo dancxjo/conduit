@@ -45,7 +45,7 @@ struct BrowserConfigurationReviewFace {
     join_mode: String,
     canonical_source: String,
     does_not_create: Vec<String>,
-    prepare_stem: bool,
+    stem_action: Option<(&'static str, &'static str)>,
 }
 
 impl BrowserConfigurationActions {
@@ -196,8 +196,8 @@ impl BrowserConfigurationReviewFace {
             ),
             action("edit-browser-configuration", EDIT_ACTION, "Back / Edit"),
         ];
-        if self.prepare_stem {
-            children.push(action("prepare-stem", STEM_PREPARE_ACTION, "Prepare Seed"));
+        if let Some((identity, label)) = self.stem_action {
+            children.push(action("stem-action", identity, label));
         }
         view(
             self.revision,
@@ -302,14 +302,18 @@ fn face_view(request: BrowserConfigurationViewRequest) -> Result<Vec<u8>, String
             }
             .face()
         }
-        "review" | "stem-review" => {
+        "review" | "stem-review" | "stem-ready" => {
             let (reviewed, _, _) = review(BrowserConfigurationSelection {
                 catalog_generation: request.catalog_generation,
                 implementations: request.implementations,
             })?;
             BrowserConfigurationReviewFace {
                 revision: request.revision,
-                prepare_stem: request.mode == "stem-review",
+                stem_action: match request.mode.as_str() {
+                    "stem-review" => Some((STEM_PREPARE_ACTION, "Prepare Seed")),
+                    "stem-ready" => Some(("stem.launch", "Launch and join browser Host")),
+                    _ => None,
+                },
                 target_id: reviewed.target_id.into(),
                 selected_implementations: reviewed.selected_implementations.clone(),
                 configuration_id: reviewed.configuration_id.clone(),

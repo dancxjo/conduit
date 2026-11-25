@@ -693,7 +693,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
           }
         }
         return drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge,
-          signal: dispatchController.signal, isCurrent: () => !closed, admittedInput });
+          signal: dispatchController.signal, isCurrent: () => !closed, admittedInput,
+          onCompleted(effect) {
+            if (effect.effect_kind === "stem-prepare") stemProvider.completed?.();
+          },
+        });
       })()
         .then(receipt => {
           if (receipt?.schema === "conduit.tour/manifestation-receipt@3") terminal = receipt;

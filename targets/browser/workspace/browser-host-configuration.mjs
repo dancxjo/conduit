@@ -3,7 +3,7 @@ const REVIEW_SCHEMA = "conduit.creche/checked-browser-configuration@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSelection = null, onChange, onPrepareStem }) {
+export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSelection = null, onChange, onPrepareStem, onLaunchStem }) {
   const catalog = call(host.runtime, "conduit_creche_browser_configuration_catalog");
   requireCatalog(catalog);
   let selected = new Set(restoredSelection?.implementations ?? catalog.defaults);
@@ -23,14 +23,18 @@ export function createBrowserConfigurationOutfitter({ host, faceFor, restoredSel
 
   return Object.freeze({
     required: true,
-    render() {
+    render(seedReady = false) {
       const root = document.createElement("section");
       root.className = "browser-configuration";
       const face = faceFor(root);
       if (checked) {
+        const mode = seedReady ? "stem-ready" : onPrepareStem ? "stem-review" : "review";
         const slot = faceSlot(root, "browser-configuration-review");
-        presentView(face, slot.dataset.applicationSlot, onPrepareStem ? "stem-review" : "review", null, (event) => {
-          if (event.action === "configuration.edit") {
+        presentView(face, slot.dataset.applicationSlot, mode, null, (event) => {
+          if (event.revision !== faceRevision) return;
+          if (seedReady) {
+            if (event.action === "stem.launch" && event.kind === 1 && event.value.length === 0) onLaunchStem();
+          } else if (event.action === "configuration.edit") {
             checked = null;
             onChange();
           } else if (onPrepareStem && event.action === "stem.prepare" && event.kind === 1 && event.value.length === 0) {
