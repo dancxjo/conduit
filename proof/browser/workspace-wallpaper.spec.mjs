@@ -70,3 +70,35 @@ test("Crib Wallpaper shows exact photos, rotates, and returns to the same Body",
     entrance.child.kill();
   }
 });
+
+test("Wallpaper reports provider throttling while the resident clock advances", async ({ page }) => {
+  test.setTimeout(30_000 + 2 * BROWSER_COLD_PREPARATION_MS);
+  const entrance = await startStaticProduct("target/workspace-product", "/conduit/workspace/");
+  try {
+    await page.route("https://science.nasa.gov/wp-json/wp/v2/apod-basic?**", route => route.fulfill({
+      status: 429,
+      headers: { "access-control-allow-origin": "*" },
+    }));
+    await page.goto(entrance.url);
+    const wallpaper = page.getByRole("checkbox", { name: "Wallpaper", exact: true });
+    await expect(wallpaper).toBeVisible({ timeout: BROWSER_COLD_PREPARATION_MS });
+    await wallpaper.check();
+    await page.getByRole("checkbox", { name: "Local Clock and Weather", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+    await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+    await page.getByRole("button", { name: "wake body", exact: true }).click();
+    await waitForWorkspacePreparation(page);
+    const residents = page.getByRole("navigation", { name: "Your plots" });
+    await residents.getByRole("button", { name: "Wallpaper", exact: true }).click();
+    await expect(page.locator('[data-face-kind="face/ambient-wallpaper-observation"]:visible'))
+      .toHaveText("Wallpaper unavailable: The photograph provider rate-limited acquisition");
+    await residents.getByRole("button", { name: "Local Clock and Weather", exact: true }).click();
+    const clock = page.locator('[data-face-kind="face/ambient-clock-weather"]:visible');
+    await expect(clock).toContainText("America/Los_Angeles");
+    const sequence = await clock.getAttribute("data-observation-sequence");
+    expect(sequence).toMatch(/^\d+$/u);
+    await expect(clock).not.toHaveAttribute("data-observation-sequence", sequence);
+  } finally {
+    entrance.child.kill();
+  }
+});
