@@ -402,6 +402,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     assert!(stale.contains("Refused the pending command"), "{stale}");
     assert!(!stale.contains("Owner action result:"), "{stale}");
     assert!(!stale.contains("Owner action refused:"), "{stale}");
+    assert!(!stale.contains("Text Face revision="), "{stale}");
 
     // A new service Boot may retain the Body, but the command entered while
     // the previous Boot's Show was current still needs a fresh decision.

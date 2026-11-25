@@ -138,6 +138,20 @@ impl SpokenFaceSession {
     /// Replace the exact Face/Show after the producer has accepted a change.
     /// The old local focus survives only if its provenance still exists.
     pub fn refresh(&mut self, face: Face, show: MaskShow) -> Result<(), SpokenFaceRefusal> {
+        self.refresh_silently(face, show)?;
+        self.cursor
+            .command(&self.face, FaceReadingCommand::Repeat)
+            .map_err(reading_refusal)?;
+        self.begin_cursor_clauses();
+        Ok(())
+    }
+
+    /// Accept a passive update while retaining stable focus and clearing queued wording.
+    pub fn refresh_silently(
+        &mut self,
+        face: Face,
+        show: MaskShow,
+    ) -> Result<(), SpokenFaceRefusal> {
         if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
@@ -149,10 +163,7 @@ impl SpokenFaceSession {
         self.show = show;
         self.voiced = voiced;
         self.drafts.clear();
-        self.cursor
-            .command(&self.face, FaceReadingCommand::Repeat)
-            .map_err(reading_refusal)?;
-        self.begin_cursor_clauses();
+        self.reading = None;
         Ok(())
     }
 
