@@ -68,7 +68,7 @@ pub(super) fn prepare_deck(
         }
         if photos.len() == DECK_LEN {
             return Ok(PreparedDeck {
-                photos: photos.try_into().unwrap(),
+                photos: photos.try_into().ok().unwrap(),
             });
         }
     }
