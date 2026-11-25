@@ -50,6 +50,14 @@ async function readBounded(fetch, url, limit, signal) {
   }
 }
 
+function providerText(value) {
+  // Provider credits sometimes contain links. Template content stays inert
+  // and only its text enters the checked observation.
+  const template = document.createElement("template");
+  template.innerHTML = value;
+  return template.content.textContent.trim();
+}
+
 function candidate(entry, latestDate) {
   if (entry?.media_type !== "image" || typeof entry.date !== "string"
       || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date) || entry.date > latestDate
@@ -59,13 +67,15 @@ function candidate(entry, latestDate) {
     return null;
   }
   const credit = entry.copyright ?? "Creator credit not supplied by NASA APOD";
-  if (typeof credit !== "string" || !credit.trim()
-      || encoder.encode(credit).length > MAXIMUM_CREDIT_BYTES) return null;
+  if (typeof credit !== "string" || credit.length > 2048) return null;
+  const title = providerText(entry.title);
+  const attribution = providerText(credit);
+  if (!title || !attribution || encoder.encode(attribution).length > MAXIMUM_CREDIT_BYTES) return null;
   const url = URL.parse(entry.hdurl);
   if (!url || url.origin !== ASSET_ORIGIN || url.username || url.password
       || !ASSET_PATH.test(url.pathname) || url.hash) return null;
   url.search = "?w=1024&h=1024&fit=clip";
-  return { date: entry.date, title: entry.title, attribution: credit, url: url.href };
+  return { date: entry.date, title, attribution, url: url.href };
 }
 
 /**
