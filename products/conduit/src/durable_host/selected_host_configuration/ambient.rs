@@ -24,17 +24,19 @@ pub(super) fn initialize(
     config: StdHostConfig,
     image: &HostImage,
     checked: &CheckedHostConfiguration,
+    playback: Option<&conduit_std_host::hosted_audio::HostedPlaybackSelection>,
 ) -> Result<StdHost, String> {
     let (grant, acquire_photos) = admitted_provider(&config, checked)?;
     // The locally selected checked configuration explicitly admits the exact
     // worker endpoint and photo source. The Host reserves their bounded backing
     // before invoking the cooperative worker factory.
     unsafe {
-        StdHost::from_selected_ambient_home_image(
+        StdHost::from_selected_ambient_home_and_playback_image(
             config,
             image,
             &conduit_workspace_make::catalog(),
             checked,
+            playback,
             grant,
             || Ok(prepare_photos(acquire_photos)),
         )
