@@ -2,7 +2,8 @@
 use super::{debug, Owner};
 use conduit_body::{BodyPlotPlan, BodyState, BodyWorkset, ResidentPlot};
 use conduit_core::{
-    port_id, BaseImplementationId, ConnectionTrack, HostAdvertisement, PortDirection,
+    port_id, AuthorityGrant, BaseImplementationId, ConnectionTrack, HostAdvertisement,
+    PortDirection,
 };
 use std::collections::BTreeMap;
 
@@ -57,8 +58,19 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
+        self.plan_workset_for_wake(sources, None)
+    }
+
+    pub(super) fn plan_workset_for_wake(
+        &mut self,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        chime: Option<&AuthorityGrant>,
+    ) -> Result<(), String> {
         let partitions =
-            self.prepare_workset_partitions_for(&self.session.evidence().body.workset, sources)?;
+            self.prepare_partitions(&self.session.evidence().body.workset, sources, chime)?;
         let advertised = self.host.advertisement();
         self.session
             .propose(partitions, &advertised.host_id, &advertised.boot_id)
@@ -73,6 +85,18 @@ impl Owner {
             &crate::plot_source::CanonicalSource,
             &conduit_plot::ExpandedAuthoringPlot,
         )],
+    ) -> Result<Vec<BodyPlotPlan>, String> {
+        self.prepare_partitions(workset, sources, None)
+    }
+
+    fn prepare_partitions(
+        &self,
+        workset: &BodyWorkset,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        chime: Option<&AuthorityGrant>,
     ) -> Result<Vec<BodyPlotPlan>, String> {
         self.require_workset_recovered()?;
         if self.session.evidence().body.state != BodyState::Lulled
@@ -108,6 +132,7 @@ impl Owner {
                 &checked,
                 &resident,
                 self.host.advertisement(),
+                chime,
             )?);
         }
         Ok(partitions)
@@ -118,6 +143,24 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
+        self.plan_partition_for_wake(plot, resident, None)
+    }
+
+    fn plan_partition_for_wake(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        chime: Option<&AuthorityGrant>,
+    ) -> Result<BodyPlotPlan, String> {
+        let mut grants = self.host.native_source_planning_grants().to_vec();
+        if let Some(grant) = chime.filter(|_| {
+            plot.expanded
+                .gears
+                .iter()
+                .any(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::STARTUP_CHIME_KIND)
+        }) {
+            grants.push(grant.clone());
+        }
         let hosts = [self.host.advertisement().clone()];
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
@@ -175,7 +218,7 @@ impl Owner {
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                authority_grants: self.host.native_source_planning_grants(),
+                authority_grants: &grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
@@ -198,9 +241,10 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
         advertisement: &HostAdvertisement,
+        chime: Option<&AuthorityGrant>,
     ) -> Result<BodyPlotPlan, String> {
         if plot.expanded.activations.is_empty() {
-            return self.plan_partition(plot, resident);
+            return self.plan_partition_for_wake(plot, resident, chime);
         }
         let (state_bytes, command_bytes) = match plot.expanded.name.as_str() {
             "todo/main" => {

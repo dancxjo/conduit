@@ -24,7 +24,7 @@ fn clean_deadline_starts_one_additional_play_on_the_same_boot() {
     };
     let original_body = owner.truth()["biography"]["body_id"].clone();
     runtime
-        .start_owned_body_selected(100, None, None, 1)
+        .start_owned_body_selected(100, None, None, 1, false)
         .unwrap();
 
     let wait = Instant::now() + Duration::from_secs(10);
@@ -59,7 +59,7 @@ fn clean_deadline_starts_one_additional_play_on_the_same_boot() {
 fn explicit_lull_disarms_renewal_even_when_deadline_already_requested_stop() {
     let (root, mut runtime) = fixture();
     runtime
-        .start_owned_body_selected(100, None, None, 1)
+        .start_owned_body_selected(100, None, None, 1, false)
         .unwrap();
     std::thread::sleep(Duration::from_millis(200));
     // A competing deadline may already own the single stop slot. Lull still

@@ -149,7 +149,7 @@ fn partial_publication_fences_old_owner_until_normal_restart_recovery() {
     assert!(root.join("body/owner-transaction.json").is_file());
     assert!(owner.require_workset_recovered().is_err());
     assert!(owner.persist(&root).is_err());
-    assert!(owner.start_service_run(&root, 5_000).is_err());
+    assert!(owner.start_service_run(&root, 5_000, false).is_err());
     assert!(owner.local_face_snapshot().is_err());
     assert!(owner.session.realization().is_none());
     let host_id = owner.host.advertisement().host_id.clone();
@@ -206,7 +206,7 @@ fn stale_retained_writer_is_fenced_without_overwriting_the_newer_workset() {
         .commit_admitted_workset_revision(&root, &expected, &[(&a, &pa)])
         .is_err());
     assert!(owner.require_workset_recovered().is_err());
-    assert!(owner.start_service_run(&root, 5_000).is_err());
+    assert!(owner.start_service_run(&root, 5_000, false).is_err());
     assert_eq!(fs::read(root.join("body/biography.json")).unwrap(), bytes);
     assert_eq!(state::load(&root).unwrap().unwrap(), *committed.evidence());
     fs::remove_dir_all(root).unwrap();

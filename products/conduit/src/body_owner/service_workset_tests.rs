@@ -74,9 +74,9 @@ fn resumed_complete_sources_start_one_service_play_and_retain_both_outputs() {
     let mut owner = super::super::resume_service(host, &root).unwrap();
     assert_eq!(owner.session.evidence().body_id, body);
     assert_eq!(owner.session.evidence().body.workset, workset);
-    let mut worker = owner.start_service_run(&root, 5_000).unwrap();
+    let mut worker = owner.start_service_run(&root, 5_000, false).unwrap();
     assert_eq!(owner.session.realization().unwrap().plan.plots.len(), 2);
-    assert!(owner.start_service_run(&root, 5_000).is_err());
+    assert!(owner.start_service_run(&root, 5_000, false).is_err());
     let until = Instant::now() + Duration::from_secs(10);
     while !worker.progress(&mut owner, &root).unwrap() {
         assert!(
@@ -112,23 +112,37 @@ fn incomplete_or_modified_retained_sources_cannot_publish_a_partial_service_wake
     let mut value: serde_json::Value = serde_json::from_slice(&original).unwrap();
     value["entries"].as_array_mut().unwrap().pop();
     fs::write(&file, serde_json::to_vec(&value).unwrap()).unwrap();
-    assert!(owner.start_service_run(&root, 5_000).is_err());
+    assert!(owner.start_service_run(&root, 5_000, false).is_err());
     assert!(owner.session.realization().is_none());
     assert!(!owner.host.is_playing());
     assert_eq!(owner.session.evidence(), &before);
     let mut changed: serde_json::Value = serde_json::from_slice(&original).unwrap();
     changed["entries"][1]["source"] = serde_json::json!("unrelated bytes");
     fs::write(&file, serde_json::to_vec(&changed).unwrap()).unwrap();
-    assert!(owner.start_service_run(&root, 5_000).is_err());
+    assert!(owner.start_service_run(&root, 5_000, false).is_err());
     assert!(owner.session.realization().is_none());
     assert_eq!(owner.session.evidence(), &before);
     fs::remove_file(&file).unwrap();
     fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
     assert!(owner
-        .start_service_run(&root, 5_000)
+        .start_service_run(&root, 5_000, false)
         .err()
         .unwrap()
         .contains("complete Body workset"));
     assert_eq!(owner.session.evidence(), &before);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn chime_authorization_requires_a_retained_chime_before_proposal() {
+    let (root, mut owner) = fixture();
+    let before = owner.session.evidence().clone();
+    assert_eq!(
+        owner.start_service_run(&root, 5_000, true).err().as_deref(),
+        Some("Body has no retained Startup Chime")
+    );
+    assert_eq!(owner.session.evidence(), &before);
+    assert!(owner.session.realization().is_none());
+    assert!(!owner.host.is_playing());
     fs::remove_dir_all(root).unwrap();
 }
