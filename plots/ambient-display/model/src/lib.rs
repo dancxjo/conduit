@@ -2,9 +2,11 @@
 #![no_std]
 extern crate alloc;
 mod types;
+mod wallpaper_selection;
 pub use types::{
     install_ambient_display_types, prepare_ambient_display_types, AMBIENT_DISPLAY_TYPES_SOURCE,
 };
+pub use wallpaper_selection::{PreparedWallpaperSelection, SelectionRefusal, WALLPAPER_DECK_LEN};
 
 mod availability;
 mod civil;
@@ -25,3 +27,5 @@ pub use subject_identity::{ambient_clock_subject_refs, AmbientClockSubjectRefs};
 mod test_fixtures;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod wallpaper_selection_tests;
