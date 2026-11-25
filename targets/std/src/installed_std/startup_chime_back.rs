@@ -4,7 +4,7 @@ use conduit_core::PlannedGear;
 pub(crate) const PCM_BYTES: usize = conduit_synth::STARTUP_CHIME_FRAMES as usize * 4;
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 pub(super) struct StdStartupChimeBack {
-    sink: conduit_semantic_catalog::StartupChimeBack,
+    sink: Option<conduit_semantic_catalog::StartupChimeBack>,
     pcm: Vec<u8>,
 }
 impl StdStartupChimeBack {
@@ -17,10 +17,29 @@ impl StdStartupChimeBack {
 }
 impl<const PORTS: usize> StepBack<PORTS> for StdStartupChimeBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        self.sink.step(io, inputs)
+        if let Some(sink) = self.sink.as_mut() {
+            return sink.step(io, inputs);
+        }
+        let port = conduit_kernel::PortId(0);
+        let (result, outcome) = if io.input(port).is_some() {
+            (io.consume(port).map(|_| ()), StepOutcome::Progress)
+        } else if io.input_closed(port) {
+            (io.consume_closed(port), StepOutcome::Complete)
+        } else {
+            return StepOutcome::Await;
+        };
+        result.map_or(
+            StepOutcome::Fail(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::InvalidLifecycle,
+                detail: 1,
+            }),
+            |_| outcome,
+        )
     }
     fn cancel(&mut self) {
-        <conduit_semantic_catalog::StartupChimeBack as StepBack<PORTS>>::cancel(&mut self.sink);
+        if let Some(sink) = self.sink.as_mut() {
+            <conduit_semantic_catalog::StartupChimeBack as StepBack<PORTS>>::cancel(sink);
+        }
     }
 }
 fn render_pcm() -> Result<Vec<u8>, String> {
@@ -97,8 +116,55 @@ fn prepare(
 ) -> Result<InstalledBack, String> {
     validate(placement)?;
     Ok(InstalledBack::StartupChime(StdStartupChimeBack {
-        sink: conduit_semantic_catalog::StartupChimeBack::new(),
+        sink: Some(conduit_semantic_catalog::StartupChimeBack::new()),
         pcm: render_pcm()?,
+    }))
+}
+
+pub(super) static SILENT_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::SILENT_STARTUP_CHIME_IMPLEMENTATION,
+    budget: silent_budget,
+    prepare: prepare_silent,
+};
+
+fn silent_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    let offer = conduit_std_offers::silent_startup_chime_offer();
+    if placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || placement.semantic_contract != offer.semantic_contract
+        || placement.capability_id != offer.capability_id
+        || placement.execution_profile_id != offer.implementation.execution_profile_id
+        || placement.implementation_id != offer.implementation.implementation_id
+        || placement.artifact_id != offer.implementation.artifact_id
+        || placement.limits != offer.limits
+        || placement.inputs != offer.inputs
+        || !placement.outputs.is_empty()
+        || !placement.configuration.is_empty()
+        || !placement.host_calls.is_empty()
+        || !placement.resources.is_empty()
+        || !placement.authority.is_empty()
+        || !placement.pool_references.is_empty()
+        || !placement.terminal_transductions.is_empty()
+    {
+        return Err("startup chime differs from exact silent realization".into());
+    }
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: 0,
+        sign_items: 16,
+        maximum_value_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
+    })
+}
+
+fn prepare_silent(
+    placement: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    silent_budget(placement)?;
+    Ok(InstalledBack::StartupChime(StdStartupChimeBack {
+        sink: None,
+        pcm: Vec::new(),
     }))
 }
 

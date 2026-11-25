@@ -71,17 +71,14 @@ impl StdHost {
                 conduit_std_offers::TICK_IMPLEMENTATION
                     | conduit_std_offers::TIME_EVERY_IMPLEMENTATION
                     | conduit_std_offers::PATCHBAY_INTERACTION_IMPLEMENTATION
+                    | conduit_std_offers::BODY_WAKE_IMPLEMENTATION
+                    | conduit_std_offers::SILENT_STARTUP_CHIME_IMPLEMENTATION
             ) || ambient_face.as_ref().is_some_and(|base| {
                 base.capabilities
                     .iter()
                     .any(|offer| offer.implementation.implementation_id.as_str() == id)
             }) || initial.supports_native_implementation(id)
-                || (has_playback
-                    && matches!(
-                        id,
-                        conduit_std_offers::BODY_WAKE_IMPLEMENTATION
-                            | conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
-                    ))
+                || (has_playback && matches!(id, conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION))
         };
         if !manifest.target.starts_with("std/")
             || manifest.implementations.is_empty()
@@ -240,13 +237,20 @@ impl StdHost {
             initialized_driver_kinds
                 .insert(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into());
             candidates.push(speaker);
-            if manifest
-                .implementations
-                .iter()
-                .any(|id| id == conduit_std_offers::BODY_WAKE_IMPLEMENTATION)
-            {
-                candidate_capabilities.push(conduit_std_offers::body_wake_offer());
-            }
+        }
+        if manifest
+            .implementations
+            .iter()
+            .any(|id| id == conduit_std_offers::BODY_WAKE_IMPLEMENTATION)
+        {
+            candidate_capabilities.push(conduit_std_offers::body_wake_offer());
+        }
+        if manifest
+            .implementations
+            .iter()
+            .any(|id| id == conduit_std_offers::SILENT_STARTUP_CHIME_IMPLEMENTATION)
+        {
+            candidate_capabilities.push(conduit_std_offers::silent_startup_chime_offer());
         }
         if manifest
             .implementations
