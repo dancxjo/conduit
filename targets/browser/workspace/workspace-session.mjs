@@ -1,3 +1,4 @@
+import { prepareWorkspaceStemProvider } from "./workspace-stem-provider.mjs";
 import { bindBrowserRuntimeBridge } from "../../../targets/browser/host/assets/browser-runtime-bridge.mjs";
 
 // Workspace orchestration of the existing Crèche lifecycle. Rust owns Body truth.
@@ -99,6 +100,11 @@ export function openWorkspaceSession({ host, storage }) {
       await write;
       request('ChangeWorkset', { ...here, edit, plot, source, expected_revision });
       await save();
+    },
+    async prepareStem(selection, distribution, signal) {
+      if (persistenceFailure) throw persistenceFailure;
+      await write;
+      return prepareWorkspaceStemProvider({ request, here, selection, distribution, signal });
     },
     foreground: () => workspace ? request('Current').foreground : null,
     arrive() { if (!workspace) request('Arrive', { advertisement: localAdvertisement }); return save(); },

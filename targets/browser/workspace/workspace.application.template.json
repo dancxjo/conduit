@@ -162,10 +162,20 @@
       "path": "workspace-session.mjs",
       "maximum_bytes": 12288,
       "dependencies": [
+        { "role": "workspace-stem-provider", "specifier": "./workspace-stem-provider.mjs" },
         {
           "role": "browser-runtime-bridge",
           "specifier": "../../../targets/browser/host/assets/browser-runtime-bridge.mjs"
         }
+      ]
+    },
+    {
+      "role": "workspace-stem-provider",
+      "kind": "module",
+      "path": "workspace-stem-provider.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        { "role": "browser-bundle-builder", "specifier": "../deployment/browser/browser-bundle.mjs" }
       ]
     },
     {
