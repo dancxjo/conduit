@@ -6,6 +6,22 @@ to see the project before building it. The ten-step journey captures a real
 QEMU session from zero-Body Crèche arrival through Birth, Play, Patchbay Face
 inspection, its live diagram, and Stop.
 
+## Create a Body in your browser
+
+1. Open the [body Workspace](https://dancxjo.github.io/conduit/workspace/) in
+   the browser profile you plan to use again. Under **A body of your own**,
+   enter a **Friendly Body name** and keep the reviewed **Memory Lantern** Plot
+   selected.
+2. Click **Birth Body**. Your named Body appears as **Lulled**. Click
+   **wake body** to start its Plots and see the state change to **Playing**.
+3. Open **Memory Lantern** under **Your plots**, then reload the browser tab.
+   The Workspace prepares again and returns to your named Body and selected
+   Plot. It creates a fresh Boot and starts a new Play for the Body that was
+   playing before reload.
+
+This return uses storage in that browser profile. Joining from another Host
+requires its own admission. Native disk persistence depends on the Host.
+
 ## Start Conduit on Linux
 
 On a systemd-based Linux x86-64 machine, download `hosted-linux.tar.gz` from
@@ -176,9 +192,10 @@ available plot. Wake it with `F4`, plan with `F5`, start Play with `F6`, and
 return Home with Escape. Open resident Patchbay, inspect its current semantic
 Face with `F2`, show the live gear-and-cord diagram with `F3`, and request Stop
 with `F8`. The [captured journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)
-shows each action and resulting screen. Browser, hosted terminal, and spoken
-Masks consume the same Face meaning, but the complete shared-Body journey
-across those hosts remains open in [#4807](https://github.com/dancxjo/conduit/issues/4807).
+shows each action and resulting screen.
+The [recorded one-Body journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/)
+shows a live local encounter spanning a Linux owner, a browser, and a QEMU
+guest across five Masks. See [STATUS](../STATUS.md) for the scope of that proof.
 For an owner-issued invitation and a guest that truthfully waits to join, see
 [ConduitOS spore provisioning](contributing/native-spore-provision.md).
 
