@@ -38,6 +38,8 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotE
         .map_err(PlotEditorError::Catalog)?;
     conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_ambient_display_types(&mut startup)

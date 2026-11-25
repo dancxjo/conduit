@@ -134,6 +134,32 @@ mod tests {
     use crate::PatchbayHostProfile;
 
     #[test]
+    fn startup_chime_requires_both_offers_and_checks_the_source() {
+        let mut host = crate::host_adapter::test_host_adapter()
+            .advertisement(
+                "fixture/startup-host".into(),
+                "fixture/startup-boot".into(),
+                conduit_core::OfferGeneration(1),
+                PatchbayHostProfile::Authoring,
+            )
+            .unwrap();
+        host.capabilities = vec![conduit_std_offers::body_wake_offer()];
+        assert!(reviewed_plots(&host)
+            .unwrap()
+            .iter()
+            .all(|plot| plot.label != "Startup Chime"));
+
+        host.capabilities
+            .push(conduit_std_offers::startup_chime_offer());
+        let plots = reviewed_plots(&host).unwrap();
+        let chime = plots
+            .iter()
+            .find(|plot| plot.label == "Startup Chime")
+            .unwrap();
+        assert_eq!(chime.editor.view().checked.plots[0].name, "startup_chime");
+    }
+
+    #[test]
     fn wallpaper_is_selectable_only_with_its_observation_and_face_backs() {
         let mut host = crate::host_adapter::test_host_adapter()
             .advertisement(
