@@ -6,6 +6,8 @@ use image::{ImageDecoder, ImageFormat, ImageReader};
 use sha2::{Digest, Sha256};
 use std::{io::Cursor, time::Duration};
 
+mod apod_basic;
+
 pub const DECK_LEN: usize = 4;
 pub const MAXIMUM_ATTEMPTS: usize = 12;
 pub const MAXIMUM_COMPRESSED_BYTES: usize = 4 * 1024 * 1024;
@@ -252,7 +254,7 @@ pub(super) fn prepare_photo(
 pub fn prepare_deck_https(
     admission: PreparationAdmission,
 ) -> Result<PreparedDeck, PreparationError> {
-    prepare_deck(admission, bounded_https_transport())
+    apod_basic::prepare_deck(admission, bounded_https_transport())
 }
 pub(super) fn bounded_https_transport(
 ) -> impl FnMut(&str, usize) -> Result<Vec<u8>, PreparationError> {

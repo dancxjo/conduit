@@ -132,3 +132,48 @@ fn rate_limited_provider_stops_deck_preparation_without_another_request() {
     assert!(matches!(result, Err(PreparationError::ProviderRateLimited)));
     assert_eq!(requests, 1);
 }
+
+#[test]
+fn apod_basic_fetches_one_bounded_list_and_only_admitted_assets() {
+    let entries: Vec<_> = (11..=17)
+        .map(|day| {
+            let url = if day == 16 {
+                "https://science.nasa.gov/wp-content/nasa-logo.png".to_owned()
+            } else {
+                format!("https://assets.science.nasa.gov/dynamicimage/assets/science/apod/{day}.png?w=3000&h=2000&fit=clip")
+            };
+            serde_json::json!({
+                "date": format!("2026-11-{day}"),
+                "title": "A real title",
+                "media_type": "image",
+                "hdurl": url,
+                "copyright": "Credit",
+            })
+        })
+        .collect();
+    let mut downloaded = Vec::new();
+    let deck = apod_basic::prepare_deck(admission(), |url, bound| {
+        if bound == MAXIMUM_APOD_RESPONSE_BYTES {
+            assert!(url.contains("apod-basic?per_page=12"));
+            return Ok(serde_json::to_vec(&entries).unwrap());
+        }
+        assert_eq!(bound, MAXIMUM_COMPRESSED_BYTES);
+        assert!(url.starts_with("https://assets.science.nasa.gov/dynamicimage/assets/science/"));
+        assert!(url.ends_with("?w=1024&h=1024&fit=clip"));
+        downloaded.push(url.to_owned());
+        Ok(png(2, 2, 255, downloaded.len() as u8))
+    })
+    .unwrap();
+    assert_eq!(downloaded.len(), DECK_LEN);
+    assert_eq!(
+        deck.photos()
+            .each_ref()
+            .map(|photo| photo.candidate().date.as_str()),
+        ["2026-11-15", "2026-11-14", "2026-11-13", "2026-11-12"]
+    );
+    assert_eq!(
+        deck.photos()[0].candidate().credit.as_deref(),
+        Some("Credit")
+    );
+    assert!(deck.retained_bytes() <= MAXIMUM_RETAINED_BYTES);
+}
