@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 test("Workspace staging copies all declared canonical Patchbay presentation resources", async () => {
   const script = await readFile("targets/browser/tools/stage-browser-workspace.sh", "utf8");
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
-  const roles = ["browser-sdk-face-actions", "browser-sdk-patchbay", "owner-face-component", "owner-face-look"];
+  const roles = ["browser-sdk-face-actions", "browser-sdk-patchbay", "owner-face-component", "owner-face-presentation", "owner-face-pointer", "owner-face-icons", "owner-face-look"];
   const resources = roles.map(role => {
     const resource = template.resources.find(value => value.role === role);
     assert.ok(resource, `${role}: declared resource`);
@@ -32,8 +32,10 @@ test("Workspace staging copies all declared canonical Patchbay presentation reso
       const source = await readFile(path.join("targets/browser", resource.role.startsWith("owner-face") ? "handbook" : "sdk", resource.path));
       assert.deepEqual(staged, source, `${resource.role}: exact source bytes`);
     }
+    const look = template.resources.find(resource => resource.role === "application-look");
+    await copyFile(path.join("targets/browser/host/assets", look.path), path.join(scratch, look.path));
     const input = path.join(scratch, "template.json");
-    await writeFile(input, JSON.stringify({ ...template, resources }));
+    await writeFile(input, JSON.stringify({ ...template, resources: [...resources, look] }));
     const built = spawnSync(process.execPath, ["targets/browser/tools/build-browser-application-package.mjs", input, scratch, "patchbay.application.json"], { encoding: "utf8" });
     assert.equal(built.status, 0, built.stderr);
     const manifest = JSON.parse(await readFile(path.join(scratch, "patchbay.application.json"), "utf8"));
