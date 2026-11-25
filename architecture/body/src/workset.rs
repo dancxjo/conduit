@@ -9,6 +9,8 @@ use portable_atomic_util::Arc;
 use serde::{Deserialize, Serialize};
 
 pub const MAX_BODY_PLOTS: usize = 16;
+/// Reviewed choices offered before an initial workset is selected.
+pub const MAX_REVIEWED_INITIAL_BODY_PLOTS: usize = 32;
 pub const MAX_BODY_PLOT_IDENTITY_BYTES: usize = 2_048;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

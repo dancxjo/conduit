@@ -385,9 +385,7 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
         .filter(|plot| plot.initial_body_order.is_some())
         .collect();
     selected.sort_by_key(|plot| plot.initial_body_order);
-    if selected.is_empty()
-        || selected.len() > conduit_semantic_catalog::MAX_REVIEWED_INITIAL_BODY_PLOTS
-    {
+    if selected.is_empty() || selected.len() > conduit_body::MAX_REVIEWED_INITIAL_BODY_PLOTS {
         return Err(
             "initial Body inventory is empty or exceeds the reviewed inventory capacity".into(),
         );

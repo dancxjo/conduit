@@ -176,7 +176,7 @@ pub(super) fn check_inventory_with_catalogs(
     };
     if bundle.schema != "conduit.creche/reviewed-plot-bundle@2"
         || bundle.plots.is_empty()
-        || bundle.plots.len() > conduit_semantic_catalog::MAX_REVIEWED_INITIAL_BODY_PLOTS
+        || bundle.plots.len() > conduit_body::MAX_REVIEWED_INITIAL_BODY_PLOTS
     {
         return Err("reviewed plot bundle is malformed or over capacity".into());
     }
