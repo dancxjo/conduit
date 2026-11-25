@@ -56,9 +56,9 @@ setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError
 
 /** Validate the finite installed-executor disclosure without acquiring a Body. */
 export function checkedBrowserExecutionCapabilities(value) {
-  // This includes the civil clock source and Face executors.
-  // The 126 executors are distinct from the 142-offer membership advertisement.
-  const maximumExecutionCapabilities = 126;
+  // Includes the resident clock and Wallpaper source and Face executors,
+  // with a slot for the scoped Stem offer. Membership has a separate inventory.
+  const maximumExecutionCapabilities = 128;
   if (value?.schema !== "conduit.browser/body-capabilities@1"
       || !Array.isArray(value.capability_ids)
       || value.capability_ids.length > maximumExecutionCapabilities
