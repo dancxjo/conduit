@@ -110,15 +110,54 @@ impl crate::StdHost {
     where
         F: FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String>,
     {
-        use crate::{image_initialization::InitialBases, kernel_preparation::StagedImageMemory};
+        unsafe {
+            Self::from_selected_ambient_home_and_playback_image(
+                config,
+                image,
+                catalog,
+                checked,
+                None,
+                grant,
+                prepare_deck,
+            )
+        }
+    }
+
+    /// Compose the checked Ambient worker and optional speaker on one IMAGE.
+    ///
+    /// # Safety
+    /// The grant and deck factory must meet the requirements of
+    /// [Self::from_selected_ambient_home_image].
+    pub unsafe fn from_selected_ambient_home_and_playback_image<F>(
+        config: crate::StdHostConfig,
+        image: &conduit_host_make::HostImage,
+        catalog: &conduit_host_make::MakeCatalog,
+        checked: &CheckedHostConfiguration,
+        playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+        grant: conduit_core::AuthorityGrant,
+        prepare_deck: F,
+    ) -> Result<Self, String>
+    where
+        F: FnOnce() -> Result<crate::ambient_wallpaper::observation::WallpaperPreparation, String>,
+    {
+        use crate::{
+            image_initialization::{prepare_playback_on, InitialBases},
+            kernel_preparation::StagedImageMemory,
+        };
         let memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
         let worker = stage_ambient_worker(&config, image, checked, grant, prepare_deck, &memory)?;
+        let playback = playback
+            .map(|selected| {
+                prepare_playback_on(&config, image, catalog, checked, selected, &memory)
+            })
+            .transpose()?;
         Self::from_selected_initial_bases(
             config.clone(),
             image,
             catalog,
             InitialBases {
                 worker: Some(worker),
+                playback,
                 memory: Some(memory),
                 ..InitialBases::default()
             },
