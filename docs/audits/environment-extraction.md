@@ -291,3 +291,30 @@ acceptance and retirement still need their own authenticated content/sequence
 contract and application composition. Full recorded-history browser transport
 and replacement of the remaining legacy consumers are separate unfinished
 completion gates above. These services must not be retired from this proof alone.
+
+## Proposed authored catalogue checkpoint, 26 November 2026
+
+The application checkpoint and read-only seed Sources are recovered unchanged
+from `057f48d32ce3223ce1530ddc1f50f2d53e3affe7`. The checkpoint has one JSON
+input. Its publication's returned ResourceRef passes through a pure `some`
+constructor into the named Body-lived `recorder-catalog` seed, bounded to 1 KiB.
+The read-only Source preserves the exact expanded seed Gear identity, value Type,
+initial `none` and configuration, with no update input. No direct reference-update
+entry or old Make library is restored.
+
+`cargo xtask prove environment catalogue-source` checks those authored cords and
+pure execution against the normal shared Source/compiler APIs. Seven focused
+checks cover the exact opaque returned reference, sole JSON input, shared seed,
+profile/refusal bounds and the original ordered catalogue schema. The original
+sixteen-reference catalogue fits the whole JSON text profile used by snapshot
+publication. The distinct JSON tree profile refuses that text's total string
+budget; the proof does not conflate the two contracts.
+
+The catalogue codec in this proof is an application test fixture, preserving
+validation, ordering and atomic replacement of the previous view. It is not a
+new DHT11 device API or an installed catalogue reader. Catalogue validation
+precedes the test's Source input; references alone prove neither prior chunk
+publication nor storage admission. This is #6359's Source/expansion/pure-operation
+boundary. Actual committed catalogue identity, old-seed preservation on failure,
+fresh-process recovery, authenticated producer acceptance and retirement remain
+runtime acceptance gates under the recorder owners.

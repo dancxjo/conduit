@@ -1,0 +1,21 @@
+# Publication success supplies the reference. A request or failed publication
+# cannot enter the seed's update cord. Root admits prior chunk publication.
+plot recorder-present-reference (
+    >> reference: ResourceRef
+    selected: ResourceRef? >>
+) {
+    reference >> (some(.)) >> selected
+}
+
+plot recorder-catalog (
+    >> catalog: JsonText
+    current: $ResourceRef? >>
+) {
+    publication: resource/publish-json-snapshot("@REFERENCE@")
+    present: recorder-present-reference
+    seed: keep ResourceRef? <= 1KiB for life
+    catalog >> publication.source
+    publication.value >> present.reference
+    present.selected >> seed
+    seed >> current
+}
