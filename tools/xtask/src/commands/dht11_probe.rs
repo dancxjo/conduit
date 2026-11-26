@@ -7,6 +7,8 @@ mod environment_face_publication;
 mod environment_history;
 #[path = "environment_output.rs"]
 mod environment_output;
+#[path = "environment_quantity_face.rs"]
+mod environment_quantity_face;
 #[path = "environment_snapshot.rs"]
 mod environment_snapshot;
 #[path = "environment_source.rs"]
@@ -33,6 +35,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     }
     if arguments == ["face-publication"] {
         return environment_face_publication::prove(&root);
+    }
+    if arguments == ["quantity-face"] {
+        return environment_quantity_face::prove(&root);
     }
     if arguments == ["display-output"] {
         return environment_output::prove(&root);

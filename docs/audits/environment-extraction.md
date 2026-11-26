@@ -289,3 +289,29 @@ physical display output or whole-runtime allocation confinement.
 The actual history adapter and shared Face layer also pass
 `cargo xtask prove environment history-target` for `wasm32-unknown-unknown`.
 This is cross-compilation, separately from executing a WASM owner Mask.
+
+## Proposed reported-quantity Face projector, 26 November 2026
+
+The shared Face layer gains prepared projection of the exact Data batch and
+two-channel snapshot profiles into an inspection contribution. Reported producer
+Host/Boot/Plan/Play remain distinct from the inspecting contribution's checked
+Plot, Plan and Play. Producer Boot-relative times, exact quantities, gaps and
+unavailable reasons survive projection; unrelated arrival time supplies none
+of those facts. The semantic Kind accepts the exact snapshot profile, not a
+single batch or an untyped recording string.
+
+Retained input validation and allocating projection workspace have separate
+finite backing models. The closed inspection visitor refuses unsupported
+action, temporal and semantic-composition ownership instead of silently omitting
+it. The existing Ambient visitor and its behavior remain unchanged. These are
+preparation contracts, not allocation-free Step or hostile-code confinement
+claims.
+
+`cargo xtask prove environment quantity-face` checks the pure contribution and
+semantic Source contracts, strict focused lint and no-default-feature WASM
+compilation. All eight focused tests and those checks pass on the proposed
+source. This does not install a projection Back, fund an IMAGE, attach an
+environmental Source or qualify browser/native output. The selected contribution
+route and original-recording consumer remain the next application wiring cuts;
+recorder ACK/restart, full-history transport, release acceptance and legacy
+retirement retain their separate gates.
