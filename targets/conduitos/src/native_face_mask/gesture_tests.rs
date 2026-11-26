@@ -2,7 +2,7 @@
 use super::tests::{CountingDisplay, fixture};
 use super::*;
 
-fn prepare() -> (
+pub(super) fn prepare() -> (
     NativeFaceMask,
     conduit_birth_plot::BirthDraft,
     CountingDisplay,
@@ -36,7 +36,7 @@ fn prepare() -> (
     panic!("ordinary Tab navigation must reach Suggest");
 }
 
-fn target(mask: &NativeFaceMask) -> (u32, u32) {
+pub(super) fn target(mask: &NativeFaceMask) -> (u32, u32) {
     let frame = mask.scene().unwrap().frame().unwrap();
     let hit = frame
         .hits
