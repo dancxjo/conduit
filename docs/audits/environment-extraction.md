@@ -529,7 +529,15 @@ profile storage/acknowledgement checks and focused strict lint.
 `recording-owner64-abi` produces fresh ignored genuine Owner/native ABI evidence.
 The proposed `recording-owner64-browser HANDBOOK-PACKAGE` harness uses a fresh
 WASM Host, ordinary UI Join and the normal Owner control/presence actor; its
-platform run is still unqualified. It must correlate the actual received owner
+platform run is still unqualified. The first retained run reached the ordinary
+WebSocket and advertised its exact inventory, then the Owner refused candidate
+admission: the prepared Full Back plus the optional component Back produced 145
+entries against the previous 144-entry collection bound. The proposed finite
+bound is now 145, with existing exact-limit acceptance and next-item refusal
+checks included in this qualification entrance. This changes neither the
+independent advertisement-byte bound nor membership authority. The Handbook
+selects the Full WebSocket implementation alone for its Line Kind, preserving
+Make's one-implementation-per-Kind rule. It must correlate the actual received owner
 frame, canonical Face, complete reading/plots and accepted returned Show, and
 retire through ordinary Lull. A separate fresh native pair is only a typed
 rendering comparison oracle, never a replacement browser Host, Face or view.

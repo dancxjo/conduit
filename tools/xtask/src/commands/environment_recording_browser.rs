@@ -69,6 +69,17 @@ pub(super) fn prove(root: &Path, handbook_package: &Path) -> Result<()> {
     }
     let browser = run.join("browser");
     println!("recording_browser_run={}", run.display());
+    // The complete ordinary browser inventory includes the optional component
+    // Back and the separately prepared Full Back. Keep exact-limit acceptance
+    // and the next-item refusal in the same supported qualification entrance.
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-body",
+        "--test",
+        "candidate",
+    ]))?;
     let binary = build_product(root, &run)?;
     let native_abi = super::environment_recording_source::owner64_abi_evidence(root)?;
     let log_path = run.join("service.log");
@@ -85,6 +96,7 @@ pub(super) fn prove(root: &Path, handbook_package: &Path) -> Result<()> {
             SERVICE_TEST,
             "--",
             "--ignored",
+            "--nocapture",
             "--test-threads=1",
         ])
         .env("CONDUIT_ENVIRONMENT_HISTORY64_SERVICE_DIR", &service)

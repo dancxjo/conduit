@@ -33,14 +33,21 @@ test('complete original readings traverse a live Owner and fresh ordinary WASM M
   await mkdir(output, { recursive: false, mode: 0o700 });
   const errors = [];
   const frames = [];
+  const traffic = [];
+  const note = entry => { if (traffic.length < 1000) traffic.push(entry); };
   const returnedShows = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text().slice(0, 2000)); });
   page.on('websocket', socket => {
+    note({ event: 'socket-created', url: socket.url() });
+    socket.on('socketerror', error => note({ event: 'socket-error', error: String(error).slice(0, 2000) }));
+    socket.on('close', () => note({ event: 'socket-closed' }));
     let returned;
     socket.on('framesent', ({ payload }) => {
       const text = typeof payload === 'string' ? payload : payload.toString('utf8');
       try {
         const frame = parseCaptureJSON(text);
+        note({ event: 'sent', kind: frame.kind, bytes: Buffer.byteLength(text) });
         if (frame.kind === 'face-show-acknowledgement') returned = { text, frame };
       } catch { /* Other protocol messages cannot qualify a Show. */ }
     });
@@ -49,6 +56,7 @@ test('complete original readings traverse a live Owner and fresh ordinary WASM M
       // Retain actual carrier bytes, with no CPU Host/Boot or view replay.
       try {
         const frame = parseCaptureJSON(text);
+        note({ event: 'received', kind: frame.kind, accepted: frame.accepted, code: frame.code, bytes: Buffer.byteLength(text) });
         if (frame.kind === 'face-snapshot-response' && frame.response?.outcome === 'snapshot') {
           frames.push({ text, frame });
         } else if (frame.kind === 'face-show-response' && returned) {
@@ -144,6 +152,12 @@ test('complete original readings traverse a live Owner and fresh ordinary WASM M
       physical_sensor: false, recorder_acknowledgement: false, released_acceptance: false,
     }));
   } finally {
+    const state = await page.evaluate(() => {
+      const api = globalThis.__conduitOwnerParticipation;
+      return { state: api?.state(), presence: api?.presence(), host: api?.host(),
+        status: document.querySelector('[data-owner-status]')?.textContent };
+    }).catch(error => ({ error: error.message }));
+    await writeFile(path.join(output, 'diagnostic.json'), JSON.stringify({ errors, traffic, state }, null, 2));
     try {
       if (started) command('lull');
     } finally {
