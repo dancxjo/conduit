@@ -42,6 +42,7 @@ pub(super) fn prepare_deck(
         let Ok(mut candidate) = decode_response(entry) else {
             continue;
         };
+        candidate.credit = candidate.credit.as_deref().and_then(plain_credit);
         if candidate
             .credit
             .as_ref()
@@ -76,4 +77,38 @@ pub(super) fn prepare_deck(
         prepared: photos.len(),
         attempts,
     })
+}
+
+/// Drop provider markup at acquisition so all Masks read the same credit.
+fn plain_credit(credit: &str) -> Option<String> {
+    let mut text = String::with_capacity(credit.len());
+    let mut chars = credit.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch != '<'
+            || !chars
+                .peek()
+                .is_some_and(|next| next.is_ascii_alphabetic() || matches!(next, '/' | '!'))
+        {
+            text.push(ch);
+            continue;
+        }
+        let mut quote = None;
+        let mut closed = false;
+        for next in chars.by_ref() {
+            match (quote, next) {
+                (Some(delimiter), ch) if ch == delimiter => quote = None,
+                (None, delimiter @ ('\'' | '"')) => quote = Some(delimiter),
+                (None, '>') => {
+                    closed = true;
+                    break;
+                }
+                _ => {}
+            }
+        }
+        if !closed {
+            return None;
+        }
+    }
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_owned())
 }
