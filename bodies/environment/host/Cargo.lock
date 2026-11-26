@@ -165,6 +165,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-data",
  "conduit-human",
  "conduit-planner",
  "conduit-plot",
