@@ -274,3 +274,8 @@ publication nor storage admission. This is #6359's Source/expansion/pure-operati
 boundary. Actual committed catalogue identity, old-seed preservation on failure,
 fresh-process recovery, authenticated producer acceptance and retirement remain
 runtime acceptance gates under the recorder owners.
+
+On current `dev` plus the opaque-reference expression prerequisite, all seven
+checks and strict focused lint pass. Workspace and standalone proof formatting,
+evidence retention and all thirty standalone lock checks also pass. The lock
+delta adds only three existing local test-dependency edges.
