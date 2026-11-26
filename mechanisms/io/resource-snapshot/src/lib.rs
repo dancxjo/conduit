@@ -10,3 +10,8 @@ mod record;
 pub use record::*;
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "kernel-step")]
+mod publication;
+#[cfg(feature = "kernel-step")]
+pub use publication::{SnapshotCommitObserver, SnapshotContentValidator, SnapshotPublicationBack};
