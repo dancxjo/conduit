@@ -247,3 +247,22 @@ remain unproved by this extraction.
 The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
+
+## Pure recording codec ownership
+
+The opt-in `recording` feature in `mechanisms/devices/dht11` owns the existing
+recording chunk encoder, reader, ordered recovery, fixed-cardinality snapshot
+content and disposition Form. The Body runtime keeps explicit public-path
+reexports and its actual snapshot Host Call Back and kernel commit observer.
+The authored disposition source and its build generator move with the codec;
+JSON bytes, Form identities, sequence/clock checks, fixed bounds, sealing and
+publication behavior remain unchanged. Existing Body history consumers keep
+their current APIs through those reexports.
+
+This is an extraction with real recording/recovery consumers, not a new generic
+quantity adapter, Source, storage executor or Mask route. It adds no Data
+dependency, catalog registration, execution gate, authority or durable receipt.
+`cargo xtask prove environment recording` checks the shared device feature and
+existing Body chunk/recovery/publication tests. This entrance establishes CPU
+behavior; installed recorder, restart, physical and release acceptance remain
+separate. Related responsibility owners remain #6354, #6358, #6359, #6360 and #6465.

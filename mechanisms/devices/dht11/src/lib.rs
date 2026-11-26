@@ -2,6 +2,8 @@
 //! The authored Forms lift decoder coordinates into first-class quantities.
 //! Checksum/range/negative decoding stays in the protocol Source.
 extern crate alloc;
+#[cfg(feature = "recording")]
+pub mod recording;
 use alloc::vec;
 use conduit_core::{
     self as c, validate_canonical_structured_value as validate,

@@ -12,6 +12,13 @@ and creates no sampling loop. The `source-capture` feature derives request
 geometry from the checked capture Plot and validates it against a caller-supplied
 pulse envelope. It does not supply a GPIO, provider, capability or capture grant.
 
+The opt-in `recording` feature owns the unchanged bounded immutable JSON codec,
+ordered recovery and [recording disposition Form](recording.conduit). The existing
+Body runtime paths reexport this one implementation. Snapshot Host Calls, commit
+observation, authority and application recording policy remain in the Body runtime;
+this feature adds no storage effects or Source realization. Default features remain
+empty.
+
 The result schema has one shared immutable backing exposed as `RESULT_TYPE_BYTES`.
 Publication consumers can borrow those exact bytes rather than generate and link
 their own copy. The Body chooses cadence, publication, recording and Face/Look
@@ -21,7 +28,8 @@ The package's hosted tests check Forms, captured-frame conversion, typed failure
 and recovery, admitted capture geometry and allocation-free recurring conversion.
 They use CPU fixtures, not a physical sensor. `cargo xtask prove environment source`
 also checks the separate application Face/Mask integration; the recording proof
-includes the shared Forms tests. Normal workspace tests include the device
+includes the shared package with `recording` enabled and the existing Body
+chunk, recovery and publication tests. Normal workspace tests include the device
 package, and the Foundation shard enables its two optional features.
 
 Moving the Rust owner does not change the authored protocol or Form identities.

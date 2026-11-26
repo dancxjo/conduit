@@ -1,9 +1,12 @@
 # Recording content
 
 `cargo xtask prove environment recording` checks compact immutable recording
-content and its ordered recovery. It generates the disposition Form from
-`../profiles/recording.conduit` and uses the observation's existing authored
-quantity Forms. Temperature and relative humidity remain semantic quantities.
+content and its ordered recovery. The opt-in `recording` feature in
+`conduit-dht11-observation` owns the pure codec and generates the disposition Form
+from `mechanisms/devices/dht11/recording.conduit`; observation quantity Forms are
+unchanged. Existing `conduit_environment_runtime::recording` paths reexport these
+types. The actual snapshot Host Call Back and kernel commit observer remain local.
+Temperature and relative humidity remain semantic quantities.
 
 A chunk owns at most 64 fixed-width samples and 4,096 JSON bytes. It retains
 producer Host/Boot/Plan/Play and exact Type/Form identities. Failures occupy a
