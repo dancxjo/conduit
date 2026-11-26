@@ -117,23 +117,23 @@ fn local_worker_persists_an_elapsed_deadline_separately_from_lull() {
 }
 
 #[test]
-fn local_worker_renews_when_the_timer_adapter_requests_the_deadline_first() {
+fn local_worker_retains_a_renewable_timer_adapter_deadline() {
     use conduit_std_host::TimerAdapter;
 
     let (root, mut owner) = super::super::service_workset_tests::fixture();
     let mut worker = owner.start_service_run(&root, 30_000, false, 0).unwrap();
-    let deadline = Instant::now() + Duration::from_secs(10);
-    while owner.current_play_id().is_none() {
-        assert!(Instant::now() < deadline, "service Play must start");
-        assert!(!worker.progress(&mut owner, &root).unwrap());
-        std::thread::sleep(Duration::from_millis(5));
-    }
     let WorkerMode::Local(local) = &worker.mode else {
         panic!("local worker fixture");
     };
+
+    // The fixture can finish as soon as the owner acknowledges Started.
+    // Trigger the adapter before progress can send that acknowledgment.
     assert!(!local.control.stop_requested());
     let mut timer = service_deadline_timer(Instant::now(), local.control.clone());
     timer.wait(Duration::ZERO);
+    assert!(local.control.stop_requested());
+
+    let deadline = Instant::now() + Duration::from_secs(10);
     while !worker.progress(&mut owner, &root).unwrap() {
         assert!(Instant::now() < deadline, "expired worker must terminate");
         std::thread::sleep(Duration::from_millis(5));
