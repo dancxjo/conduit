@@ -274,3 +274,5 @@ fn malformed_json_publication_cannot_replace_committed_reference_state() {
 mod preparation;
 
 mod admission;
+
+mod source;

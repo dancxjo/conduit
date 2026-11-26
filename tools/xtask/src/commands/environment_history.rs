@@ -379,6 +379,7 @@ fn json_snapshot(root: &Path) -> Result<(), Box<dyn Error>> {
         .filter(|line| line.starts_with(FILTER) && line.ends_with(": test"))
         .count();
     let required = [
+        "source::authored_publication_is_the_only_reference_update_path_into_body_state",
         "authored_json_reference_state_recovers_in_fresh_process_then_reads_exact_generation",
         "malformed_json_publication_cannot_replace_committed_reference_state",
         "admission::missing_or_undersized_existing_memory_pool_refuses_before_play_and_effects",

@@ -275,7 +275,7 @@ positive physical queue capacities and enforcing finite item pressure. The
 State file format, commit digest and publication ordering remain unchanged.
 
 On the proposed source, `cargo xtask prove environment json-snapshot` passes
-44 focused tests and strict Std library lint. These are deterministic installed
+46 focused tests and strict Std library lint. These are deterministic installed
 kernel, real file and fresh-process tests with explicit fixture authorization;
 successful execution reports zero post-Play allocations. Missing or undersized
 memory, invalid history bounds, malformed JSON, occupied publication and an
