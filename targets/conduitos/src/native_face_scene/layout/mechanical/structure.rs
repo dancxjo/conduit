@@ -91,6 +91,15 @@ pub(super) fn measure(
                     } else {
                         0
                     };
+                if item.plot.is_some() {
+                    result.minimum = result
+                        .minimum
+                        .max(u16::try_from(extra + 1).map_err(|_| FaceSceneError::InvalidExtent)?);
+                    result.preferred = result
+                        .preferred
+                        .max((extra + 100).min(u32::from(context.width)) as u16);
+                    continue;
+                }
                 let metrics = intrinsic_item_text_metrics(
                     item.text.as_str(),
                     context.typography.style(item.role.into()),

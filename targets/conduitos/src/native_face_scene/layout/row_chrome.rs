@@ -46,7 +46,7 @@ pub(in crate::native_face_scene) fn append_row_chrome(
         pressed,
         control_radius,
     } = metrics;
-    if !showing_details && row.region_start && row.region.is_none() {
+    if !showing_details && row.region_start() && row.region.is_none() {
         push(
             scene,
             GraphicsCommand::rect(

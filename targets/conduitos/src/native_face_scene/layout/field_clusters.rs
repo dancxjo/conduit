@@ -198,7 +198,8 @@ fn measure_cluster<'a>(
             item.text.as_str()
         };
         while !remaining.is_empty() {
-            let (end, height) = measure_prefix(
+            let (end, height) = measure_item_prefix(
+                item,
                 remaining,
                 item.role,
                 width,

@@ -16,6 +16,8 @@ use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use serde::{Deserialize, Serialize};
 
+const OUTPUT_CAPACITY: usize = 64 * 1024;
+
 #[path = "owner_face_mask/abi.rs"]
 mod abi;
 #[path = "owner_face_mask/component.rs"]
@@ -84,6 +86,8 @@ struct InteractionEmission<'a> {
 
 #[derive(Serialize)]
 struct SubjectView {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    quantity_series: Option<quantity_series::SeriesView>,
     identity: String,
     name: String,
     role: String,
@@ -313,3 +317,5 @@ mod parsec_agency_tests;
 #[cfg(test)]
 #[path = "owner_face_mask/field_look_reuse_tests.rs"]
 mod field_look_reuse_tests;
+
+mod quantity_series;
