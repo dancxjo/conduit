@@ -162,13 +162,24 @@ impl Owner {
             grants.push(grant.clone());
         }
         let hosts = [self.host.advertisement().clone()];
+        let mut placement_hosts = hosts.clone();
+        let chime_implementation = if chime.is_some() {
+            conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+        } else {
+            conduit_std_offers::SILENT_STARTUP_CHIME_IMPLEMENTATION
+        };
+        placement_hosts[0].capabilities.retain(|offer| {
+            offer.kind_id.as_str() != conduit_semantic_catalog::STARTUP_CHIME_KIND
+                || offer.implementation.implementation_id.as_str() == chime_implementation
+        });
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
         if !plot.expanded.activations.is_empty() {
             return Err("installed Body execution has no activation-aware Plan or Play".into());
         }
         let placements =
-            conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
+            conduit_planner::default_expanded_placements(&plot.expanded, &placement_hosts)
+                .map_err(debug)?;
         let mut connection_queues =
             conduit_std_host::ambient_home_observation::ambient_home_connection_limits(
                 &plot.expanded,

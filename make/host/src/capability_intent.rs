@@ -126,13 +126,17 @@ pub fn resolve_host_capability_intent(
         return Err(CapabilityIntentRefusal::TooManyCapabilities);
     }
 
-    let mut seen = BTreeSet::new();
     let mut resolved = Vec::with_capacity(intent.capabilities.len());
-    for capability in &intent.capabilities {
+    for (index, capability) in intent.capabilities.iter().enumerate() {
         if capability.kind.trim().is_empty() {
             return Err(CapabilityIntentRefusal::EmptyCapabilityKind);
         }
-        if !seen.insert(capability.kind.as_str()) {
+        if intent.capabilities[..index].iter().any(|previous| {
+            previous.kind == capability.kind
+                && (previous.pinned_implementation.is_none()
+                    || capability.pinned_implementation.is_none()
+                    || previous.pinned_implementation == capability.pinned_implementation)
+        }) {
             return Err(CapabilityIntentRefusal::DuplicateCapabilityKind {
                 kind: capability.kind.clone(),
             });
@@ -419,6 +423,37 @@ mod tests {
                 }
             )
         );
+    }
+
+    #[test]
+    fn exact_distinct_pins_for_the_same_kind_are_individually_resolved() {
+        let mut request = intent(Some("capability/time-reader-a@1"));
+        request.capabilities.push(CapabilityIntent {
+            kind: "time/read".into(),
+            pinned_implementation: Some("capability/time-reader-b@1".into()),
+        });
+        let catalog = catalog();
+        let packages = test_package_set();
+        let review = resolve_host_capability_intent(&request, &catalog, &packages).unwrap();
+        assert_eq!(review.capabilities.len(), 2);
+        for (selection, input) in review.capabilities.iter().zip(&request.capabilities) {
+            assert!(selection.pinned);
+            assert_eq!(selection.candidates.len(), 1);
+            assert_eq!(
+                Some(selection.candidates[0].implementation_id.as_str()),
+                input.pinned_implementation.as_deref(),
+            );
+        }
+
+        for invalid_pin in [None, request.capabilities[0].pinned_implementation.clone()] {
+            request.capabilities[1].pinned_implementation = invalid_pin;
+            assert_eq!(
+                resolve_host_capability_intent(&request, &catalog, &packages),
+                Err(CapabilityIntentRefusal::DuplicateCapabilityKind {
+                    kind: "time/read".into(),
+                }),
+            );
+        }
     }
 
     #[test]

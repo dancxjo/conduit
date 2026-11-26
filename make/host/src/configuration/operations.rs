@@ -73,7 +73,7 @@ pub(super) fn resolve(
         calls.extend(candidate.prerequisites.host_calls);
         facilities.extend(candidate.prerequisites.facilities);
     }
-    selections.sort_by(|a, b| a.kind.cmp(&b.kind));
+    selections.sort_by(|a, b| (&a.kind, &a.implementation).cmp(&(&b.kind, &b.implementation)));
     Ok(ResolvedOperations {
         capabilities: selections,
         host_calls: calls,
