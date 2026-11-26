@@ -136,9 +136,17 @@ impl DurableStateBack {
                 StepOutcome::Progress
             }
             Ok(Some((generation, digest))) => {
+                // Recovery output admits both metadata and a full State value.
+                // The next request carries only the validated fixed metadata;
+                // do not forward the broader Host output admission as input.
+                let Ok(metadata_input) =
+                    BoundedValueRef::new(metadata_value.value, RECOVERY_HEADER_BYTES as u32)
+                else {
+                    return fail(FailureCode::InvalidInput, 3);
+                };
                 io.consume_host_completion()
                     .expect("observed recovery metadata");
-                io.request_host_call(RequestId(1), HostCallId(1), metadata_value)
+                io.request_host_call(RequestId(1), HostCallId(1), metadata_input)
                     .expect("prepared recovery value Host Call");
                 self.phase = Phase::RecoveringValue { generation, digest };
                 StepOutcome::Progress
