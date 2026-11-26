@@ -17,10 +17,10 @@ pub(super) fn read(
     peer: &mut PresentationHost,
     owner: &mut OwnerRoute,
     face: &Face,
+    look: DirectSpokenTemplateLook,
 ) -> Result<SpokenReadingEvidence, String> {
     let host = peer.runtime.presentation_host_mut()?;
-    let prepared =
-        host.prepare_direct_spoken_template_mask(face, DirectSpokenTemplateLook::Control)?;
+    let prepared = host.prepare_direct_spoken_template_mask(face, look)?;
     let snapshot = owner.select_spoken(&prepared.remote_selection()?)?;
     if snapshot.face != *face || snapshot.interactions_admitted {
         return Err("spoken selection differs from the current read-only Face".into());
