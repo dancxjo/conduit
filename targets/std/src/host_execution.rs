@@ -2,6 +2,8 @@
 use super::*;
 mod body_durable;
 pub(crate) mod continuity;
+#[cfg(target_os = "linux")]
+mod json_snapshot;
 mod reporting;
 mod spoken_mask;
 mod stream;
@@ -15,6 +17,8 @@ pub struct HostedRunAdapters<'a> {
 }
 
 struct HostRunInputs<'a> {
+    #[cfg(target_os = "linux")]
+    json_snapshot: Option<&'a crate::json_snapshot_file::SelectedJsonSnapshotResidence>,
     keyboard: Option<&'a mut dyn hosted_keyboard::HostedKeyboardAdapter>,
     indicator: Option<&'a mut dyn hosted_indicator::HostedIndicatorAdapter>,
     retained: Option<&'a mut Vec<state_value::RetainedTypedState>>,
@@ -26,11 +30,21 @@ struct HostRunInputs<'a> {
 }
 
 pub struct ExternalForeRun<'a> {
+    /// Total retained Current values per output port, independent of queue capacity.
+    /// None preserves the ordinary streaming realization.
+    pub current_output_capacity: Option<u16>,
     pub inputs: &'a [ExternalForeInput],
     pub output: &'a mut dyn ExternalForeOutputAdapter,
     pub sequential: bool,
     pub stream: Option<ExternalForeStreamConfig>,
     pub live: Option<&'a BodyLiveForeQueue>,
+}
+
+pub(crate) fn validate_current_output_capacity(capacity: u16) -> Result<(), String> {
+    if !(1..=64).contains(&capacity) {
+        return Err("finite Current output history requires 1 to 64 values per port".into());
+    }
+    Ok(())
 }
 
 impl StdHost {
@@ -52,11 +66,14 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: None,
                 attach_live: false,
                 external_fore: Some(ExternalForeRun {
+                    current_output_capacity: None,
                     inputs: &[],
                     output: output_adapter,
                     sequential: true,
@@ -125,6 +142,8 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: adapters.keyboard,
                 indicator: adapters.indicator,
                 retained: None,
@@ -152,6 +171,8 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: None,
@@ -178,6 +199,8 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: None,
@@ -291,11 +314,14 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: None,
                 attach_live: false,
                 external_fore: Some(ExternalForeRun {
+                    current_output_capacity: None,
                     inputs,
                     output: output_adapter,
                     sequential,
@@ -327,6 +353,8 @@ impl StdHost {
             spoken_mask,
             direct_spoken_mask,
             durable_state,
+            #[cfg(target_os = "linux")]
+            json_snapshot,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
@@ -367,6 +395,8 @@ impl StdHost {
                             .map(|source| (&self.base_registry, source)),
                         #[cfg(target_os = "linux")]
                         selected_text_file: self.selected_text_file.as_ref(),
+                        #[cfg(target_os = "linux")]
+                        selected_json_snapshot: json_snapshot,
                         advertisement: &advertisement,
                         playback: self.playback.as_ref(),
                         midi_input: self.midi_input.as_ref(),

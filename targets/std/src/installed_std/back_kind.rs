@@ -29,6 +29,7 @@ use super::image_text_record_back::ImageTextRecordBack;
 use super::input_semantic_backs::{InputSemanticBack, KeyEventTeeBack};
 use super::instrument_map_back::InstrumentMapBack;
 use super::json_backs::JsonBack;
+use super::json_snapshot_back::JsonSnapshotBack;
 use super::keyboard_input_back::KeyboardInputBack;
 use super::layout_backs::LayoutBack;
 use super::local_model_back::LocalModelBack;
@@ -190,6 +191,7 @@ pub(super) enum InstalledBack {
     TemplateStorage(TemplateStorageBack),
     DataSaveText(DataTextBack),
     DataLoadText(DataTextBack),
+    JsonSnapshot(JsonSnapshotBack),
     LogicCompareScalar(LogicCompareScalarBack),
     LogicNot(LogicNotBack),
     LogicSelectScalar(LogicSelectScalarBack),

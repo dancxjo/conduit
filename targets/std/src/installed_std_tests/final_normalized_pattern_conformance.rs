@@ -84,6 +84,8 @@ fn final_pattern_adapter_is_reused_for_calibration_revisions() {
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            #[cfg(target_os = "linux")]
+            selected_json_snapshot: None,
             native_source: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
