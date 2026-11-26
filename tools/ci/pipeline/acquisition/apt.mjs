@@ -11,6 +11,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
+const mirrorIndexSizeMismatch = /^E: Failed to fetch https:\/\/(?:archive|security)\.ubuntu\.com\/ubuntu\/dists\/\S+\s+File has unexpected size \(\d+ != \d+\)\. Mirror sync in progress\?/m;
 function execute(program, args, { input } = {}) {
   const result = spawnSync(program, args, { encoding: 'utf8', input, env: { ...process.env, LC_ALL: 'C' }, timeout: 20 * 60_000, maxBuffer: 32 * 1024 * 1024 });
   if (result.error || result.status !== 0) throw new Error(`${program} ${args.join(' ')} failed: ${result.error?.message ?? `${result.stdout}\n${result.stderr}`}`);
@@ -84,25 +85,34 @@ export function acquireApt(requested, options = {}) {
   try {
     chmodSync(attempt, 0o755);
     const sourceFile = path.join(attempt, 'ubuntu.sources');
-    const lists = path.join(attempt, 'lists');
+    let lists = path.join(attempt, 'lists');
     writeFileSync(sourceFile, scope.source);
     mkdirSync(lists);
-    const scopeOptions = ['-o', `Dir::Etc::sourcelist=${sourceFile}`, '-o', 'Dir::Etc::sourceparts=-', '-o', 'Dir::Cache::pkgcache=', '-o', 'Dir::Cache::srcpkgcache=', '-o', `Dir::State::lists=${lists}`];
-    const aptOptions = [...scopeOptions, '-o', 'APT::Get::Allow-Downgrades=true', '-o', 'APT::Keep-Downloaded-Packages=true', '-o', 'Binary::apt-get::APT::Keep-Downloaded-Packages=true', '-o', 'APT::Update::Error-Mode=any', '-o', 'Acquire::Retries=1', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30', '-o', 'APT::Get::AllowUnauthenticated=false', '-o', 'Acquire::AllowWeakRepositories=false', '-o', 'Acquire::AllowInsecureRepositories=false', '-o', 'Acquire::AllowDowngradeToInsecureRepositories=false', '-o', `Dir::Cache::archives=${archives}`];
+    const scopeOptions = () => ['-o', `Dir::Etc::sourcelist=${sourceFile}`, '-o', 'Dir::Etc::sourceparts=-', '-o', 'Dir::Cache::pkgcache=', '-o', 'Dir::Cache::srcpkgcache=', '-o', `Dir::State::lists=${lists}`];
+    const aptOptions = () => [...scopeOptions(), '-o', 'APT::Get::Allow-Downgrades=true', '-o', 'APT::Keep-Downloaded-Packages=true', '-o', 'Binary::apt-get::APT::Keep-Downloaded-Packages=true', '-o', 'APT::Update::Error-Mode=any', '-o', 'Acquire::Retries=1', '-o', 'Acquire::http::Timeout=30', '-o', 'Acquire::https::Timeout=30', '-o', 'APT::Get::AllowUnauthenticated=false', '-o', 'Acquire::AllowWeakRepositories=false', '-o', 'Acquire::AllowInsecureRepositories=false', '-o', 'Acquire::AllowDowngradeToInsecureRepositories=false', '-o', `Dir::Cache::archives=${archives}`];
     const validateResolution = identities => {
-      const simulation = run('apt-get', [...aptOptions, 'install', '--simulate', '--no-install-recommends', ...identities]);
+      const simulation = run('apt-get', [...aptOptions(), 'install', '--simulate', '--no-install-recommends', ...identities]);
       assertAptResolution(simulation, before, arch,
         (next, previous) => run('dpkg', ['--compare-versions', next, 'ge', previous]));
     };
     try {
-      privileged('apt-get', [...aptOptions, 'update']);
+      privileged('apt-get', [...aptOptions(), 'update']);
     } catch (error) {
       try { (options.failureDiagnostics ?? emitAptFailureDiagnostics)(); } catch {}
-      if (!ubuntuDnsFailure(error)) throw error;
-      dns = (options.recoverDns ?? recoverUbuntuDns)();
-      if (!dns) throw error;
-      report.dnsRecovery = dns.identity;
-      privileged('apt-get', [...aptOptions, 'update']);
+      if (ubuntuDnsFailure(error)) {
+        dns = (options.recoverDns ?? recoverUbuntuDns)();
+        if (!dns) throw error;
+        report.dnsRecovery = dns.identity;
+        privileged('apt-get', [...aptOptions(), 'update']);
+      } else if (mirrorIndexSizeMismatch.test(error?.message ?? String(error))) {
+        // Discard the failed index set and request fresh authenticated metadata.
+        lists = path.join(attempt, 'retry-lists');
+        mkdirSync(lists);
+        privileged('apt-get', [...aptOptions(), '-o', 'Acquire::https::No-Cache=true', 'update']);
+        report.mirrorIndexRefreshed = true;
+      } else {
+        throw error;
+      }
     }
     let manifest;
     if (existsSync(manifestPath)) {
@@ -115,7 +125,7 @@ export function acquireApt(requested, options = {}) {
       // partial archive against its authenticated index before reusing it.
       const preexistingDebs = readdirSync(archives).filter(name => name.endsWith('.deb'));
       validateResolution(missing);
-      privileged('apt-get', [...aptOptions, 'install', '--download-only', '-y', '--no-install-recommends', ...missing]);
+      privileged('apt-get', [...aptOptions(), 'install', '--download-only', '-y', '--no-install-recommends', ...missing]);
       const debs = readdirSync(archives).filter(name => name.endsWith('.deb')).sort().map(file => {
         const full = path.join(archives, file);
         assertFile(full);
@@ -138,12 +148,12 @@ export function acquireApt(requested, options = {}) {
       assertFile(file);
       if (hash(readFileSync(file)) !== deb.sha256 || lstatSync(file).size !== deb.bytes) throw new Error(`APT cache digest mismatch: ${deb.file}`);
       const identity = `${deb.name}${deb.architecture === 'all' ? '' : `:${deb.architecture}`}=${deb.version}`;
-      const metadata = run('apt-cache', [...scopeOptions, 'show', '--all-versions', `${deb.name}:${deb.architecture === 'all' ? arch : deb.architecture}`]);
+      const metadata = run('apt-cache', [...scopeOptions(), 'show', '--all-versions', `${deb.name}:${deb.architecture === 'all' ? arch : deb.architecture}`]);
       if (!metadata.split('\n\n').some(stanza => stanza.split('\n').includes(`Package: ${deb.name}`) && stanza.split('\n').includes(`Version: ${deb.version}`) && stanza.split('\n').includes(`Architecture: ${deb.architecture}`) && stanza.split('\n').includes(`SHA256: ${deb.sha256}`))) throw new Error(`APT cached version is not authenticated by current repository: ${identity}`);
       exact.push(identity);
     }
     validateResolution([...missing, ...exact]);
-    privileged('apt-get', [...aptOptions, 'install', '--no-download', '-y', '--no-install-recommends', ...missing, ...exact]);
+    privileged('apt-get', [...aptOptions(), 'install', '--no-download', '-y', '--no-install-recommends', ...missing, ...exact]);
     const after = installed(run);
     for (const deb of manifest.debs) if (packageVersion(after, `${deb.name}:${deb.architecture}`, arch) !== deb.version) throw new Error(`APT installed version differs: ${deb.name}`);
     // APT owns its lock and _apt/0700 partial directory. Cache actions run as
