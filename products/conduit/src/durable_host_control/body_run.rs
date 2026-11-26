@@ -320,6 +320,7 @@ impl DurableHostRuntime {
                         root,
                         maximum_millis,
                         authorize_startup_chime,
+                        renewals,
                     )?)
                 }
             }
