@@ -457,8 +457,8 @@ library lint. The actual product Owner test also passes with all sixty-four
 original readings and both channels, exact quantities, times, gaps, recovery
 metadata, and native primary/Details pages. Its fresh Face is 355,795 bytes.
 This exceeds the legacy browser route’s 60 KiB admission. The additive profile
-below now qualifies full-reading native CPU carrier/Mask composition;
-Chromium/WASM transport and rendering remain an explicit unfinished gate.
+below now qualifies full-reading native CPU carrier/Mask composition.
+The fresh Chromium/WASM transport and rendering proof below now passes.
 The exact installed-offer refusal check, eight shared Back/custody checks, seven
 funded Ambient checks and the installed funded custody check also pass. Strict
 hosted library/test lint, formatting, evidence retention and all thirty
@@ -527,20 +527,29 @@ verified default preparation without reinitializing live interfaces.
 Plan-wire and selected-Fore model checks. `face-profile-runtime` owns the browser
 profile storage/acknowledgement checks and focused strict lint.
 `recording-owner64-abi` produces fresh ignored genuine Owner/native ABI evidence.
-The proposed `recording-owner64-browser HANDBOOK-PACKAGE` harness uses a fresh
-WASM Host, ordinary UI Join and the normal Owner control/presence actor; its
-platform run is still unqualified. The first retained run reached the ordinary
-WebSocket and advertised its exact inventory, then the Owner refused candidate
+The `recording-owner64-browser HANDBOOK-PACKAGE` harness uses a fresh
+WASM Host, ordinary UI Join and the normal Owner control/presence actor. Its
+fresh pinned Chromium run now passes with one worker and zero retries. The
+first retained run reached the ordinary WebSocket and advertised its exact inventory, then the Owner refused candidate
 admission: the prepared Full Back plus the optional component Back produced 145
-entries against the previous 144-entry collection bound. The proposed finite
+entries against the previous 144-entry collection bound. The finite
 bound is now 145, with existing exact-limit acceptance and next-item refusal
 checks included in this qualification entrance. This changes neither the
 independent advertisement-byte bound nor membership authority. The Handbook
 selects the Full WebSocket implementation alone for its Line Kind, preserving
-Make's one-implementation-per-Kind rule. It must correlate the actual received owner
-frame, canonical Face, complete reading/plots and accepted returned Show, and
-retire through ordinary Lull. A separate fresh native pair is only a typed
-rendering comparison oracle, never a replacement browser Host, Face or view.
+Make's one-implementation-per-Kind rule. A second demonstrated refusal came
+from the Handbook's legacy-only renderer artifact check after successful WASM
+preparation; it now admits the exact Full generic artifact through the same
+packaged presentation, while configured components retain exact selection.
+The passing run correlates the actual 366,461-byte received owner frame,
+canonical Face, all 138 subjects, 393 relationships and five actions, both
+complete sixty-four-reading series, and the exact returned Show accepted by the
+Owner. Both plots have sixteen points, sixteen omitted points and thirty-two
+unavailable samples. The actual revision exceeds JavaScript's safe integer range
+and remains exact. Ordinary Lull and same-Owner retirement pass. This is browser
+protocol/rendering proof using original sealed-recording CPU inputs, not physical
+capture, producer acceptance or stable-release acceptance. A separate fresh
+native pair is only a typed rendering comparison oracle, never a replacement browser Host, Face or view.
 
 The recorder commit-to-authenticated-acceptance/retirement and recovery vertical,
 physical producer custody/wiring, compiler/MCU stack integration and retirement
