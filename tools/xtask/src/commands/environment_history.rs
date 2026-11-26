@@ -171,6 +171,38 @@ fn quantity_rounding(root: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn committed(root: &Path) -> Result<(), Box<dyn Error>> {
+    for operation in ["test", "clippy"] {
+        let mut shared = Command::new("cargo");
+        shared.current_dir(root).args([
+            operation,
+            "--locked",
+            "-p",
+            "conduit-resource-snapshot",
+            "--features",
+            "kernel-step",
+            "--all-targets",
+        ]);
+        if operation == "clippy" {
+            shared.args(["--", "-D", "warnings"]);
+        }
+        super::execute(&mut shared)?;
+    }
     super::specifications(&["recording".into()])?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--lib",
+        "--test",
+        "recording_chunks",
+        "--test",
+        "recording_publication",
+        "--test",
+        "recording_recovery",
+        "--",
+        "-D",
+        "warnings",
+    ]))?;
     prove(root)
 }
