@@ -7,6 +7,8 @@ mod directory;
 #[cfg(target_os = "linux")]
 mod snapshot;
 #[cfg(target_os = "linux")]
+pub use conduit_resource_snapshot::{SnapshotRecordSelection, MAXIMUM_SNAPSHOT_BYTES};
+#[cfg(target_os = "linux")]
 pub use directory::SnapshotDirectory;
 #[cfg(target_os = "linux")]
 pub use snapshot::{FileSnapshotRefusal, IoStage, PreparedFileSnapshot};
