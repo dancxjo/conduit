@@ -8,6 +8,14 @@ paths, and reads refuse symlinks, special/oversized files and corrupt records.
 Directory ownership must exclude competing mutators; this is cooperative Root
 file custody, not hostile-code confinement.
 
+The explicit `prepare_selected` entrance accepts an independently admitted
+Boot-scoped `ReadPublished` lease with the original current grant and local
+reference binding. Reading an existing immutable record does not assert durable
+residence. Publication still requires `ExternalDurable`; the legacy planned
+`prepare` entrance retains its original durable-only lifetime policy. Run
+`cargo xtask prove environment history-selected-snapshot` for those lifetime,
+authority and unchanged-record checks.
+
 Publication exclusively creates a candidate, writes and syncs its record, creates
 a non-replacing published hard link, removes the candidate and syncs the directory.
 Success follows all those steps. Every attempted write is terminal for that
@@ -15,7 +23,7 @@ preparation. Existing generations, abandoned candidates and uncertain I/O stages
 remain distinct. Nothing retries, removes abandoned work or interprets an occupied
 published name as success. Root must explicitly reconcile uncertain outcomes.
 
-Run `cargo xtask check linux-snapshot`. Six tests use actual local file effects,
+Run `cargo xtask check linux-snapshot`. The tests use actual local file effects,
 including fresh-Boot reopen, duplicate preservation, authority/extent preflight,
 symlink/FIFO/oversize/corruption refusal, abandoned candidates and directory rename.
 Successful prepared publication and read allocate no Rust heap. The check also

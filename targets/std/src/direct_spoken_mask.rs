@@ -40,6 +40,19 @@ impl crate::StdHost {
         face: &Face,
         plot_name: &str,
     ) -> Result<PreparedDirectSpokenMask, String> {
+        self.prepare_direct_spoken_mask_with_boundary(
+            face,
+            plot_name,
+            local_boundary_bytes(plot_name),
+        )
+    }
+
+    pub(crate) fn prepare_direct_spoken_mask_with_boundary(
+        &self,
+        face: &Face,
+        plot_name: &str,
+        boundary_bytes: u32,
+    ) -> Result<PreparedDirectSpokenMask, String> {
         face.validate()
             .map_err(|error| format!("prepare direct Face: {error:?}"))?;
         // Refuse an oversized reading before sealing an advertised route.
@@ -48,7 +61,13 @@ impl crate::StdHost {
             self.spoken_mask_artifact_authority_grant("grant/owner-direct-speech/artifact")?,
             self.streaming_speech_authority_grant()?,
         ];
-        plan_for_offer(face, self.advertisement(), plot_name, authority_grants)
+        plan_for_offer_with_boundary(
+            face,
+            self.advertisement(),
+            plot_name,
+            authority_grants,
+            boundary_bytes,
+        )
     }
 }
 
@@ -59,6 +78,30 @@ pub(crate) fn plan_for_offer(
     host: &conduit_core::HostAdvertisement,
     plot_name: &str,
     authority_grants: Vec<AuthorityGrant>,
+) -> Result<PreparedDirectSpokenMask, String> {
+    plan_for_offer_with_boundary(
+        face,
+        host,
+        plot_name,
+        authority_grants,
+        local_boundary_bytes(plot_name),
+    )
+}
+
+fn local_boundary_bytes(plot_name: &str) -> u32 {
+    if plot_name == "owner_spoken_control_template_mask" {
+        64 * 1024
+    } else {
+        524_288
+    }
+}
+
+pub(crate) fn plan_for_offer_with_boundary(
+    face: &Face,
+    host: &conduit_core::HostAdvertisement,
+    plot_name: &str,
+    authority_grants: Vec<AuthorityGrant>,
+    boundary_bytes: u32,
 ) -> Result<PreparedDirectSpokenMask, String> {
     face.validate()
         .map_err(|error| format!("prepare direct Face: {error:?}"))?;
@@ -72,14 +115,6 @@ pub(crate) fn plan_for_offer(
             .len(),
     )
     .map_err(|_| "direct spoken Face exceeds one Cord".to_string())?;
-    // The hosted control reading uses the existing 64 KiB logical carrier.
-    // Its actual Face and artifact Show are independently checked at emission.
-    // Larger general-purpose readers keep their separately admitted profile.
-    let boundary_bytes = if plot_name == "owner_spoken_control_template_mask" {
-        64 * 1024
-    } else {
-        524_288
-    };
     if face_bytes > boundary_bytes {
         return Err("direct spoken Face exceeds admitted Fore bound".into());
     }
