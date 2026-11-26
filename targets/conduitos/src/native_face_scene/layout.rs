@@ -52,7 +52,6 @@ pub(super) struct Row {
     pub region_inset: u16,
     pub page: usize,
     pub bounds: LayoutRect,
-    pub region_start: bool,
     pub insets: PackedRowInsets,
     pub checkbox: Option<bool>,
     pub icon: Option<conduit_face::FaceIconKey>,
@@ -61,6 +60,10 @@ pub(super) struct Row {
 }
 
 impl Row {
+    pub fn region_start(&self) -> bool {
+        self.insets.region_start()
+    }
+
     /// Source-owned primary disclosure becomes a filled action only while available.
     pub fn emphasized(&self) -> bool {
         self.role == GraphicsTextRole::Heading
@@ -283,8 +286,7 @@ pub(super) fn admit_with_expression_selected(
                 region: item.region,
                 region_inset: 0,
                 page,
-                region_start,
-                insets: PackedRowInsets::new(insets)?,
+                insets: PackedRowInsets::new(insets)?.with_region_start(region_start),
                 checkbox: item.checkbox,
                 icon: item.icon,
                 icon_size: super::semantic_icons::size(text_scale_percent),
