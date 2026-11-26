@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{collections::BTreeSet, fs, path::Path};
 
-pub(super) const MAX_RECEIPTS: usize = 64;
+pub(super) const MAX_RECEIPTS: usize = 128;
 pub(super) const MAX_RECEIPT_BYTES: u64 = 128 * 1024;
 const MAX_INDEX_BYTES: u64 = 192 * 1024;
 const MAX_RECORD_BYTES: u64 = MAX_RECEIPT_BYTES + 1024;
