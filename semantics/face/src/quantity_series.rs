@@ -19,6 +19,23 @@ pub enum QuantitySeriesRefusal {
     Availability,
     Quantity,
 }
+impl QuantitySeriesRefusal {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::InvalidFace => "quantity-series-invalid-face",
+            Self::Unsupported => "quantity-series-unsupported",
+            Self::Missing => "quantity-series-missing",
+            Self::Duplicate => "quantity-series-duplicate",
+            Self::Capacity => "quantity-series-capacity",
+            Self::Provenance => "quantity-series-provenance",
+            Self::Clock => "quantity-series-clock",
+            Self::Order => "quantity-series-order",
+            Self::Gap => "quantity-series-gap",
+            Self::Availability => "quantity-series-availability",
+            Self::Quantity => "quantity-series-quantity",
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct QuantitySeriesSample<'a> {
     pub subject: &'a str,
@@ -210,13 +227,32 @@ impl<'a> PreparedQuantitySeries<'a> {
             }
             prior = Some((sample.sequence, sample.boot_ms));
         }
-        let source_items = face
+        let mut source_items = 0_u64;
+        for (index, relation) in face
             .relationships
             .iter()
-            .filter(|relation| {
+            .enumerate()
+            .filter(|(_, relation)| {
                 relation.source == source && relation.kind == FaceRelationshipKind::Contains
             })
-            .count() as u64;
+        {
+            if face.relationships[..index].iter().any(|prior| {
+                prior.source == source
+                    && prior.kind == FaceRelationshipKind::Contains
+                    && prior.target == relation.target
+            }) {
+                return Err(R::Duplicate);
+            }
+            if !face
+                .subjects
+                .iter()
+                .any(|item| item.identity == relation.target && item.role == FaceRole::Item)
+                || identity(face, &relation.target, "series-source")? != source
+            {
+                return Err(R::Provenance);
+            }
+            source_items += 1;
+        }
         if count(face, source, "visible-samples")? != source_items {
             return Err(R::Provenance);
         }
@@ -295,3 +331,8 @@ fn count(face: &Face, subject: &str, name: &str) -> Result<u64, QuantitySeriesRe
         _ => Err(QuantitySeriesRefusal::Missing),
     }
 }
+
+mod projection;
+pub use projection::{
+    ProjectedQuantitySeries, QuantitySeriesPoint, QuantitySeriesProjectionRefusal,
+};

@@ -52,7 +52,8 @@ impl NativeFaceScene {
             width,
             height,
         };
-        let (mut primary, details) = document::prepare(&face, interaction_admitted)?;
+        let (mut primary, mut details) = document::prepare(&face, interaction_admitted)?;
+        let quantity_series = quantity_series::prepare(&face, &mut primary, None, &mut details);
         let spacing = layout::RowSpacing::legacy(SPACE_SM);
         let viewport = layout::Viewport::for_face(
             screen,
@@ -65,6 +66,7 @@ impl NativeFaceScene {
         )?;
         document::omit_encounter_heading(&mut primary, &face, &viewport.chrome, 100);
         Ok(Self {
+            quantity_series,
             picture_frame: None,
             primary: layout::admit_with_expression_selected(
                 primary, SPACE_XL, 1, spacing, &viewport,
@@ -150,8 +152,10 @@ impl NativeFaceScene {
             .geometry_for_width(width)
             .map_err(|_| FaceSceneError::InvalidExtent)?;
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (mut primary, details) =
+        let (mut primary, mut details) =
             document::prepare_for_viewer(&scene.face, interaction_admitted, metrics.temperature)?;
+        scene.quantity_series =
+            quantity_series::prepare(&scene.face, &mut primary, metrics.temperature, &mut details);
         for item in &mut primary {
             item.region_order = item
                 .subject_index
@@ -305,8 +309,10 @@ impl NativeFaceScene {
     ) -> Result<Self, FaceSceneError> {
         let typography = metrics.typography;
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (mut primary, details) =
+        let (mut primary, mut details) =
             document::prepare_for_viewer(&scene.face, interaction_admitted, metrics.temperature)?;
+        scene.quantity_series =
+            quantity_series::prepare(&scene.face, &mut primary, metrics.temperature, &mut details);
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
         let viewport = layout::Viewport::for_face(
@@ -392,7 +398,9 @@ impl NativeFaceScene {
         };
         // Prepare the selected layout directly. A generic scene's geometry is
         // neither its prerequisite nor storage that should coexist with it.
-        let (mut primary, details) = document::prepare(face, interaction_admitted)?;
+        let (mut primary, mut details) = document::prepare(face, interaction_admitted)?;
+        let quantity_series =
+            quantity_series::prepare(face, &mut primary, metrics.temperature, &mut details);
         for item in &mut primary {
             item.region_order = item.subject_index.and_then(|subject| {
                 structure
@@ -423,6 +431,7 @@ impl NativeFaceScene {
         let details =
             layout::admit_with_expression_selected(details, SPACE_XL, 1, spacing, &viewport)?;
         Ok(Self {
+            quantity_series,
             picture_frame: None,
             primary,
             details,

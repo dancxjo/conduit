@@ -1,121 +1,12 @@
 //! Independent voltage observations, not environmental schemas or Body custody.
-use conduit_core::{CheckedValueContract, Quantity, QUANTITY_ENCODED_LEN, VOLTAGE_INFO_ID};
+use conduit_core::{CheckedValueContract, Quantity, QUANTITY_ENCODED_LEN};
 use conduit_face::{
-    Face, FaceBasis, FaceProperty, FacePropertyValue as V, FaceRelationship,
-    FaceRelationshipKind as K, FaceRole, FaceSubject, PreparedQuantitySeries as Series,
-    QuantitySeriesRefusal as R, QUANTITY_SERIES_ROLE,
+    FaceProperty, FacePropertyValue as V, PreparedQuantitySeries as Series,
+    QuantitySeriesRefusal as R,
 };
-fn fixture() -> Face {
-    let mut subjects = vec![
-        FaceSubject {
-            identity: "source".into(),
-            role: FaceRole::Collection,
-            name: "Voltage record".into(),
-        },
-        FaceSubject {
-            identity: "voltage".into(),
-            role: FaceRole::Semantic(QUANTITY_SERIES_ROLE.into()),
-            name: "Supply voltage".into(),
-        },
-    ];
-    let mut properties = vec![];
-    let mut put = |subject: &str, name: &str, value| {
-        properties.push(FaceProperty {
-            subject: subject.into(),
-            name: name.into(),
-            value,
-        })
-    };
-    put("voltage", "series-source", V::Identity("source".into()));
-    put(
-        "voltage",
-        "series-value-property",
-        V::Text("voltage".into()),
-    );
-    put("source", "clock", V::Text("producer-boot-ms".into()));
-    for (name, value) in [
-        ("producer-host", "host/meter"),
-        ("producer-boot", "boot/meter"),
-        ("producer-plan", "plan/meter"),
-        ("producer-play", "play/meter"),
-    ] {
-        put("source", name, V::Identity(value.into()));
-    }
-    put("source", "visible-samples", V::Count(3));
-    put("source", "samples-outside-view", V::Count(2));
-    let mut relationships = vec![];
-    for (sequence, time, value) in [
-        (1, 1000, Some("10V")),
-        (2, 2000, None),
-        (4, 11000, Some("12V")),
-    ] {
-        let subject = format!("sample/{sequence}");
-        subjects.push(FaceSubject {
-            identity: subject.clone(),
-            role: FaceRole::Item,
-            name: format!("Observation {sequence}"),
-        });
-        for parent in ["source", "voltage"] {
-            relationships.push(FaceRelationship {
-                source: parent.into(),
-                target: subject.clone(),
-                kind: K::Contains,
-            });
-        }
-        put(&subject, "series-source", V::Identity("source".into()));
-        put(&subject, "sequence", V::Count(sequence));
-        put(&subject, "sampled-at-boot-ms", V::Count(time));
-        put(&subject, "series-available", V::Flag(value.is_some()));
-        if let Some(value) = value {
-            put(
-                &subject,
-                "voltage",
-                V::TypedValue {
-                    contract: CheckedValueContract::new(
-                        VOLTAGE_INFO_ID.into(),
-                        QUANTITY_ENCODED_LEN as u32,
-                        vec![],
-                    )
-                    .unwrap(),
-                    bytes: Quantity::parse_plot_literal(value)
-                        .unwrap()
-                        .encode()
-                        .to_vec(),
-                },
-            );
-        } else {
-            put(
-                &subject,
-                "series-unavailability",
-                V::Text("meter-unavailable".into()),
-            );
-        }
-        if sequence == 4 {
-            put(&subject, "missing-sequence-first", V::Count(3));
-            put(&subject, "missing-sequence-last", V::Count(3));
-        }
-    }
-    Face::new_with_semantics(
-        1,
-        FaceBasis {
-            body_id: None,
-            wake_id: None,
-            source_document_id: Some("source/series-fixture".into()),
-            checked_plot_id: Some("checked/series-fixture".into()),
-            expanded_plot_id: Some("expanded/series-fixture".into()),
-            plan_id: Some("plan/view".into()),
-            active_play_id: Some("play/view".into()),
-            sign_ids: vec![],
-        },
-        subjects,
-        relationships,
-        properties,
-        vec![],
-        vec![],
-        vec![],
-    )
-    .unwrap()
-}
+#[path = "common/quantity_series.rs"]
+mod common;
+use common::fixture;
 #[test]
 fn irregular_voltage_times_gaps_units_and_unavailability_remain_exact() {
     let face = fixture();
@@ -245,4 +136,95 @@ fn inconsistent_family_availability_order_and_accounting_refuse_distinctly() {
         face.reseal_prepared().unwrap();
         assert!(matches!(Series::prepare(&face, "voltage", 3), Err(reason) if reason == expected));
     }
+}
+
+#[test]
+fn bounded_display_projection_keeps_real_time_and_reports_selection() {
+    let face = fixture();
+    let series = Series::prepare(&face, "voltage", 3).unwrap();
+    let plot = series.project(None, 16).unwrap();
+    assert_eq!(plot.points.len(), 2);
+    assert_eq!(plot.unavailable_samples, 1);
+    assert_eq!(plot.gap_runs, 1);
+    assert_eq!(plot.minimum.as_deref(), Some("10 V"));
+    assert_eq!(plot.maximum.as_deref(), Some("12 V"));
+    assert_eq!(plot.points[0].value_millionths, Some(0));
+    assert_eq!(plot.points[1].value_millionths, Some(1_000_000));
+    assert_eq!(plot.points[0].time_millionths, 0);
+    assert_eq!(plot.points[1].time_millionths, 1_000_000);
+    let selected = series.project(None, 1).unwrap();
+    assert_eq!(selected.omitted_points, 1);
+    assert_eq!(selected.points[0].sequence, "4");
+    assert!(series.project(None, 0).is_err());
+    assert!(series
+        .project(Some(conduit_core::Unit::Celsius), 16)
+        .is_err());
+}
+
+#[test]
+fn selected_units_label_converted_points_and_missing_values_never_become_zero() {
+    let face = fixture();
+    let series = Series::prepare(&face, "voltage", 3).unwrap();
+    let unit = conduit_core::Unit::resolve("mV").unwrap();
+    let plot = series.project(Some(unit), 16).unwrap();
+    assert_eq!(plot.points[0].value.as_deref(), Some("10000 mV"));
+    assert_eq!(plot.points[1].value.as_deref(), Some("12000 mV"));
+    assert_eq!(plot.minimum.as_deref(), Some("10000 mV"));
+    assert_eq!(plot.unavailable_samples, 1);
+    assert_eq!(plot.points.len(), 2);
+    let mut missing = fixture();
+    missing
+        .properties
+        .retain(|property| property.name != "voltage");
+    for property in &mut missing.properties {
+        if property.name == "series-available" {
+            property.value = V::Flag(false);
+        }
+    }
+    missing.reseal_prepared().unwrap();
+    let plot = Series::prepare(&missing, "voltage", 3)
+        .unwrap()
+        .project(None, 16)
+        .unwrap();
+    assert!(plot.points.is_empty());
+    assert_eq!(plot.unavailable_samples, 3);
+    assert!(plot.minimum.is_none() && plot.maximum.is_none() && plot.unit.is_none());
+}
+
+#[test]
+fn duplicate_or_non_observation_source_members_cannot_inflate_omissions() {
+    let mut face = fixture();
+    let edge = face
+        .relationships
+        .iter()
+        .find(|relation| relation.source == "source")
+        .unwrap()
+        .clone();
+    face.relationships.push(edge);
+    face.properties
+        .iter_mut()
+        .find(|property| property.name == "visible-samples")
+        .unwrap()
+        .value = V::Count(4);
+    face.reseal_prepared().unwrap();
+    assert!(matches!(
+        Series::prepare(&face, "voltage", 3),
+        Err(R::Duplicate)
+    ));
+    let mut face = fixture();
+    face.relationships.push(conduit_face::FaceRelationship {
+        source: "source".into(),
+        target: "voltage".into(),
+        kind: conduit_face::FaceRelationshipKind::Contains,
+    });
+    face.properties
+        .iter_mut()
+        .find(|property| property.name == "visible-samples")
+        .unwrap()
+        .value = V::Count(4);
+    face.reseal_prepared().unwrap();
+    assert!(matches!(
+        Series::prepare(&face, "voltage", 3),
+        Err(R::Provenance)
+    ));
 }

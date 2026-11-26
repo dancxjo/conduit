@@ -12,6 +12,7 @@ use conduit_face::{
 
 pub(super) struct Item {
     pub text: String,
+    pub plot: Option<usize>,
     pub part: layout::NativePart,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
@@ -27,6 +28,7 @@ pub(super) struct Item {
 fn item(text: String, role: GraphicsTextRole) -> Item {
     Item {
         text,
+        plot: None,
         part: layout::NativePart::Content,
         role,
         paint: GraphicsPaintRole::Foreground,
@@ -347,6 +349,7 @@ pub(super) fn prepare_for_viewer(
                 GraphicsPaintRole::Muted
             };
             append(Item {
+                plot: None,
                 part: layout::NativePart::Control,
                 text: match &action.availability {
                     FaceActionAvailability::Unavailable {
@@ -392,6 +395,7 @@ pub(super) fn prepare_for_viewer(
                 }
                 let hint = argument_hint(argument);
                 append(Item {
+                    plot: None,
                     part: layout::NativePart::Control,
                     text: super::text_field::current(face, index).map_or_else(
                         || {
@@ -476,3 +480,11 @@ fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
 #[cfg(test)]
 #[path = "typed_value_tests.rs"]
 mod typed_value_tests;
+
+/// A noninteractive ordinary plot row; source wording remains in adjacent rows.
+pub(super) fn plot_item(subject_index: usize, index: usize) -> Item {
+    let mut result = item("Quantity observations".into(), GraphicsTextRole::Body);
+    result.subject_index = Some(subject_index);
+    result.plot = Some(index);
+    result
+}

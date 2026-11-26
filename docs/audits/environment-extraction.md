@@ -215,3 +215,41 @@ Mask route. Recorder installation/restart, shared observation/history views and
 retirement of superseded proof services remain with the acceptance owners in
 the inventory above. These extractions remove reusable machinery from the Body;
 they do not by themselves establish a wholly authored installed application.
+
+## Shared quantity history route, current development
+
+The environmental history adapter can now contribute explicit producer-specific
+series subjects through the shared `data/quantity-observation-series@1` Face
+semantics. The shared interpreter checks producer Host/Boot/Plan/Play, source
+membership, quantity contracts, actual producer Boot time, sequence gaps and
+unavailability. Independent voltage observations exercise the same interpreter;
+no environmental field names are selected by the shared layer. The original
+Face retains the complete readings and publication reference.
+
+The ordinary browser Mask prepares a finite projection (eight series, sixteen
+available points per series), preserves separate unavailability and omission
+counts, and draws independent observation dots. Exact unit conversion either
+succeeds or produces a distinct refusal; absent readings never become zero.
+`cargo xtask prove environment history` checks the shared interpretation and
+actual environmental adapter. `cargo xtask prove environment history-owner-mask`
+checks the ordinary checked Mask kernel and acknowledgement, then renders its
+result in pinned Chromium with one worker and zero retries. This is CPU Mask
+and browser renderer evidence; it does not establish a WASM Mask, installed
+producer membership, recorder restart, or accepted release.
+
+An installed history producer still needs an explicitly admitted projection Back,
+finite IMAGE funding, kernel commit/custody transfer and the ordinary owner
+contribution route. Existing owner reception checks exact producer identities;
+adding a history-shaped Face directly to the owner would bypass that gate.
+The shared route therefore does not retire the previous environmental proof
+services or complete the extraction acceptance gate above.
+
+`cargo xtask prove environment history-shared-native` separately exercises the
+ordinary native Face renderer. Prepared plot references survive ordinary,
+configured and structured layout; two axes and at most sixteen dots reserve
+eighteen commands before pagination, within the unchanged forty-eight-command
+scene bound. Seven CPU tests cover irregular time, unavailable readings,
+malformed-input fallback, small/high-scale pages, multiple series, selected Look
+and dimension-compatible temperature preferences. Interpretation and retained
+projection storage are prepared before frame drawing. This does not establish
+physical display output or whole-runtime allocation confinement.

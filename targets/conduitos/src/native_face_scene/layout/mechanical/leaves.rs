@@ -150,7 +150,8 @@ fn arrange_content(
                 return Err(FaceSceneError::DocumentBound);
             }
             let (end, measured) =
-                measure_prefix(
+                measure_item_prefix(
+                    item,
                     remaining,
                     item.role,
                     text_width,
@@ -165,7 +166,8 @@ fn arrange_content(
                     context.typography,
                 )
                 .or_else(|_| {
-                    measure_prefix(
+                    measure_item_prefix(
+                        item,
                         remaining,
                         item.role,
                         text_width,
@@ -218,6 +220,7 @@ fn arrange_content(
                 extent: None,
                 row: Row {
                     continuation: None,
+                    plot: item.plot,
                     text: remaining[..end].into(),
                     role: item.role,
                     paint: item.paint,

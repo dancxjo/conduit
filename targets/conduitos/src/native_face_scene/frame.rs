@@ -163,11 +163,25 @@ impl NativeFaceScene {
             focus_marked |= focused || pressed;
             super::boolean_choice::append(&mut scene, row, self.screen)?;
             super::semantic_icons::append(&mut scene, row, self.screen)?;
-            push(
-                &mut scene,
-                GraphicsCommand::text(row.text_bounds(), self.screen, row.text_paint(), &row.text)
+            if let Some(index) = row.plot {
+                quantity_series::append(
+                    &mut scene,
+                    &self.quantity_series[index],
+                    row.text_bounds(),
+                    self.screen,
+                )?;
+            } else {
+                push(
+                    &mut scene,
+                    GraphicsCommand::text(
+                        row.text_bounds(),
+                        self.screen,
+                        row.text_paint(),
+                        &row.text,
+                    )
                     .and_then(|command| command.with_text_role(row.role)),
-            )?;
+                )?;
+            }
             if available {
                 let control = row.control.ok_or(FaceSceneError::UnknownControl)?;
                 let action = &self.face.actions[control.action];

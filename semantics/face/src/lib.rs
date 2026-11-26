@@ -328,6 +328,7 @@ pub use collections::{
 
 mod quantity_series;
 pub use quantity_series::{
-    PreparedQuantitySeries, QuantitySeriesRefusal, QuantitySeriesSample,
+    PreparedQuantitySeries, ProjectedQuantitySeries, QuantitySeriesPoint,
+    QuantitySeriesProjectionRefusal, QuantitySeriesRefusal, QuantitySeriesSample,
     MAX_QUANTITY_SERIES_SAMPLES, QUANTITY_SERIES_ROLE,
 };
