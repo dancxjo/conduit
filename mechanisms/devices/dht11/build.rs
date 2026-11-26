@@ -1,4 +1,5 @@
 //! Compile device protocol schemas, Forms and programs once on the build host.
+mod build_recording;
 mod build_source;
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
@@ -17,6 +18,9 @@ fn main() {
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     build_source::emit(&out);
+    if env::var_os("CARGO_FEATURE_RECORDING").is_some() {
+        build_recording::emit(&out);
+    }
     for (name, file) in [
         ("Dht11DecodedResult", "decoded.type"),
         ("Dht11Observation", "observation.type"),

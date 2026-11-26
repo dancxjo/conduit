@@ -6,6 +6,7 @@ publish = false
 
 [features]
 default = []
+recording = []
 kernel-step = ["dep:conduit-kernel"]
 source-capture = ["dep:conduit-pulse-capture"]
 
