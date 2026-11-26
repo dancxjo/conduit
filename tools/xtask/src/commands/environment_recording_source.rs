@@ -28,12 +28,13 @@ pub(super) fn prove(root: &Path, selected_host: bool) -> Result<(), Box<dyn Erro
             "--",
             "--test-threads=1",
         ],
-        12,
+        13,
         &[
             "closed_selected_image_freezes_original_recording_and_commits_two_channels",
             "actual_recording_becomes_two_exact_channels_then_reads_without_io_or_allocation",
             "explicit_eight_event_view_preserves_all_outcomes_and_dense_sixteen_refuses_extent",
             "independent_read_authority_and_bounded_metadata_are_required_before_capture",
+            "template_defaults_do_not_supply_omitted_checked_initialization_fields",
         ],
     )?;
     super::execute(Command::new("cargo").current_dir(root).args([

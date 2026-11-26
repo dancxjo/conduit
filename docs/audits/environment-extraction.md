@@ -428,7 +428,7 @@ they do not reopen files or allocate. The installed quantity Back uses the same
 kernel commit and exact Owner contribution custody as Ambient. The shared route
 extraction preserves Ambient's existing projection and admission behavior.
 
-`cargo xtask prove environment recording-source` passes twelve hosted Source
+`cargo xtask prove environment recording-source` passes thirteen hosted Source
 checks, two semantic contract checks, the Make contract check and strict hosted
 library lint. Its actual selected-IMAGE test observes the closed Plot after the
 original directory has been removed. `cargo xtask prove environment
@@ -460,3 +460,8 @@ semantic catalog and snapshot packages. Product tests compile with the selected
 native-display feature; the semantic catalog compiles without default features
 for WASM. Formatting, evidence retention and all thirty standalone lock checks
 pass. These compile checks do not execute those platform presentation paths.
+
+The recorded Source's Make template starts with tail eight, but its checked
+initialization requires all sixteen fields explicitly. Omitted tail/directory/
+reference fields refuse before capture; template values do not select equipment
+or grant access. The focused Source gate includes that refusal contract.

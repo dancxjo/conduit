@@ -16,3 +16,9 @@ producer retirement. The selected tail is bounded; this inspection does not
 replace the legacy full-history consumer. See
 [the extraction audit](../../docs/audits/environment-extraction.md) for acceptance
 gates and proof limits.
+
+Checked initialization supplies all sixteen fields explicitly. The Make template
+uses a tail of eight; its defaults do not fill omitted input fields. The product
+Root requires an actual selected directory and original reference. Empty
+selectors are only for a trusted caller supplying independent captured custody
+to the unsafe external-selection initializer.

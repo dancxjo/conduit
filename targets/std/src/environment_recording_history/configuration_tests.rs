@@ -203,3 +203,13 @@ fn selected_reference_requires_canonical_exact_immutable_json_profile() {
         refuses(&values);
     }
 }
+
+#[test]
+fn template_defaults_do_not_supply_omitted_checked_initialization_fields() {
+    for key in ["tail", "directory", "reference"] {
+        let mut values = fields();
+        values.remove(key);
+        let error = checked(&values, ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION).unwrap_err();
+        assert!(error.contains(&format!("missing initialization field '{key}'")));
+    }
+}

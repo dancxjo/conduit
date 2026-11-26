@@ -1,5 +1,6 @@
 //! Explicit bounded recording selection; this contract performs no IO or grant.
-//! Tail defaults to8. Selecting up to16 still refuses if canonical encoding cannot
+//! The initialization template uses tail8; checked input supplies every field.
+//! Selecting up to16 still refuses if canonical encoding cannot
 //! fit the unchanged4096-byte member envelope; no selected window is shortened.
 use conduit_host_make::{
     BaseInitializationContract, ConfigurationValue, ImplementationOffer, KindConfigurationField,
