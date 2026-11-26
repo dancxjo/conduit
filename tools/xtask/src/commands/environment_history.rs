@@ -2,6 +2,7 @@
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
+        [name] if name == "state-fore" => Some(state_fore(root)),
         [name] if name == "quantity-conversion-fixture" => Some(quantity_conversion_fixture(root)),
         [name] if name == "data-input" => Some(data_input(root, false)),
         [name, scope] if name == "data-input" && scope == "all" => Some(data_input(root, true)),
@@ -243,5 +244,58 @@ fn data_target(root: &Path) -> Result<(), Box<dyn Error>> {
         "--all-features",
         "--target",
         "wasm32-unknown-unknown",
+    ]))
+}
+
+// Generic caller composition, not recorder/catalog/ACK qualification.
+fn state_fore(root: &Path) -> Result<(), Box<dyn Error>> {
+    const FILTER: &str = "host_execution::body_durable::tests::";
+    let listed = Command::new("cargo")
+        .current_dir(root)
+        .args([
+            "test",
+            "--locked",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            FILTER,
+            "--",
+            "--list",
+        ])
+        .output()?;
+    if !listed.status.success() {
+        return Err(format!(
+            "state/Fore test inventory failed: {}",
+            String::from_utf8_lossy(&listed.stderr)
+        )
+        .into());
+    }
+    let inventory = String::from_utf8(listed.stdout)?;
+    let count = inventory
+        .lines()
+        .filter(|line| line.starts_with(FILTER) && line.ends_with(": test"))
+        .count();
+    if count < 2 {
+        return Err(format!("state/Fore proof requires its focused tests, found {count}").into());
+    }
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        FILTER,
+        "--",
+        "--test-threads=1",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "--",
+        "-D",
+        "warnings",
     ]))
 }
