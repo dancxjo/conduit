@@ -82,6 +82,44 @@ type MeasurementSample = {
     uncertainty: Quantity?
 }
 
+# Resolved reported observations, not a recorder, commit receipt or authority.
+# Producer identities arrive as data; authored Plots do not bind Hosts/Boots.
+type QuantityObservationOutcome =
+    available Quantity
+    | unavailable Text <= 128B not in [""]
+
+type QuantityObservationGap = {
+    first-sequence: U64 in 1..=18446744073709551615
+    last-sequence: U64 in 1..=18446744073709551615
+}
+
+type ResolvedQuantityObservation = {
+    sequence: U64 in 1..=18446744073709551615
+    sampled-at-boot-ms: U64
+    outcome: QuantityObservationOutcome
+    gap-before: QuantityObservationGap?
+}
+
+type ResolvedQuantityObservationBatch = {
+    source-identity: Text <= 128B not in [""]
+    source-name: Text <= 128B not in [""]
+    channel-identity: Text <= 128B not in [""]
+    channel-name: Text <= 128B not in [""]
+    producer-host: Text <= 256B not in [""]
+    producer-boot: Text <= 256B not in [""]
+    producer-plan: Text <= 256B not in [""]
+    producer-play: Text <= 256B not in [""]
+    samples-outside-view: U64
+    observations: sequence ResolvedQuantityObservation in 0..=16
+}
+
+# One finite inspecting snapshot, not another retention store. Its prepared
+# decoder additionally requires each batch's standalone canonical value to fit
+# the selected immutable snapshot profile (4096B).
+type ResolvedQuantityObservationSnapshot = {
+    batches: sequence ResolvedQuantityObservationBatch in 1..=2
+}
+
 type MeasurementWindowProfile = {
     capacity: U8 in 1..=64
     range: MeasurementRange
