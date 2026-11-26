@@ -163,6 +163,7 @@ impl Owner {
                     let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
                     let mut timer = DeadlineTimer {
                         until: Instant::now() + Duration::from_secs(1),
+                        stop_request: "owner/run-deadline",
                         control: control.clone(),
                     };
                     let report = host.run_body_plan_with_fore_to_with_start(
