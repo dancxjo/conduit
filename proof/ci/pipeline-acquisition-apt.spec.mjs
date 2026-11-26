@@ -329,3 +329,56 @@ test('successful acquisition does no failure diagnostic work', t => {
   acquireApt(['tool'], options);
   assert.equal(state.diagnostics, 0);
 });
+
+const mirrorSyncFailure = new Error(
+  'E: Failed to fetch https://security.ubuntu.com/ubuntu/dists/noble-security/universe/binary-amd64/Packages.xz  File has unexpected size (1233044 != 1233004). Mirror sync in progress? [IP: 91.189.91.82 443]',
+);
+
+test('refreshes a mismatched official archive index once and consumes only the new index set', t => {
+  const { state, options } = fixture(t);
+  const privileged = options.privileged;
+  state.requiredFailure = mirrorSyncFailure;
+  const report = acquireApt(['tool'], {
+    ...options,
+    privileged(program, args) {
+      if (args.includes('Acquire::https::No-Cache=true')) state.requiredFailure = false;
+      return privileged(program, args);
+    },
+  });
+  const aptCalls = state.calls.filter(([program]) => program === 'apt-get' || program === 'apt-cache');
+  const listArgument = args => args.find(arg => arg.startsWith('Dir::State::lists='));
+  const first = listArgument(aptCalls[0][1]);
+  const refreshed = listArgument(aptCalls[1][1]);
+  assert.notEqual(first, refreshed);
+  assert.ok(aptCalls.slice(1).every(([, args]) => listArgument(args) === refreshed));
+  assert.equal(aptCalls.filter(([, args]) => args.includes('update')).length, 2);
+  assert.equal(report.mirrorIndexRefreshed, true);
+  assert.equal(report.installedVersions.tool, '1.2');
+});
+
+test('a persistent official archive index mismatch refuses before package operations', t => {
+  const { state, options } = fixture(t);
+  state.requiredFailure = mirrorSyncFailure;
+  assert.throws(() => acquireApt(['tool'], options), /Mirror sync in progress/);
+  assert.equal(state.calls.filter(([, args]) => args.includes('update')).length, 2);
+  assert.ok(!state.calls.some(([, args]) => args.includes('install')));
+});
+
+test('refreshes signed indices and resolves again after an official package returns 404', t => {
+  const { state, options } = fixture(t);
+  const privileged = options.privileged;
+  let downloads = 0;
+  acquireApt(['tool'], {
+    ...options,
+    privileged(program, args) {
+      if (args.includes('--download-only') && ++downloads === 1) {
+        throw new Error('E: Failed to fetch https://security.ubuntu.com/ubuntu/pool/main/t/tool/tool_1.2_amd64.deb  404  Not Found');
+      }
+      return privileged(program, args);
+    },
+  });
+  assert.equal(downloads, 2);
+  const simulations = state.calls.filter(([, args]) => args.includes('--simulate'));
+  assert.match(simulations[0][1].join(' '), /\/lists /);
+  assert.ok(simulations.slice(1).every(([, args]) => args.some(arg => arg.endsWith('/retry-lists'))));
+});
