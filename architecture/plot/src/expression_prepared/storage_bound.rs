@@ -45,6 +45,9 @@ fn node(ty: &StructuredInfoType) -> usize {
     .min(MAXIMUM_STRUCTURED_CANONICAL_BYTES)
 }
 fn leaf(kind: &str) -> usize {
+    if kind == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+        return conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES;
+    }
     if conduit_core::quantity_info_dimension(kind).is_some() {
         return conduit_core::QUANTITY_ENCODED_LEN;
     }
