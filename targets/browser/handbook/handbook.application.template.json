@@ -10,7 +10,6 @@
     "browser/dom@1",
     "browser/dom-face@1",
     "browser/indexeddb@1",
-    "browser/websocket@1",
     "browser/websocket-owner-face@1"
   ],
   "resources": [
