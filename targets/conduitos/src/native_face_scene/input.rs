@@ -27,7 +27,7 @@ pub(super) struct InputState {
     action: Option<usize>,
     values: Vec<Option<Vec<u8>>>,
     pub(super) submitted: bool,
-    pub(super) pointer: Option<super::pointer_gesture::PendingTap>,
+    pub(super) pointer: Option<super::pointer_gesture::PendingGesture>,
 }
 
 #[path = "input/preview.rs"]

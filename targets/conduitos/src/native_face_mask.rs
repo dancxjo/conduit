@@ -459,3 +459,7 @@ mod collection_creche_tests;
 #[cfg(test)]
 #[path = "native_face_mask/gesture_tests.rs"]
 mod gesture_tests;
+
+#[cfg(test)]
+#[path = "native_face_mask/swipe_tests.rs"]
+mod swipe_tests;
