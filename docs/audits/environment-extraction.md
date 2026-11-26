@@ -253,3 +253,7 @@ malformed-input fallback, small/high-scale pages, multiple series, selected Look
 and dimension-compatible temperature preferences. Interpretation and retained
 projection storage are prepared before frame drawing. This does not establish
 physical display output or whole-runtime allocation confinement.
+
+The actual history adapter and shared Face layer also pass
+`cargo xtask prove environment history-target` for `wasm32-unknown-unknown`.
+This is cross-compilation, separately from executing a WASM owner Mask.
