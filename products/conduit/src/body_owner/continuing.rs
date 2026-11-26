@@ -146,6 +146,7 @@ impl Owner {
                 let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
                 let mut timer = DeadlineTimer {
                     until: Instant::now() + Duration::from_millis(maximum_millis),
+                    stop_request: SERVICE_DEADLINE_REQUEST,
                     control: worker_control.clone(),
                 };
                 let result = thread::scope(|scope| {
