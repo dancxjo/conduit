@@ -41,7 +41,7 @@ impl Browser64Proof {
                 60_000,
             )
             .unwrap();
-        let (advertise, size) = carrier.to_owner(&In::Advertise {
+        let (advertise, size) = carrier.send_to_owner(&In::Advertise {
             protocol: PROTOCOL,
             advertisement,
             friendly_label: "Native ABI full64 proof".into(),
@@ -51,12 +51,12 @@ impl Browser64Proof {
         let challenge_frame = owner
             .browser_begin(&authorization.window_id, &binding, advertise, size)
             .unwrap();
-        let received = carrier.to_browser(&challenge_frame);
+        let received = carrier.send_to_browser(&challenge_frame);
         let Out::Challenge { challenge, .. } = serde_json::from_slice(&received).unwrap() else {
             panic!("owner did not issue the browser challenge");
         };
         let signature = runtime.sign(&challenge);
-        let (proof, _) = carrier.to_owner(&In::AmbientProof {
+        let (proof, _) = carrier.send_to_owner(&In::AmbientProof {
             protocol: PROTOCOL,
             admission_id: challenge.admission_id.clone(),
             body_id: challenge.body_id,
@@ -69,7 +69,7 @@ impl Browser64Proof {
             .browser_complete(root, &authorization.window_id, proof)
             .unwrap();
         carrier.prepare_profile(&snapshot);
-        let admitted = carrier.to_browser(&Out::Admitted {
+        let admitted = carrier.send_to_browser(&Out::Admitted {
             protocol: PROTOCOL,
             credential: snapshot.credential.clone(),
         });
@@ -96,7 +96,7 @@ impl Browser64Proof {
             last_seen_revision: None,
             last_seen_identity: None,
         };
-        let (incoming, _) = self.carrier.to_owner(&In::FaceSnapshotRequest {
+        let (incoming, _) = self.carrier.send_to_owner(&In::FaceSnapshotRequest {
             protocol: PROTOCOL,
             request: request.clone(),
         });
@@ -125,7 +125,7 @@ impl Browser64Proof {
         let mut foreign = request.clone();
         foreign.boot_id = "boot/foreign".into();
         assert!(owner.browser_face_response_bytes(&foreign, &face).is_none());
-        let frame = self.carrier.to_browser(&Out::FaceSnapshotResponse {
+        let frame = self.carrier.send_to_browser(&Out::FaceSnapshotResponse {
             protocol: PROTOCOL,
             response: OwnerFaceSnapshotResponse::Snapshot {
                 schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
@@ -147,7 +147,7 @@ impl Browser64Proof {
             "canonical export must preserve every original byte"
         );
         assert_eq!(decoded, face);
-        let (ack, _) = self.carrier.to_owner(&In::FaceShowAcknowledgement {
+        let (ack, _) = self.carrier.send_to_owner(&In::FaceShowAcknowledgement {
             protocol: PROTOCOL,
             request: request.clone(),
             show: Box::new(show.clone()),

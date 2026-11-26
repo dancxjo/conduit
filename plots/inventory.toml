@@ -39,6 +39,14 @@ workspace_catalog = false
 browser_safe_not_applicable = "requires selected civil clock, wallpaper, weather and Face contribution Backs"
 
 [[plots]]
+slug = "environment-recording-history"
+title = "Environment Recording History"
+entry = "environment-recording-history"
+workspace_catalog = false
+deterministic_not_applicable = "selected IMAGE and independently admitted immutable-file read and Source-use grants are qualified through cargo xtask prove environment recording-source; this inventory runner requires an integration-test oracle"
+browser_safe_not_applicable = "the Source requires an installed Host with an explicitly selected original recording; the browser consumes the resulting Owner Face through its separately admitted Mask route"
+
+[[plots]]
 slug = "ambient-wallpaper"
 title = "Wallpaper Observation"
 entry = "ambient-wallpaper"

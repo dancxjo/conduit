@@ -65,7 +65,7 @@ impl Carrier {
             worker: Some(worker),
         }
     }
-    pub(super) fn to_owner(&mut self, frame: &In) -> (In, u32) {
+    pub(super) fn send_to_owner(&mut self, frame: &In) -> (In, u32) {
         let bytes = serde_json::to_vec(frame).unwrap();
         assert!(bytes.len() <= MAX_BROWSER_ADMISSION_FRAME_BYTES);
         self.commands.send(Command::Send(bytes)).unwrap();
@@ -73,7 +73,7 @@ impl Carrier {
         assert!(self.reply().is_empty());
         received
     }
-    pub(super) fn to_browser(&mut self, frame: &Out) -> Vec<u8> {
+    pub(super) fn send_to_browser(&mut self, frame: &Out) -> Vec<u8> {
         self.commands.send(Command::Receive).unwrap();
         if matches!(frame, Out::FaceSnapshotResponse { .. }) {
             face_exchange::send_response(&mut self.socket, frame).unwrap();
