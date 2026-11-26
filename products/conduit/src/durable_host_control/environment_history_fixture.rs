@@ -104,7 +104,18 @@ pub(crate) fn serve_owner(
                         .checked_add(retirement_timeout)
                         .ok_or("Owner fixture retirement deadline overflow")?,
                 );
-                runtime.request_owned_body_lull()?;
+                // A normal UI client may already have requested Lull. The
+                // existing local worker operation preserves that exact request
+                // while the ordinary actor finishes retirement.
+                if let HostSource::Body {
+                    running: Some(OwnedRunWorker::General(worker)),
+                    ..
+                } = &runtime.host
+                {
+                    worker.request_renewing_lull()?;
+                } else {
+                    runtime.request_owned_body_lull()?;
+                }
             }
         }
         if reason.is_none() {

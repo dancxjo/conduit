@@ -69,6 +69,15 @@ test('complete original readings traverse a live Owner and fresh ordinary WASM M
   const server = await startStaticProduct(handbook);
   let started = false;
   try {
+    await page.addInitScript(() => {
+      globalThis.__recordingFaceDiagnostics = [];
+      new MutationObserver(() => {
+        const node = document.querySelector('[data-owner-face-status]');
+        const text = node?.textContent;
+        const history = globalThis.__recordingFaceDiagnostics;
+        if (text && history.length < 100 && history.at(-1) !== text) history.push(text);
+      }).observe(document, { subtree: true, childList: true, characterData: true });
+    });
     await page.goto(`${server.url}?participate=owner#your-handbook`);
     await page.locator('[data-owner-key]').waitFor();
     const identity = await page.evaluate(() => globalThis.__conduitOwnerParticipation.admissionIdentity());
@@ -156,7 +165,8 @@ test('complete original readings traverse a live Owner and fresh ordinary WASM M
       const state = await page.evaluate(() => {
         const api = globalThis.__conduitOwnerParticipation;
         return { state: api?.state(), presence: api?.presence(), host: api?.host(),
-          status: document.querySelector('[data-owner-status]')?.textContent };
+          status: document.querySelector('[data-owner-status]')?.textContent,
+          faceHistory: globalThis.__recordingFaceDiagnostics };
       }).catch(error => ({ error: error.message }));
       await writeFile(path.join(output, 'diagnostic.json'), JSON.stringify({ errors, traffic, state }, null, 2));
     } finally {
