@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    fn prepared_state_host_operations_do_not_allocate() {
+    fn prepared_state_host_calls_do_not_allocate() {
         let root = tempfile::tempdir().unwrap();
         let mut host = InstalledDurableStateHost::open(
             root.path(),
