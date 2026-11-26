@@ -11,7 +11,7 @@ use conduit_core::{AuthorityGrant, BoundedResourceRef, ResourceReferenceBinding}
 use conduit_linux_snapshot_store::{SnapshotDirectory, SnapshotRecordSelection};
 pub use configuration::CheckedEnvironmentRecordingHistory;
 pub use connection_limits::environment_recording_history_connection_limits;
-use freeze::{freeze_preparation_backing_bound, freeze_snapshot};
+use freeze::{freeze_generation, freeze_preparation_backing_bound};
 use selection::selected_capture_preparation_backing_bound;
 pub(crate) use selection::validate_capture_selection;
 

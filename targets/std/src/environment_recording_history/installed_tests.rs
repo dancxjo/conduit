@@ -1,6 +1,6 @@
 //! Selected Linux IMAGE/closed-Source CPU proof. Reported producer identities
 //! are fixture data, not a live sensor, product CLI or release receipt.
-use super::tests::{facts, json, publish};
+use super::tests::{facts, full_json, json, publish};
 use crate::environment_recording_history::snapshot_fixture::Directory;
 use crate::{body_execution::*, StdHost, StdHostConfig, ThreadTimer};
 use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot, Wake};
@@ -13,18 +13,19 @@ use conduit_std_offers::*;
 use std::{fs, time::Duration};
 
 fn equipment_source() -> String {
-    let workspace = conduit_semantic_catalog::quantity_observation_face_workspace_bytes().unwrap();
-    let maximum = conduit_data::resolved_quantity_observation_snapshot_byte_bound().unwrap();
+    let workspace = conduit_semantic_catalog::reported_generation_face_workspace_bytes().unwrap();
+    let maximum =
+        conduit_dht11_observation::reported_generation::maximum_canonical_bytes().unwrap();
     let source = format!(
         r#"host environment-recording-installed-fixture {{
  schema = 1
  target = {{architecture: "x86_64", machine: "computer", os: "linux"}}
  base = {{kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}}
- base = {{kind: "{ENVIRONMENT_RECORDING_HISTORY_BASE}", implementation: "{ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION}", initialization: {{source_pool: "history/source", memory_pool: "history/memory", capture_access: "operator-admitted", directory: "", reference: "", producer_host: "host/reported", producer_boot: "boot/reported", producer_plan: "plan/reported", producer_play: "play/reported", temperature_source: "source/t", temperature_channel: "channel/t", temperature_name: "Temperature", humidity_source: "source/h", humidity_channel: "channel/h", humidity_name: "Relative humidity", tail: 2}}}}
- base = {{kind: "{QUANTITY_OBSERVATION_FACE_BASE}", implementation: "{QUANTITY_OBSERVATION_FACE_DRIVER}", initialization: {{face_pool: "history/face", memory_pool: "history/face-memory"}}}}
+ base = {{kind: "{ENVIRONMENT_RECORDING_HISTORY_BASE}", implementation: "{ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION}", initialization: {{source_pool: "history/source", memory_pool: "history/memory", capture_access: "operator-admitted", directory: "", reference: "", producer_host: "host/reported", producer_boot: "boot/reported", producer_plan: "plan/reported", producer_play: "play/reported", temperature_source: "source/t", temperature_channel: "channel/t", temperature_name: "Temperature", humidity_source: "source/h", humidity_channel: "channel/h", humidity_name: "Relative humidity"}}}}
+ base = {{kind: "{REPORTED_GENERATION_FACE_BASE}", implementation: "{REPORTED_GENERATION_FACE_DRIVER}", initialization: {{face_pool: "history/face", memory_pool: "history/face-memory"}}}}
  capability = {{kind: "time/every", pinned_implementation: "{TIME_EVERY_IMPLEMENTATION}"}}
  capability = {{kind: "data/environment-recording-history", pinned_implementation: "{ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION}"}}
- capability = {{kind: "face/quantity-observation-series", pinned_implementation: "{QUANTITY_OBSERVATION_FACE_IMPLEMENTATION}"}}
+ capability = {{kind: "face/reported-generation-series", pinned_implementation: "{REPORTED_GENERATION_FACE_IMPLEMENTATION}"}}
  need = {{id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 8, bytes: 512}}
  need = {{id: "history/source", class: "{ENVIRONMENT_RECORDING_HISTORY_RESOURCE}", slots: 1, bytes: {maximum}}}
  need = {{id: "history/memory", class: "conduit.resource/runtime-memory@1", slots: 67108864, bytes: 67108864}}
@@ -91,7 +92,7 @@ fn body_plan(host: &StdHost) -> (Wake, BodyPlan) {
         &mut profile,
     )
     .unwrap();
-    conduit_semantic_catalog::install_quantity_observation_face_kind(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_reported_generation_face_kind(&mut startup, &mut profile)
         .unwrap();
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!(
@@ -183,11 +184,11 @@ impl BodyFaceContributionObserver for Capture {
     }
 }
 #[test]
-fn closed_selected_image_freezes_original_recording_and_commits_two_channels() {
+fn closed_selected_image_freezes_all_sixty_four_original_readings_and_commits_two_channels() {
     let root = Directory::new();
     let directory = root.open();
     let contract = conduit_dht11_observation::ObservationContract::prepare().unwrap();
-    let bytes = json(&contract);
+    let bytes = full_json(&contract);
     publish(&directory, &bytes);
     let selected = facts(bytes.len(), false);
     let (checked, image, catalog) = equipment();
@@ -330,22 +331,34 @@ fn closed_selected_image_freezes_original_recording_and_commits_two_channels() {
     );
     assert_eq!(
         values("sampled-at-boot-ms"),
-        vec![V::Count(7), V::Count(101), V::Count(7), V::Count(101)]
+        (0..2)
+            .flat_map(|_| (1..=64).map(|n| V::Count(n * n * 7)))
+            .collect::<Vec<_>>()
     );
     assert_eq!(
         values("sequence"),
-        vec![V::Count(4), V::Count(5), V::Count(4), V::Count(5)]
+        (0..2)
+            .flat_map(|_| (1..=64).map(|n| V::Count(2 * n - 1)))
+            .collect::<Vec<_>>()
     );
-    assert_eq!(values("missing-sequence-first"), vec![V::Count(2); 2]);
-    assert_eq!(values("missing-sequence-last"), vec![V::Count(3); 2]);
-    assert_eq!(values("samples-outside-view"), vec![V::Count(1); 2]);
+    let gaps = (0..2)
+        .flat_map(|_| (2..=64).map(|n| V::Count(2 * n - 2)))
+        .collect::<Vec<_>>();
+    assert_eq!(values("missing-sequence-first"), gaps);
+    assert_eq!(values("missing-sequence-last"), gaps);
+    assert_eq!(values("samples-outside-view"), vec![V::Count(0); 2]);
+    assert_eq!(values("recovered-chunks"), vec![V::Count(1); 2]);
+    assert_eq!(values("recovered-samples"), vec![V::Count(64); 2]);
+    assert_eq!(values("preceding-history-known"), vec![V::Flag(false); 2]);
     assert_eq!(
         values("series-unavailability"),
-        vec![V::Text("checksum".into()); 2]
+        vec![V::Text("checksum".into()); 64]
     );
     assert_eq!(
         values("series-available"),
-        vec![V::Flag(false), V::Flag(true), V::Flag(false), V::Flag(true)]
+        (0..2)
+            .flat_map(|_| (1..=64).map(|n| V::Flag(n % 2 == 0)))
+            .collect::<Vec<_>>()
     );
     let channels = [
         ["source/t", "Temperature", "channel/t", "Temperature"],
@@ -376,8 +389,8 @@ fn closed_selected_image_freezes_original_recording_and_commits_two_channels() {
     for (source, field) in [("source/t", "temperature"), ("source/h", "humidity")] {
         let leaf = canonical.record_field(field).unwrap().unwrap();
         let expected = Quantity::decode(&leaf.value_node()[5..]).unwrap();
-        let available = format!("{source}/sample/5");
-        let failed = format!("{source}/sample/4");
+        let available = format!("{source}/sample/127");
+        let failed = format!("{source}/sample/1");
         assert!(properties
             .iter()
             .any(|p| p.subject == available && matches!(&p.value, V::TypedValue { bytes, .. } if Quantity::decode(bytes) == Ok(expected))));

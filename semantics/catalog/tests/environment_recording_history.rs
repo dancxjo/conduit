@@ -6,12 +6,12 @@ use conduit_plot::{
 };
 use conduit_semantic_catalog::{
     environment_recording_history_kind, install_environment_recording_history_kind,
-    install_quantity_observation_face_kind, ENVIRONMENT_RECORDING_HISTORY_KIND,
+    install_reported_generation_face_kind, ENVIRONMENT_RECORDING_HISTORY_KIND,
     ENVIRONMENT_RECORDING_HISTORY_REVISION,
 };
 
 #[test]
-fn source_exposes_exact_tick_and_quantity_snapshot_without_host_configuration() {
+fn source_exposes_exact_tick_and_reported_generation_without_host_configuration() {
     let kind = environment_recording_history_kind().unwrap();
     assert_eq!(kind.kind_id.as_str(), ENVIRONMENT_RECORDING_HISTORY_KIND);
     assert_eq!(
@@ -30,12 +30,13 @@ fn source_exposes_exact_tick_and_quantity_snapshot_without_host_configuration() 
         kind.outputs[0].temporal,
         PortTemporal::Flow { closes: false }
     );
-    let snapshot = conduit_data::checked_quantity_observation_snapshot_type().unwrap();
+    let snapshot = conduit_dht11_observation::reported_generation::value_type().unwrap();
     assert_eq!(
         &kind.outputs[0].value_kind,
-        snapshot.value_type.profile().unwrap().value_kind()
+        snapshot.profile().unwrap().value_kind()
     );
-    let maximum = conduit_data::resolved_quantity_observation_snapshot_byte_bound().unwrap();
+    let maximum =
+        conduit_dht11_observation::reported_generation::maximum_canonical_bytes().unwrap();
     assert_eq!(kind.limits.max_queue_bytes, maximum);
     assert_eq!(kind.limits.max_queue_items, 1);
     let contracts = kind
@@ -60,7 +61,7 @@ fn original_recording_history_plot_is_closed_and_uses_ordinary_quantity_face() {
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
     install_environment_recording_history_kind(&mut startup, &mut profile).unwrap();
-    install_quantity_observation_face_kind(&mut startup, &mut profile).unwrap();
+    install_reported_generation_face_kind(&mut startup, &mut profile).unwrap();
     let source = include_str!("../../../plots/environment-recording-history/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded =
@@ -72,7 +73,7 @@ fn original_recording_history_plot_is_closed_and_uses_ordinary_quantity_face() {
     for kind in [
         "time/every",
         ENVIRONMENT_RECORDING_HISTORY_KIND,
-        "face/quantity-observation-series",
+        "face/reported-generation-series",
     ] {
         assert!(expanded
             .expanded

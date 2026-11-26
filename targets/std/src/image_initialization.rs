@@ -15,6 +15,7 @@ mod initial_bases;
 mod playback;
 mod quantity_face;
 mod recognition;
+mod reported_generation_face;
 pub(crate) use initial_bases::InitialBases;
 pub(crate) use playback::prepare_playback_on;
 pub(crate) use recognition::InitialWhisper;

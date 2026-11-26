@@ -31,8 +31,7 @@ fn fields() -> serde_json::Map<String, Value> {
         "temperature_source": "reported/temperature-source",
         "temperature_channel": "reported/temperature-channel", "temperature_name": "Temperature",
         "humidity_source": "reported/humidity-source",
-        "humidity_channel": "reported/humidity-channel", "humidity_name": "Relative humidity",
-        "tail": 16
+        "humidity_channel": "reported/humidity-channel", "humidity_name": "Relative humidity"
     })
     .as_object()
     .unwrap()
@@ -82,9 +81,9 @@ fn refuses(values: &serde_json::Map<String, Value>) {
     );
 }
 #[test]
-fn actual_make_sixteen_fields_preserve_exact_selection_without_io() {
+fn actual_make_fifteen_fields_preserve_exact_selection_without_io() {
     let values = fields();
-    assert_eq!(values.len(), 16);
+    assert_eq!(values.len(), 15);
     let config = checked(&values, ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION).unwrap();
     let selected = CheckedEnvironmentRecordingHistory::from_configuration(&config).unwrap();
     assert_eq!(selected.source_pool, "recording/source");
@@ -118,7 +117,6 @@ fn actual_make_sixteen_fields_preserve_exact_selection_without_io() {
             "Relative humidity"
         ]
     );
-    assert_eq!(selected.tail, 16);
     let mut external = values;
     external.insert("directory".into(), json!(""));
     external.insert("reference".into(), json!(""));
@@ -134,9 +132,7 @@ fn actual_make_refuses_implementation_context_tail_pools_and_field_drift() {
         ("producer_boot", json!("b".repeat(129))),
         ("producer_plan", json!("reported\nplan")),
         ("producer_play", json!(4)),
-        ("tail", json!(0)),
-        ("tail", json!(17)),
-        ("tail", json!("16")),
+        ("tail", json!(16)),
         ("memory_pool", json!("recording/source")),
         ("source_pool", json!("")),
         ("capture_access", json!("not-admitted")),
@@ -206,7 +202,7 @@ fn selected_reference_requires_canonical_exact_immutable_json_profile() {
 
 #[test]
 fn template_defaults_do_not_supply_omitted_checked_initialization_fields() {
-    for key in ["tail", "directory", "reference"] {
+    for key in ["producer_host", "directory", "reference"] {
         let mut values = fields();
         values.remove(key);
         let error = checked(&values, ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION).unwrap_err();

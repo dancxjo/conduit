@@ -232,3 +232,229 @@ fn original_recording_source_reaches_actual_owner_and_ordinary_native_scene() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn complete_original_sixty_four_recordings_reach_actual_owner_and_native_pages() {
+    let (root, current) = installation();
+    let host = crate::durable_host::environment_recording_history64_host_fixture(current.clone());
+    const SOURCE: &str =
+        include_str!("../../../../plots/environment-recording-history/main.conduit");
+    let expanded = crate::plot_source::parse(SOURCE)
+        .unwrap()
+        .expand_entry()
+        .unwrap();
+    let resident = ResidentPlot::new(
+        expanded.source_document_id.clone(),
+        expanded.checked_plot_id.clone(),
+    );
+    let mut owner = Owner::open(host, resident, None, "Complete original recording").unwrap();
+    let sources = state::WorksetSources::checked(
+        owner.session.evidence(),
+        vec![(SOURCE.into(), "environment-recording-history".into())],
+    )
+    .unwrap();
+    state::retain_session_with_workset_sources(&root, &mut owner.session, &sources, None, None)
+        .unwrap();
+    let body = owner.session.evidence().body_id.clone();
+    let mut worker = owner.start_service_run(&root, 30_000, false, 0).unwrap();
+    let until = Instant::now() + Duration::from_secs(15);
+    let (face, play) = loop {
+        let retired = worker.progress(&mut owner, &root).unwrap();
+        if let Some(contribution) = owner.runtime_face.as_ref() {
+            assert!(owner.runtime_face_scope_matches_current(contribution));
+            assert!(!contribution.scope().is_retired());
+            assert_eq!(contribution.scope().host(), &current.host_id);
+            assert_eq!(contribution.scope().boot(), &current.boot_id);
+            assert_eq!(contribution.scope().body_play().body_id, body);
+            assert!(owner
+                .session
+                .realization()
+                .unwrap()
+                .plan
+                .plots
+                .iter()
+                .any(|plot| plot.plan.plan_id == *contribution.scope().partition_plan()));
+            break (
+                owner.local_face_snapshot().unwrap(),
+                contribution.scope().body_play().clone(),
+            );
+        }
+        assert!(!retired, "service retired without full original generation");
+        assert!(Instant::now() < until, "no actual current contribution");
+        thread::sleep(Duration::from_millis(5));
+    };
+    assert_eq!(face.basis.body_id.as_ref(), Some(&body));
+    assert_eq!(owner.current_play_id(), Some(&play.active_play_id));
+    assert_eq!(
+        owner.session.realization().unwrap().plan.plan_id,
+        play.plan_id
+    );
+    let provenance = face
+        .properties
+        .iter()
+        .find(|p| {
+            p.subject.starts_with("contribution/inspection/")
+                && p.name == "active-play-id"
+                && p.value == V::Identity(play.active_play_id.as_str().into())
+        })
+        .unwrap();
+    for (name, identity) in [
+        ("plan-id", play.plan_id.as_str()),
+        ("checked-plot-id", expanded.checked_plot_id.as_str()),
+    ] {
+        assert!(face
+            .properties
+            .iter()
+            .any(|p| p.subject == provenance.subject
+                && p.name == name
+                && p.value == V::Identity(identity.into())));
+    }
+    // Expected semantic quantities come from the same device Forms used by the
+    // original product test record fixture, independently of its Face projection.
+    let contract = conduit_dht11_observation::ObservationContract::prepare().unwrap();
+    let mut forms =
+        conduit_dht11_observation::PreparedObservationQuantityForms::prepare(&contract).unwrap();
+    let observation =
+        conduit_core::validate_canonical_structured_value(forms.unpack(&[198, 0, 78, 2]).unwrap())
+            .unwrap();
+    let expected = ["temperature", "humidity"].map(|name| {
+        conduit_core::Quantity::decode(
+            &observation
+                .record_field(name)
+                .unwrap()
+                .unwrap()
+                .value_node()[5..],
+        )
+        .unwrap()
+    });
+    let channels = face
+        .subjects
+        .iter()
+        .filter(
+            |s| matches!(&s.role, FaceRole::Semantic(role) if role.as_str()==QUANTITY_SERIES_ROLE),
+        )
+        .collect::<Vec<_>>();
+    assert_eq!(channels.len(), 2);
+    for channel in &channels {
+        let (source, quantity) = if channel.identity == "channel/t" {
+            ("source/t", expected[0])
+        } else {
+            assert_eq!(channel.identity, "channel/h");
+            ("source/h", expected[1])
+        };
+        let series = PreparedQuantitySeries::prepare(&face, &channel.identity, 64).unwrap();
+        assert_eq!(
+            series.producer(),
+            [
+                "host/reported",
+                "boot/reported",
+                "plan/reported",
+                "play/reported"
+            ]
+        );
+        assert_ne!(series.producer()[0], current.host_id.as_str());
+        assert_ne!(series.producer()[1], current.boot_id.as_str());
+        assert_ne!(series.producer()[2], play.plan_id.as_str());
+        assert_ne!(series.producer()[3], play.active_play_id.as_str());
+        assert_eq!(series.samples().len(), 64);
+        for (index, sample) in series.samples().iter().enumerate() {
+            assert_eq!(sample.sequence, 2 * index as u64 + 1);
+            assert_eq!(sample.boot_ms, (index as u64).pow(2) * 7 + 11);
+            assert_eq!(
+                sample.gap_before,
+                (index > 0).then_some((2 * index as u64, 2 * index as u64))
+            );
+            assert_eq!(sample.value, (index % 2 == 0).then_some(quantity));
+            assert_eq!(
+                sample.unavailable_reason,
+                (index % 2 != 0).then_some("checksum")
+            );
+        }
+        for (name, value) in [
+            ("recovered-chunks", V::Count(1)),
+            ("recovered-samples", V::Count(64)),
+            ("visible-samples", V::Count(64)),
+            ("samples-outside-view", V::Count(0)),
+            ("recovered-first-sequence", V::Count(1)),
+            ("recovered-last-sequence", V::Count(127)),
+            ("preceding-history-known", V::Flag(false)),
+        ] {
+            assert!(face
+                .properties
+                .iter()
+                .any(|p| p.subject == source && p.name == name && p.value == value));
+        }
+        let plot = series.project(None, 16).unwrap();
+        assert_eq!(plot.source_samples, 64);
+        assert_eq!(plot.points.len(), 16);
+        assert_eq!(plot.omitted_points, 16);
+        assert_eq!(plot.unavailable_samples, 32);
+        assert_eq!(plot.gap_runs, 63);
+        assert_eq!(plot.omitted_samples, "0");
+        assert!(plot.publication_evidence.is_none() && plot.publication_reference.is_none());
+    }
+    let bytes = serde_json::to_vec(&face).unwrap();
+    if let Some(path) = std::env::var_os("CONDUIT_ENVIRONMENT_HISTORY64_OWNER_FACE") {
+        let path = PathBuf::from(path);
+        if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, &bytes).unwrap();
+    }
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    let mut pages = 0;
+    let mut rendered = String::new();
+    for details in [false, true] {
+        scene.show_details(details);
+        while scene.page() > 0 {
+            scene.turn_page(false);
+        }
+        for page in 0..scene.pages() {
+            assert_eq!(scene.page(), page);
+            let frame = scene.frame().unwrap();
+            assert_eq!(frame.face_id, &face.identity);
+            assert_eq!(frame.revision, face.revision);
+            assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
+            for command in frame.scene.commands() {
+                rendered.push_str(command.payload());
+            }
+            pages += 1;
+            scene.turn_page(true);
+        }
+    }
+    assert!(pages > 1);
+    assert!(rendered.contains("Temperature") && rendered.contains("Relative humidity"));
+    for index in 0..64 {
+        assert!(
+            rendered.contains(&format!("Observation {}", 2 * index + 1)),
+            "native reading omitted original sample {index}"
+        );
+    }
+    assert_eq!(scene.face(), &face);
+    eprintln!(
+        "original64 actual Owner Face bytes={} native primary+Details pages={pages}",
+        bytes.len()
+    );
+    worker.request_lull().unwrap();
+    let until = Instant::now() + Duration::from_secs(15);
+    while !worker.progress(&mut owner, &root).unwrap() {
+        assert!(Instant::now() < until, "ordinary Lull did not retire");
+        thread::sleep(Duration::from_millis(5));
+    }
+    assert!(
+        owner.current_play_id().is_none()
+            && owner.current_home_fragment().is_none()
+            && owner.session.realization().is_none()
+    );
+    assert_eq!(
+        owner.session.evidence().body.state,
+        conduit_body::BodyState::Lulled
+    );
+    assert_eq!(state::load(&root).unwrap().unwrap().body_id, body);
+    let report = owner.last_execution.as_ref().unwrap();
+    assert!(
+        report["failure"].is_null() && report["cleanup_failure"].is_null(),
+        "{report}"
+    );
+    fs::remove_dir_all(root).unwrap();
+}

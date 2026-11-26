@@ -1,7 +1,6 @@
 //! Explicit bounded recording selection; this contract performs no IO or grant.
-//! The initialization template uses tail8; checked input supplies every field.
-//! Selecting up to16 still refuses if canonical encoding cannot
-//! fit the unchanged4096-byte member envelope; no selected window is shortened.
+//! Checked input supplies every field explicitly. The Source retains the entire
+//! latest original generation; no tail selection or generic Data budget changes.
 use conduit_host_make::{
     BaseInitializationContract, ConfigurationValue, ImplementationOffer, KindConfigurationField,
     KindConfigurationRule,
@@ -47,14 +46,6 @@ pub(super) fn contract() -> BaseInitializationContract {
             rule: KindConfigurationRule::TextBytes { maximum: 128 },
         });
     }
-    fields.push(KindConfigurationField {
-        key: "tail".into(),
-        default_value: ConfigurationValue::U64(8),
-        rule: KindConfigurationRule::U64Range {
-            minimum: 1,
-            maximum: 16,
-        },
-    });
     BaseInitializationContract { fields }
 }
 pub(super) fn offer() -> ImplementationOffer {
@@ -75,29 +66,20 @@ pub(super) fn offer() -> ImplementationOffer {
 mod tests {
     use super::*;
     #[test]
-    fn explicit_capture_configuration_defaults_to_eight_without_narrowing_tail_range() {
+    fn complete_generation_contract_requires_fifteen_explicit_fields_without_tail() {
         let initialization = contract();
-        assert_eq!(initialization.fields.len(), 16);
-        let tail = initialization
+        assert_eq!(initialization.fields.len(), 15);
+        assert!(!initialization
             .fields
             .iter()
-            .find(|field| field.key == "tail")
-            .unwrap();
-        assert_eq!(tail.default_value, ConfigurationValue::U64(8));
-        assert!(matches!(
-            tail.rule,
-            KindConfigurationRule::U64Range {
-                minimum: 1,
-                maximum: 16
-            }
-        ));
+            .any(|field| field.key == "tail"));
         let mut names = initialization
             .fields
             .iter()
-            .map(|field| &field.key)
+            .map(|field| field.key.as_str())
             .collect::<Vec<_>>();
-        names.sort();
+        names.sort_unstable();
         names.dedup();
-        assert_eq!(names.len(), initialization.fields.len());
+        assert_eq!(names.len(), 15);
     }
 }

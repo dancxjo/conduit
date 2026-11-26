@@ -8,6 +8,8 @@ pub mod quantity_history;
 mod quantity_history_backing;
 #[cfg(feature = "recording")]
 pub mod recording;
+#[cfg(feature = "reported-generation")]
+pub mod reported_generation;
 use alloc::vec;
 use conduit_core::{
     self as c, validate_canonical_structured_value as validate,

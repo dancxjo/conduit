@@ -93,17 +93,32 @@ pub(super) fn is_face_contribution_call(operation: &LoweredHostCall) -> bool {
     if is_ambient_call(operation) {
         return true;
     }
-    let call = match operation.call.0 {
-        0 => conduit_std_offers::QUANTITY_OBSERVATION_PROJECT_CALL,
-        1 => conduit_std_offers::QUANTITY_OBSERVATION_CUSTODY_CALL,
-        _ => return false,
-    };
-    // The installed factory verifies the complete exact offer (including byte
-    // limits) during preparation. Do not rebuild its semantic schema in Play.
-    operation.contract_id.as_str() == call
-        && operation.target_kind.as_ref().is_some_and(|kind| {
-            kind.as_str() == conduit_semantic_catalog::QUANTITY_OBSERVATION_FACE_KIND
-        })
-        && operation.maximum_in_flight == 1
-        && operation.binding.maximum_output_bytes == 0
+    let contracts = [
+        (
+            conduit_semantic_catalog::QUANTITY_OBSERVATION_FACE_KIND,
+            conduit_std_offers::QUANTITY_OBSERVATION_PROJECT_CALL,
+            conduit_std_offers::QUANTITY_OBSERVATION_CUSTODY_CALL,
+        ),
+        (
+            conduit_semantic_catalog::REPORTED_GENERATION_FACE_KIND,
+            conduit_std_offers::REPORTED_GENERATION_PROJECT_CALL,
+            conduit_std_offers::REPORTED_GENERATION_CUSTODY_CALL,
+        ),
+    ];
+    // Factories validate the complete exact offers before Play. Classification
+    // never reconstructs a schema or admits another operation.
+    contracts.into_iter().any(|(kind, project, custody)| {
+        let expected = match operation.call.0 {
+            0 => project,
+            1 => custody,
+            _ => return false,
+        };
+        operation.contract_id.as_str() == expected
+            && operation
+                .target_kind
+                .as_ref()
+                .is_some_and(|target| target.as_str() == kind)
+            && operation.maximum_in_flight == 1
+            && operation.binding.maximum_output_bytes == 0
+    })
 }

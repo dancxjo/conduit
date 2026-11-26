@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11", features = ["reported-generation"] }
 conduit-ambient-display = { path = "../../plots/ambient-display/model" }
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["step-test-support"] }
 conduit-alife = { path = "../alife" }

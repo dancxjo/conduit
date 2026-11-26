@@ -1,30 +1,31 @@
-//! Final generic validation and freezing shared by explicit Source realizations.
+//! Final domain validation and freezing; never a generic JSON decoder fallback.
 use super::PreparedEnvironmentRecordingHistorySource;
-use conduit_data::{PreparedQuantityObservationSnapshotInput, ResolvedQuantityObservationSnapshot};
-use conduit_plot::rust_binding::NativeRustBinding;
-const MAXIMUM_FROZEN_BYTES: usize = 16 * 1024;
+use conduit_dht11_observation::{reported_generation, ObservationContract};
 
-pub(crate) fn freeze_preparation_backing_bound() -> Result<usize, String> {
-    conduit_data::quantity_observation_snapshot_input_preparation_backing_bound()
-        .map_err(debug)?
-        .checked_add(conduit_data::resolved_quantity_observation_snapshot_backing_bound())
-        .and_then(|bytes| bytes.checked_add(3 * MAXIMUM_FROZEN_BYTES))
-        .ok_or_else(|| "snapshot freeze preparation backing overflow".into())
+pub(crate) fn freeze_preparation_backing_bound(
+    contract: &ObservationContract,
+) -> Result<usize, String> {
+    let maximum = reported_generation::maximum_canonical_bytes().map_err(debug)? as usize;
+    reported_generation::PreparedReportedRecordingGenerationInput::decoding_backing_bound(contract)
+        // Encoded Vec capacity and its boxed replacement can coexist. This
+        // derives from the domain contract, not an enlarged worker envelope.
+        .and_then(|bytes| bytes.checked_add(maximum.checked_mul(3)?))
+        .ok_or_else(|| "reported generation freeze preparation backing overflow".into())
 }
-pub(crate) fn freeze_snapshot(
-    snapshot: ResolvedQuantityObservationSnapshot,
+pub(crate) fn freeze_generation(
+    encoded: Vec<u8>,
+    contract: &ObservationContract,
 ) -> Result<PreparedEnvironmentRecordingHistorySource, String> {
-    let decoder = PreparedQuantityObservationSnapshotInput::prepare().map_err(debug)?;
-    conduit_data::validate_quantity_observation_snapshot(&snapshot).map_err(debug)?;
-    let encoded = snapshot.encode().map_err(debug)?;
-    if encoded.len() > MAXIMUM_FROZEN_BYTES || encoded.len() > decoder.maximum_bytes() as usize {
-        return Err("quantity history capture exceeds the existing worker result profile".into());
+    let decoder =
+        reported_generation::PreparedReportedRecordingGenerationInput::prepare().map_err(debug)?;
+    if encoded.len() > decoder.maximum_bytes() as usize || encoded.len() > 16 * 1024 {
+        return Err("reported generation exceeds the existing worker result profile".into());
     }
-    decoder.decode(&encoded).map_err(debug)?;
+    decoder.decode(&encoded, contract).map_err(debug)?;
     Ok(PreparedEnvironmentRecordingHistorySource {
         frozen: encoded.into_boxed_slice(),
     })
 }
 fn debug(error: impl core::fmt::Debug) -> String {
-    format!("quantity history freeze: {error:?}")
+    format!("reported generation freeze: {error:?}")
 }

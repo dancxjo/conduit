@@ -4,6 +4,8 @@ mod patchbay_interaction;
 pub use patchbay_interaction::*;
 mod ambient_home_face;
 pub use ambient_home_face::*;
+mod reported_generation_face;
+pub use reported_generation_face::*;
 mod quantity_observation_face;
 pub use quantity_observation_face::*;
 mod environment_recording_history;

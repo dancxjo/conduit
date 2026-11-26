@@ -22,6 +22,7 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11", features = ["reported-generation"] }
 image = { version = "=0.25.10", default-features = false, features = ["jpeg", "png"] }
 chrono = { version = "0.4.45", default-features = false }
 chrono-tz = { version = "0.10.4", default-features = false }
@@ -97,7 +98,6 @@ webrtc-util = { version = "0.17.1", default-features = false, features = ["conn"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-conduit-dht11-observation = { path = "../../mechanisms/devices/dht11", features = ["quantity-history"] }
 conduit-linux-snapshot-store = { path = "resource-snapshot" }
 bluer = { version = "0.17.4", features = ["bluetoothd"], optional = true }
 dbus = { version = "0.9.12", features = ["vendored"], optional = true }

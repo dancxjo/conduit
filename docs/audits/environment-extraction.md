@@ -411,57 +411,59 @@ route and original-recording consumer remain the next application wiring cuts;
 recorder ACK/restart, full-history transport, release acceptance and legacy
 retirement retain their separate gates.
 
-## Proposed selected original-recording Source, 26 November 2026
+## Proposed complete original-recording Source, 26 November 2026
 
-The hosted Linux extraction now connects an explicitly selected original JSON
-snapshot to the closed `environment-recording-history` Plot. Root opens the
-selected existing directory and independently supplies current Host/Boot read
-authority and Source-use authority. Producer metadata supplies neither. The
-existing immutable record reader retains its Host identity and exact generation
-checks; a new Boot receives a read lease, not a durable storage offer.
+The selected Linux Source now preserves the complete latest original generation,
+up to sixty-four samples. A new opt-in DHT recording domain Info carries the
+unchanged sealed JSON plus bounded reported context, channel metadata, recovery
+counts and the immediate preceding boundary. Its canonical ceiling is derived
+from the exact Type and field limits: 7,143 bytes. This is not a merged or
+resealed chunk, another history store, a generic raw-JSON fallback or a larger
+generic Data profile. Earlier accepted chunks affect reported recovery/outside
+counts; the visible reading still contains only the latest loaded chunk, matching
+the legacy consumer.
 
-Checked Make/IMAGE selection funds the native worker, capture/conversion backing
-and quantity Face projection before preparation. Preparation reads one sealed
-record, checks its independently selected producer context and freezes the
-bounded two-channel snapshot. Recurring Source calls copy those frozen bytes;
-they do not reopen files or allocate. The installed quantity Back uses the same
-kernel commit and exact Owner contribution custody as Ambient. The shared route
-extraction preserves Ambient's existing projection and admission behavior.
+The separate generic Data adapter retains its existing sixteen-sample/4 KiB
+member profile and extent refusal. The shared Face builder now also accepts
+separately checked typed inputs up to sixty-four samples per channel, with its
+own preparation model. Its existing Data16 API, fact ordering, backing ceilings
+and initialized resource requirements remain unchanged. The concrete Std domain
+projector adapts the checked recording Info into those ordinary quantity-series
+facts; Face itself imports no DHT mechanism and decodes no recording JSON.
 
-`cargo xtask prove environment recording-source` passes thirteen hosted Source
-checks, two semantic contract checks, the Make contract check and strict hosted
-library lint. Its actual selected-IMAGE test observes the closed Plot after the
-original directory has been removed. `cargo xtask prove environment
-recording-selected-host` passes both product selection checks, including missing
-records, mismatched references and checked IMAGE refusal. These are CPU and
-preparation proofs; they do not establish a sensor, producer membership or
-physical output.
+Root opens the explicitly selected existing directory and independently supplies
+current Host/Boot read authority and Source-use authority. Producer metadata
+supplies neither. Checked Make/IMAGE selection funds the worker, conversion and
+projection before capture. Preparation freezes one exact original generation;
+recurring Source calls copy its bytes without reopening files or allocating.
+The common installed contribution route retains kernel commit, exact Owner
+custody, finite escaped slots and retirement. Its extraction preserves Ambient.
 
-The selected tail remains explicit and bounded to one through sixteen samples.
-The qualified eight-sample profile does not replace the existing sixty-four
-sample reading; dense sixteen-sample encodings may refuse the unchanged 4 KiB
-bound. This Source reads an existing record. It neither commits a recorder's
-catalogue nor sends a producer acceptance, retires producer data, proves a fresh
-process recovery, or establishes accepted-release custody. The old proof
-services remain until those application and release gates are met.
+The draft Source contract revision is now `@2`, with exact reported-generation
+output and fifteen explicit initialization fields. There is no Source-level tail
+selection. This replaces the unmerged draft's limited generic snapshot output;
+it introduces no released compatibility alias. Missing fields, stale `tail`,
+foreign identities, malformed records and unfunded or conflicting selections
+refuse. Empty directory/reference values remain limited to the trusted unsafe
+external-selection initializer; product Root requires actual selected custody.
 
-`cargo xtask prove environment recording-owner-mask` also passes the actual
-product Owner and ordinary native scene test, then feeds that fresh unchanged
-Owner Face to the checked browser Mask component fixture. The 22,595-byte Face
-retains both channels, exact readings and reported/inspecting provenance; the
-normal component preparation/acknowledgment retains its identity and complete
-reading. Native primary/Details pages stay within the existing command bound,
-and ordinary Lull retires the contribution while preserving the Body. These two
-CPU tests are not Chromium/WASM execution, browser membership, native Mask Play
-or physical Show evidence. No input/output capacity is raised for this fixture.
+Pure qualification passes six domain codec checks, three typed-builder checks,
+six existing Data projection checks and two concrete Std projector checks, with
+strict focused lint. The domain feature compiles without defaults for Thumb and
+WASM; Face compiles without defaults for WASM. The focused Source gate passes
+thirteen checks, including a closed selected-IMAGE sixty-four-reading run after
+removing the original directory, plus semantic and Make checks and strict hosted
+library lint. The actual product Owner test also passes with all sixty-four
+original readings and both channels, exact quantities, times, gaps, recovery
+metadata, and native primary/Details pages. Its fresh Face is 355,795 bytes.
+This exceeds the ordinary browser route’s current 60 KiB admission; full-reading
+browser transport and rendering remain an explicit unfinished gate.
 
-Strict all-target lint passes for the changed hosted, product, browser, Make,
-semantic catalog and snapshot packages. Product tests compile with the selected
-native-display feature; the semantic catalog compiles without default features
-for WASM. Formatting, evidence retention and all thirty standalone lock checks
-pass. These compile checks do not execute those platform presentation paths.
-
-The recorded Source's Make template starts with tail eight, but its checked
-initialization requires all sixteen fields explicitly. Omitted tail/directory/
-reference fields refuse before capture; template values do not select equipment
-or grant access. The focused Source gate includes that refusal contract.
+The existing `recording-source`, `recording-selected-host` and
+`recording-owner-mask` entrances remain. `reported-generation` checks the new
+pure/typed projection and portability contracts; `recording-owner64` produces a
+fresh actual full-reading Owner/native CPU proof and ignored export. None of
+these entrances grants producer trust or establishes Chromium/WASM execution,
+live browser membership, physical Show, producer acceptance/retirement or accepted
+release. Exact catalogue runtime qualification is tracked separately. Legacy
+proof services stay until their replacement consumers and acceptance gates pass.

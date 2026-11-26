@@ -16,9 +16,6 @@ pub struct CheckedEnvironmentRecordingHistory<'a> {
     pub producer: [&'a str; 4],
     /// Temperature, relative humidity; source identity/name, channel identity/name.
     pub channels: [[&'a str; 4]; 2],
-    /// Explicit requested tail (1..=16). Extent refusal never reduces this view;
-    /// dense metadata can exceed the fixed4096-byte per-channel profile.
-    pub tail: usize,
 }
 impl<'a> CheckedEnvironmentRecordingHistory<'a> {
     pub fn from_configuration(checked: &'a CheckedHostConfiguration) -> Result<Self, String> {
@@ -47,7 +44,7 @@ impl<'a> CheckedEnvironmentRecordingHistory<'a> {
             .as_ref()
             .ok_or("environment recording Source initialization is missing")?
             .values;
-        const KEYS: [&str; 16] = [
+        const KEYS: [&str; 15] = [
             "source_pool",
             "memory_pool",
             "capture_access",
@@ -63,7 +60,6 @@ impl<'a> CheckedEnvironmentRecordingHistory<'a> {
             "humidity_source",
             "humidity_channel",
             "humidity_name",
-            "tail",
         ];
         if values.len() != KEYS.len() || values.keys().any(|key| !KEYS.contains(&key.as_str())) {
             return Err(
@@ -135,11 +131,6 @@ impl<'a> CheckedEnvironmentRecordingHistory<'a> {
                 );
             }
         }
-        let tail = values
-            .get("tail")
-            .and_then(serde_json::Value::as_u64)
-            .filter(|tail| (1..=16).contains(tail))
-            .ok_or("environment recording Source tail must be 1..16")? as usize;
         let directory = text("directory", 1024)?;
         let selector = text("reference", 1024)?;
         let (directory, reference) = if directory.is_empty() && selector.is_empty() {
@@ -176,7 +167,6 @@ impl<'a> CheckedEnvironmentRecordingHistory<'a> {
             reference,
             producer,
             channels,
-            tail,
         })
     }
 }

@@ -75,6 +75,8 @@ mod pcm_clip_frames_back;
 mod prepared_face_route;
 mod quantity_observation_factory;
 mod quantity_observation_route;
+mod reported_generation_factory;
+mod reported_generation_route;
 mod startup_chime_back;
 mod startup_contract;
 mod startup_source_back;

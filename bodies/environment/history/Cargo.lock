@@ -290,6 +290,7 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-data",
+ "conduit-dht11-observation",
  "conduit-education",
  "conduit-face",
  "conduit-human",

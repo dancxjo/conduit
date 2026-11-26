@@ -41,6 +41,8 @@ pub fn quantity_observation_face_offer() -> Result<CapabilityOffer, String> {
             include_str!("../../src/body_execution/face_contribution/retention.rs"),
             include_str!("../../../../semantics/catalog/src/quantity_observation_face.rs"),
             include_str!("../../../../semantics/face/src/quantity_observation_face.rs"),
+            include_str!("../../../../semantics/face/src/quantity_observation_face/builder.rs"),
+            include_str!("../../../../semantics/face/src/quantity_observation_face/model.rs"),
             include_str!("../../../../semantics/face/src/quantity_observation_snapshot_face.rs"),
             include_str!("../../../../semantics/data/src/quantity_observation_snapshot.rs"),
             include_str!("../../../../semantics/face/src/inspection_fragment_memory.rs"),

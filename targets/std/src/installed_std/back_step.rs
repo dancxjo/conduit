@@ -267,6 +267,7 @@ installed_step_dispatch!(
     CalendarProvider,
     AmbientHome,
     QuantityObservationFace,
+    ReportedGenerationFace,
     TickFace,
     BoolFace,
     OrbiumSeed,

@@ -16,7 +16,7 @@ pub(super) fn selected(checked: &CheckedHostConfiguration) -> bool {
 pub(super) fn validate(checked: &CheckedHostConfiguration) -> Result<(), String> {
     let parameters = CheckedEnvironmentRecordingHistory::from_configuration(checked)?;
     if !checked.configuration().bases.iter().any(|base| {
-        base.kind == conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
+        base.kind == conduit_std_offers::REPORTED_GENERATION_FACE_BASE
             && base.initialization.is_some()
     }) {
         return Err(

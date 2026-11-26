@@ -3,6 +3,7 @@ use super::{
     ambient_home_route::AmbientHomeRoute,
     back::InstalledBack,
     quantity_observation_route::{QuantityObservationProjector, QuantityObservationRoute},
+    reported_generation_route::{ReportedGenerationProjector, ReportedGenerationRoute},
     InstalledScheduler,
 };
 use crate::body_execution::face_contribution::{
@@ -18,6 +19,7 @@ use conduit_kernel::scheduler::HostCallRequest;
 pub(super) enum InstalledFaceRoute {
     Ambient(AmbientHomeRoute),
     Quantity(QuantityObservationRoute),
+    Reported(ReportedGenerationRoute),
 }
 macro_rules! route_method {
     ($name:ident (&self) -> $result:ty) => {
@@ -25,6 +27,7 @@ macro_rules! route_method {
             match self {
                 Self::Ambient(route) => route.$name(),
                 Self::Quantity(route) => route.$name(),
+                Self::Reported(route) => route.$name(),
             }
         }
     };
@@ -35,6 +38,24 @@ impl InstalledFaceRoute {
         placement: &PlannedGear,
         back: &InstalledBack,
     ) -> Result<Self, String> {
+        if placement.implementation_id.as_str()
+            == conduit_std_offers::REPORTED_GENERATION_FACE_IMPLEMENTATION
+        {
+            let InstalledBack::ReportedGenerationFace(back) = back else {
+                return Err("reported generation Face call has no matching installed Back".into());
+            };
+            return ReportedGenerationRoute::prepare(
+                context,
+                back.observation(),
+                super::reported_generation_factory::label(placement)?,
+                (
+                    conduit_std_offers::REPORTED_GENERATION_PROJECT_CALL,
+                    conduit_std_offers::REPORTED_GENERATION_CUSTODY_CALL,
+                ),
+                ReportedGenerationProjector::prepare,
+            )
+            .map(Self::Reported);
+        }
         if placement.implementation_id.as_str()
             == conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
         {
@@ -71,6 +92,28 @@ impl InstalledFaceRoute {
         placement: &PlannedGear,
     ) -> Result<usize, String> {
         let (bound, inline) = if placement.implementation_id.as_str()
+            == conduit_std_offers::REPORTED_GENERATION_FACE_IMPLEMENTATION
+        {
+            let workspace =
+                conduit_semantic_catalog::reported_generation_face_workspace_bytes()? as usize;
+            if ReportedGenerationProjector::workspace_bytes()? > workspace {
+                return Err(
+                    "reported generation projector exceeds its declared preparation profile".into(),
+                );
+            }
+            (
+                ReportedGenerationRoute::preparation_backing_bound(
+                    body,
+                    plot,
+                    fragment,
+                    placement,
+                    super::reported_generation_factory::label(placement)?.len(),
+                    workspace,
+                    super::reported_generation_route::fragment_backing_bound(),
+                )?,
+                core::mem::size_of::<ReportedGenerationRoute>(),
+            )
+        } else if placement.implementation_id.as_str()
             == conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
         {
             (
@@ -102,6 +145,7 @@ impl InstalledFaceRoute {
         match self {
             Self::Ambient(route) => route.attach_image_memory(memory),
             Self::Quantity(route) => route.attach_image_memory(memory),
+            Self::Reported(route) => route.attach_image_memory(memory),
         }
     }
     pub(super) fn dispatch(
@@ -112,6 +156,7 @@ impl InstalledFaceRoute {
         match self {
             Self::Ambient(route) => route.dispatch(kernel, request),
             Self::Quantity(route) => route.dispatch(kernel, request),
+            Self::Reported(route) => route.dispatch(kernel, request),
         }
     }
     pub(super) fn poll(
@@ -122,12 +167,14 @@ impl InstalledFaceRoute {
         match self {
             Self::Ambient(route) => route.poll(kernel, observer),
             Self::Quantity(route) => route.poll(kernel, observer),
+            Self::Reported(route) => route.poll(kernel, observer),
         }
     }
     pub(super) fn handles(&self, request: HostCallRequest) -> bool {
         match self {
             Self::Ambient(route) => route.handles(request),
             Self::Quantity(route) => route.handles(request),
+            Self::Reported(route) => route.handles(request),
         }
     }
     route_method!(additional_backing_bytes(&self) -> Result<usize, String>);

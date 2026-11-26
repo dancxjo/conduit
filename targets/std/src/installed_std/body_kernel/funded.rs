@@ -138,6 +138,7 @@ impl TickPreparationLayout {
                         | conduit_std_offers::AMBIENT_WALLPAPER_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
                         | conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
+                        | conduit_std_offers::REPORTED_GENERATION_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
@@ -197,6 +198,8 @@ impl TickPreparationLayout {
                 .is_some()
                     || gear.implementation_id.as_str()
                         == conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
+                    || gear.implementation_id.as_str()
+                        == conduit_std_offers::REPORTED_GENERATION_FACE_IMPLEMENTATION
                 {
                     super::super::face_contribution_route::InstalledFaceRoute::preparation_backing_bound(
                         request.plan,

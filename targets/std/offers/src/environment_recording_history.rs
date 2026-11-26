@@ -17,8 +17,7 @@ pub const ENVIRONMENT_RECORDING_HISTORY_RESOURCE: &str =
 pub fn environment_recording_history_offer() -> Result<CapabilityOffer, String> {
     let kind = conduit_semantic_catalog::environment_recording_history_kind()?;
     let subject = kind.kind_id.clone();
-    let maximum = conduit_data::resolved_quantity_observation_snapshot_byte_bound()
-        .map_err(|why| format!("environment recording history extent: {why:?}"))?;
+    let maximum = conduit_semantic_catalog::reported_generation_maximum_bytes()?;
     let digest = semantic_digest(
         ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION,
         concat!(
@@ -49,14 +48,13 @@ pub fn environment_recording_history_offer() -> Result<CapabilityOffer, String> 
             include_str!("../../../../mechanisms/devices/dht11/src/recording/reader.rs"),
             include_str!("../../../../mechanisms/devices/dht11/src/recording/history.rs"),
             include_str!("../../../../mechanisms/devices/dht11/src/recording/snapshot.rs"),
-            include_str!("../../../../mechanisms/devices/dht11/src/quantity_history.rs"),
+            include_str!("../../../../mechanisms/devices/dht11/src/reported_generation.rs"),
+            include_str!("../../../../mechanisms/devices/dht11/src/reported_generation/schema.rs"),
+            include_str!("../../../../mechanisms/devices/dht11/src/reported_generation/wire.rs"),
+            include_str!("../../../../mechanisms/devices/dht11/src/reported_generation/backing.rs"),
             include_str!("../../../../mechanisms/devices/dht11/src/recording_backing.rs"),
-            include_str!("../../../../mechanisms/devices/dht11/src/quantity_history_backing.rs"),
             include_str!("../../../../plots/device-protocols/dht11.conduit"),
             include_str!("../../../../plots/device-protocols/pulse-types.conduit"),
-            include_str!("../../../../semantics/data/types.conduit"),
-            include_str!("../../../../semantics/data/src/quantity_observation_input.rs"),
-            include_str!("../../../../semantics/data/src/quantity_observation_snapshot.rs"),
         )
         .as_bytes(),
     );

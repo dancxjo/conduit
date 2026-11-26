@@ -582,5 +582,7 @@ pub use startup_chime_back::StartupChimeBack;
 
 mod environment_recording_history;
 pub use environment_recording_history::*;
+mod reported_generation_face;
+pub use reported_generation_face::*;
 mod quantity_observation_face;
 pub use quantity_observation_face::*;

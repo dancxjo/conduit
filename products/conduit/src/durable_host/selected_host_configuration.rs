@@ -87,6 +87,7 @@ impl Selection {
                         base.kind.as_str(),
                         conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_BASE
                             | conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
+                            | conduit_std_offers::REPORTED_GENERATION_FACE_BASE
                     )
             })
         {
@@ -237,7 +238,10 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                         "environment recording directory initialization requires Linux".into(),
                     );
                 }
-                Some(conduit_std_offers::QUANTITY_OBSERVATION_FACE_DRIVER) => {
+                Some(
+                    conduit_std_offers::QUANTITY_OBSERVATION_FACE_DRIVER
+                    | conduit_std_offers::REPORTED_GENERATION_FACE_DRIVER,
+                ) => {
                     // The checked IMAGE initializer validates exact named pools.
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
@@ -338,3 +342,6 @@ mod environment_recording_history_tests;
 
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) use environment_recording_history_tests::host_fixture as environment_recording_history_host_fixture;
+
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use environment_recording_history_tests::host_fixture_64 as environment_recording_history64_host_fixture;

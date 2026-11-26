@@ -92,6 +92,7 @@ impl Selection {
                         | "display/scanout"
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_BASE
                         | conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
+                        | conduit_std_offers::REPORTED_GENERATION_FACE_BASE
                         | conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_BASE
                 )
             {
@@ -103,8 +104,11 @@ impl Selection {
         }
         let selected = self.prepare_playback(&config.boot_id, config.offer_generation)?;
         let quantity_selected = checked.configuration().bases.iter().any(|base| {
-            base.kind == conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
-                && base.initialization.is_some()
+            matches!(
+                base.kind.as_str(),
+                conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
+                    | conduit_std_offers::REPORTED_GENERATION_FACE_BASE
+            ) && base.initialization.is_some()
         });
         if quantity_selected {
             if selected.is_some() || self.requires_scanout()? || ambient_selected {
@@ -113,6 +117,16 @@ impl Selection {
             #[cfg(target_os = "linux")]
             if super::environment_recording_history::selected(&checked) {
                 return super::environment_recording_history::initialize(config, image, &checked);
+            }
+            if checked
+                .configuration()
+                .bases
+                .iter()
+                .any(|base| base.kind == conduit_std_offers::REPORTED_GENERATION_FACE_BASE)
+            {
+                return Err(
+                    "reported generation projection requires its selected recording Source".into(),
+                );
             }
             return StdHost::from_selected_quantity_observation_image(
                 config,

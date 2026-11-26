@@ -1,13 +1,13 @@
-//! Domain-specific JSON interpretation, never a fallback in the Native Batch decoder.
+//! Preserve one checked original recording generation, never a generic JSON fallback.
 use super::CheckedEnvironmentRecordingHistory;
 use crate::environment_recording_history::{
-    freeze_preparation_backing_bound, freeze_snapshot, selected_capture_preparation_backing_bound,
-    validate_capture_selection, CapturedSnapshotSelection,
-    PreparedEnvironmentRecordingHistorySource,
+    freeze_generation, freeze_preparation_backing_bound,
+    selected_capture_preparation_backing_bound, validate_capture_selection,
+    CapturedSnapshotSelection, PreparedEnvironmentRecordingHistorySource,
 };
 use conduit_dht11_observation::{
-    quantity_history::{EnvironmentQuantityChannel, PreparedEnvironmentQuantityObservations},
     recording::RecordingContext,
+    reported_generation::{PreparedReportedRecordingGeneration, ReportedGenerationChannel},
     ObservationContract,
 };
 use conduit_linux_snapshot_store::PreparedFileSnapshot;
@@ -15,15 +15,12 @@ use conduit_linux_snapshot_store::PreparedFileSnapshot;
 /// Requested preparation backing, not allocator RSS. The caller separately funds
 /// the already checked ObservationContract and native worker stack/control/buffers.
 pub fn provider_preparation_bytes(contract: &ObservationContract) -> Result<usize, String> {
-    let freeze = freeze_preparation_backing_bound()?;
+    let freeze = freeze_preparation_backing_bound(contract)?;
     selected_capture_preparation_backing_bound()?
         .checked_add(
-            PreparedEnvironmentQuantityObservations::preparation_backing_bound(contract)
+            PreparedReportedRecordingGeneration::preparation_backing_bound(contract)
                 .ok_or("environment recording converter preparation backing overflow")?,
         )
-        .and_then(|n| {
-            n.checked_add(core::mem::size_of::<PreparedEnvironmentQuantityObservations>())
-        })
         .and_then(|n| n.checked_add(4 * 128))
         .and_then(|n| {
             n.checked_add(core::mem::size_of::<
@@ -72,7 +69,7 @@ pub fn prepare_capture(
     let boot = parameters.producer[1].into();
     let plan = parameters.producer[2].into();
     let play = parameters.producer[3].into();
-    let mut converter = PreparedEnvironmentQuantityObservations::prepare(
+    let mut converter = PreparedReportedRecordingGeneration::prepare(
         RecordingContext {
             host: &host,
             boot: &boot,
@@ -81,9 +78,10 @@ pub fn prepare_capture(
         },
         contract,
         1,
-        channel(parameters.channels[0]),
-        channel(parameters.channels[1]),
-        parameters.tail,
+        [
+            channel(parameters.channels[0]),
+            channel(parameters.channels[1]),
+        ],
     )
     .map_err(debug)?;
     let mut record = PreparedFileSnapshot::prepare_selected(
@@ -97,16 +95,16 @@ pub fn prepare_capture(
     let json = core::str::from_utf8(record.read(selection.selected.authority).map_err(debug)?)
         .map_err(debug)?;
     converter.read_next(json).map_err(debug)?;
-    let snapshot = converter.snapshot().map_err(debug)?;
+    let encoded = converter.encode().map_err(debug)?;
     // No directory, grant, context clone or decoder survives in the provider.
-    freeze_snapshot(snapshot)
+    freeze_generation(encoded, contract)
 }
 fn debug(error: impl core::fmt::Debug) -> String {
     format!("environment recording capture: {error:?}")
 }
 
-fn channel(names: [&str; 4]) -> EnvironmentQuantityChannel<'_> {
-    EnvironmentQuantityChannel {
+fn channel(names: [&str; 4]) -> ReportedGenerationChannel<'_> {
+    ReportedGenerationChannel {
         source_identity: names[0],
         source_name: names[1],
         channel_identity: names[2],

@@ -71,7 +71,7 @@ impl StdHost {
             memory: Some(memory),
             ..InitialBases::default()
         };
-        initial.quantity_face = Some(super::quantity_face::prepare(
+        initial.quantity_face = Some(super::reported_generation_face::prepare(
             &config, image, catalog, checked, &initial,
         )?);
         Self::from_selected_initial_bases(config.clone(), image, catalog, initial)
@@ -140,7 +140,7 @@ fn definition(
         digest.update(part);
     }
     let generation = format!("sha256:{:x}", digest.finalize());
-    let maximum = conduit_data::resolved_quantity_observation_snapshot_byte_bound()
+    let maximum = conduit_dht11_observation::reported_generation::maximum_canonical_bytes()
         .map_err(|why| format!("environment recording output: {why:?}"))?;
     Ok(crate::NativeSourceDefinition {
         kind: conduit_semantic_catalog::environment_recording_history_kind()?,

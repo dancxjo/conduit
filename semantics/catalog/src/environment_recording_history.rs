@@ -9,13 +9,13 @@ use conduit_core::{
     PortTemporal,
 };
 pub const ENVIRONMENT_RECORDING_HISTORY_KIND: &str = "data/environment-recording-history";
-pub const ENVIRONMENT_RECORDING_HISTORY_REVISION: &str = "data/environment-recording-history@1";
+pub const ENVIRONMENT_RECORDING_HISTORY_REVISION: &str = "data/environment-recording-history@2";
 
 pub fn environment_recording_history_kind() -> Result<Kind, String> {
-    let checked = conduit_data::checked_quantity_observation_snapshot_type().map_err(debug)?;
-    let profile = checked.value_type.profile().map_err(debug)?;
+    let value_type = conduit_dht11_observation::reported_generation::value_type().map_err(debug)?;
+    let profile = value_type.profile().map_err(debug)?;
     let maximum =
-        conduit_data::resolved_quantity_observation_snapshot_byte_bound().map_err(debug)?;
+        conduit_dht11_observation::reported_generation::maximum_canonical_bytes().map_err(debug)?;
     let contract =
         CheckedValueContract::new(profile.value_kind().clone(), maximum, vec![]).map_err(debug)?;
     let mut tick = conduit_time::time_every_outputs().remove(0);
@@ -58,8 +58,8 @@ pub fn install_environment_recording_history_kind(
     let kind = environment_recording_history_kind()?;
     startup
         .ensure_structured_type(
-            "ResolvedQuantityObservationSnapshot",
-            conduit_data::resolved_quantity_observation_snapshot_type().map_err(debug)?,
+            "ReportedRecordingGeneration",
+            conduit_dht11_observation::reported_generation::value_type().map_err(debug)?,
         )
         .map_err(debug)?;
     startup.insert(conduit_plot::KindSignature {

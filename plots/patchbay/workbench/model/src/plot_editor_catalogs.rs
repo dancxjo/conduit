@@ -56,6 +56,8 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotE
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_quantity_observation_face_kind(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_reported_generation_face_kind(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_environment_recording_history_kind(
         &mut startup,
         &mut profile,

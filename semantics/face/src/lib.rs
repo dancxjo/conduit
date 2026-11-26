@@ -335,8 +335,11 @@ pub use quantity_series::{
 
 mod quantity_observation_face;
 pub use quantity_observation_face::{
-    quantity_observation_fragment_backing_bound, PreparedQuantityObservationFace,
-    QuantityObservationFaceRefusal,
+    project_reported_quantity_channel, project_reported_quantity_channels,
+    quantity_observation_fragment_backing_bound, reported_quantity_fragment_backing_bound,
+    reported_quantity_projection_workspace_bytes, PreparedQuantityObservationFace,
+    QuantityObservationFaceRefusal, ReportedQuantityChannel, ReportedQuantityObservation,
+    ReportedQuantityOutcome, ReportedQuantityRecovery, MAX_REPORTED_QUANTITY_OBSERVATIONS,
 };
 mod inspection_fragment_memory;
 pub use inspection_fragment_memory::inspection_fragment_backing_bytes;

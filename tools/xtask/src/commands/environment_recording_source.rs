@@ -30,9 +30,9 @@ pub(super) fn prove(root: &Path, selected_host: bool) -> Result<(), Box<dyn Erro
         ],
         13,
         &[
-            "closed_selected_image_freezes_original_recording_and_commits_two_channels",
-            "actual_recording_becomes_two_exact_channels_then_reads_without_io_or_allocation",
-            "explicit_eight_event_view_preserves_all_outcomes_and_dense_sixteen_refuses_extent",
+            "closed_selected_image_freezes_all_sixty_four_original_readings_and_commits_two_channels",
+            "original_generation_preserves_all_readings_then_emits_without_io_or_allocation",
+            "full_sixty_four_original_samples_keep_all_outcomes_quantities_and_dense_gaps",
             "independent_read_authority_and_bounded_metadata_are_required_before_capture",
             "template_defaults_do_not_supply_omitted_checked_initialization_fields",
         ],
@@ -169,5 +169,42 @@ pub(super) fn owner_mask(root: &Path) -> Result<(), Box<dyn Error>> {
         face.display(),
         view.display()
     );
+    Ok(())
+}
+
+/// Genuine complete64 Owner export and ordinary native pages; CPU proof only.
+pub(super) fn owner64(root: &Path) -> Result<(), Box<dyn Error>> {
+    if !cfg!(target_os = "linux") {
+        return Err("complete recording Owner qualification requires Linux".into());
+    }
+    let run = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_nanos();
+    let directory = root
+        .join("target/environment-recording-source")
+        .join(format!("owner64-{}-{run}", std::process::id()));
+    std::fs::create_dir_all(&directory)?;
+    let face = directory.join("owner-face64.json");
+    tests_with_env(
+        root,
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit",
+            "--bin",
+            "conduit",
+            "complete_original_sixty_four_recordings_reach_actual_owner_and_native_pages",
+            "--",
+            "--test-threads=1",
+        ],
+        1,
+        &["complete_original_sixty_four_recordings_reach_actual_owner_and_native_pages"],
+        &[("CONDUIT_ENVIRONMENT_HISTORY64_OWNER_FACE", face.as_path())],
+    )?;
+    if !face.is_file() {
+        return Err("complete Owner did not export its fresh genuine Face".into());
+    }
+    println!("complete_recording_owner_face={}", face.display());
     Ok(())
 }

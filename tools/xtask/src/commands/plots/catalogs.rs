@@ -53,6 +53,7 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_ambient_home_observation_kind(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_ambient_home_face_kind(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_observation_face_kind(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_reported_generation_face_kind(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_environment_recording_history_kind(
         &mut startup,
         &mut profile,

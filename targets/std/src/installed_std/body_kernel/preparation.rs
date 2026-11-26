@@ -308,6 +308,8 @@ impl<'a> BodyKernel<'a> {
                 .is_none()
                     && placement.implementation_id.as_str()
                         != conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
+                    && placement.implementation_id.as_str()
+                        != conduit_std_offers::REPORTED_GENERATION_FACE_IMPLEMENTATION
                     && conduit_semantic_catalog::face_data_label_required(
                         placement.kind_id.as_str(),
                     )

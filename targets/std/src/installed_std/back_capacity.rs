@@ -7,7 +7,9 @@ impl InstalledBack {
         match self {
             Self::JsonSnapshot(back) => back.prepared_heap_bytes(),
             Self::MeasurementPlot(back) => back.retained_backing_bytes(),
-            Self::AmbientHome(back) | Self::QuantityObservationFace(back) => {
+            Self::AmbientHome(back)
+            | Self::QuantityObservationFace(back)
+            | Self::ReportedGenerationFace(back) => {
                 back.retained_backing_bytes().unwrap_or(usize::MAX)
             }
             Self::StartupChime(back) => back.retained_backing_bytes(),

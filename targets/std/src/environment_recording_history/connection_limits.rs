@@ -18,7 +18,7 @@ pub fn environment_recording_history_connection_limits(
         let bytes = if connection.source_port_id.as_str() == "observations"
             && source(&connection.source_gear_id)
         {
-            conduit_data::resolved_quantity_observation_snapshot_byte_bound()
+            conduit_dht11_observation::reported_generation::maximum_canonical_bytes()
                 .map_err(|why| format!("captured history queue profile: {why:?}"))?
         } else if connection.sink_port_id.as_str() == "tick" && source(&connection.sink_gear_id) {
             conduit_time::TICK_ENCODED_LEN
@@ -55,11 +55,8 @@ mod tests {
             &mut catalog,
         )
         .unwrap();
-        conduit_semantic_catalog::install_quantity_observation_face_kind(
-            &mut startup,
-            &mut catalog,
-        )
-        .unwrap();
+        conduit_semantic_catalog::install_reported_generation_face_kind(&mut startup, &mut catalog)
+            .unwrap();
         let checked = check_syntax_document(
             &parse_syntax_document(include_str!(
                 "../../../../plots/environment-recording-history/main.conduit"
@@ -115,7 +112,7 @@ mod tests {
             capacities,
             [
                 conduit_time::TICK_ENCODED_LEN,
-                conduit_data::resolved_quantity_observation_snapshot_byte_bound().unwrap()
+                conduit_dht11_observation::reported_generation::maximum_canonical_bytes().unwrap()
             ]
         );
     }

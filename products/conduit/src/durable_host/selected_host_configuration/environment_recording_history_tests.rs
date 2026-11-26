@@ -63,20 +63,19 @@ fn equipment(path: &Path, reference: &BoundedResourceRef) -> (CheckedHostConfigu
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect::<String>();
-    let maximum = conduit_data::resolved_quantity_observation_snapshot_byte_bound().unwrap();
-    let face_memory =
-        conduit_semantic_catalog::quantity_observation_face_workspace_bytes().unwrap();
+    let maximum = conduit_semantic_catalog::reported_generation_maximum_bytes().unwrap();
+    let face_memory = conduit_semantic_catalog::reported_generation_face_workspace_bytes().unwrap();
     let memory = 64 * 1024 * 1024;
     let source = format!(
         r#"host product-environment-history-test {{
  schema = 1
  target = {{architecture: "x86_64", machine: "computer", os: "linux"}}
  base = {{kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}}
- base = {{kind: "{ENVIRONMENT_RECORDING_HISTORY_BASE}", implementation: "{ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION}", initialization: {{source_pool: "history/source", memory_pool: "history/source-memory", capture_access: "operator-admitted", directory: {directory}, reference: "{reference}", producer_host: "host/reported", producer_boot: "boot/reported", producer_plan: "plan/reported", producer_play: "play/reported", temperature_source: "source/t", temperature_channel: "channel/t", temperature_name: "Temperature", humidity_source: "source/h", humidity_channel: "channel/h", humidity_name: "Relative humidity", tail: 8}}}}
- base = {{kind: "{QUANTITY_OBSERVATION_FACE_BASE}", implementation: "{QUANTITY_OBSERVATION_FACE_DRIVER}", initialization: {{face_pool: "history/face", memory_pool: "history/face-memory"}}}}
+ base = {{kind: "{ENVIRONMENT_RECORDING_HISTORY_BASE}", implementation: "{ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION}", initialization: {{source_pool: "history/source", memory_pool: "history/source-memory", capture_access: "operator-admitted", directory: {directory}, reference: "{reference}", producer_host: "host/reported", producer_boot: "boot/reported", producer_plan: "plan/reported", producer_play: "play/reported", temperature_source: "source/t", temperature_channel: "channel/t", temperature_name: "Temperature", humidity_source: "source/h", humidity_channel: "channel/h", humidity_name: "Relative humidity"}}}}
+ base = {{kind: "{REPORTED_GENERATION_FACE_BASE}", implementation: "{REPORTED_GENERATION_FACE_DRIVER}", initialization: {{face_pool: "history/face", memory_pool: "history/face-memory"}}}}
  capability = {{kind: "time/every", pinned_implementation: "{TIME_EVERY_IMPLEMENTATION}"}}
  capability = {{kind: "data/environment-recording-history", pinned_implementation: "{ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION}"}}
- capability = {{kind: "face/quantity-observation-series", pinned_implementation: "{QUANTITY_OBSERVATION_FACE_IMPLEMENTATION}"}}
+ capability = {{kind: "face/reported-generation-series", pinned_implementation: "{REPORTED_GENERATION_FACE_IMPLEMENTATION}"}}
  need = {{id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 8, bytes: 512}}
  need = {{id: "history/source", class: "{ENVIRONMENT_RECORDING_HISTORY_RESOURCE}", slots: 1, bytes: {maximum}}}
  need = {{id: "history/source-memory", class: "conduit.resource/runtime-memory@1", slots: {memory}, bytes: {memory}}}
@@ -368,9 +367,51 @@ impl WriteFacts {
 /// Actual product selected-IMAGE preparation for ordinary Owner CPU proof.
 /// The configured original files disappear before the caller starts a Play.
 pub(crate) fn host_fixture(current: StdHostConfig) -> StdHost {
+    host_fixture_json(current, original_json())
+}
+
+/// Full original generation; no generic Data16 conversion or tail truncation.
+pub(crate) fn host_fixture_64(current: StdHostConfig) -> StdHost {
+    let contract = ObservationContract::prepare().unwrap();
+    let (host, boot, plan, play) = (
+        "host/reported".into(),
+        "boot/reported".into(),
+        "plan/reported".into(),
+        "play/reported".into(),
+    );
+    let mut chunk = PreparedRecordingChunk::prepare(
+        RecordingContext {
+            host: &host,
+            boot: &boot,
+            plan: &plan,
+            play: &play,
+        },
+        &contract,
+    )
+    .unwrap();
+    let mut forms = PreparedObservationQuantityForms::prepare(&contract).unwrap();
+    let observation = forms.unpack(&[198, 0, 78, 2]).unwrap();
+    for index in 0..64_u64 {
+        let status = if index % 2 == 0 {
+            RecordingDisposition::Available
+        } else {
+            RecordingDisposition::Checksum
+        };
+        chunk
+            .append(
+                2 * index + 1,
+                index * index * 7 + 11,
+                status,
+                (status == RecordingDisposition::Available).then_some(observation),
+            )
+            .unwrap();
+    }
+    host_fixture_json(current, chunk.seal().unwrap().into())
+}
+
+fn host_fixture_json(current: StdHostConfig, json: String) -> StdHost {
     let root = Directory::new();
     let directory = root.open();
-    let json = original_json();
     let mut original = current.clone();
     original.boot_id = "boot/original-record-write".into();
     let write = WriteFacts::for_host(json.len(), original);

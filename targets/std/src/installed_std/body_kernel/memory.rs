@@ -73,7 +73,9 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
-        InstalledBack::AmbientHome(back) | InstalledBack::QuantityObservationFace(back) => back
+        InstalledBack::AmbientHome(back)
+        | InstalledBack::QuantityObservationFace(back)
+        | InstalledBack::ReportedGenerationFace(back) => back
             .retained_backing_bytes()
             .ok_or_else(|| "Home Face gate backing overflow".into()),
         InstalledBack::StartupChime(back) => Ok(back.retained_backing_bytes()),
