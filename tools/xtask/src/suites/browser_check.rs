@@ -48,6 +48,7 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
             "--test",
             "targets/browser/host/assets/browser-runtime-bridge.test.mjs",
             "targets/browser/host/assets/browser-owner-full-profile.test.mjs",
+            "targets/browser/host/assets/browser-owner-full-refusals.test.mjs",
         ],
     ),
     Step::new(

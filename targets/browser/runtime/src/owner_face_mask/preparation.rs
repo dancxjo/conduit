@@ -123,7 +123,7 @@ impl OwnerBrowserMask {
         )
     }
 
-    pub(super) fn prepare_with_host(
+    pub(super) fn prepare_with_host<E>(
         context: MaskHostContext<'_>,
         face: Face,
         planned: conduit_face::PlannedMaskPlot,
@@ -135,7 +135,10 @@ impl OwnerBrowserMask {
         )>,
         play_sequence: u64,
         interactions_admitted: bool,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, E>
+    where
+        E: From<String> + From<&'static str> + From<super::full_refusal::FullPreparationRefusal>,
+    {
         let MaskHostContext {
             basis,
             host,
@@ -203,7 +206,7 @@ impl OwnerBrowserMask {
                 admission
                     .input_charge
                     .checked_add(kernel)
-                    .ok_or("Full Mask kernel storage overflow")?,
+                    .ok_or(super::full_refusal::FullPreparationRefusal::Pressure)?,
             )?;
             Some(super::full_outputs::Outputs::prepare(
                 super::full_outputs::Basis {
@@ -235,9 +238,9 @@ impl OwnerBrowserMask {
             {
                 SchedulerStatus::Progress { .. } => {}
                 other => {
-                    return Err(format!(
-                        "owner Face Mask did not request DOM face: {other:?}"
-                    ));
+                    return Err(
+                        format!("owner Face Mask did not request DOM face: {other:?}").into(),
+                    );
                 }
             }
         };

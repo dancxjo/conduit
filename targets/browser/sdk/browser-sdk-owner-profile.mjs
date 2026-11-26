@@ -6,7 +6,8 @@ const encoder = new TextEncoder();
 /** Prepare only the explicitly IMAGE-selected optional generic Face interface.
  * A normal preparation refusal does not reset membership or publish an offer.
  */
-export function prepareOwnerFaceFullProfile({ api, hostId, boot }, { optional = false } = {}) {
+export function prepareOwnerFaceFullProfile(state, { optional = false } = {}) {
+  const { api, hostId, boot } = state;
   const absent = message => {
     if (!optional) throw new Error(message);
     return Object.freeze({ selected: false });
@@ -17,6 +18,11 @@ export function prepareOwnerFaceFullProfile({ api, hostId, boot }, { optional = 
   if (typeof api.conduit_browser_membership_owner_full_profile_admit !== "function"
     || typeof api.conduit_browser_owner_face_full_profile_ready !== "function") {
     return absent("Full owner Face profile is unavailable in this reviewed runtime");
+  }
+  const retained = state.ownerFaceFullProfilePreparation;
+  if (retained?.hostId === hostId && retained.bootId === boot.boot_id
+    && api.conduit_browser_owner_face_full_profile_ready() === 1) {
+    return Object.freeze({ selected: true, profile: PROFILE });
   }
   const request = encoder.encode(JSON.stringify({ host_id: hostId, boot_id: boot.boot_id, profile: PROFILE }));
   if (request.length > api.conduit_browser_membership_input_capacity()) {
@@ -31,5 +37,6 @@ export function prepareOwnerFaceFullProfile({ api, hostId, boot }, { optional = 
   if (status !== 0 || ready !== 1) {
     throw new Error(`Full owner Face profile preparation failed (${status}, ready ${ready})`);
   }
+  state.ownerFaceFullProfilePreparation = Object.freeze({ hostId, bootId: boot.boot_id });
   return Object.freeze({ selected: true, profile: PROFILE });
 }

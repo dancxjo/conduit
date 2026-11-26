@@ -513,6 +513,15 @@ independent native primary/Details traversal also passes. This is native CPU
 protocol/ABI evidence, not Chromium, WASM, physical display or installed-release
 acceptance. The three focused egress boundary checks pass, including unchanged
 legacy refusal, changed profile/revision/seal refusal and actual output extent.
+The Full ABI also retains distinct machine codes for malformed input, unsupported
+shape/Look, identity mismatch, invalid seal, pressure, lifecycle and other
+preparation failure. Seven focused cases preserve the old acknowledged Current
+through failed preparation, and verify unchanged positively unselected legacy
+refusals. All forty-four runnable Owner Mask tests pass; six artifact-dependent
+cases remain explicitly ignored. Strict browser Make/offer/runtime lint and 105
+focused JavaScript checks pass. The SDK's explicit setup entry reuses the same
+verified default preparation without reinitializing live interfaces.
+
 
 `cargo xtask prove environment face-profile-models` owns the portable census,
 Plan-wire and selected-Fore model checks. `face-profile-runtime` owns the browser

@@ -43,6 +43,8 @@ mod full_outputs;
 mod full_preparation;
 #[path = "owner_face_mask/full_profile_pool.rs"]
 pub(crate) mod full_profile_pool;
+#[path = "owner_face_mask/full_refusal.rs"]
+mod full_refusal;
 #[path = "owner_face_mask/view_memory.rs"]
 mod view_memory;
 

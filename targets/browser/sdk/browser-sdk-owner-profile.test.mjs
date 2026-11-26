@@ -43,3 +43,14 @@ test("unexpected ABI failures or contradictory readiness do not masquerade as op
     assert.throws(() => prepareOwnerFaceFullProfile(fixture(options).state, { optional: true }), /preparation failed/);
   }
 });
+
+
+test("explicit setup reuses the same verified default preparation without reinitializing live buffers", () => {
+  const { state, events } = fixture();
+  const selected = prepareOwnerFaceFullProfile(state, { optional: true });
+  state.api.conduit_browser_membership_owner_full_profile_admit = () => {
+    throw new Error("already initialized profile must retain its live buffers");
+  };
+  assert.deepEqual(prepareOwnerFaceFullProfile(state), selected);
+  assert.equal(events.length, 1);
+});

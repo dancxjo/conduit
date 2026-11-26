@@ -1,5 +1,6 @@
 //! Complete generic reading and lifecycle outputs prepared before Mask Play.
 use super::full_profile_pool::Lease;
+use super::full_refusal::FullPreparationRefusal as Refusal;
 use super::*;
 use conduit_browser_mask_offer::full_profile as profile;
 use conduit_host_browser_make as limits;
@@ -52,7 +53,7 @@ pub(super) fn replacement_preparation_bytes(plan: usize) -> Option<usize> {
 /// copies are the current Prepared Show and the precomputed Available/Replaced
 /// Shows. Each owns its own Plan and MaskPlot; transition also clones one
 /// Manifestation temporarily. All copied identities are fenced at256bytes.
-pub(super) fn preparation_bytes(face: &Face, plan: usize) -> Result<usize, String> {
+pub(super) fn preparation_bytes(face: &Face, plan: usize) -> Result<usize, Refusal> {
     const ID: usize = 256;
     let sign_table = (2 * conduit_face::MAX_MANIFESTATION_SIGNS + 4)
         * (size_of::<conduit_face::ManifestationSign>() + 9 * ID);
@@ -63,9 +64,9 @@ pub(super) fn preparation_bytes(face: &Face, plan: usize) -> Result<usize, Strin
         .checked_mul(
             plan.checked_add(mask_plot)
                 .and_then(|n| n.checked_add(show))
-                .ok_or("full Show storage overflow")?,
+                .ok_or(Refusal::Pressure)?,
         )
-        .ok_or("full Show storage overflow")?;
+        .ok_or(Refusal::Pressure)?;
     let outputs = 2 * limits::OWNER_FACE_FULL_MAXIMUM_VIEW_BYTES as usize
         + limits::OWNER_FACE_FULL_MAXIMUM_CANONICAL_BYTES as usize
         + 2 * 60 * 1024;
@@ -74,11 +75,11 @@ pub(super) fn preparation_bytes(face: &Face, plan: usize) -> Result<usize, Strin
         .and_then(|n| n.checked_add(manifestation))
         .and_then(|n| n.checked_add(outputs))
         .and_then(|n| n.checked_add(size_of::<Outputs>() + 20))
-        .ok_or_else(|| "full view storage overflow".into())
+        .ok_or(Refusal::Pressure)
 }
 
 impl Outputs {
-    pub(super) fn prepare(b: Basis<'_>, lease: Rc<Lease>) -> Result<Self, String> {
+    pub(super) fn prepare(b: Basis<'_>, lease: Rc<Lease>) -> Result<Self, Refusal> {
         let ids = [
             b.body.as_str(),
             b.face.identity.as_str(),
@@ -102,7 +103,7 @@ impl Outputs {
                 .any(|id| id.len() > 256)
             })
         {
-            return Err("full Mask root identity extent".into());
+            return Err(Refusal::Pressure);
         }
         let available_show = b
             .show
@@ -110,10 +111,10 @@ impl Outputs {
                 ManifestationLifecycle::Available,
                 SignId::from(format!("sign/browser-owner-face-shown/{}", b.face.revision)),
             )
-            .map_err(|e| format!("prepare available Show: {e:?}"))?;
+            .map_err(|_| Refusal::Preparation)?;
         available_show
             .validate(b.face)
-            .map_err(|e| format!("prepare available Show validation: {e:?}"))?;
+            .map_err(|_| Refusal::Preparation)?;
         let replaced_show = available_show
             .transition(
                 ManifestationLifecycle::Replaced,
@@ -122,7 +123,7 @@ impl Outputs {
                     b.face.revision
                 )),
             )
-            .map_err(|e| format!("prepare replaced Show: {e:?}"))?;
+            .map_err(|_| Refusal::Preparation)?;
         let route = b.route.map(|r| RouteView {
             plan_id: r.plan_id.clone(),
             owner_host_id: r.owner_host_id.clone(),
@@ -134,18 +135,18 @@ impl Outputs {
         // policy is retained; only Legacy's 64 KiB plot-removal pass is omitted.
         let mut view =
             super::view::project_view(b.body, b.face, b.planned, b.play, b.show, false, route);
-        let prepared_view = profile::bounded_json_bytes(
+        let prepared_view = super::full_refusal::bounded_json(
             &view,
             limits::OWNER_FACE_FULL_MAXIMUM_VIEW_BYTES as usize,
         )?;
         view.show_state = "available";
         view.interactions_admitted = b.interactions_admitted;
-        let available_view = profile::bounded_json_bytes(
+        let available_view = super::full_refusal::bounded_json(
             &view,
             limits::OWNER_FACE_FULL_MAXIMUM_VIEW_BYTES as usize,
         )?;
         let revision = b.face.revision.to_string();
-        let canonical = profile::bounded_json_bytes(
+        let canonical = super::full_refusal::bounded_json(
             &Canonical {
                 schema: "conduit.browser/owner-canonical-face@1",
                 face: b.face,
@@ -154,8 +155,8 @@ impl Outputs {
             },
             limits::OWNER_FACE_FULL_MAXIMUM_CANONICAL_BYTES as usize,
         )?;
-        let receipt = profile::bounded_json_bytes(&available_show, 60 * 1024)?;
-        let manifestation = profile::bounded_json_bytes(&b.show.show, 60 * 1024)?;
+        let receipt = super::full_refusal::bounded_json(&available_show, 60 * 1024)?;
+        let manifestation = super::full_refusal::bounded_json(&b.show.show, 60 * 1024)?;
         Ok(Self {
             lease,
             prepared_view,

@@ -1,5 +1,6 @@
 //! Selected raw Full entrance; Legacy frames keep their original admission.
 use super::super::full_profile_pool::Lease;
+use super::super::full_refusal::FullPreparationRefusal as Refusal;
 use super::*;
 use std::rc::Rc;
 
@@ -7,31 +8,24 @@ pub(super) fn try_prepare(basis_len: usize, frame_len: usize) -> Option<i32> {
     if !FULL_INTERFACE.with(Cell::get) {
         return None;
     }
-    if CURRENT.with(|c| {
-        c.borrow()
-            .as_ref()
-            .is_some_and(|m| m.show.show.lifecycle == ManifestationLifecycle::Prepared)
-    }) {
-        return Some(-8);
-    }
+    // A prepared Full Host owns the parser slot before discriminator work.
+    // Slot/lifecycle refusal here describes that Host preparation context;
+    // positively unselected frames below retain the original Legacy path.
     let lease = match Lease::acquire_current() {
         Ok(v) => v,
-        Err(_) => return Some(-10),
+        Err(error) => return Some(error.status()),
     };
-    if lease
-        .admit(super::super::full_input::parser_workspace_bytes())
-        .is_err()
-    {
-        return Some(-10);
+    if let Err(error) = lease.admit(super::super::full_input::parser_workspace_bytes()) {
+        return Some(error.status());
     }
     let decoded = INPUT.with(|input| {
         let mut input = input.borrow_mut();
         let frame = &input[basis_len..basis_len + frame_len];
         let selected = match super::super::full_input::selected(frame) {
             Ok(v) => v,
-            Err(_) => {
+            Err(error) => {
                 input[..basis_len + frame_len].fill(0);
-                return Err(-2);
+                return Err(error.status());
             }
         };
         if !selected {
@@ -43,13 +37,23 @@ pub(super) fn try_prepare(basis_len: usize, frame_len: usize) -> Option<i32> {
             }
             return Ok(None);
         }
+        if CURRENT.with(|c| {
+            c.borrow()
+                .as_ref()
+                .is_some_and(|m| m.show.show.lifecycle == ManifestationLifecycle::Prepared)
+        }) {
+            input[..basis_len + frame_len].fill(0);
+            return Err(Refusal::Lifecycle.status());
+        }
         if basis_len > 12 * 1024 {
             input[..basis_len + frame_len].fill(0);
-            return Err(-1);
+            return Err(Refusal::Pressure.status());
         }
         let result = (|| {
-            let basis = serde_json::from_slice::<HostBasis>(&input[..basis_len]).map_err(|_| -2)?;
-            let carrier = super::super::full_input::prepare(frame, lease).map_err(|_| -10)?;
+            let basis = serde_json::from_slice::<HostBasis>(&input[..basis_len])
+                .map_err(|_| Refusal::Malformed.status())?;
+            let carrier =
+                super::super::full_input::prepare(frame, lease).map_err(Refusal::status)?;
             Ok(Some((basis, carrier)))
         })();
         input[..basis_len + frame_len].fill(0);
@@ -62,7 +66,7 @@ pub(super) fn try_prepare(basis_len: usize, frame_len: usize) -> Option<i32> {
     };
     let retirement = match prepare_retirement(&carrier.lease, &mut carrier.input_charge) {
         Ok(v) => v,
-        Err(_) => return Some(-10),
+        Err(error) => return Some(error.status()),
     };
     let sequence = NEXT_PLAY_SEQUENCE.with(|next| {
         let n = next.get();
@@ -74,7 +78,7 @@ pub(super) fn try_prepare(basis_len: usize, frame_len: usize) -> Option<i32> {
     };
     let mask = match OwnerBrowserMask::prepare_full(basis, carrier, sequence) {
         Ok(v) => v,
-        Err(_) => return Some(-10),
+        Err(error) => return Some(error.status()),
     };
     let Some(full) = mask.full.as_ref() else {
         return Some(-5);
@@ -108,7 +112,7 @@ pub(super) fn try_prepare(basis_len: usize, frame_len: usize) -> Option<i32> {
 /// A Legacy generic Show's replacement clone is prepared before starting the
 /// candidate Play. Configured legacy graphs require an ordinary explicit clear;
 /// this profile never guesses their generated-schema workspace.
-fn prepare_retirement(lease: &Rc<Lease>, charge: &mut usize) -> Result<Option<MaskShow>, String> {
+fn prepare_retirement(lease: &Rc<Lease>, charge: &mut usize) -> Result<Option<MaskShow>, Refusal> {
     CURRENT.with(|current| {
         let current = current.borrow();
         let Some(previous) = current.as_ref() else {
@@ -116,30 +120,23 @@ fn prepare_retirement(lease: &Rc<Lease>, charge: &mut usize) -> Result<Option<Ma
         };
         if let Some(full) = previous.full.as_ref() {
             if full.replaced_show.is_none() {
-                return Err("Full Show replacement custody absent".into());
+                return Err(Refusal::Lifecycle);
             }
             return Ok(None);
         }
         let codec = conduit_face::PlannedMaskPlot::json_wire_preparation_bytes() + 256 * 1024;
-        lease.admit(
-            charge
-                .checked_add(codec)
-                .ok_or("replacement preparation overflow")?,
-        )?;
-        let bytes = conduit_browser_mask_offer::full_profile::bounded_json_bytes(
-            &previous.planned.plan,
-            256 * 1024,
-        )?;
+        lease.admit(charge.checked_add(codec).ok_or(Refusal::Pressure)?)?;
+        let bytes = super::super::full_refusal::bounded_json(&previous.planned.plan, 256 * 1024)?;
         let model = conduit_face::PlannedMaskPlot::generic_json_plan_preparation_bytes(&bytes)
-            .map_err(str::to_owned)?;
+            .map_err(|_| Refusal::Unsupported)?;
         // Only the old Show/Plan and transition metadata are cloned; its
         // already rendered Face reading is neither rebuilt nor reinterpreted.
         let extra = super::super::full_outputs::replacement_preparation_bytes(model)
-            .ok_or("replacement storage overflow")?;
+            .ok_or(Refusal::Pressure)?;
         *charge = charge
             .checked_add(codec)
             .and_then(|n| n.checked_add(extra))
-            .ok_or("replacement preparation overflow")?;
+            .ok_or(Refusal::Pressure)?;
         lease.admit(*charge)?;
         previous
             .show
@@ -151,6 +148,6 @@ fn prepare_retirement(lease: &Rc<Lease>, charge: &mut usize) -> Result<Option<Ma
                 )),
             )
             .map(Some)
-            .map_err(|e| format!("prepare replaced Show: {e:?}"))
+            .map_err(|_| Refusal::Preparation)
     })
 }

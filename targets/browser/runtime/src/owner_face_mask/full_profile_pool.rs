@@ -3,6 +3,7 @@
 //! The separate bootstrap allowance precedes Full interface/cache preparation;
 //! two Mask slots remain exclusively available for current/replacement custody.
 //! These limits are not a hostile-code allocator-confinement boundary.
+use super::full_refusal::FullPreparationRefusal as Refusal;
 use conduit_browser_mask_offer::full_profile as profile;
 use conduit_core::{BootId, HostAdvertisement, HostId};
 use std::{
@@ -189,17 +190,17 @@ pub(crate) fn reset() -> Result<(), String> {
     POOL.with(|s| *s.borrow_mut() = None);
     Ok(())
 }
-pub(crate) fn snapshot(host: &HostId, boot: &BootId) -> Result<Rc<Evidence>, String> {
+pub(super) fn snapshot(host: &HostId, boot: &BootId) -> Result<Rc<Evidence>, Refusal> {
     POOL.with(|s| {
         let s = s.borrow();
-        let p = s.as_ref().ok_or("Mask pool absent")?;
-        if !p.frozen || &p.host != host || &p.boot != boot {
-            return Err("Mask snapshot incarnation".into());
+        let p = s.as_ref().ok_or(Refusal::Lifecycle)?;
+        if !p.frozen {
+            return Err(Refusal::Lifecycle);
         }
-        p.evidence
-            .as_ref()
-            .cloned()
-            .ok_or_else(|| "Mask snapshot absent".into())
+        if &p.host != host || &p.boot != boot {
+            return Err(Refusal::Identity);
+        }
+        p.evidence.as_ref().cloned().ok_or(Refusal::Lifecycle)
     })
 }
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -215,18 +216,18 @@ impl Lease {
     pub(super) const fn metadata_bytes() -> usize {
         std::mem::size_of::<Self>() + 2 * std::mem::size_of::<usize>()
     }
-    pub(super) fn acquire_current() -> Result<Rc<Self>, String> {
+    pub(super) fn acquire_current() -> Result<Rc<Self>, Refusal> {
         POOL.with(|s| {
             let mut s = s.borrow_mut();
-            let p = s.as_mut().ok_or("Mask preparation pool absent")?;
+            let p = s.as_mut().ok_or(Refusal::Lifecycle)?;
             if !p.frozen || p.evidence.is_none() {
-                return Err("Mask preparation pool not frozen".into());
+                return Err(Refusal::Lifecycle);
             }
             let slot = p
                 .occupied
                 .iter()
                 .position(|v| !*v)
-                .ok_or("Mask preparation pool pressure")?;
+                .ok_or(Refusal::Pressure)?;
             p.occupied[slot] = true;
             Ok(Rc::new(Self {
                 slot,
@@ -238,9 +239,9 @@ impl Lease {
         ready(host, boot)
     }
     /// Total client model/workspace charge, including metadata_bytes() once.
-    pub(super) fn admit(&self, bytes: usize) -> Result<(), String> {
+    pub(super) fn admit(&self, bytes: usize) -> Result<(), Refusal> {
         if bytes > profile::PREPARATION_BYTES as usize {
-            return Err("Mask preparation bytes pressure".into());
+            return Err(Refusal::Pressure);
         }
         self.admitted.set(self.admitted.get().max(bytes));
         Ok(())

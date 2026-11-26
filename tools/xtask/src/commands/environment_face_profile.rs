@@ -104,6 +104,11 @@ pub(super) fn runtime(root: &Path) -> Result<(), Box<dyn Error>> {
             "owner_face_mask::full_ack::tests::",
             1,
         ),
+        (
+            "conduit-browser-runtime",
+            "owner_face_mask::full_refusal::tests::",
+            7,
+        ),
     ] {
         tests(
             root,

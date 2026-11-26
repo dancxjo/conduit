@@ -4,6 +4,7 @@
 //! Source Face, Plan, codec buffers and Face-validation workspace are separate
 //! reservations. This counts preparation temporaries as well as retained output;
 //! it is not an allocator-confinement or physical allocator-overhead guarantee.
+use super::full_refusal::FullPreparationRefusal as Refusal;
 use super::*;
 use conduit_face::{FacePropertyValue as V, FaceRole};
 use core::{fmt, mem::size_of};
@@ -20,7 +21,7 @@ const TYPED_TEXT: usize = DECIMAL + 1 + UNIT;
 const PLOT_NUMBER: usize = 40 + 1 + 6;
 const PLOT_LABEL: usize = 40 + 1 + 6 + 1 + UNIT;
 
-pub(super) fn view_preparation_bytes(face: &Face) -> Result<usize, String> {
+pub(super) fn view_preparation_bytes(face: &Face) -> Result<usize, Refusal> {
     let mut b = Budget(size_of::<FaceView>());
     // Eight root IDs and five optional route IDs, plus decimal revision.
     b.add(13 * ID + U64)?;
@@ -162,20 +163,18 @@ pub(super) fn view_preparation_bytes(face: &Face) -> Result<usize, String> {
     Ok(b.0)
 }
 
-fn simple_contract(contract: &conduit_core::CheckedValueContract) -> Result<(), String> {
+fn simple_contract(contract: &conduit_core::CheckedValueContract) -> Result<(), Refusal> {
     if contract.constraints.iter().any(|c| {
         !matches!(
             c,
             ValueConstraint::ByteLength { .. } | ValueConstraint::CanonicalMembership { .. }
         )
     }) {
-        return Err(
-            "compressed generic view does not admit this value constraint workspace".into(),
-        );
+        return Err(Refusal::Unsupported);
     }
     Ok(())
 }
-fn property_value_bytes(value: &V, b: &mut Budget) -> Result<usize, String> {
+fn property_value_bytes(value: &V, b: &mut Budget) -> Result<usize, Refusal> {
     let length = match value {
         V::Identity(value) | V::Text(value) => {
             b.add(value.len())?;
@@ -200,10 +199,7 @@ fn property_value_bytes(value: &V, b: &mut Budget) -> Result<usize, String> {
         V::TypedValue { contract, bytes } => {
             typed_representation(contract, bytes)?;
             if !contract.constraints.is_empty() {
-                return Err(
-                    "compressed generic typed wording requires an unconstrained value contract"
-                        .into(),
-                );
+                return Err(Refusal::Unsupported);
             }
             typed_wording(b)?;
             TYPED_TEXT.max(contract.value_kind.as_str().len() + 2 + U64 + " canonical bytes".len())
@@ -225,7 +221,7 @@ fn property_value_bytes(value: &V, b: &mut Budget) -> Result<usize, String> {
 fn typed_representation(
     contract: &conduit_core::CheckedValueContract,
     bytes: &[u8],
-) -> Result<(), String> {
+) -> Result<(), Refusal> {
     use conduit_core::PrimitiveInfoKind as P;
     let kind = conduit_core::primitive_info_kind(contract.value_kind.as_str());
     if matches!(
@@ -243,13 +239,11 @@ fn typed_representation(
         )
     ) && conduit_core::Quantity::decode(bytes).is_err()
     {
-        return Err(
-            "compressed generic wording requires the decimal Quantity representation".into(),
-        );
+        return Err(Refusal::Unsupported);
     }
     Ok(())
 }
-fn typed_wording(b: &mut Budget) -> Result<(), String> {
+fn typed_wording(b: &mut Budget) -> Result<(), Refusal> {
     // Distinct decimal owners: digits under extension/insertion, leading-zero
     // repeat, replacement decimal String, Unit String and final display String.
     b.formatted(DECIMAL)?;
@@ -259,7 +253,7 @@ fn typed_wording(b: &mut Budget) -> Result<(), String> {
     b.formatted(TYPED_TEXT)?;
     Ok(())
 }
-fn quantity_series_storage(b: &mut Budget, retained: usize) -> Result<(), String> {
+fn quantity_series_storage(b: &mut Budget, retained: usize) -> Result<(), Refusal> {
     use conduit_face::{ProjectedQuantitySeries, QuantitySeriesPoint, QuantitySeriesSample};
     const SAMPLES: usize = 64;
     const POINTS: usize = 16;
@@ -294,18 +288,18 @@ fn quantity_series_storage(b: &mut Budget, retained: usize) -> Result<(), String
     }
     Ok(())
 }
-fn plot_label(b: &mut Budget) -> Result<(), String> {
+fn plot_label(b: &mut Budget) -> Result<(), Refusal> {
     b.formatted(PLOT_NUMBER)?;
     b.formatted(PLOT_LABEL)
 }
 
 struct Budget(usize);
 impl Budget {
-    fn add(&mut self, bytes: usize) -> Result<(), String> {
+    fn add(&mut self, bytes: usize) -> Result<(), Refusal> {
         self.0 = self.0.checked_add(bytes).ok_or_else(overflow)?;
         Ok(())
     }
-    fn formatted(&mut self, length: usize) -> Result<(), String> {
+    fn formatted(&mut self, length: usize) -> Result<(), Refusal> {
         // String push growth doubles requested capacity;8 is the minimum first
         // allocation. Literal estimates for these format sites fit this bound.
         self.add(
@@ -315,7 +309,7 @@ impl Budget {
                 .ok_or_else(overflow)?,
         )
     }
-    fn table<T>(&mut self, count: usize) -> Result<(), String> {
+    fn table<T>(&mut self, count: usize) -> Result<(), Refusal> {
         if count != 0 {
             self.add(
                 count
@@ -328,10 +322,10 @@ impl Budget {
         Ok(())
     }
 }
-fn overflow() -> String {
-    "compressed generic view storage overflow".into()
+fn overflow() -> Refusal {
+    Refusal::Pressure
 }
-fn debug_len(value: &impl fmt::Debug) -> Result<usize, String> {
+fn debug_len(value: &impl fmt::Debug) -> Result<usize, Refusal> {
     struct Count(usize);
     impl fmt::Write for Count {
         fn write_str(&mut self, value: &str) -> fmt::Result {

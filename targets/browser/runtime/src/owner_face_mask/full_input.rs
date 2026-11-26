@@ -1,5 +1,6 @@
 //! Raw Face and nested Plan admission before owning deserialization.
 use super::full_profile_pool::Lease;
+use super::full_refusal::FullPreparationRefusal as Refusal;
 use super::*;
 use conduit_browser_mask_offer::full_profile as profile;
 use conduit_face::json_model_preflight::{json_shape, MAX_FACE_JSON_BYTES};
@@ -105,7 +106,7 @@ pub(super) fn input_capacity() -> usize {
 
 /// Header inspection itself runs only after the caller acquired the exclusive
 /// fixed preparation slot and admitted parser_workspace_bytes().
-pub(super) fn selected(bytes: &[u8]) -> Result<bool, String> {
+pub(super) fn selected(bytes: &[u8]) -> Result<bool, Refusal> {
     let header: Header<'_> = match serde_json::from_slice(bytes) {
         Ok(v) => v,
         Err(_) => return Ok(false),
@@ -123,7 +124,7 @@ pub(super) fn selected(bytes: &[u8]) -> Result<bool, String> {
         p.expanded_bytes,
         p.zlib_hex,
     )
-    .map_err(str::to_owned)?;
+    .map_err(|_| Refusal::Malformed)?;
     let profile: PlanProfile<'_> = match serde_json::from_slice(&raw) {
         Ok(v) => v,
         Err(_) => return Ok(false),
@@ -131,37 +132,40 @@ pub(super) fn selected(bytes: &[u8]) -> Result<bool, String> {
     Ok(profile.fragments[0].placements[0].execution_profile_id == profile::PROFILE)
 }
 
-pub(super) fn prepare(bytes: &[u8], lease: Rc<Lease>) -> Result<Carrier, String> {
+pub(super) fn prepare(bytes: &[u8], lease: Rc<Lease>) -> Result<Carrier, Refusal> {
     if bytes.is_empty() || bytes.len() > limits::OWNER_FACE_FULL_MAXIMUM_FRAME_BYTES as usize {
-        return Err("full Face carrier extent".into());
+        return Err(Refusal::Pressure);
     }
     lease.admit(parser_workspace_bytes())?;
-    let header: Header<'_> = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    let header: Header<'_> = serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed)?;
     if header.kind != "face-snapshot-response"
         || header.protocol != 1
         || header.response.outcome != "snapshot"
         || header.response.schema != OWNER_FACE_RESPONSE_SCHEMA
     {
-        return Err("full Face frame identity".into());
+        return Err(Refusal::Identity);
     }
     let face_bytes = header.response.face.get().as_bytes();
     if face_bytes.len() > MAX_FACE_JSON_BYTES {
-        return Err("full Face JSON extent".into());
+        return Err(Refusal::Pressure);
     }
-    let face_charge = profile::preflight_face(face_bytes)?;
+    let face_shape = conduit_face::json_model_preflight::generic_face_json_shape(face_bytes)?;
+    let face_charge = conduit_face::json_model_preflight::face_model_preparation_bytes(face_shape)
+        .ok_or(Refusal::Pressure)?;
     let p = &header.response.route.planned_mask.plan;
     let (plan_bytes, _) = conduit_face::PlannedMaskPlot::preflight_json_plan(
         p.encoding,
         p.expanded_bytes,
         p.zlib_hex,
     )
-    .map_err(str::to_owned)?;
+    .map_err(|_| Refusal::Malformed)?;
+    json_shape(&plan_bytes)?;
     let plan_charge =
         conduit_face::PlannedMaskPlot::generic_json_plan_preparation_bytes(&plan_bytes)
-            .map_err(str::to_owned)?;
+            .map_err(|_| Refusal::Unsupported)?;
     drop(plan_bytes);
-    let shape = json_shape(bytes).map_err(|e| format!("full Face frame census: {e:?}"))?;
-    let fs = json_shape(face_bytes).map_err(|e| format!("full Face census: {e:?}"))?;
+    let shape = json_shape(bytes)?;
+    let fs = json_shape(face_bytes)?;
     // Subtract the separately counted raw Face subtree. Outside it, the only
     // variable-length table is route.face_basis.sign_ids (String newtypes).
     // Mask/Line records are fixed structs plus strings; the compressed Plan
@@ -169,15 +173,15 @@ pub(super) fn prepare(bytes: &[u8], lease: Rc<Lease>) -> Result<Carrier, String>
     let strings = shape
         .string_source_bytes
         .checked_sub(fs.string_source_bytes)
-        .ok_or("full frame census underflow")?;
+        .ok_or(Refusal::Malformed)?;
     let elements = shape
         .object_or_string_array_elements
         .checked_sub(fs.object_or_string_array_elements)
-        .ok_or("full frame census underflow")?;
+        .ok_or(Refusal::Malformed)?;
     let arrays = shape
         .arrays
         .checked_sub(fs.arrays)
-        .ok_or("full frame census underflow")?;
+        .ok_or(Refusal::Malformed)?;
     let frame_charge = size_of::<FullFrame>()
         + size_of::<RemoteOwnerMaskRouteSeal>()
         + (2 * elements + 4 * arrays) * size_of::<SignId>()
@@ -187,15 +191,15 @@ pub(super) fn prepare(bytes: &[u8], lease: Rc<Lease>) -> Result<Carrier, String>
         .and_then(|n| n.checked_add(plan_charge))
         .and_then(|n| n.checked_add(face_charge))
         .and_then(|n| n.checked_add(MAX_FACE_JSON_BYTES))
-        .ok_or("full Face preparation overflow")?;
+        .ok_or(Refusal::Pressure)?;
     lease.admit(input_charge)?;
-    let frame: FullFrame = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    let frame: FullFrame = serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed)?;
     if frame.kind != "face-snapshot-response"
         || frame.protocol != 1
         || frame.response.outcome != "snapshot"
         || frame.response.schema != OWNER_FACE_RESPONSE_SCHEMA
     {
-        return Err("Full snapshot identity changed".into());
+        return Err(Refusal::Identity);
     }
     let Snapshot {
         face,
@@ -203,13 +207,14 @@ pub(super) fn prepare(bytes: &[u8], lease: Rc<Lease>) -> Result<Carrier, String>
         interactions_admitted,
         ..
     } = frame.response;
-    profile::eligible(&face)?;
-    let canonical = profile::bounded_json_bytes(&face, MAX_FACE_JSON_BYTES)?;
+    face.validate().map_err(|_| Refusal::Malformed)?;
+    profile::eligible(&face).map_err(|_| Refusal::Unsupported)?;
+    let canonical = super::full_refusal::bounded_json(&face, MAX_FACE_JSON_BYTES)?;
     if canonical != face_bytes {
-        return Err("full Face noncanonical JSON".into());
+        return Err(Refusal::Malformed);
     }
     if route.face_id != face.identity || route.face_revision != face.revision {
-        return Err("full Face route mismatch".into());
+        return Err(Refusal::Identity);
     }
     Ok(Carrier {
         face: *face,

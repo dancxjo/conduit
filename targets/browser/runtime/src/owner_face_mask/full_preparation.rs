@@ -1,5 +1,6 @@
 //! Admission and immutable Boot-witness checks for the raw generic profile.
 use super::full_profile_pool::Lease;
+use super::full_refusal::FullPreparationRefusal as Refusal;
 use super::*;
 use conduit_browser_mask_offer::full_profile as profile;
 use std::rc::Rc;
@@ -15,14 +16,16 @@ impl OwnerBrowserMask {
         basis: HostBasis,
         carrier: super::full_input::Carrier,
         sequence: u64,
-    ) -> Result<Self, String> {
-        if !carrier.lease.matches(&basis.host_id, &basis.boot_id)
-            || basis
-                .visual_constraints
-                .as_ref()
-                .is_some_and(|c| c.requires_full_snapshot())
+    ) -> Result<Self, Refusal> {
+        if !carrier.lease.matches(&basis.host_id, &basis.boot_id) {
+            return Err(Refusal::Identity);
+        }
+        if basis
+            .visual_constraints
+            .as_ref()
+            .is_some_and(|c| c.requires_full_snapshot())
         {
-            return Err("Full Mask incarnation or configured Look unsupported".into());
+            return Err(Refusal::Unsupported);
         }
         let evidence = super::full_profile_pool::snapshot(&basis.host_id, &basis.boot_id)?;
         let route = carrier.route;
@@ -33,9 +36,10 @@ impl OwnerBrowserMask {
             || route.face_basis != carrier.face.basis
             || &route.mask_host != evidence.basis()
         {
-            return Err("Full Mask Face/Body/Host witness mismatch".into());
+            return Err(Refusal::Identity);
         }
-        profile::validate_template(&route.planned_mask, evidence.template())?;
+        profile::validate_template(&route.planned_mask, evidence.template())
+            .map_err(|_| Refusal::Unsupported)?;
         let plan_scratch = conduit_face::PlannedMaskPlot::json_wire_preparation_bytes()
             + 256 * 1024
             + 2 * 64 * 1024; // bounded raw Plan and outer seal Vec growth
@@ -48,15 +52,13 @@ impl OwnerBrowserMask {
             .and_then(|n| n.checked_add(output_charge))
             .and_then(|n| n.checked_add(lowering))
             .and_then(|n| n.checked_add(core::mem::size_of::<Self>()))
-            .ok_or("Full Mask preparation storage overflow")?;
+            .ok_or(Refusal::Pressure)?;
         carrier.lease.admit(required)?;
         // Establish the conditional existing Plan-wire workspace proof BEFORE
         // seal verification can serialize/recompress this immutable Plan.
-        profile::bounded_json_bytes(&route.planned_mask.plan, 256 * 1024)?;
-        profile::bounded_json_bytes(&route, 64 * 1024)?;
-        route
-            .verify_seal()
-            .map_err(|e| format!("Full Mask seal: {e:?}"))?;
+        super::full_refusal::bounded_json(&route.planned_mask.plan, 256 * 1024)?;
+        super::full_refusal::bounded_json(&route, 64 * 1024)?;
+        route.verify_seal().map_err(|_| Refusal::InvalidSeal)?;
         let inspection = RouteView {
             plan_id: route.route_plan_id.as_str().into(),
             owner_host_id: route.owner_host.host_id.as_str().into(),

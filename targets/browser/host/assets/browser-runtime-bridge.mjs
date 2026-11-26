@@ -299,7 +299,17 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         label: "owner Face Mask input",
       }, () => {
         const status = call("conduit_browser_owner_face_prepare", basisBytes.length, frameBytes.length);
-        if (status < 0) throw new Error(`owner Face Mask refused (${status})`);
+        if (status < 0) {
+          const error = new Error(`owner Face Mask refused (${status})`);
+          const code = ({
+            '-270': 'OwnerFaceMalformed', '-271': 'OwnerFaceUnsupported',
+            '-272': 'OwnerFaceIdentityMismatch', '-273': 'OwnerFaceInvalidSeal',
+            '-274': 'OwnerFacePressure', '-275': 'OwnerFaceLifecycle',
+            '-276': 'OwnerFacePreparationFailed',
+          })[status];
+          if (code) Object.assign(error, { status, code });
+          throw error;
+        }
         return readJson(api, {
           pointerExport: "conduit_browser_owner_face_output_ptr",
           lengthExport: "conduit_browser_owner_face_output_len",
