@@ -37,6 +37,7 @@ pub struct PreparedDirectSpokenTemplateMask {
     look: DirectSpokenTemplateLook,
     mask: PreparedDirectSpokenMask,
     reading: PreparedSpokenTemplateReading,
+    remote: bool,
     remote_route: Option<conduit_face::RemoteOwnerMaskRouteSeal>,
 }
 impl PreparedDirectSpokenTemplateMask {
@@ -84,7 +85,7 @@ impl PreparedDirectSpokenTemplateMask {
 
     pub fn validate_current(&self, host: &StdHost, face: &Face) -> Result<(), String> {
         self.reading.validate_current(host, face)?;
-        let current = host.prepare_direct_spoken_mask_named(face, self.look.mask_name())?;
+        let current = prepare_mask(host, face, self.look, self.remote)?;
         if let Some(route) = &self.remote_route {
             remote::validate(host, face, &current.planned_mask, route)?;
             if self.mask.planned_mask != route.planned_mask {
@@ -106,8 +107,26 @@ impl StdHost {
         face: &Face,
         look: DirectSpokenTemplateLook,
     ) -> Result<PreparedDirectSpokenTemplateMask, String> {
+        self.prepare_spoken_template_selection(face, look, false)
+    }
+
+    /// Prepare against the finite hosted terminal presentation carrier.
+    pub fn prepare_remote_spoken_template_mask(
+        &self,
+        face: &Face,
+        look: DirectSpokenTemplateLook,
+    ) -> Result<PreparedDirectSpokenTemplateMask, String> {
+        self.prepare_spoken_template_selection(face, look, true)
+    }
+
+    fn prepare_spoken_template_selection(
+        &self,
+        face: &Face,
+        look: DirectSpokenTemplateLook,
+        remote: bool,
+    ) -> Result<PreparedDirectSpokenTemplateMask, String> {
         let reading = PreparedSpokenTemplateReading::prepare(self, face, look.entry())?;
-        let mask = self.prepare_direct_spoken_mask_named(face, look.mask_name())?;
+        let mask = prepare_mask(self, face, look, remote)?;
         if mask.mask.plot_name != look.mask_name() {
             return Err("checked spoken template selected a different Mask".into());
         }
@@ -115,8 +134,22 @@ impl StdHost {
             look,
             mask,
             reading,
+            remote,
             remote_route: None,
         })
+    }
+}
+
+fn prepare_mask(
+    host: &StdHost,
+    face: &Face,
+    look: DirectSpokenTemplateLook,
+    remote: bool,
+) -> Result<PreparedDirectSpokenMask, String> {
+    if remote {
+        host.prepare_direct_spoken_mask_with_boundary(face, look.mask_name(), remote::CARRIER_BYTES)
+    } else {
+        host.prepare_direct_spoken_mask_named(face, look.mask_name())
     }
 }
 
