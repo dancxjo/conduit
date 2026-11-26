@@ -319,3 +319,7 @@ mod parsec_agency_tests;
 mod field_look_reuse_tests;
 
 mod quantity_series;
+
+#[cfg(test)]
+#[path = "owner_face_mask/environment_history_owner_tests.rs"]
+mod environment_history_owner_tests;

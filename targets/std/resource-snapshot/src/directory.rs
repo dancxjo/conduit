@@ -1,8 +1,11 @@
 use std::{
     ffi::CStr,
-    fs::File,
+    fs::{File, OpenOptions},
     io,
-    os::fd::{AsRawFd, FromRawFd},
+    os::{
+        fd::{AsRawFd, FromRawFd},
+        unix::fs::OpenOptionsExt,
+    },
 };
 
 /// Actual retained directory descriptor, supplied by trusted Root preparation.
@@ -12,6 +15,17 @@ pub struct SnapshotDirectory {
     directory: File,
 }
 impl SnapshotDirectory {
+    /// Open an existing operator-selected directory without following its final
+    /// symlink or accepting a file/device instead. Descriptor custody grants no
+    /// Resource reference authority and reserves no disk capacity. Parent path
+    /// components retain the caller's ordinary path-resolution responsibility.
+    pub fn open_selected(path: &std::path::Path) -> io::Result<Self> {
+        let directory = OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(path)?;
+        Self::prepare(directory)
+    }
     pub fn prepare(directory: File) -> io::Result<Self> {
         if !directory.metadata()?.is_dir() {
             return Err(io::Error::from_raw_os_error(libc::ENOTDIR));
@@ -95,5 +109,71 @@ impl Name {
     }
     pub(crate) fn cstr(&self) -> &CStr {
         CStr::from_bytes_with_nul(&self.bytes[..=self.length]).expect("prepared hex name")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{fs, io::Read, path::PathBuf};
+
+    struct Directory(PathBuf);
+    impl Directory {
+        fn new() -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "conduit-selected-snapshot-directory-{}-{nonce}",
+                std::process::id()
+            ));
+            fs::create_dir(&path).unwrap();
+            Self(path)
+        }
+    }
+    impl Drop for Directory {
+        fn drop(&mut self) {
+            fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+    #[test]
+    fn selected_directory_refuses_missing_file_and_final_symlink() {
+        let root = Directory::new();
+        let missing = root.0.join("missing");
+        assert!(SnapshotDirectory::open_selected(&missing).is_err());
+        let file = root.0.join("file");
+        fs::write(&file, b"not a directory").unwrap();
+        assert!(SnapshotDirectory::open_selected(&file).is_err());
+        let actual = root.0.join("actual");
+        fs::create_dir(&actual).unwrap();
+        let link = root.0.join("linked");
+        std::os::unix::fs::symlink(&actual, &link).unwrap();
+        assert!(SnapshotDirectory::open_selected(&link).is_err());
+        assert!(SnapshotDirectory::open_selected(&actual).is_ok());
+    }
+    #[test]
+    fn selected_descriptor_keeps_original_directory_after_path_replacement() {
+        let root = Directory::new();
+        let selected = root.0.join("selected");
+        fs::create_dir(&selected).unwrap();
+        fs::write(selected.join("record"), b"original").unwrap();
+        let retained = SnapshotDirectory::open_selected(&selected).unwrap();
+        fs::rename(&selected, root.0.join("moved-original")).unwrap();
+        fs::create_dir(&selected).unwrap();
+        fs::write(selected.join("record"), b"replacement").unwrap();
+        let name = c"record";
+        let mut bytes = String::new();
+        retained
+            .open(name, libc::O_RDONLY)
+            .unwrap()
+            .read_to_string(&mut bytes)
+            .unwrap();
+        assert_eq!(bytes, "original");
+        assert_eq!(fs::read(selected.join("record")).unwrap(), b"replacement");
+        // SAFETY: F_GETFD only inspects the live descriptor retained above.
+        let flags = unsafe { libc::fcntl(retained.directory.as_raw_fd(), libc::F_GETFD) };
+        assert!(flags >= 0);
+        assert_ne!(flags & libc::FD_CLOEXEC, 0);
     }
 }

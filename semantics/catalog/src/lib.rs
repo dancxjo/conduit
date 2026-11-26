@@ -580,5 +580,7 @@ mod startup_chime_back;
 #[cfg(feature = "kernel-step")]
 pub use startup_chime_back::StartupChimeBack;
 
+mod environment_recording_history;
+pub use environment_recording_history::*;
 mod quantity_observation_face;
 pub use quantity_observation_face::*;

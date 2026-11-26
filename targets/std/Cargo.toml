@@ -97,6 +97,7 @@ webrtc-util = { version = "0.17.1", default-features = false, features = ["conn"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11", features = ["quantity-history"] }
 conduit-linux-snapshot-store = { path = "resource-snapshot" }
 bluer = { version = "0.17.4", features = ["bluetoothd"], optional = true }
 dbus = { version = "0.9.12", features = ["vendored"], optional = true }

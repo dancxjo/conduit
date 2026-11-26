@@ -216,7 +216,7 @@ impl StdHost {
             )?
         };
         if funded.is_some() {
-            kernel.prepare_home_face_routes(
+            kernel.prepare_face_contribution_routes(
                 request.wake,
                 request.plan,
                 &prospective_play,

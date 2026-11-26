@@ -137,9 +137,11 @@ impl TickPreparationLayout {
                         | conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_WALLPAPER_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
+                        | conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
+                        | conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION
                 ) && !(gear.implementation_id.as_str()
                     == super::super::patchbay_interaction_factory::IMPLEMENTATION
                     && interaction.is_some_and(|queue| {
@@ -156,6 +158,7 @@ impl TickPreparationLayout {
                     conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_CLOCK_SOURCE_IMPLEMENTATION
                         | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
+                        | conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION
                 ) {
                     Some(
                         native
@@ -192,8 +195,10 @@ impl TickPreparationLayout {
                     gear.implementation_id.as_str(),
                 )
                 .is_some()
+                    || gear.implementation_id.as_str()
+                        == conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
                 {
-                    super::super::ambient_home_route::AmbientHomeRoute::preparation_backing_bound(
+                    super::super::face_contribution_route::InstalledFaceRoute::preparation_backing_bound(
                         request.plan,
                         part,
                         &part.plan.fragments[0],

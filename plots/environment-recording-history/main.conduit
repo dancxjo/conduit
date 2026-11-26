@@ -1,0 +1,9 @@
+# Reported temperature and humidity retain the original recording context,
+# sample times, gaps and unavailable outcomes. Host selection owns capture.
+plot environment-recording-history {
+    cadence: time/every(1s)
+    recording: data/environment-recording-history
+    history: face/quantity-observation-series("Environment recording history")
+    cadence.tick >> recording.tick
+    recording.observations >> history.observations
+}

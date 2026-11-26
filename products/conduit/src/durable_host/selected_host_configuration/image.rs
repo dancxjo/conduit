@@ -91,6 +91,8 @@ impl Selection {
                     "audio/speaker"
                         | "display/scanout"
                         | conduit_std_offers::AMBIENT_HOME_SOURCE_BASE
+                        | conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
+                        | conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_BASE
                 )
             {
                 return Err(
@@ -100,6 +102,25 @@ impl Selection {
             }
         }
         let selected = self.prepare_playback(&config.boot_id, config.offer_generation)?;
+        let quantity_selected = checked.configuration().bases.iter().any(|base| {
+            base.kind == conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
+                && base.initialization.is_some()
+        });
+        if quantity_selected {
+            if selected.is_some() || self.requires_scanout()? || ambient_selected {
+                return Err("selected quantity projection does not support combined display, speaker or Ambient Bases".into());
+            }
+            #[cfg(target_os = "linux")]
+            if super::environment_recording_history::selected(&checked) {
+                return super::environment_recording_history::initialize(config, image, &checked);
+            }
+            return StdHost::from_selected_quantity_observation_image(
+                config,
+                image,
+                &conduit_workspace_make::catalog(),
+                &checked,
+            );
+        }
         #[cfg(all(target_os = "linux", feature = "native-display"))]
         if let Some(output) = scanout {
             let parameters =

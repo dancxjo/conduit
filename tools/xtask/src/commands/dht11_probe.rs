@@ -9,6 +9,8 @@ mod environment_history;
 mod environment_output;
 #[path = "environment_quantity_face.rs"]
 mod environment_quantity_face;
+#[path = "environment_recording_source.rs"]
+mod environment_recording_source;
 #[path = "environment_snapshot.rs"]
 mod environment_snapshot;
 #[path = "environment_source.rs"]
@@ -38,6 +40,15 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     }
     if arguments == ["quantity-face"] {
         return environment_quantity_face::prove(&root);
+    }
+    if arguments == ["recording-source"] {
+        return environment_recording_source::prove(&root, false);
+    }
+    if arguments == ["recording-selected-host"] {
+        return environment_recording_source::prove(&root, true);
+    }
+    if arguments == ["recording-owner-mask"] {
+        return environment_recording_source::owner_mask(&root);
     }
     if arguments == ["display-output"] {
         return environment_output::prove(&root);

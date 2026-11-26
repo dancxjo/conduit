@@ -3,6 +3,7 @@ use super::*;
 use crate::kernel_preparation::{ImageMemoryLease, StagedImageMemory};
 #[derive(Default)]
 pub(crate) struct InitialBases<'a> {
+    pub(crate) quantity_face: Option<BaseProviderEntry>,
     pub(crate) worker: Option<crate::selected_native_source::image_worker::PreparedImageWorker<'a>>,
     pub(crate) recognition: Option<super::InitialWhisper>,
     pub(crate) memory: Option<StagedImageMemory<'a>>,

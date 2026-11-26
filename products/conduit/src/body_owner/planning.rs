@@ -184,6 +184,8 @@ impl Owner {
             conduit_std_host::ambient_home_observation::ambient_home_connection_limits(
                 &plot.expanded,
             );
+        #[cfg(target_os = "linux")]
+        connection_queues.extend(conduit_std_host::environment_recording_history::environment_recording_history_connection_limits(&plot.expanded)?);
         for connection in &plot.expanded.connections {
             let has_kind = |gear_id, kind| {
                 plot.expanded

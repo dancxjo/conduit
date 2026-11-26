@@ -410,3 +410,53 @@ environmental Source or qualify browser/native output. The selected contribution
 route and original-recording consumer remain the next application wiring cuts;
 recorder ACK/restart, full-history transport, release acceptance and legacy
 retirement retain their separate gates.
+
+## Proposed selected original-recording Source, 26 November 2026
+
+The hosted Linux extraction now connects an explicitly selected original JSON
+snapshot to the closed `environment-recording-history` Plot. Root opens the
+selected existing directory and independently supplies current Host/Boot read
+authority and Source-use authority. Producer metadata supplies neither. The
+existing immutable record reader retains its Host identity and exact generation
+checks; a new Boot receives a read lease, not a durable storage offer.
+
+Checked Make/IMAGE selection funds the native worker, capture/conversion backing
+and quantity Face projection before preparation. Preparation reads one sealed
+record, checks its independently selected producer context and freezes the
+bounded two-channel snapshot. Recurring Source calls copy those frozen bytes;
+they do not reopen files or allocate. The installed quantity Back uses the same
+kernel commit and exact Owner contribution custody as Ambient. The shared route
+extraction preserves Ambient's existing projection and admission behavior.
+
+`cargo xtask prove environment recording-source` passes twelve hosted Source
+checks, two semantic contract checks, the Make contract check and strict hosted
+library lint. Its actual selected-IMAGE test observes the closed Plot after the
+original directory has been removed. `cargo xtask prove environment
+recording-selected-host` passes both product selection checks, including missing
+records, mismatched references and checked IMAGE refusal. These are CPU and
+preparation proofs; they do not establish a sensor, producer membership or
+physical output.
+
+The selected tail remains explicit and bounded to one through sixteen samples.
+The qualified eight-sample profile does not replace the existing sixty-four
+sample reading; dense sixteen-sample encodings may refuse the unchanged 4 KiB
+bound. This Source reads an existing record. It neither commits a recorder's
+catalogue nor sends a producer acceptance, retires producer data, proves a fresh
+process recovery, or establishes accepted-release custody. The old proof
+services remain until those application and release gates are met.
+
+`cargo xtask prove environment recording-owner-mask` also passes the actual
+product Owner and ordinary native scene test, then feeds that fresh unchanged
+Owner Face to the checked browser Mask component fixture. The 22,595-byte Face
+retains both channels, exact readings and reported/inspecting provenance; the
+normal component preparation/acknowledgment retains its identity and complete
+reading. Native primary/Details pages stay within the existing command bound,
+and ordinary Lull retires the contribution while preserving the Body. These two
+CPU tests are not Chromium/WASM execution, browser membership, native Mask Play
+or physical Show evidence. No input/output capacity is raised for this fixture.
+
+Strict all-target lint passes for the changed hosted, product, browser, Make,
+semantic catalog and snapshot packages. Product tests compile with the selected
+native-display feature; the semantic catalog compiles without default features
+for WASM. Formatting, evidence retention and all thirty standalone lock checks
+pass. These compile checks do not execute those platform presentation paths.

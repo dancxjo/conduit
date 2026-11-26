@@ -138,6 +138,7 @@ pub(super) enum InstalledBack {
     CalendarProposal(CalendarProposalBack),
     CalendarProvider(CalendarProviderBack),
     AmbientHome(super::ambient_home_back::AmbientHomeBack),
+    QuantityObservationFace(super::face_contribution_back::FaceContributionBack),
     TickFace(TickFaceBack),
     BoolFace(BoolFaceBack),
     OrbiumSeed(OrbiumSeedBack),

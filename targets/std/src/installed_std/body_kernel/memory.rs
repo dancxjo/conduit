@@ -73,7 +73,7 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
-        InstalledBack::AmbientHome(back) => back
+        InstalledBack::AmbientHome(back) | InstalledBack::QuantityObservationFace(back) => back
             .retained_backing_bytes()
             .ok_or_else(|| "Home Face gate backing overflow".into()),
         InstalledBack::StartupChime(back) => Ok(back.retained_backing_bytes()),
@@ -93,7 +93,7 @@ impl BodyKernel<'_> {
         lease: &crate::kernel_preparation::ImageMemoryLease,
     ) {
         self.fore.attach_image_memory(lease);
-        for route in &mut self.home_face_routes {
+        for route in &mut self.face_contribution_routes {
             route.attach_image_memory(lease);
         }
     }
@@ -149,8 +149,8 @@ impl BodyKernel<'_> {
                     .ok_or("Home source lost its funded backing")?,
             )?;
         }
-        add(&mut bytes, vector(&self.home_face_routes)?)?;
-        for route in &self.home_face_routes {
+        add(&mut bytes, vector(&self.face_contribution_routes)?)?;
+        for route in &self.face_contribution_routes {
             add(&mut bytes, route.additional_backing_bytes()?)?;
             add(&mut bytes, route.escaped_backing_bytes()?)?;
         }

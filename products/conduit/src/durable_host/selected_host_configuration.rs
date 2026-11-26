@@ -13,6 +13,9 @@ use std::path::Path;
 
 #[path = "selected_host_configuration/ambient.rs"]
 mod ambient;
+#[cfg(target_os = "linux")]
+#[path = "selected_host_configuration/environment_recording_history.rs"]
+mod environment_recording_history;
 #[path = "selected_host_configuration/image.rs"]
 mod image;
 #[path = "selected_host_configuration/microphone.rs"]
@@ -21,6 +24,9 @@ mod microphone;
 mod playback;
 #[path = "selected_host_configuration/regional.rs"]
 mod regional;
+#[cfg(target_os = "linux")]
+#[path = "selected_host_configuration/snapshot_read.rs"]
+mod snapshot_read;
 pub(crate) use regional::viewer_preferences;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
@@ -73,6 +79,21 @@ impl Selection {
         };
         if self.host_image.is_none() && ambient::selected(&checked) {
             return Err("selected Ambient source requires its exact canonical --image".into());
+        }
+        if self.host_image.is_none()
+            && checked.configuration().bases.iter().any(|base| {
+                base.initialization.is_some()
+                    && matches!(
+                        base.kind.as_str(),
+                        conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_BASE
+                            | conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE
+                    )
+            })
+        {
+            return Err(
+                "selected recording or quantity projection requires its exact canonical --image"
+                    .into(),
+            );
         }
         if checked.configuration_id() != self.configuration_id {
             return Err("retained Host configuration identity changed".into());
@@ -152,6 +173,24 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
         &conduit_workspace_make::package_set(),
     )
     .map_err(|e| format!("Host configuration refused: {e:?}"))?;
+    let source_modes = checked
+        .configuration()
+        .bases
+        .iter()
+        .filter(|base| {
+            base.initialization.is_some()
+                && matches!(
+                    base.kind.as_str(),
+                    conduit_std_offers::AMBIENT_HOME_SOURCE_BASE
+                        | conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_BASE
+                )
+        })
+        .count();
+    if source_modes > 1 {
+        return Err(
+            "selected Host supports one exact Ambient or original-recording Source mode".into(),
+        );
+    }
     for base in &checked.configuration().bases {
         if let Some(initialization) = &base.initialization {
             let implementation = checked
@@ -189,6 +228,17 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     | conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION,
                 ) => {
                     conduit_std_host::ambient_home_observation::CheckedAmbientHomeSource::from_configuration(&checked)?;
+                }
+                Some(conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION) => {
+                    #[cfg(target_os = "linux")]
+                    environment_recording_history::validate(&checked)?;
+                    #[cfg(not(target_os = "linux"))]
+                    return Err(
+                        "environment recording directory initialization requires Linux".into(),
+                    );
+                }
+                Some(conduit_std_offers::QUANTITY_OBSERVATION_FACE_DRIVER) => {
+                    // The checked IMAGE initializer validates exact named pools.
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
@@ -281,3 +331,10 @@ pub(super) fn configure_with_image(
 #[cfg(test)]
 #[path = "selected_host_configuration/tests.rs"]
 mod tests;
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "selected_host_configuration/environment_recording_history_tests.rs"]
+mod environment_recording_history_tests;
+
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use environment_recording_history_tests::host_fixture as environment_recording_history_host_fixture;

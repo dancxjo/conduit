@@ -465,6 +465,7 @@ impl StdHost {
             image,
             catalog,
             crate::image_initialization::InitialBases {
+                quantity_face: None,
                 memory: Some(memory),
                 worker,
                 playback,

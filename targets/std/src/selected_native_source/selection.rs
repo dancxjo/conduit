@@ -183,6 +183,9 @@ impl InitializedNativeSource {
                 ) | (
                     conduit_semantic_catalog::RESIDENT_WALLPAPER_KIND,
                     conduit_std_offers::AMBIENT_WALLPAPER_SOURCE_IMPLEMENTATION
+                ) | (
+                    conduit_semantic_catalog::ENVIRONMENT_RECORDING_HISTORY_KIND,
+                    conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION
                 )
             )
             && offer.implementation.execution_profile_id.as_str() == NATIVE_SOURCE_WORKER_PROFILE;

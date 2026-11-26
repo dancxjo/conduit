@@ -2,6 +2,7 @@
 use super::*;
 pub(super) const FACTORIES: &[&BackFactory] = &[
     &super::super::ambient_home_factory::FACTORY,
+    &super::super::quantity_observation_factory::FACTORY,
     &super::super::ambient_home_factory::CLOCK_FACTORY,
     &super::super::patchbay_interaction_factory::FACTORY,
     &super::super::ambient_home_factory::WALLPAPER_FACTORY,

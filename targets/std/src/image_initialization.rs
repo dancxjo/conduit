@@ -9,8 +9,11 @@ use conduit_host_make::{
 use std::{collections::BTreeSet, io::Write};
 
 mod ambient_face;
+#[cfg(target_os = "linux")]
+mod environment_recording_history;
 mod initial_bases;
 mod playback;
+mod quantity_face;
 mod recognition;
 pub(crate) use initial_bases::InitialBases;
 pub(crate) use playback::prepare_playback_on;
@@ -65,6 +68,11 @@ impl StdHost {
         let bytes = image_frame(&config, image)?;
         let manifest = &image.manifest;
         let ambient_face = ambient_face::prepare(&config, image, &initial)?;
+        let quantity_face = initial.quantity_face.take();
+        if ambient_face.is_some() && quantity_face.is_some() {
+            return Err("selected IMAGE has two distinct initialized projection families".into());
+        }
+        let projection_face = ambient_face.or(quantity_face);
         let supported = |id: &str| {
             matches!(
                 id,
@@ -73,7 +81,7 @@ impl StdHost {
                     | conduit_std_offers::PATCHBAY_INTERACTION_IMPLEMENTATION
                     | conduit_std_offers::BODY_WAKE_IMPLEMENTATION
                     | conduit_std_offers::SILENT_STARTUP_CHIME_IMPLEMENTATION
-            ) || ambient_face.as_ref().is_some_and(|base| {
+            ) || projection_face.as_ref().is_some_and(|base| {
                 base.capabilities
                     .iter()
                     .any(|offer| offer.implementation.implementation_id.as_str() == id)
@@ -99,7 +107,7 @@ impl StdHost {
                     && base.kind == "audio/speaker"
                     && base.driver == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION)
                     && !initial.supports_native_base(&base.id, &base.kind, &base.driver)
-                    && !ambient_face
+                    && !projection_face
                         .as_ref()
                         .is_some_and(|entry| entry.base_id.as_str() == base.id)
                     && !matches!(
@@ -127,7 +135,7 @@ impl StdHost {
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
             if initial.owns_native_pool(&budget.id)
-                || ambient_face.as_ref().is_some_and(|entry| {
+                || projection_face.as_ref().is_some_and(|entry| {
                     entry
                         .resources
                         .iter()
@@ -203,10 +211,10 @@ impl StdHost {
         let mut ready_resource_classes = BTreeSet::from([TIMER_RESOURCE_CLASS.into()]);
         let mut initialized_base_kinds = BTreeSet::from(["timer/monotonic".into()]);
         let mut initialized_driver_kinds = BTreeSet::from(["hosted/monotonic-clock@1".into()]);
-        if let Some(face) = ambient_face {
+        if let Some(face) = projection_face {
             registry
                 .register(face.clone())
-                .map_err(|error| format!("Home Face registry: {error:?}"))?;
+                .map_err(|error| format!("Face registry: {error:?}"))?;
             ready_resource_classes.extend(
                 face.resources
                     .iter()

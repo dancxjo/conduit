@@ -123,7 +123,7 @@ impl<'a> BodyKernel<'a> {
                 && !native_source
                     .as_ref()
                     .is_some_and(|source| source.matches_call(operation.node, operation.call))
-                && !(funding.is_some() && ambient_home::is_home_face_call(operation))
+                && !(funding.is_some() && face_contributions::is_face_contribution_call(operation))
                 && !(funding.is_some()
                     && live.is_some()
                     && operation.contract_id.as_str()
@@ -301,11 +301,13 @@ impl<'a> BodyKernel<'a> {
         let mut face_labels = vec![None; MAX_NODES];
         for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
             for placement in &fragment.placements {
-                // The exact funded Home route owns and accounts for its label.
+                // The exact funded contribution route owns and accounts for its label.
                 if conduit_std_offers::AmbientFaceProjection::for_implementation(
                     placement.implementation_id.as_str(),
                 )
                 .is_none()
+                    && placement.implementation_id.as_str()
+                        != conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
                     && conduit_semantic_catalog::face_data_label_required(
                         placement.kind_id.as_str(),
                     )
@@ -368,7 +370,7 @@ impl<'a> BodyKernel<'a> {
             error_diagnostic: None,
             cleanup_diagnostic: None,
             creche: None,
-            home_face_routes: Vec::new(),
+            face_contribution_routes: Vec::new(),
             native_source,
             scheduler,
             face_labels,

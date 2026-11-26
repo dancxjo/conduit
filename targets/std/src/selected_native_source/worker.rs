@@ -65,7 +65,14 @@ pub struct NativeReadContext<'a> {
     cancelled: &'a AtomicBool,
     deadline: Instant,
 }
-impl NativeReadContext<'_> {
+impl<'a> NativeReadContext<'a> {
+    #[cfg(all(test, target_os = "linux"))]
+    pub(crate) fn for_test(cancelled: &'a AtomicBool, deadline: Instant) -> Self {
+        Self {
+            cancelled,
+            deadline,
+        }
+    }
     pub fn cancelled(&self) -> bool {
         self.cancelled.load(Ordering::Acquire)
     }
