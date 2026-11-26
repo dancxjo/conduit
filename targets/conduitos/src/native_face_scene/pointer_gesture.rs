@@ -1,4 +1,4 @@
-//! One bounded tap recognizer. It owns no semantic effects or device history.
+//! Bounded tap/swipe arbitration over one exact Show, without device history.
 use super::*;
 use sha2::{Digest, Sha256};
 
@@ -9,8 +9,9 @@ enum Target {
     Page(bool),
 }
 
-pub(super) struct PendingTap {
-    target: Target,
+pub(super) struct PendingGesture {
+    target: Option<Target>,
+    swipe: bool,
     x: i16,
     y: i16,
     show: [u8; 32],
@@ -23,8 +24,8 @@ impl NativeFaceScene {
             .pointer
             .as_ref()
             .and_then(|tap| match tap.target {
-                Target::Control(control) => Some(control),
-                Target::Subject(_) | Target::Page(_) => None,
+                Some(Target::Control(control)) => Some(control),
+                _ => None,
             })
     }
 
@@ -33,7 +34,7 @@ impl NativeFaceScene {
             .pointer
             .as_ref()
             .and_then(|tap| match tap.target {
-                Target::Page(forward) => Some(forward),
+                Some(Target::Page(forward)) => Some(forward),
                 _ => None,
             })
     }
@@ -42,10 +43,10 @@ impl NativeFaceScene {
         self.input.pointer.take().is_some()
     }
 
-    /// Eight logical pixels on either axis cede ownership to movement. Leaving
-    /// the original control cancels permanently, even if the pointer returns.
-    /// A new physical press edge from the validated device history owner is
-    /// required to acquire another sequence; Show replacement cannot create it.
+    /// A tap permanently loses its target after eight logical pixels or leaving
+    /// its hit. A page swipe may continue, but completes only on release with
+    /// horizontal travel of at least max(48, width/5), and never more than 24
+    /// vertical pixels. Both interpretations retain one exact Show/view basis.
     pub fn pointer_sample(
         &mut self,
         x: i16,
@@ -63,13 +64,22 @@ impl NativeFaceScene {
             self.cancel_pointer_gesture();
             return Err(error);
         }
+        if x < 0 || y < 0 || x as u16 >= self.screen.width || y as u16 >= self.screen.height {
+            return Ok(if self.cancel_pointer_gesture() {
+                FaceSceneInput::Changed
+            } else {
+                FaceSceneInput::Unchanged
+            });
+        }
         if !press_edge && self.input.pointer.is_none() {
             return Ok(FaceSceneInput::Unchanged);
         }
         let target = self.pointer_target(x, y)?;
         if press_edge {
-            self.input.pointer = target.map(|target| PendingTap {
+            let swipe = self.page_controls()?.is_some();
+            self.input.pointer = (target.is_some() || swipe).then_some(PendingGesture {
                 target,
+                swipe,
                 x,
                 y,
                 show: Sha256::digest(show.show_id.as_str().as_bytes()).into(),
@@ -86,19 +96,51 @@ impl NativeFaceScene {
         };
         if tap.show != <[u8; 32]>::from(Sha256::digest(show.show_id.as_str().as_bytes()))
             || tap.context != (self.page, self.showing_details, self.showing_diagram)
-            || target != Some(tap.target)
-            || x.abs_diff(tap.x) > 8
-            || y.abs_diff(tap.y) > 8
         {
             self.cancel_pointer_gesture();
             return Ok(FaceSceneInput::Changed);
         }
-        if pressed {
-            return Ok(FaceSceneInput::Unchanged);
+        let dx = i32::from(x) - i32::from(tap.x);
+        let dy = y.abs_diff(tap.y);
+        let lost_target =
+            tap.target.is_some() && (target != tap.target || dx.unsigned_abs() > 8 || dy > 8);
+        let tap = self.input.pointer.as_mut().unwrap();
+        if lost_target {
+            tap.target = None;
         }
-        self.cancel_pointer_gesture();
-        // Only completed recognition enters the existing semantic input path.
-        self.pointer(x, y, show, sequence)
+        if dy > 24 {
+            tap.swipe = false;
+        }
+        if pressed {
+            return Ok(if lost_target {
+                FaceSceneInput::Changed
+            } else {
+                FaceSceneInput::Unchanged
+            });
+        }
+        let tap = self.input.pointer.take().unwrap();
+        if tap.swipe
+            && dx.unsigned_abs() >= u32::from((self.screen.width / 5).max(48))
+            && self.page_controls()?.is_some()
+        {
+            let before = self.page;
+            self.turn_page(dx < 0);
+            return Ok(if self.page != before {
+                FaceSceneInput::Changed
+            } else {
+                FaceSceneInput::Unchanged
+            });
+        }
+        if tap.target.is_some() {
+            // Only a completed tap enters the existing semantic input path.
+            self.pointer(x, y, show, sequence)
+        } else {
+            Ok(if lost_target {
+                FaceSceneInput::Changed
+            } else {
+                FaceSceneInput::Unchanged
+            })
+        }
     }
 
     fn pointer_target(&self, x: i16, y: i16) -> Result<Option<Target>, FaceSceneError> {
