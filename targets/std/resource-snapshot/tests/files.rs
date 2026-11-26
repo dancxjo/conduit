@@ -188,7 +188,17 @@ fn initialization_selection_reopens_only_with_independent_current_read_bindings(
         .unwrap()
         .publish(authority(&write), b"[]")
         .unwrap();
-    let (read, _) = fixture::placement("boot/new", false, 2);
+    let (mut read, _) = fixture::placement("boot/new", false, 2);
+    read.resources[0]
+        .content
+        .as_mut()
+        .unwrap()
+        .contract
+        .retention = c::ResourceRetention::Boot;
+    assert!(matches!(
+        PreparedFileSnapshot::prepare(&directory, &read, &reference),
+        Err(E::Binding(SnapshotRefusal::UnsupportedLifetime))
+    ));
     // Independent local fixtures fixed before presenting or modifying selection;
     // these literals are not a production authority-discovery mechanism.
     let original = c::AuthorityGrant {

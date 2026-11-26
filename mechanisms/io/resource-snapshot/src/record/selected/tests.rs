@@ -141,3 +141,47 @@ fn original_local_grant_must_match_operation_scope_subject_capability_and_refere
         .is_err());
     }
 }
+
+#[test]
+fn selected_boot_read_preserves_bytes_without_relaxing_publication_or_rich_policy() {
+    let (write, reference) = placement("boot/one", true, 2);
+    let mut durable = PreparedSnapshotRecord::prepare(&write, &reference).unwrap();
+    let bytes = durable
+        .publication(&write.authority[0], b"[]")
+        .unwrap()
+        .to_vec();
+    let (mut read, _) = placement("boot/two", false, 2);
+    read.resources[0]
+        .content
+        .as_mut()
+        .unwrap()
+        .contract
+        .retention = ResourceRetention::Boot;
+    assert!(matches!(
+        PreparedSnapshotRecord::prepare(&read, &reference),
+        Err(SnapshotRefusal::UnsupportedLifetime)
+    ));
+    let (grant, local) = local(&read, &reference);
+    let reader =
+        PreparedSnapshotRecord::prepare_selected(selection(&read), &reference, &grant, &local)
+            .unwrap();
+    assert_eq!(reader.storage_key(), durable.storage_key());
+    assert_eq!(reader.restore(&read.authority[0], &bytes).unwrap(), b"[]");
+    let mut boot_write = write;
+    boot_write.resources[0]
+        .content
+        .as_mut()
+        .unwrap()
+        .contract
+        .retention = ResourceRetention::Boot;
+    let (grant, local) = self::local(&boot_write, &reference);
+    assert!(matches!(
+        PreparedSnapshotRecord::prepare_selected(
+            selection(&boot_write),
+            &reference,
+            &grant,
+            &local
+        ),
+        Err(SnapshotRefusal::UnsupportedLifetime)
+    ));
+}
