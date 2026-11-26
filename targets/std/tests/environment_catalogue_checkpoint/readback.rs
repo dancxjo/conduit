@@ -10,9 +10,9 @@ use conduit_plot::{
 };
 use conduit_std_host::{
     json_snapshot_file::SelectedJsonSnapshotResidence, ExternalForeDelivery, ExternalForeInput,
-    ExternalForeOutputAdapter, RunControl, StdHost, StdHostConfig, TimerAdapter,
+    ExternalForeOutputAdapter, RunControl, StdHost, StdHostConfig,
 };
-use std::{collections::BTreeMap, fs::File, time::Duration};
+use std::{collections::BTreeMap, fs::File};
 struct Output(Option<ExternalForeDelivery>);
 impl ExternalForeOutputAdapter for Output {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
@@ -23,11 +23,6 @@ impl ExternalForeOutputAdapter for Output {
         Ok(())
     }
 }
-struct Timer;
-impl TimerAdapter for Timer {
-    fn wait(&mut self, _: Duration) {}
-}
-
 pub fn verify(root: &Path, recovered: &[u8]) {
     let reference = c::BoundedResourceRef::decode(recovered).unwrap();
     assert_eq!(reference.encode().unwrap(), recovered);
@@ -139,6 +134,7 @@ pub fn verify(root: &Path, recovered: &[u8]) {
         bytes: recovered.to_vec(),
     };
     let mut output = Output(None);
+    let mut timer = allocation::PlayProbe::default();
     let report = host
         .run_body_durable_json_snapshot_to(
             &execution::body(BODY),
@@ -149,13 +145,15 @@ pub fn verify(root: &Path, recovered: &[u8]) {
             1,
             &mut output,
             &mut Vec::new(),
-            &mut Timer,
+            &mut timer,
             &RunControl::default(),
         )
         .unwrap();
+    timer.assert_finished_without_allocation();
+    let kernel = report.kernel.as_ref().unwrap();
     assert_eq!(
-        report.kernel.as_ref().unwrap().post_play_start_allocations,
-        0
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
     );
     let result = output.0.expect("actual JSON read result");
     assert_eq!(result.bytes.as_ref(), catalogue_bytes());

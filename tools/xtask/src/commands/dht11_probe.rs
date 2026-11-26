@@ -1,10 +1,10 @@
 //! Focused environmental Body specification, Mask and physical diagnostic proof.
 #[path = "environment_appliance.rs"]
 mod environment_appliance;
-#[path = "environment_catalogue_source.rs"]
-mod environment_catalogue_source;
 #[path = "environment_catalogue_runtime.rs"]
 mod environment_catalogue_runtime;
+#[path = "environment_catalogue_source.rs"]
+mod environment_catalogue_source;
 #[path = "environment_face_publication.rs"]
 mod environment_face_publication;
 #[path = "environment_history.rs"]

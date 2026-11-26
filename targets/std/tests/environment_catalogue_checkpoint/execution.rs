@@ -2,7 +2,7 @@
 use super::*;
 use conduit_std_host::{
     ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, RunControl,
-    RunControlRequestId, TimerAdapter,
+    RunControlRequestId,
 };
 use std::{path::Path, time::Duration};
 struct Collector {
@@ -27,11 +27,6 @@ impl ExternalForeOutputAdapter for Collector {
         }
         Ok(())
     }
-}
-#[derive(Default)]
-struct Timer;
-impl TimerAdapter for Timer {
-    fn wait(&mut self, _: Duration) {}
 }
 pub fn body(name: &str) -> conduit_body::BodyId {
     serde_json::from_value(serde_json::json!(name)).unwrap()
@@ -69,6 +64,7 @@ pub fn execute(
         write,
         stop: Some(RunControlRequestId::new("fixture/catalogue-result").unwrap()),
     };
+    let mut timer = allocation::PlayProbe::default();
     let report = std::thread::scope(|scope| {
         let (done, waiting) = std::sync::mpsc::sync_channel::<()>(1);
         let stop = control.clone();
@@ -88,7 +84,7 @@ pub fn execute(
                 2,
                 &mut collector,
                 &mut Vec::new(),
-                &mut Timer,
+                &mut timer,
                 &control,
             )
         } else {
@@ -100,7 +96,7 @@ pub fn execute(
                 1,
                 &mut collector,
                 &mut Vec::new(),
-                &mut Timer,
+                &mut timer,
                 &control,
             )
         };
@@ -108,7 +104,11 @@ pub fn execute(
         result
     })?;
     if let Some(kernel) = report.kernel.as_ref() {
-        assert_eq!(kernel.post_play_start_allocations, 0);
+        timer.assert_finished_without_allocation();
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
     } else {
         assert!(cancel, "successful execution requires a kernel receipt");
     }
@@ -140,5 +140,5 @@ pub fn reference_bytes(values: &[ExternalForeDelivery]) -> Option<Vec<u8>> {
     let c::StructuredInfoValueShape::Leaf(bytes) = payload.shape() else {
         panic!("reference")
     };
-    Some(bytes.clone())
+    Some(bytes.to_vec())
 }

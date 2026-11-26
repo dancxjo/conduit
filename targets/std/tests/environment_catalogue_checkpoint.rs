@@ -3,6 +3,8 @@
 //! Offers, grants and Body admission are CPU fixtures; file/process/kernel
 //! behavior is real. No prior chunk publication, live producer or ACK claim.
 use conduit_core as c;
+#[path = "environment_catalogue_checkpoint/allocation.rs"]
+mod allocation;
 #[path = "../../../bodies/environment/make/tests/catalogue_checkpoint/catalogue.rs"]
 mod catalogue;
 #[path = "environment_catalogue_checkpoint/execution.rs"]
@@ -135,8 +137,14 @@ fn actual_catalogue_seed_recovers_exactly_in_fresh_process_and_boot() {
     fs::create_dir(root.0.join("snapshots")).unwrap();
     let (_, write, _) = host::prepare(&root.0.join("snapshots"), "boot/plan-write", true);
     let (_, read, _) = host::prepare(&root.0.join("snapshots"), "boot/plan-read", false);
-    assert_eq!(write.states[0].maximum_value_bytes, source::MAXIMUM_SEED_BYTES);
-    assert_eq!(read.states[0].maximum_value_bytes, source::MAXIMUM_SEED_BYTES);
+    assert_eq!(
+        write.states[0].maximum_value_bytes,
+        source::MAXIMUM_SEED_BYTES
+    );
+    assert_eq!(
+        read.states[0].maximum_value_bytes,
+        source::MAXIMUM_SEED_BYTES
+    );
     assert_eq!(write.states[0].lifetime, c::StateLifetime::Body);
     assert_eq!(write.states[0].state_id, read.states[0].state_id);
     assert_eq!(write.states[0].value_kind, read.states[0].value_kind);
@@ -202,16 +210,47 @@ fn invalid_json_occupied_generation_and_precancellation_preserve_committed_catal
         false
     )
     .is_err());
-    assert_eq!(stored_files(&root.0), before);
+    let after_occupied = stored_files(&root.0);
+    // The immutable publication protocol retains its staged candidate after a
+    // failed non-replacing link. Root reconciles it; it is not a committed record.
+    for (path, bytes) in &before {
+        assert!(
+            after_occupied
+                .get(path)
+                .is_some_and(|actual| actual == bytes),
+            "occupied publication changed committed file {path:?}"
+        );
+    }
+    let published = before
+        .keys()
+        .find(|path| path.starts_with("snapshots"))
+        .unwrap();
+    let candidate = Path::new("snapshots").join(format!(
+        ".pending-{}",
+        published.file_name().unwrap().to_str().unwrap()
+    ));
+    assert_eq!(after_occupied.len(), before.len() + 1);
+    assert!(!before.contains_key(&candidate));
+    assert!(after_occupied
+        .get(&candidate)
+        .unwrap()
+        .ends_with(replacement.content().as_bytes()));
     let (cancelled, _) =
         execution::execute(&root.0, "boot/cancelled", BODY, Some(json), true).unwrap();
     assert!(cancelled.is_empty());
-    assert_eq!(stored_files(&root.0), before);
+    assert!(
+        stored_files(&root.0) == after_occupied,
+        "precancellation changed file custody"
+    );
     let (values, _) =
         execution::execute(&root.0, "boot/after-refusals", BODY, None, false).unwrap();
     assert_eq!(
         execution::reference_bytes(&values).unwrap(),
         catalogue_reference().encode().unwrap()
     );
-    assert_eq!(stored_files(&root.0), before);
+    readback::verify(&root.0, &execution::reference_bytes(&values).unwrap());
+    assert!(
+        stored_files(&root.0) == after_occupied,
+        "recovery changed file custody"
+    );
 }

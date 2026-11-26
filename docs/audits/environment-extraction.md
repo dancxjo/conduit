@@ -323,3 +323,39 @@ On current `dev` plus the opaque-reference expression prerequisite, all seven
 checks and strict focused lint pass. Workspace and standalone proof formatting,
 evidence retention and all thirty standalone lock checks also pass. The lock
 delta adds only three existing local test-dependency edges.
+
+## Proposed catalogue runtime CPU qualification, 26 November 2026
+
+`cargo xtask prove environment catalogue-runtime` exercises the actual authored
+checkpoint and read-only Sources with the selected JSON file executor and the
+finite Fore Body-durable runner. The sixteen-reference application catalogue is
+validated before delivery. The exact publication result reaches the 1 KiB
+Body-lived seed; a fresh child process under a different fixture Boot recovers
+that exact reference. An independently authorized new-Boot read then resolves
+it against the actual original catalogue file and rechecks every reference in
+order. A distinct Body starts at `none`.
+
+Malformed JSON, an occupied immutable generation and ordinary precancellation
+preserve the committed catalogue and old seed. The occupied case retains exactly
+one staged candidate, as required by the existing publication protocol; it is
+not selected as the committed generation and remains separate Root reconciliation
+work. Readback still returns the original catalogue. No automatic retry or
+candidate deletion is added. Queue capacity stays one; Current history is
+explicitly admitted as two values for publication and one for recovery.
+
+Four focused checks (two application runtime cases and two shared catalogue
+fixture checks), including separate publish/recovery child executions, pass with
+strict focused lint. A calling-thread allocation probe uses the public installed
+Play markers: successful measured Play intervals make no allocation requests,
+and value-store capacities remain unchanged. Preparation, other threads, peak
+RSS and hostile-code confinement are separate claims.
+
+Advertisements, grants and Body admission here are explicit CPU fixtures. File,
+process and kernel behavior is exercised, but this is not installed CLI/resident
+acceptance, machine-power-loss durability, proof of the listed prior chunks,
+producer authentication/ACK/retirement, live membership or accepted release.
+The qualification adds no production API or dependency and does not retire the
+legacy recorder or services.
+
+Formatting, evidence retention and all thirty standalone lock checks pass for
+this qualification. It adds no manifest or lock changes.
