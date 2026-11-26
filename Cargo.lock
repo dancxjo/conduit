@@ -2097,6 +2097,7 @@ dependencies = [
  "conduit-plot",
  "conduit-std-offers",
  "conduit-time",
+ "critical-section",
  "miniz_oxide 0.8.9",
  "postcard",
  "serde",

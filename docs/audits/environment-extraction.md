@@ -216,6 +216,31 @@ retirement of superseded proof services remain with the acceptance owners in
 the inventory above. These extractions remove reusable machinery from the Body;
 they do not by themselves establish a wholly authored installed application.
 
+## Show lease custody follow-up, 25 November 2026
+
+The proposed Show cut moves the HTTP mailbox's single publisher, finite
+publication budget, monotonic revision/lease ordering, expiry and withdrawal
+into `conduit-face` under optional `show-custody`. The shared mailbox stores
+bounded inert Show material and takes an admitted synchronous projection; it
+contains no HTTP, units, environmental fields or Body service. The HTTP adapter
+still resolves representation and supplies the exact prepared Face revision.
+The proof-only global environmental publication service remains application-local.
+
+A separate withdrawal flag allows nested reads and reentrant control/publisher
+drop without borrowing the material mutably. Withdrawal suppresses every active
+read result; the outermost read retires the retained material after releasing
+its borrow. A reentrant write refuses with Busy. Closing custody cannot claim
+another publisher or reconstruct the private owner from identifiers.
+
+`cargo xtask prove environment http` passes three independent shared custody
+tests, all seven HTTP tests (including zero recurring allocations), focused
+strict shared/consumer Clippy and one compile-fail borrow-escape test. The
+supported `cargo xtask prove environment http-target` checks the actual consumer
+and shared custody on `thumbv6m-none-eabi`; library compilation passes. That
+minimal profile retains the pre-existing catalog-only `NativeRustBinding`
+unused-import warning in `component_layout_contract.rs`. It is not firmware
+linking, physical HTTP operation, Host admission or a complete MCU memory proof.
+
 ## Snapshot publication extraction follow-up, 25 November 2026
 
 The proposed snapshot cut moves exact-content observation and one-generation

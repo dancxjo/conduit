@@ -325,3 +325,8 @@ pub use collections::{
     prepare_face_collection, FaceCollectionPage, FaceCollectionRefusal, PreparedFaceCollection,
     MAX_PREPARED_COLLECTION_ITEMS,
 };
+
+#[cfg(feature = "show-custody")]
+mod show_custody;
+#[cfg(feature = "show-custody")]
+pub use show_custody::{ShowControl, ShowCustodyRefusal, ShowMailbox, ShowPublisher};
