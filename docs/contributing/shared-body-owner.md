@@ -140,6 +140,15 @@ before a typed clock action returns. The retained membership snapshot by
 itself is not a live lease, shared workload, or current remote Face; the
 workload remains on the Linux owner in the local three-Host proof.
 
+From an independently installed terminal peer with explicitly selected speech
+equipment, enter `read face` to request an Expanded reading of the owner's
+current Face. The peer refreshes and acknowledges the terminal Show before
+requesting the spoken Mask. The spoken route binds the reading to that exact
+Face. Regular terminal refreshes do not request speech. With artifact speech
+equipment, a completed reading leaves WAV artifacts in the peer's state
+directory. If the owner advances before accepting the spoken selection, the
+request can refuse as stale.
+
 ## Internal control and retained truth
 
 The foreground entrance currently accepts bounded JSON lines on standard input.
