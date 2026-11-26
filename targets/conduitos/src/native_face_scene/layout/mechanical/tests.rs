@@ -101,6 +101,7 @@ pub(super) fn prepared<'a>(
 }
 pub(super) fn item(text: &str, region: Option<usize>, control: bool) -> document::Item {
     document::Item {
+        plot: None,
         part: crate::native_face_scene::layout::NativePart::Content,
         text: text.into(),
         role: GraphicsTextRole::Label,

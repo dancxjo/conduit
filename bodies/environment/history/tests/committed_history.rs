@@ -389,3 +389,31 @@ fn two_committed_chunks_preserve_gap_and_exact_immutable_generation_metadata() {
     );
     assert_eq!(history.next_reference(), None);
 }
+
+#[test]
+fn committed_evidence_is_attached_only_to_the_selected_producer_subject() {
+    let mut publication = generation(1, &[(1, 100, true)]);
+    publication.publish();
+    let publications = [publication.observer.clone()];
+    let mut history = PreparedCommittedHistoryFace::prepare_for_subject(
+        context(),
+        &ObservationContract::prepare().unwrap(),
+        &publications,
+        "history/blue",
+    )
+    .unwrap();
+    history.read_next(&publication.content).unwrap();
+    let fragment = history.series_contribution(basis()).unwrap();
+    assert_eq!(
+        property(&fragment, "history/blue", "publication-evidence"),
+        Some(&V::Text("kernel-publication-commit".into()))
+    );
+    assert_eq!(
+        property(&fragment, "history/blue", "last-publication-reference"),
+        Some(&V::Content(publication.reference.clone()))
+    );
+    assert!(fragment
+        .subjects
+        .iter()
+        .all(|subject| !subject.identity.starts_with(HISTORY_SUBJECT)));
+}

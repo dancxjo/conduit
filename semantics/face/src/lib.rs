@@ -325,3 +325,23 @@ pub use collections::{
     prepare_face_collection, FaceCollectionPage, FaceCollectionRefusal, PreparedFaceCollection,
     MAX_PREPARED_COLLECTION_ITEMS,
 };
+
+mod quantity_series;
+pub use quantity_series::{
+    PreparedQuantitySeries, ProjectedQuantitySeries, QuantitySeriesPoint,
+    QuantitySeriesProjectionRefusal, QuantitySeriesRefusal, QuantitySeriesSample,
+    MAX_QUANTITY_SERIES_SAMPLES, QUANTITY_SERIES_ROLE,
+};
+
+mod quantity_observation_face;
+pub use quantity_observation_face::{
+    quantity_observation_fragment_backing_bound, PreparedQuantityObservationFace,
+    QuantityObservationFaceRefusal,
+};
+mod inspection_fragment_memory;
+pub use inspection_fragment_memory::inspection_fragment_backing_bytes;
+
+mod quantity_observation_snapshot_face;
+pub use quantity_observation_snapshot_face::{
+    quantity_observation_snapshot_fragment_backing_bound, PreparedQuantityObservationSnapshotFace,
+};

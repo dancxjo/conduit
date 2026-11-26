@@ -18,6 +18,7 @@ pub enum HistoryFaceRefusal {
     Observation,
     Fragment,
     Window,
+    Subject,
 }
 
 /// Explicit sample budget for allocating Face preparation. This selects a tail
@@ -49,6 +50,7 @@ impl HistoryFaceWindow {
 pub struct PreparedHistoryFace {
     history: PreparedRecordingHistory,
     producer: [String; 4],
+    subject: String,
 }
 impl PreparedHistoryFace {
     pub fn prepare(
@@ -56,6 +58,20 @@ impl PreparedHistoryFace {
         contract: &ObservationContract,
         maximum_chunks: u16,
     ) -> Result<Self, HistoryFaceRefusal> {
+        Self::prepare_for_subject(context, contract, maximum_chunks, HISTORY_SUBJECT)
+    }
+    /// Root chooses a distinct collection identity for each producer/time domain.
+    /// This naming grants no membership, publication or disclosure authority.
+    pub fn prepare_for_subject(
+        context: RecordingContext<'_>,
+        contract: &ObservationContract,
+        maximum_chunks: u16,
+        subject: &str,
+    ) -> Result<Self, HistoryFaceRefusal> {
+        // Every sample appends /sample/ and at most twenty sequence digits.
+        if subject.is_empty() || subject.len() > conduit_face::MAX_FACE_ID_BYTES - 28 {
+            return Err(HistoryFaceRefusal::Subject);
+        }
         let identifiers = [
             context.host.as_str(),
             context.boot.as_str(),
@@ -67,6 +83,7 @@ impl PreparedHistoryFace {
         Ok(Self {
             history,
             producer: identifiers.map(String::from),
+            subject: subject.into(),
         })
     }
     /// Caller independently authorizes and retrieves the selected immutable
@@ -76,6 +93,10 @@ impl PreparedHistoryFace {
             .read_next(json)
             .map_err(HistoryFaceRefusal::Recording)
     }
+    pub fn subject(&self) -> &str {
+        &self.subject
+    }
+
     pub fn recovered(&self) -> RecoveredHistory {
         self.history.recovered()
     }
@@ -98,6 +119,7 @@ impl PreparedHistoryFace {
         basis: FaceContributionBasis,
         window: HistoryFaceWindow,
     ) -> Result<FaceFragment, HistoryFaceRefusal> {
+        let history_subject = self.subject.as_str();
         let recovered = self.history.recovered();
         let loaded = self.history.loaded_samples();
         let start = loaded.saturating_sub(window.maximum_samples);
@@ -105,7 +127,7 @@ impl PreparedHistoryFace {
         let mut fragment = FaceFragment {
             basis: basis.clone(),
             subjects: vec![FaceSubject {
-                identity: HISTORY_SUBJECT.into(),
+                identity: history_subject.into(),
                 role: FaceRole::Collection,
                 name: "Recorded room conditions".into(),
             }],
@@ -129,7 +151,7 @@ impl PreparedHistoryFace {
         {
             push(
                 &mut fragment.properties,
-                HISTORY_SUBJECT,
+                history_subject,
                 name,
                 V::Identity(value.clone()),
             );
@@ -146,14 +168,14 @@ impl PreparedHistoryFace {
                 V::Count(u64::from(recovered.samples) - count as u64),
             ),
         ] {
-            push(&mut fragment.properties, HISTORY_SUBJECT, name, value);
+            push(&mut fragment.properties, history_subject, name, value);
         }
         for index in start..loaded {
             let sample = self
                 .history
                 .sample(index)
                 .ok_or(HistoryFaceRefusal::Observation)?;
-            let subject = format!("{HISTORY_SUBJECT}/sample/{}", sample.sequence);
+            let subject = format!("{history_subject}/sample/{}", sample.sequence);
             let status = status(sample.disposition);
             let quantities = match sample.observation {
                 Some(bytes) => {
@@ -185,7 +207,7 @@ impl PreparedHistoryFace {
                 name: format!("Recorded sample {}", sample.sequence),
             });
             fragment.relationships.push(FaceRelationship {
-                source: HISTORY_SUBJECT.into(),
+                source: history_subject.into(),
                 target: subject.clone(),
                 kind: FaceRelationshipKind::Contains,
             });

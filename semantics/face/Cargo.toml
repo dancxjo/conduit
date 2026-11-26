@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
+conduit-data = { path = "../data" }
 conduit-time = { path = "../time", default-features = false }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-planner = { path = "../../architecture/planner" }

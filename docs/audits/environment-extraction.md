@@ -247,3 +247,71 @@ remain unproved by this extraction.
 The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
+
+## Shared quantity history route, current development
+
+The environmental history adapter can now contribute explicit producer-specific
+series subjects through the shared `data/quantity-observation-series@1` Face
+semantics. The shared interpreter checks producer Host/Boot/Plan/Play, source
+membership, quantity contracts, actual producer Boot time, sequence gaps and
+unavailability. Independent voltage observations exercise the same interpreter;
+no environmental field names are selected by the shared layer. The original
+Face retains the complete readings and publication reference.
+
+The ordinary browser Mask prepares a finite projection (eight series, sixteen
+available points per series), preserves separate unavailability and omission
+counts, and draws independent observation dots. Exact unit conversion either
+succeeds or produces a distinct refusal; absent readings never become zero.
+`cargo xtask prove environment history` checks the shared interpretation and
+actual environmental adapter. `cargo xtask prove environment history-owner-mask`
+checks the ordinary checked Mask kernel and acknowledgement, then renders its
+result in pinned Chromium with one worker and zero retries. This is CPU Mask
+and browser renderer evidence; it does not establish a WASM Mask, installed
+producer membership, recorder restart, or accepted release.
+
+An installed history producer still needs an explicitly admitted projection Back,
+finite IMAGE funding, kernel commit/custody transfer and the ordinary owner
+contribution route. Existing owner reception checks exact producer identities;
+adding a history-shaped Face directly to the owner would bypass that gate.
+The shared route therefore does not retire the previous environmental proof
+services or complete the extraction acceptance gate above.
+
+`cargo xtask prove environment history-shared-native` separately exercises the
+ordinary native Face renderer. Prepared plot references survive ordinary,
+configured and structured layout; two axes and at most sixteen dots reserve
+eighteen commands before pagination, within the unchanged forty-eight-command
+scene bound. Seven CPU tests cover irregular time, unavailable readings,
+malformed-input fallback, small/high-scale pages, multiple series, selected Look
+and dimension-compatible temperature preferences. Interpretation and retained
+projection storage are prepared before frame drawing. This does not establish
+physical display output or whole-runtime allocation confinement.
+
+The actual history adapter and shared Face layer also pass
+`cargo xtask prove environment history-target` for `wasm32-unknown-unknown`.
+This is cross-compilation, separately from executing a WASM owner Mask.
+
+## Proposed reported-quantity Face projector, 26 November 2026
+
+The shared Face layer gains prepared projection of the exact Data batch and
+two-channel snapshot profiles into an inspection contribution. Reported producer
+Host/Boot/Plan/Play remain distinct from the inspecting contribution's checked
+Plot, Plan and Play. Producer Boot-relative times, exact quantities, gaps and
+unavailable reasons survive projection; unrelated arrival time supplies none
+of those facts. The semantic Kind accepts the exact snapshot profile, not a
+single batch or an untyped recording string.
+
+Retained input validation and allocating projection workspace have separate
+finite backing models. The closed inspection visitor refuses unsupported
+action, temporal and semantic-composition ownership instead of silently omitting
+it. The existing Ambient visitor and its behavior remain unchanged. These are
+preparation contracts, not allocation-free Step or hostile-code confinement
+claims.
+
+`cargo xtask prove environment quantity-face` checks the pure contribution and
+semantic Source contracts, strict focused lint and no-default-feature WASM
+compilation. All eight focused tests and those checks pass on the proposed
+source. This does not install a projection Back, fund an IMAGE, attach an
+environmental Source or qualify browser/native output. The selected contribution
+route and original-recording consumer remain the next application wiring cuts;
+recorder ACK/restart, full-history transport, release acceptance and legacy
+retirement retain their separate gates.

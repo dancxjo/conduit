@@ -116,4 +116,22 @@ export function registerOwnerFacePresentationTests(view) {
     expect(await page.evaluate(() => presentationCalls)).toEqual(['fixture/complete']);
     expect(await page.evaluate(() => JSON.stringify(presentationView))).toBe(await page.evaluate(() => presentationOriginal));
   });
+  test('shared quantity series renders the acknowledged checked Mask view without changing its reading', async ({ page }) => {
+    test.skip(!process.env.CONDUIT_HISTORY_OWNER_VIEW, 'requires the checked Mask fixture from cargo xtask prove environment history-owner-mask');
+    const current = JSON.parse(await readFile(process.env.CONDUIT_HISTORY_OWNER_VIEW, 'utf8'));
+    const element = await present(page, current);
+    const figure = element.locator('figure.owner-face-series');
+    await expect(figure).toHaveCount(1);
+    await expect(figure.locator('svg')).toBeVisible();
+    await expect(figure.locator('circle')).toHaveCount(2);
+    expect(await figure.locator('circle').evaluateAll(dots => dots.map(dot => [dot.getAttribute('cx'), dot.getAttribute('cy')]))).toEqual([['20000', '980000'], ['980000', '20000']]);
+    await expect(figure).toContainText('1 unavailable; 1 sequence gaps');
+    await expect(figure).toContainText('10 V to 12 V');
+    await expect(element.getByRole('heading', { name: 'Observation 2', exact: true })).toBeVisible();
+    await figure.getByText('Plot source', { exact: true }).click();
+    await expect(figure).toContainText('Host host/meter; Boot boot/meter');
+    expect(await page.evaluate(() => presentationCalls)).toEqual([]);
+    expect(await page.evaluate(() => JSON.stringify(presentationView))).toBe(await page.evaluate(() => presentationOriginal));
+  });
+
 }

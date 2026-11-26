@@ -6,7 +6,6 @@ use std::cell::{Cell, RefCell};
 // The owner frame is bounded separately at 60 KiB; admission basis bytes
 // accompany it at this WASM entrance without crossing the owner Line.
 const INPUT_CAPACITY: usize = 72 * 1024;
-const OUTPUT_CAPACITY: usize = 64 * 1024;
 
 thread_local! {
     static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; INPUT_CAPACITY].into_boxed_slice());

@@ -7,8 +7,10 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "data-target" => Some(data_target(root)),
         [name] if name == "quantity-rounding" => Some(quantity_rounding(root)),
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-owner-mask" => Some(owner_mask(root)),
         [name] if name == "history-commit" => Some(committed(root)),
         [name] if name == "history-native" => Some(native(root)),
+        [name] if name == "history-shared-native" => Some(shared_native(root)),
         [name] if name == "history-root-startup" => Some(root_startup(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
@@ -78,6 +80,21 @@ fn command(root: &Path, operation: &str) -> Command {
     command
 }
 fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
+    for operation in ["test", "clippy"] {
+        let mut shared = Command::new("cargo");
+        shared.current_dir(root).args([
+            operation,
+            "--locked",
+            "-p",
+            "conduit-face",
+            "--test",
+            "quantity_series",
+        ]);
+        if operation == "clippy" {
+            shared.args(["--", "-D", "warnings"]);
+        }
+        super::execute(&mut shared)?;
+    }
     super::execute(&mut command(root, "test"))?;
     super::execute(command(root, "clippy").args(["--all-targets", "--", "-D", "warnings"]))
 }
@@ -199,7 +216,86 @@ fn committed(root: &Path) -> Result<(), Box<dyn Error>> {
     prove(root)
 }
 
-// Exact Data contract qualification, independent of domain/Face/Host composition.
+fn owner_mask(root: &Path) -> Result<(), Box<dyn Error>> {
+    let view = root.join("target/environment-history-owner-view.json");
+    std::fs::create_dir_all(root.join("target"))?;
+    super::execute(
+        Command::new("cargo")
+            .current_dir(root)
+            .env("CONDUIT_HISTORY_OWNER_VIEW", &view)
+            .args([
+                "test",
+                "--locked",
+                "-p",
+                "conduit-browser-runtime",
+                "--lib",
+                "owner_face_mask::quantity_series",
+                "--",
+                "--test-threads=1",
+            ]),
+    )?;
+    super::execute(Command::new("node").current_dir(root).args([
+        "--check",
+        "targets/browser/handbook/owner-face-presentation.mjs",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-browser-runtime",
+        "--lib",
+        "--",
+        "-D",
+        "warnings",
+    ]))?;
+    super::execute(
+        Command::new("node")
+            .current_dir(root)
+            .env("CONDUIT_HISTORY_OWNER_VIEW", &view)
+            .args([
+                "proof/browser/node_modules/@playwright/test/cli.js",
+                "test",
+                "--config",
+                "proof/browser/playwright.config.mjs",
+                "--project",
+                "chromium",
+                "--workers",
+                "1",
+                "--retries",
+                "0",
+                "owner-face-component.spec.mjs",
+            ]),
+    )?;
+    Ok(())
+}
+
+fn shared_native(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::quantity_series::tests",
+        "--",
+        "--test-threads=1",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings",
+    ]))
+}
+
 fn data_input(root: &Path, all: bool) -> Result<(), Box<dyn Error>> {
     let mut test = Command::new("cargo");
     test.current_dir(root)

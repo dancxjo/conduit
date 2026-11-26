@@ -50,6 +50,8 @@ mod input;
 mod layout;
 #[path = "native_face_scene/picture.rs"]
 mod picture;
+#[path = "native_face_scene/quantity_series.rs"]
+mod quantity_series;
 #[path = "native_face_scene/reading_position.rs"]
 mod reading_position;
 pub use reading_position::NativeReadingPosition;
@@ -133,6 +135,7 @@ impl FaceFrame<'_> {
 /// it cannot reinterpret, replace, or mutate its retained semantic Face.
 pub struct NativeFaceScene {
     picture_frame: Option<picture::PicturePage>,
+    quantity_series: Vec<conduit_face::ProjectedQuantitySeries>,
     face: Face,
     screen: LayoutRect,
     text_scale_percent: u16,

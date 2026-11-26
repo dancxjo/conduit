@@ -63,11 +63,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-data"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "conduit-time",
+]
+
+[[package]]
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-data",
  "conduit-human",
  "conduit-planner",
  "conduit-plot",

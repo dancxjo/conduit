@@ -46,7 +46,7 @@ impl NativeFaceScene {
                 digest.update(row.page.to_le_bytes());
                 rect(&mut digest, row.bounds);
                 rect(&mut digest, row.text_bounds());
-                digest.update([row.role as u8, row.region_start as u8]);
+                digest.update([row.role as u8, row.region_start() as u8]);
                 digest.update(row.region_inset.to_le_bytes());
                 digest.update([row.region.is_some() as u8, row.region.unwrap_or(0)]);
                 if let Some(bounds) = row.panel_bounds {
