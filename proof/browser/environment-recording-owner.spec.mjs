@@ -152,17 +152,20 @@ test('complete original readings traverse a live Owner and fresh ordinary WASM M
       physical_sensor: false, recorder_acknowledgement: false, released_acceptance: false,
     }));
   } finally {
-    const state = await page.evaluate(() => {
-      const api = globalThis.__conduitOwnerParticipation;
-      return { state: api?.state(), presence: api?.presence(), host: api?.host(),
-        status: document.querySelector('[data-owner-status]')?.textContent };
-    }).catch(error => ({ error: error.message }));
-    await writeFile(path.join(output, 'diagnostic.json'), JSON.stringify({ errors, traffic, state }, null, 2));
     try {
-      if (started) command('lull');
+      const state = await page.evaluate(() => {
+        const api = globalThis.__conduitOwnerParticipation;
+        return { state: api?.state(), presence: api?.presence(), host: api?.host(),
+          status: document.querySelector('[data-owner-status]')?.textContent };
+      }).catch(error => ({ error: error.message }));
+      await writeFile(path.join(output, 'diagnostic.json'), JSON.stringify({ errors, traffic, state }, null, 2));
     } finally {
-      try { await writeFile(path.join(service, 'stop'), 'stop'); }
-      finally { server.child.kill(); }
+      try {
+        if (started) command('lull');
+      } finally {
+        try { await writeFile(path.join(service, 'stop'), 'stop'); }
+        finally { server.child.kill(); }
+      }
     }
   }
 });
