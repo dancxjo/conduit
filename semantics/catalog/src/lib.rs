@@ -586,3 +586,8 @@ mod portable_operation;
 pub use portable_operation::{
     PortableOperationBack, PortableOperationRefusal, PreparedPortableOperation,
 };
+
+#[cfg(feature = "kernel-step")]
+mod ready_backs;
+#[cfg(feature = "kernel-step")]
+pub use ready_backs::{ReadyBacks, ReadyOperation, ReadySoftwareOffers, SoftwareRefusal};

@@ -1,11 +1,11 @@
 //! Borrowed inspection tied to actual retained portable owners and one current
 //! Root offer epoch. This creates no provider, permission, Line or Body.
-use super::{ReadySoftwareBacks, SoftwareRefusal};
+use super::{ReadyBacks, SoftwareRefusal};
 use conduit_core as c;
-pub struct ReadySoftwareOffers<'a> {
-    owner: &'a ReadySoftwareBacks,
+pub struct ReadySoftwareOffers<'a, T> {
+    owner: &'a ReadyBacks<T>,
 }
-impl ReadySoftwareBacks {
+impl<T> ReadyBacks<T> {
     /// Root supplies its actual current scope. A refusal preserves the previous
     /// selection epoch; success invalidates plans against older offer epochs.
     pub fn current_offers(
@@ -13,7 +13,7 @@ impl ReadySoftwareBacks {
         host: &c::HostId,
         boot: &c::BootId,
         generation: c::OfferGeneration,
-    ) -> Result<ReadySoftwareOffers<'_>, SoftwareRefusal> {
+    ) -> Result<ReadySoftwareOffers<'_, T>, SoftwareRefusal> {
         if host != &self.host
             || boot != &self.boot
             || generation.0 == 0
@@ -27,7 +27,7 @@ impl ReadySoftwareBacks {
         Ok(ReadySoftwareOffers { owner: self })
     }
 }
-impl ReadySoftwareOffers<'_> {
+impl<T> ReadySoftwareOffers<'_, T> {
     pub fn host(&self) -> &c::HostId {
         &self.owner.host
     }

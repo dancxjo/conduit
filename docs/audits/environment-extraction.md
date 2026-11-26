@@ -237,3 +237,20 @@ seven appliance/kernel tests, one construction test and two payload-extent tests
 strict Clippy for both focused consumers; and the appliance-only library check.
 Formatting and patch hygiene pass. These are CPU/source checks, without an
 installed Play, physical-device run or accepted-release claim.
+
+The next cut moves retained offer custody into generic `ReadyBacks<T>` in the
+semantic catalog. Exact fragment/placement matching, current Host/Boot and offer
+epoch, one-time transfer, and post-transfer descriptor retirement retain their
+existing algorithms. `ReadySoftwareBacks` remains the application adapter which
+initializes environmental publication, observation and trigger operations; it
+now delegates custody to the shared owner. Borrowed offers move with that owner,
+without an alternate copy of selection or lifetime state in the Body.
+
+A standalone non-environmental test supplies its own operation payload and offer
+identities and proves retained ownership, source inspection and refusal of wrong
+Host, Boot and stale/zero epochs. Existing application tests exercise forged
+selected facts, contract/configuration changes, duplicate projection, replay and
+actual kernel execution through the shared owner. The supported appliance proof
+passes all 13 tests, both focused strict lint passes and the appliance library
+check after this cut. Complete workset/catalog preparation and the remaining
+installed recorder/history acceptance still require their own implementation.

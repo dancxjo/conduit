@@ -12,46 +12,19 @@ use conduit_core as c;
 use conduit_dht11_observation::ObservationContract;
 use conduit_semantic_catalog::PreparedCanonicalSelector;
 
-#[path = "software_offers.rs"]
-mod offers;
-pub use offers::ReadySoftwareOffers;
+pub type ReadySoftwareOffers<'a> =
+    conduit_semantic_catalog::ReadySoftwareOffers<'a, PreparedSoftwareOperation>;
 pub const PROFILE: &str = "conduit.environment/prepared-software@1";
 pub const ARTIFACT: &str = "conduit-environment-runtime/appliance-software@1";
 const BYTES: u32 = 1024;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SoftwareRefusal {
-    Source,
-    Count,
-    Unsupported,
-    Contract,
-    Initialization,
-    Advertisement,
-    Selection,
-    AlreadySelected,
-}
+pub use conduit_semantic_catalog::SoftwareRefusal;
 pub struct PreparedSoftwareOperation {
     pub driver: ApplianceBack,
     pub selector: Option<PreparedCanonicalSelector>,
 }
-struct ReadyOperation {
-    gear: c::GearId,
-    configuration: Vec<c::ConfigurationEntry>,
-    offer: c::CapabilityOffer,
-    prepared: Option<PreparedSoftwareOperation>,
-}
-/// All codec/interpreter/publication workspaces are initialized and owned here.
-/// Root supplies trusted checked Source and actual Host/Boot; it must separately
-/// admit preparation memory, the complete kernel and work before starting Play.
-/// This owner is not a Body, a provider for hardware effects or a scheduler.
+type ReadyOperation = conduit_semantic_catalog::ReadyOperation<PreparedSoftwareOperation>;
 pub struct ReadySoftwareBacks {
-    host: c::HostId,
-    boot: c::BootId,
-    source: c::SourceDocumentId,
-    checked: c::CheckedPlotId,
-    expanded: c::ExpandedPlotId,
-    generation: Option<c::OfferGeneration>,
-    operations: Vec<ReadyOperation>,
-    metadata_released: bool,
+    inner: conduit_semantic_catalog::ReadyBacks<PreparedSoftwareOperation>,
 }
 impl ReadySoftwareBacks {
     pub fn prepare(
@@ -77,14 +50,16 @@ impl ReadySoftwareBacks {
             operations.push(prepare_operation(gear, count, &sequence)?);
         }
         Ok(Self {
-            host,
-            boot,
-            source: source.expanded.source_document_id.clone(),
-            checked: source.expanded.checked_plot_id.clone(),
-            expanded: source.expanded.expanded_plot_id.clone(),
-            generation: None,
-            operations,
-            metadata_released: false,
+            inner: conduit_semantic_catalog::ReadyBacks::new(
+                c::PlotIdentity {
+                    source_document_id: source.expanded.source_document_id.clone(),
+                    checked_plot_id: source.expanded.checked_plot_id.clone(),
+                    expanded_plot_id: source.expanded.expanded_plot_id.clone(),
+                },
+                host,
+                boot,
+                operations,
+            ),
         })
     }
     /// Initialize only the explicitly named portable computations from checked
@@ -112,14 +87,16 @@ impl ReadySoftwareBacks {
             operations.push(ready_operation(gear, initialize_portable(gear)?)?);
         }
         Ok(Self {
-            host,
-            boot,
-            source: source.source_document_id.clone(),
-            checked: source.checked_plot_id.clone(),
-            expanded: source.expanded_plot_id.clone(),
-            generation: None,
-            operations,
-            metadata_released: false,
+            inner: conduit_semantic_catalog::ReadyBacks::new(
+                c::PlotIdentity {
+                    source_document_id: source.source_document_id.clone(),
+                    checked_plot_id: source.checked_plot_id.clone(),
+                    expanded_plot_id: source.expanded_plot_id.clone(),
+                },
+                host,
+                boot,
+                operations,
+            ),
         })
     }
     /// Initialize portable computations from independently authenticated Make
@@ -149,140 +126,51 @@ impl ReadySoftwareBacks {
             operations.push(ready_operation(&gear, initialize_portable(&gear)?)?);
         }
         Ok(Self {
-            host,
-            boot,
-            source: source.source_document_id,
-            checked: source.checked_plot_id,
-            expanded: source.expanded_plot_id,
-            generation: None,
-            operations,
-            metadata_released: false,
+            inner: conduit_semantic_catalog::ReadyBacks::new(
+                c::PlotIdentity {
+                    source_document_id: source.source_document_id,
+                    checked_plot_id: source.checked_plot_id,
+                    expanded_plot_id: source.expanded_plot_id,
+                },
+                host,
+                boot,
+                operations,
+            ),
         })
     }
-    /// A refusal leaves the advertisement and retained operations unchanged.
-    /// Selected operations are omitted from newly built advertisements. Root
-    /// must replace historical snapshots when availability changes.
     pub fn append_to_advertisement(
         &mut self,
         host: &mut c::HostAdvertisement,
     ) -> Result<(), SoftwareRefusal> {
-        if host.host_id != self.host
-            || host.boot_id != self.boot
-            || self
-                .operations
-                .iter()
-                .filter(|op| op.prepared.is_some())
-                .any(|op| {
-                    host.capabilities
-                        .iter()
-                        .any(|offer| offer.capability_id == op.offer.capability_id)
-                })
-        {
-            return Err(SoftwareRefusal::Advertisement);
-        }
-        host.capabilities.extend(
-            self.operations
-                .iter()
-                .filter(|op| op.prepared.is_some())
-                .map(|op| op.offer.clone()),
-        );
-        self.generation = Some(host.offer_generation);
-        Ok(())
+        self.inner.append_to_advertisement(host)
     }
-    /// Match the actual initialized object, not just a Kind descriptor. All
-    /// checks precede ownership transfer. Root still owns current-Plan/Play,
-    /// memory admission and any independent native Host Call authorization.
     pub fn take_selected(
         &mut self,
         fragment: &c::PlanFragment,
         placement: &c::PlacementId,
     ) -> Result<PreparedSoftwareOperation, SoftwareRefusal> {
-        let index = self.selected_index(fragment, placement)?;
-        self.operations[index]
-            .prepared
-            .take()
-            .ok_or(SoftwareRefusal::AlreadySelected)
+        self.inner.take_selected(fragment, placement)
     }
-    /// Retire construction descriptors only after every initialized operation
-    /// has transferred. Scope and withdrawn-offer inspection remain available;
-    /// this owner can never supply another operation. Refusal changes nothing.
-    /// No allocation, replacement implementation or readiness is introduced.
-    pub fn release_transferred_metadata(&mut self) -> Result<(), SoftwareRefusal> {
-        if self.operations.iter().any(|op| op.prepared.is_some()) {
-            return Err(SoftwareRefusal::Selection);
-        }
-        self.operations = Vec::new();
-        self.metadata_released = true;
-        Ok(())
-    }
-    /// Preflight a whole closure before transferring any retained operation.
     pub fn check_selected(
         &self,
         fragment: &c::PlanFragment,
         placement: &c::PlacementId,
     ) -> Result<(), SoftwareRefusal> {
-        self.selected_index(fragment, placement).map(|_| ())
+        self.inner.check_selected(fragment, placement)
     }
-    fn selected_index(
-        &self,
-        fragment: &c::PlanFragment,
-        placement: &c::PlacementId,
-    ) -> Result<usize, SoftwareRefusal> {
-        if !c::verify_plan_fragment(fragment)
-            || fragment.host_id != self.host
-            || fragment.boot_id != self.boot
-            || fragment.source_document_id != self.source
-            || fragment.checked_plot_id != self.checked
-            || fragment.expanded_plot_id != self.expanded
-        {
-            return Err(SoftwareRefusal::Selection);
-        }
-        if self.metadata_released {
-            return Err(SoftwareRefusal::AlreadySelected);
-        }
-        let gear = fragment
-            .placements
-            .iter()
-            .find(|gear| &gear.placement_id == placement)
-            .ok_or(SoftwareRefusal::Selection)?;
-        let index = self
-            .operations
-            .iter()
-            .position(|op| op.gear == gear.gear_id)
-            .ok_or(SoftwareRefusal::Selection)?;
-        let op = &self.operations[index];
-        let offer = &op.offer;
-        if self.generation != Some(gear.offer_generation)
-            || gear.host_id != self.host
-            || gear.boot_id != self.boot
-            || gear.limits != offer.limits
-            || gear.configuration != op.configuration
-            || gear.kind_id != offer.kind_id
-            || gear.kind_contract_revision != offer.kind_contract_revision
-            || gear.semantic_contract != offer.semantic_contract
-            || gear.inputs != offer.inputs
-            || gear.outputs != offer.outputs
-            || gear.capability_id != offer.capability_id
-            || gear.execution_profile_id != offer.implementation.execution_profile_id
-            || gear.implementation_id != offer.implementation.implementation_id
-            || gear.artifact_id != offer.implementation.artifact_id
-            || gear.host_calls != offer.host_calls
-            || gear.base.is_some()
-            || !gear.resources.is_empty()
-            || !gear.authority.is_empty()
-            || !gear.pool_references.is_empty()
-            || !gear.terminal_transductions.is_empty()
-            || !gear.realization_properties.is_empty()
-            || !gear.realization_characteristics.is_empty()
-        {
-            return Err(SoftwareRefusal::Selection);
-        }
-        if op.prepared.is_none() {
-            return Err(SoftwareRefusal::AlreadySelected);
-        }
-        Ok(index)
+    pub fn release_transferred_metadata(&mut self) -> Result<(), SoftwareRefusal> {
+        self.inner.release_transferred_metadata()
+    }
+    pub fn current_offers(
+        &mut self,
+        host: &c::HostId,
+        boot: &c::BootId,
+        generation: c::OfferGeneration,
+    ) -> Result<ReadySoftwareOffers<'_>, SoftwareRefusal> {
+        self.inner.current_offers(host, boot, generation)
     }
 }
+
 /// Make-side metadata from the ordinary portable implementation constructor.
 /// No Host/Boot, native provider, advertisement or readiness is manufactured.
 /// Temporary pure owners validate the compiled artifact and are then released.
