@@ -45,6 +45,7 @@ fn main() {
         }],
         &RustBindingOptions {
             boxed_variant_payloads: [
+                "QuantityObservationOutcome.available".into(),
                 "ObservationValue.sampled-signal".into(),
                 "ObservationValue.tensor".into(),
                 "SignalCadence.irregular".into(),
@@ -80,6 +81,10 @@ fn main() {
             .into(),
             copy_record_value_getters: ["DataGenerationNamespace".into()].into(),
             public_record_fields: [
+                "QuantityObservationGap".into(),
+                "ResolvedQuantityObservation".into(),
+                "ResolvedQuantityObservationBatch".into(),
+                "ResolvedQuantityObservationSnapshot".into(),
                 "AlignedTrainingView".into(),
                 "CalibrationTransform".into(),
                 "CoordinateFrame".into(),
@@ -139,6 +144,24 @@ fn main() {
         ));
     }
     generated.source.push_str("] ) }\n");
+    let batch = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "ResolvedQuantityObservationBatch")
+        .expect("resolved observation batch belongs to checked Data Source");
+    generated.source.push_str(&format!(
+        "pub(crate) fn checked_quantity_observation_batch_type() -> Result<conduit_plot::CheckedNativeType, NativeBindingRefusal> {{ Ok(conduit_plot::CheckedNativeType {{ name: \"ResolvedQuantityObservationBatch\".into(), identity: conduit_plot::rust_binding::semantic_core::kind_id({identity:?}), value_type: ResolvedQuantityObservationBatch::semantic_type()?, value_contracts: ResolvedQuantityObservationBatch::value_contracts(), invariants: ResolvedQuantityObservationBatch::invariants()? }}) }}\n",
+        identity = batch.identity.as_str(),
+    ));
+    let snapshot = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "ResolvedQuantityObservationSnapshot")
+        .expect("resolved observation snapshot belongs to checked Data Source");
+    generated.source.push_str(&format!(
+        "pub(crate) fn checked_quantity_observation_snapshot_type() -> Result<conduit_plot::CheckedNativeType, NativeBindingRefusal> {{ Ok(conduit_plot::CheckedNativeType {{ name: \"ResolvedQuantityObservationSnapshot\".into(), identity: conduit_plot::rust_binding::semantic_core::kind_id({identity:?}), value_type: ResolvedQuantityObservationSnapshot::semantic_type()?, value_contracts: ResolvedQuantityObservationSnapshot::value_contracts(), invariants: ResolvedQuantityObservationSnapshot::invariants()? }}) }}\n",
+        identity = snapshot.identity.as_str(),
+    ));
     let output_directory = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"));
     let output = output_directory.join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated data bindings");

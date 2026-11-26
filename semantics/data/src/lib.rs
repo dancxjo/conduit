@@ -26,7 +26,9 @@ pub use generated::{
     MeasurementWindowRefusal, MissingDataMask, NamedTensor, NamedTensorBundle,
     NormalizedQuantityRefusal, ObservationProvenance, ObservationProvenanceDerived,
     ObservationProvenanceMeasured, ObservationSet, ObservationValue, ObservationValueSampledSignal,
-    ObservationValueTensor, QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignal,
+    ObservationValueTensor, QuantityMappingRefusal, QuantityObservationGap,
+    QuantityObservationOutcome, QuantizationPolicy, RangePolicy, ResolvedQuantityObservation,
+    ResolvedQuantityObservationBatch, ResolvedQuantityObservationSnapshot, SampledSignal,
     SampledSignalRefusal, ScalarComparison, ScientificAlignmentRefusal,
     ScientificAlignmentRefusalObservation, ScientificCorpusRefusal,
     ScientificCorpusRefusalObservation, ScientificObservation, ScientificObservationIdentity,
@@ -62,6 +64,8 @@ mod measurement_wire;
 mod named_tensor;
 mod named_tensor_catalog;
 mod named_tensor_output;
+mod quantity_observation_input;
+mod quantity_observation_snapshot;
 pub use named_tensor_output::*;
 mod named_tensor_view;
 pub use named_tensor_view::*;
@@ -99,6 +103,8 @@ pub use measurement_threshold_wire::*;
 pub use measurement_window::*;
 pub use measurement_window_catalog::*;
 pub use measurement_wire::*;
+pub use quantity_observation_input::*;
+pub use quantity_observation_snapshot::*;
 pub use sampled_signal::*;
 pub use scientific_alignment::*;
 pub use scientific_corpus::*;

@@ -2,6 +2,9 @@
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
+        [name] if name == "data-input" => Some(data_input(root, false)),
+        [name, scope] if name == "data-input" && scope == "all" => Some(data_input(root, true)),
+        [name] if name == "data-target" => Some(data_target(root)),
         [name] if name == "quantity-rounding" => Some(quantity_rounding(root)),
         [name] if name == "history" => Some(prove(root)),
         [name] if name == "history-commit" => Some(committed(root)),
@@ -194,4 +197,40 @@ fn committed(root: &Path) -> Result<(), Box<dyn Error>> {
         "warnings",
     ]))?;
     prove(root)
+}
+
+// Exact Data contract qualification, independent of domain/Face/Host composition.
+fn data_input(root: &Path, all: bool) -> Result<(), Box<dyn Error>> {
+    let mut test = Command::new("cargo");
+    test.current_dir(root)
+        .args(["test", "--locked", "-p", "conduit-data"]);
+    if all {
+        test.arg("--all-features");
+    } else {
+        test.args(["--test", "quantity_observation_input"]);
+    }
+    super::execute(&mut test)?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-data",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings",
+    ]))
+}
+fn data_target(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "check",
+        "--locked",
+        "-p",
+        "conduit-data",
+        "--lib",
+        "--all-features",
+        "--target",
+        "wasm32-unknown-unknown",
+    ]))
 }
