@@ -332,9 +332,14 @@ pub(super) fn history(root: &Path, host: &str, body: &str) -> Result<Value, Stri
         "archive_records_committed":prepared.additions.is_empty(), "receipt_digests":prepared.index.history, "receipts":values}),
     )
 }
-pub(super) fn require_capacity(root: &Path, host: &str, body: &str) -> Result<(), String> {
+pub(super) fn require_capacity(
+    root: &Path,
+    host: &str,
+    body: &str,
+    outcomes: usize,
+) -> Result<(), String> {
     let prepared = prepare(root, host, body, None)?;
-    if prepared.index.history.len() >= MAX_RECEIPTS {
+    if outcomes > MAX_RECEIPTS.saturating_sub(prepared.index.history.len()) {
         return Err("execution custody capacity exhausted before Play".into());
     }
     Ok(())
