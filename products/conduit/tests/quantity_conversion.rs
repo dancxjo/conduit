@@ -3,8 +3,11 @@ use serde_json::Value;
 use std::{
     fs,
     process::Command,
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+static NEXT: AtomicU64 = AtomicU64::new(0);
 
 fn source(original: &str, target: &str) -> String {
     format!("# Unicode µ before owned spans\nplot conversion (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {{\n converted: units/convert(source = {original}, to = {target})\n converted.receipt >> receipt\n}}.\n")
@@ -15,8 +18,9 @@ fn check(source: &str, json: bool) -> std::process::Output {
         .unwrap()
         .as_nanos();
     let path = std::env::temp_dir().join(format!(
-        "conduit-quantity-conversion-{}-{nonce}.conduit",
-        std::process::id()
+        "conduit-quantity-conversion-{}-{nonce}-{}.conduit",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
     ));
     fs::write(&path, source).unwrap();
     let mut command = Command::new(env!("CARGO_BIN_EXE_conduit"));
