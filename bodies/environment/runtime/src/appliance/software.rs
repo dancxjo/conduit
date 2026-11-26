@@ -409,45 +409,33 @@ fn initialize(
 fn initialize_portable(
     gear: &conduit_plot::CheckedGear,
 ) -> Result<InitializedOperation, SoftwareRefusal> {
-    let mut selector = None;
-    let mut calls = vec![];
-    let temporal = c::PortTemporal::Flow { closes: true };
-    let (kind, driver) = if let Some(c::ConfigurationValue::Text(encoded)) = gear
-        .configuration
-        .iter()
-        .find(|c| c.key == "program")
-        .map(|c| &c.value)
-    {
-        let program =
-            conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).map_err(init)?;
-        (
-            conduit_semantic_catalog::pure_expression_contract(&program, temporal).map_err(init)?,
-            ApplianceBack::Native(CaptureBack::expression(&program, temporal).map_err(init)?),
-        )
-    } else if let Some(c::ConfigurationValue::Text(encoded)) = gear
-        .configuration
-        .iter()
-        .find(|c| c.key == "selector")
-        .map(|c| &c.value)
-    {
-        let value = c::StructuredSelector::from_canonical_hex(encoded).map_err(init)?;
-        let kind = conduit_semantic_catalog::structured_selector_contract(&value, temporal);
-        selector = Some(
-            PreparedCanonicalSelector::prepare(value, BYTES as usize, BYTES as usize)
-                .map_err(init)?,
-        );
-        calls.push(c::HostCallRequirement {
-            contract_id: "conduit.host/structured-selector@1".into(),
-            target_kind: Some(kind.kind_id.clone()),
-            maximum_in_flight: 1,
-            maximum_input_bytes: BYTES,
-            maximum_output_bytes: BYTES,
-        });
-        (kind, ApplianceBack::Native(CaptureBack::selector(BYTES)))
-    } else {
-        return Err(SoftwareRefusal::Unsupported);
+    use conduit_semantic_catalog::{PortableOperationBack, PreparedPortableOperation};
+    let prepared = PreparedPortableOperation::prepare(
+        gear,
+        c::PortTemporal::Flow { closes: true },
+        BYTES,
+        BYTES,
+    )
+    .map_err(|reason| match reason {
+        conduit_semantic_catalog::PortableOperationRefusal::Unsupported => {
+            SoftwareRefusal::Unsupported
+        }
+        conduit_semantic_catalog::PortableOperationRefusal::Initialization => {
+            SoftwareRefusal::Initialization
+        }
+    })?;
+    let driver = match prepared.back {
+        PortableOperationBack::Expression(back) => CaptureBack::Expression(back),
+        PortableOperationBack::Selector(back) => CaptureBack::Selector(back),
     };
-    Ok((kind, PreparedSoftwareOperation { driver, selector }, calls))
+    Ok((
+        prepared.kind,
+        PreparedSoftwareOperation {
+            driver: ApplianceBack::Native(driver),
+            selector: prepared.selector,
+        },
+        prepared.host_calls,
+    ))
 }
 
 fn init<T>(_: T) -> SoftwareRefusal {

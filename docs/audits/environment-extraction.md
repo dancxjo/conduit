@@ -215,3 +215,25 @@ Mask route. Recorder installation/restart, shared observation/history views and
 retirement of superseded proof services remain with the acceptance owners in
 the inventory above. These extractions remove reusable machinery from the Body;
 they do not by themselves establish a wholly authored installed application.
+
+## Portable computation preparation follow-up, 25 November 2026
+
+The current-dev follow-up extracts expression/selector initialization from
+`appliance/software.rs` into the semantic catalog's `PreparedPortableOperation`.
+Its inputs are one explicitly supplied checked gear, temporal contract and
+selector input/output ceilings. It installs no environmental catalog, publication
+channel, cadence, device provider, advertisement or authority. The environmental
+adapter retains those application choices and exact checked-Fore/offer matching.
+The existing selector Host Call and kernel Backs retain execution and commit
+ownership; there is no new scheduler or forwarding implementation.
+
+`cargo xtask prove environment appliance` includes the shared non-environmental
+increment/refusal tests as well as the application construction and kernel proof.
+This extraction does not complete shared workset preparation, installed recorder
+recovery, ordinary history Mask routing or physical/release acceptance.
+
+Focused hosted qualification passes: the two standalone shared preparation tests,
+seven appliance/kernel tests, one construction test and two payload-extent tests;
+strict Clippy for both focused consumers; and the appliance-only library check.
+Formatting and patch hygiene pass. These are CPU/source checks, without an
+installed Play, physical-device run or accepted-release claim.

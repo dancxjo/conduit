@@ -579,3 +579,10 @@ pub use resonator_projection_report::*;
 mod startup_chime_back;
 #[cfg(feature = "kernel-step")]
 pub use startup_chime_back::StartupChimeBack;
+
+#[cfg(feature = "kernel-step")]
+mod portable_operation;
+#[cfg(feature = "kernel-step")]
+pub use portable_operation::{
+    PortableOperationBack, PortableOperationRefusal, PreparedPortableOperation,
+};
