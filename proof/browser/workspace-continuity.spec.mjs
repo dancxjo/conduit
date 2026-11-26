@@ -23,10 +23,10 @@ test("Workspace returns a retained Body to its Plots without a parallel applicat
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const first = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
+  // A live document owns the Body lock until it closes.
+  await page.close();
   const returnedWorkspace = await context.newPage();
   await returnedWorkspace.goto(new URL("workspace/", entrance.url).href);
-  await page.close();
-  await returnedWorkspace.reload();
   await waitForWorkspacePreparation(returnedWorkspace);
   const returned = await returnedWorkspace.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(first.body_id);
