@@ -12,7 +12,7 @@ use conduit_face::{
 
 pub(super) struct Item {
     pub text: String,
-    pub plot: Option<usize>,
+    pub plot: Option<core::num::NonZeroU8>,
     pub part: layout::NativePart,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
@@ -482,9 +482,9 @@ fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
 mod typed_value_tests;
 
 /// A noninteractive ordinary plot row; source wording remains in adjacent rows.
-pub(super) fn plot_item(subject_index: usize, index: usize) -> Item {
+pub(super) fn plot_item(subject_index: usize, plot: Option<core::num::NonZeroU8>) -> Item {
     let mut result = item("Quantity observations".into(), GraphicsTextRole::Body);
     result.subject_index = Some(subject_index);
-    result.plot = Some(index);
+    result.plot = plot;
     result
 }

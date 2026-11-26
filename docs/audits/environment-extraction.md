@@ -216,6 +216,38 @@ retirement of superseded proof services remain with the acceptance owners in
 the inventory above. These extractions remove reusable machinery from the Body;
 they do not by themselves establish a wholly authored installed application.
 
+## Snapshot publication extraction follow-up, 25 November 2026
+
+The proposed snapshot cut moves exact-content observation and one-generation
+Host Call commit staging from the environmental recording Back into the shared
+resource-snapshot package under its optional `kernel-step` feature. A prepared
+content validator supplies finite domain metadata; the environmental adapter
+keeps JSON/observation parsing, sample cardinality, sequence-range meaning and
+its existing digest namespace. The shared mechanism has no dependency on the
+Body, device contracts or environmental Forms. Preparation refuses content and
+encoded-reference extents beyond its supplied envelope.
+
+The same ordinary kernel Host Call Back retains request/completion ownership.
+Pressure, failed/denied/foreign completion, cancellation and a staged but
+uncommitted output cannot publish observer state. Exact committed bytes remain
+inspectable after later cancellation. This observer is process-local kernel
+commit evidence, not a portable receipt, durable recorder installation or
+producer ACK/retirement authority.
+
+`cargo xtask prove environment history-commit` now checks the shared mechanism
+and strict focused runtime lint in addition to the existing recording and
+History composition. All 59 hosted tests pass: 20 shared snapshot tests, two
+device Form tests, 15 recording tests and 22 History tests. This includes
+allocation-free recurring publication/recovery checks and real Linux immutable
+file publication/reopen with both graph projections. All focused strict lint
+passes, and all 30 standalone lockfiles pass verification. Dependency lock
+changes add only the local shared package/edge, preserving external versions.
+Installed selected-recorder restart/ACK recovery and ordinary shared Mask routing
+remain unproved by this extraction.
+The supported `cargo xtask prove environment history-target` WASM library check
+also passes with the shared publication mechanism enabled; this is compilation,
+not browser execution or an installed Mask.
+
 ## Shared quantity history route, current development
 
 The environmental history adapter can now contribute explicit producer-specific

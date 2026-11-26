@@ -15,6 +15,7 @@ face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["conduit-dht11-observation/source-capture"]
 
 [dependencies]
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot", features = ["kernel-step"] }
 conduit-tm1637-protocol = { path = "../../../mechanisms/devices/tm1637" }
 conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11", features = ["kernel-step"] }
 conduit-typed-retention = { path = "../../../mechanisms/implementations/typed-retention" }

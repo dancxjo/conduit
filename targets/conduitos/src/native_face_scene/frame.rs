@@ -166,7 +166,7 @@ impl NativeFaceScene {
             if let Some(index) = row.plot {
                 quantity_series::append(
                     &mut scene,
-                    &self.quantity_series[index],
+                    &self.quantity_series[usize::from(index.get() - 1)],
                     row.text_bounds(),
                     self.screen,
                 )?;

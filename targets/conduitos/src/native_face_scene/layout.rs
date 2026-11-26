@@ -41,7 +41,7 @@ const INDENT_STEP: u16 = 14;
 
 pub(super) struct Row {
     pub continuation: Option<LayoutContinuation>,
-    pub plot: Option<usize>,
+    pub plot: Option<core::num::NonZeroU8>,
     pub text: String,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,

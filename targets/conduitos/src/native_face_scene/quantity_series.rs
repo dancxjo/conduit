@@ -38,8 +38,7 @@ pub(super) fn prepare(
             continue;
         };
         if let Some(bytes) = &series.publication_reference {
-            let mut reference = document::plot_item(subject_index, plots.len());
-            reference.plot = None;
+            let mut reference = document::plot_item(subject_index, None);
             reference.text = alloc::format!(
                 "{} publication reference canonical bytes: {:?}; evidence: {}",
                 subject.name,
@@ -60,11 +59,16 @@ pub(super) fn prepare(
         else {
             continue;
         };
-        let mut plot = document::plot_item(subject_index, plots.len());
+        let Some(index) = u8::try_from(plots.len() + 1)
+            .ok()
+            .and_then(core::num::NonZeroU8::new)
+        else {
+            break;
+        };
+        let mut plot = document::plot_item(subject_index, Some(index));
         plot.region = items[position].region;
         plot.region_order = items[position].region_order;
-        let mut caption = document::plot_item(subject_index, plots.len());
-        caption.plot = None;
+        let mut caption = document::plot_item(subject_index, None);
         caption.text = alloc::format!(
             "{} to {}; producer Boot {}–{} ms; {} plotted, {} omitted points, {} unavailable; {} gaps; {} outside view.",
             series.minimum.as_deref().unwrap_or("unavailable"),
