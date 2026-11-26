@@ -240,8 +240,11 @@ package requiring a vendor repository is unsupported and fails resolution.
 
 Each acquisition uses private source configuration and fresh indices, leaving
 host sources and lists untouched. Unrelated vendor outages cannot affect that
-scope. Unrecovered required archive update failures remain fatal, including on cache hits;
-unauthenticated, weak, insecure, and downgraded repositories remain forbidden.
+scope. When an official archive serves an index whose size disagrees with the
+signed metadata or a selected package returns 404, APT makes one refresh with a new private index directory and
+requests uncached HTTPS responses. The acquisition report records a successful
+refresh. An unresolved required archive update fails acquisition, including on
+cache hits. All repository authentication and package checks still apply.
 The archive cache identity includes the exact selected sources, signing-key
 content, runner image, architecture, requested packages, and installed baseline.
 Cached bytes must match current metadata from that same private index scope;
