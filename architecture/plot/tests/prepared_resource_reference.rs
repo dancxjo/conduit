@@ -28,7 +28,7 @@ fn reference(maximum: bool) -> BoundedResourceRef {
             expires_at: maximum.then_some(TemporalInstant {
                 ticks: 7,
                 scale: TemporalScale::Milliseconds,
-                clock_basis: name.into(),
+                clock_basis: name,
                 resolution_ticks: 1,
                 uncertainty_ticks: 0,
             }),

@@ -90,9 +90,8 @@ pub(super) fn complete(
         }
         Err(error) => {
             let code = match &error {
-                JsonSnapshotFileRefusal::WrongReference | JsonSnapshotFileRefusal::InvalidJson => {
-                    FailureCode::InvalidInput
-                }
+                JsonSnapshotFileRefusal::WrongReference
+                | JsonSnapshotFileRefusal::InvalidJson(_) => FailureCode::InvalidInput,
                 JsonSnapshotFileRefusal::InvalidBinding
                 | JsonSnapshotFileRefusal::File(
                     conduit_linux_snapshot_store::FileSnapshotRefusal::Binding(_),

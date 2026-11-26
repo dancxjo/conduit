@@ -179,7 +179,7 @@ fn malformed_content_foreign_authority_and_occupied_generation_never_replace_con
     for bad in [b"not JSON!!!".as_slice(), b"{invalid:1}", br#"{"value":}"#] {
         assert!(matches!(
             writer.publish(&write.authority[0], bad),
-            Err(E::InvalidJson)
+            Err(E::InvalidJson(_))
         ));
     }
     let mut stale = write.authority[0].clone();
@@ -299,6 +299,34 @@ fn restored_opaque_file_must_still_be_valid_json() {
     let mut reader = selected.prepare_operation(&read).unwrap();
     assert!(matches!(
         reader.read(&read.authority[0], &reference.encode().unwrap()),
-        Err(E::InvalidJson)
+        Err(E::InvalidJson(_))
     ));
+}
+
+#[test]
+fn json_refusal_reasons_remain_distinct_before_any_file_effect() {
+    use conduit_web::JsonRefusal;
+    let root = tempfile::tempdir().unwrap();
+    let (write, _) = binding("boot/json-refusals", true);
+    let selected = selection(root.path(), "boot/json-refusals", true);
+    let mut writer = selected.prepare_operation(&write).unwrap();
+    let cases = [
+        (b"not JSON".to_vec(), JsonRefusal::MalformedSyntax),
+        (vec![b'"', 255, b'"'], JsonRefusal::InvalidUtf8),
+        (b"[[[[[[[[[0]]]]]]]]]".to_vec(), JsonRefusal::DepthOverflow),
+        (
+            vec![b' '; conduit_web::JSON_MAXIMUM_ENCODED_BYTES + 1],
+            JsonRefusal::EncodedByteOverflow,
+        ),
+    ];
+    for (bytes, expected) in cases {
+        match writer.publish(&write.authority[0], &bytes) {
+            Err(E::InvalidJson(actual)) => assert_eq!(actual, expected),
+            other => panic!("expected {expected:?}, got {other:?}"),
+        }
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    }
+    writer
+        .publish(&write.authority[0], br#"{"value":1}"#)
+        .unwrap();
 }

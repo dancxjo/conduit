@@ -12,7 +12,7 @@ use conduit_std_offers::*;
 pub enum JsonSnapshotFileRefusal {
     InvalidBinding,
     WrongReference,
-    InvalidJson,
+    InvalidJson(conduit_web::JsonRefusal),
     Unavailable,
     File(FileSnapshotRefusal),
 }
@@ -248,7 +248,7 @@ impl<'a> PreparedJsonSnapshot<'a> {
         if !self.write {
             return Err(JsonSnapshotFileRefusal::InvalidBinding);
         }
-        conduit_web::validate_json_text(json).map_err(|_| JsonSnapshotFileRefusal::InvalidJson)?;
+        conduit_web::validate_json_text(json).map_err(JsonSnapshotFileRefusal::InvalidJson)?;
         self.file.publish(authority, json)?;
         Ok(&self.reference)
     }
@@ -267,7 +267,7 @@ impl<'a> PreparedJsonSnapshot<'a> {
             return Err(JsonSnapshotFileRefusal::WrongReference);
         }
         let json = self.file.read(authority)?;
-        conduit_web::validate_json_text(json).map_err(|_| JsonSnapshotFileRefusal::InvalidJson)?;
+        conduit_web::validate_json_text(json).map_err(JsonSnapshotFileRefusal::InvalidJson)?;
         Ok(json)
     }
     pub fn retire(&mut self) {
@@ -282,7 +282,7 @@ impl JsonSnapshotFileRefusal {
         match self {
             Self::InvalidBinding => 10,
             Self::WrongReference => 11,
-            Self::InvalidJson => 12,
+            Self::InvalidJson(reason) => 1_000 + reason.detail(),
             Self::Unavailable => 13,
             Self::File(F::Binding(_)) => 14,
             Self::File(F::InvalidKey | F::InvalidFile) => 15,
