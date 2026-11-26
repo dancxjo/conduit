@@ -314,7 +314,11 @@ export async function startOwnerParticipation(application, root) {
   const renderFace = view => {
     const artifact = view.mask_renderer_artifact_id;
     const selected = componentBack.selected && artifact === componentBack.artifactId;
-    if (!selected && artifact !== 'artifact/browser-runtime') throw new Error('Selected owner renderer is unavailable');
+    // Both generic artifacts use this packaged presentation. The SDK has
+    // already verified the exact planned Back before returning this view.
+    const generic = artifact === 'artifact/browser-runtime'
+      || artifact === 'artifact/browser-owner-face-full@1';
+    if (!selected && !generic) throw new Error('Selected owner renderer is unavailable');
     if (artifact !== faceArtifact) {
       faceComponent.retireOwnerFace?.();
       faceComponent.remove();
