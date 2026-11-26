@@ -11,12 +11,12 @@ publish = false
 http-ap = ["kernel-evaluation", "dep:conduit-environment-http", "dep:cyw43", "dep:cyw43-pio", "dep:aligned", "dep:embassy-net", "dep:conduit-rp2040-network-realization"]
 display-wire = ["dep:conduit-tm1637-wire", "dep:conduit-rp2040-tm1637"]
 source-evaluation = ["dep:conduit-plot", "dep:linked_list_allocator", "dep:critical-section"]
-kernel-evaluation = ["dep:conduit-dht11-observation", "dep:conduit-semantic-catalog", "pio-capture", "dep:conduit-environment-runtime", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:serde_json", "dep:conduit-environment-face", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-time", "conduit-pulse-capture/host-call", "conduit-rp2040-pulse-capture/host-call"]
+kernel-evaluation = ["dep:conduit-dht11-observation", "dep:conduit-semantic-catalog", "pio-capture", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:serde_json", "dep:conduit-environment-face", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-time", "conduit-pulse-capture/host-call", "conduit-rp2040-pulse-capture/host-call"]
 pio-capture = ["source-evaluation", "dep:conduit-pulse-capture", "dep:conduit-rp2040-pulse-capture"]
 
 [dependencies]
 conduit-dht11-observation = { path = "../../../../mechanisms/devices/dht11", optional = true, features = ["kernel-step"] }
-conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, optional = true }
+conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, features = ["kernel-step"], optional = true }
 conduit-environment-http = { path = "../../../../bodies/environment/http", optional = true }
 cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
 cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
@@ -29,7 +29,6 @@ conduit-time = { path = "../../../../semantics/time", default-features = false, 
 conduit-environment-face = { path = "../../../../semantics/environment-face", optional = true }
 conduit-face = { path = "../../../../semantics/face", default-features = false, optional = true }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask", optional = true }
-conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", optional = true }
 conduit-kernel = { path = "../../../../architecture/kernel", features = ["alloc"], optional = true }
 conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
@@ -56,7 +55,6 @@ portable-atomic = { version = "1", features = ["critical-section"] }
 conduit-dht11-observation = { path = "../../../../mechanisms/devices/dht11" }
 conduit-rp2040-flash-layout = { path = "../../flash-layout" }
 conduit-time = { path = "../../../../semantics/time" }
-conduit-environment-runtime = { path = "../../../../bodies/environment/runtime" }
 conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }
 conduit-plan-lowering = { path = "../../../../architecture/plan-lowering" }
 conduit-planner = { path = "../../../../architecture/planner" }

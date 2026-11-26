@@ -3,11 +3,12 @@ extern crate alloc;
 use super::{Back, BenchKernel, Observed, Role, C, N, P, R, ROLES};
 use alloc::boxed::Box;
 use conduit_core as c;
-use conduit_environment_runtime::CaptureBack;
 use conduit_kernel as k;
 use conduit_plot::PortableExpressionProgram;
 use conduit_pulse_capture::installation::PulseNativeIdentity;
-use conduit_semantic_catalog::PreparedCanonicalSelector;
+use conduit_semantic_catalog::{
+    PreparedCanonicalSelector, PreparedExpressionBack, StructuredSelectorBack,
+};
 pub(super) fn identity(boot: &str) -> PulseNativeIdentity {
     PulseNativeIdentity {
         host_id: "fixture/environment".into(),
@@ -44,20 +45,20 @@ pub(super) fn prepare_back<'a>(
             length: 0,
             staged: false,
         },
-        Role::Observation => Back::Native(
-            CaptureBack::observation(
+        Role::Observation => Back::Observation(Box::new(
+            conduit_dht11_observation::ObservationBack::prepare(
                 &conduit_dht11_observation::ObservationContract::prepare().unwrap(),
             )
             .unwrap(),
-        ),
-        Role::Pulse => Back::Native(CaptureBack::pulse(1024)),
-        Role::Expression(bytes) => Back::Native(
-            CaptureBack::expression(
+        )),
+        Role::Pulse => Back::Pulse(k::scheduler::HostCallBack::new(1024)),
+        Role::Expression(bytes) => Back::Expression(Box::new(
+            PreparedExpressionBack::prepare_with_temporal(
                 &PortableExpressionProgram::from_canonical_bytes(bytes).unwrap(),
                 c::PortTemporal::Flow { closes: true },
             )
             .unwrap(),
-        ),
+        )),
         Role::Selector(text) => {
             *selector = Some(
                 PreparedCanonicalSelector::prepare(
@@ -67,7 +68,7 @@ pub(super) fn prepare_back<'a>(
                 )
                 .unwrap(),
             );
-            Back::Native(CaptureBack::selector(1024))
+            Back::Selector(StructuredSelectorBack::new(1024))
         }
     }
 }

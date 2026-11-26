@@ -1,9 +1,10 @@
 //! Explicit single-shot kernel/HIL harness Backs; not a production logger.
-use conduit_environment_runtime::CaptureBack;
+use conduit_dht11_observation::ObservationBack;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, PortId,
 };
+use conduit_semantic_catalog::{PreparedExpressionBack, StructuredSelectorBack};
 extern crate alloc;
 use alloc::boxed::Box;
 use core::cell::{Cell, RefCell};
@@ -20,7 +21,10 @@ impl Observed {
     }
 }
 pub enum Back<'a> {
-    Native(CaptureBack),
+    Expression(Box<PreparedExpressionBack>),
+    Selector(StructuredSelectorBack),
+    Pulse(conduit_kernel::scheduler::HostCallBack),
+    Observation(Box<ObservationBack>),
     Tick(conduit_time::TickBack),
     Trigger(conduit_time::TickTriggerBack),
     Begin {
@@ -37,7 +41,10 @@ pub enum Back<'a> {
 impl<const P: usize> StepBack<P> for Back<'_> {
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         match self {
-            Self::Native(back) => back.step(io, input),
+            Self::Expression(back) => back.step(io, input),
+            Self::Selector(back) => back.step(io, input),
+            Self::Pulse(back) => back.step(io, input),
+            Self::Observation(back) => back.step(io, input),
             Self::Tick(back) => back.step(io, input),
             Self::Trigger(back) => back.step(io, input),
             Self::Begin { sent, staged } => {
@@ -76,13 +83,20 @@ impl<const P: usize> StepBack<P> for Back<'_> {
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         match self {
-            Self::Native(back) => <CaptureBack as StepBack<P>>::prepared_output(back, port),
+            Self::Expression(back) => {
+                <PreparedExpressionBack as StepBack<P>>::prepared_output(back, port)
+            }
+            Self::Observation(back) => {
+                <ObservationBack as StepBack<P>>::prepared_output(back, port)
+            }
             _ => None,
         }
     }
     fn step_committed(&mut self) {
         match self {
-            Self::Native(back) => <CaptureBack as StepBack<P>>::step_committed(back),
+            Self::Expression(back) => <PreparedExpressionBack as StepBack<P>>::step_committed(back),
+            Self::Observation(back) => <ObservationBack as StepBack<P>>::step_committed(back),
+            Self::Selector(_) | Self::Pulse(_) => {}
             Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::step_committed(back),
             Self::Trigger(back) => {
                 <conduit_time::TickTriggerBack as StepBack<P>>::step_committed(back)
@@ -116,8 +130,14 @@ impl<const P: usize> StepBack<P> for Back<'_> {
         if let Self::Tick(back) = self {
             <conduit_time::TickBack as StepBack<P>>::cancel(back);
         }
-        if let Self::Native(back) = self {
-            <CaptureBack as StepBack<P>>::cancel(back)
+        match self {
+            Self::Expression(back) => <PreparedExpressionBack as StepBack<P>>::cancel(back),
+            Self::Observation(back) => <ObservationBack as StepBack<P>>::cancel(back),
+            Self::Selector(back) => <StructuredSelectorBack as StepBack<P>>::cancel(back),
+            Self::Pulse(back) => {
+                <conduit_kernel::scheduler::HostCallBack as StepBack<P>>::cancel(back)
+            }
+            _ => {}
         }
     }
 }
