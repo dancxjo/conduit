@@ -247,3 +247,54 @@ remain unproved by this extraction.
 The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
+
+## Pure recording codec ownership
+
+The opt-in `recording` feature in `mechanisms/devices/dht11` owns the existing
+recording chunk encoder, reader, ordered recovery, fixed-cardinality snapshot
+content and disposition Form. The Body runtime keeps explicit public-path
+reexports and its actual snapshot Host Call Back and kernel commit observer.
+The authored disposition source and its build generator move with the codec;
+JSON bytes, Form identities, sequence/clock checks, fixed bounds, sealing and
+publication behavior remain unchanged. Existing Body history consumers keep
+their current APIs through those reexports.
+
+This is an extraction with real recording/recovery consumers, not a new generic
+quantity adapter, Source, storage executor or Mask route. It adds no Data
+dependency, catalog registration, execution gate, authority or durable receipt.
+`cargo xtask prove environment recording` checks the shared device feature and
+existing Body chunk/recovery/publication tests. This entrance establishes CPU
+behavior; installed recorder, restart, physical and release acceptance remain
+separate. Related responsibility owners remain #6354, #6358, #6359, #6360 and #6465.
+
+## Proposed recorded quantity adapter, 26 November 2026
+
+The separate `quantity-history` device feature converts the original sealed
+recording bytes into the shared reported-quantity contract. It uses the same
+ordered reader and an independently supplied exact producer context. Both
+quantities, sequence, producer Boot time, explicit gaps and each unavailable
+outcome survive conversion. A caller selects a tail of one to sixteen samples
+from the latest loaded chunk; previously recovered samples outside that view
+remain explicitly counted. Malformed, foreign or out-of-order input preserves
+the previous view. An oversized encoding refuses rather than shrinking the
+selected window.
+
+This is hosted allocating preparation with an explicit backing model, not
+recurring Step work, another history store or proof of allocator confinement.
+The original catalog/schema preparation, input/file custody, inline storage and
+allocator overhead require their own admission. Default and recording-only
+consumers do not enable the optional Data dependency. The focused entrance is
+`cargo xtask prove environment recording-quantity`; its tests use actual shared
+recording content and independently check the resulting Data encoding.
+On the proposed source, all seventeen device/adapter tests, strict device lint
+and no-default-feature Thumb/WASM checks pass. The ordinary recording entrance
+also passes all twenty device/Body codec and publication tests. Both default
+and recording-only normal dependency graphs leave Data disabled. Formatting,
+evidence retention and all thirty standalone lock checks pass; the lock delta
+adds only the optional local Data edge in the workspace graph.
+
+The adapter is a prerequisite for refreshing the recorded-history Source
+consumer, not that consumer's installed acceptance. Its sixteen-sample view
+does not replace the existing full sixty-four-sample reading. Ordinary browser
+and native routing, exact recorder commit/ACK/restart, released artifacts and
+legacy-service retirement remain unfinished gates. Related: #6461 and #6465.

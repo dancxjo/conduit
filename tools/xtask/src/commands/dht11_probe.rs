@@ -55,8 +55,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "--locked",
                     "--manifest-path",
                     "mechanisms/devices/dht11/Cargo.toml",
-                    "--test",
-                    "observation_forms",
+                    "--features",
+                    "recording",
+                    "--all-targets",
                 ])
                 .env(
                     "CARGO_TARGET_DIR",
