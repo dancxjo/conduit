@@ -325,3 +325,9 @@ pub use collections::{
     prepare_face_collection, FaceCollectionPage, FaceCollectionRefusal, PreparedFaceCollection,
     MAX_PREPARED_COLLECTION_ITEMS,
 };
+
+mod quantity_series;
+pub use quantity_series::{
+    PreparedQuantitySeries, QuantitySeriesRefusal, QuantitySeriesSample,
+    MAX_QUANTITY_SERIES_SAMPLES, QUANTITY_SERIES_ROLE,
+};

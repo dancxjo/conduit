@@ -18,3 +18,5 @@ mod committed;
 pub use committed::{
     CommittedHistoryRefusal, PreparedCommittedHistoryFace, MAXIMUM_COMMITTED_HISTORY_GENERATIONS,
 };
+
+mod series;

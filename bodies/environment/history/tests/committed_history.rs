@@ -403,7 +403,7 @@ fn committed_evidence_is_attached_only_to_the_selected_producer_subject() {
     )
     .unwrap();
     history.read_next(&publication.content).unwrap();
-    let fragment = history.contribution(basis()).unwrap();
+    let fragment = history.series_contribution(basis()).unwrap();
     assert_eq!(
         property(&fragment, "history/blue", "publication-evidence"),
         Some(&V::Text("kernel-publication-commit".into()))

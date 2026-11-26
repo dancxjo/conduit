@@ -33,7 +33,14 @@ fn two_producer_boots_keep_disjoint_subjects_and_independent_time_domains() {
                 .unwrap();
         }
         history.read_next(chunk.seal().unwrap()).unwrap();
-        fragments.push(history.contribution(common::basis()).unwrap());
+        fragments.push(
+            history
+                .series_contribution(
+                    common::basis(),
+                    conduit_environment_history::HistoryFaceWindow::complete_chunk(),
+                )
+                .unwrap(),
+        );
     }
     let mut first = fragments.remove(0);
     let second = fragments.remove(0);
@@ -76,6 +83,14 @@ fn two_producer_boots_keep_disjoint_subjects_and_independent_time_domains() {
         );
         assert_eq!(graph.x(&graph.samples()[0]), 32);
         assert_eq!(graph.x(&graph.samples()[1]), 592);
+        let series = conduit_face::PreparedQuantitySeries::prepare(
+            &face,
+            &format!("history/{label}/series/temperature"),
+            16,
+        )
+        .unwrap();
+        assert_eq!(series.producer()[1], format!("boot/{label}"));
+        assert_eq!(series.time_millionths(1), Some(1_000_000));
     }
 }
 #[test]

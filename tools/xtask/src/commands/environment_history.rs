@@ -75,6 +75,21 @@ fn command(root: &Path, operation: &str) -> Command {
     command
 }
 fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
+    for operation in ["test", "clippy"] {
+        let mut shared = Command::new("cargo");
+        shared.current_dir(root).args([
+            operation,
+            "--locked",
+            "-p",
+            "conduit-face",
+            "--test",
+            "quantity_series",
+        ]);
+        if operation == "clippy" {
+            shared.args(["--", "-D", "warnings"]);
+        }
+        super::execute(&mut shared)?;
+    }
     super::execute(&mut command(root, "test"))?;
     super::execute(command(root, "clippy").args(["--all-targets", "--", "-D", "warnings"]))
 }
