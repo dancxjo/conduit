@@ -156,3 +156,25 @@ use and human enactment remain separate proof; none is claimed by this document.
 5. Add a bounded recognizer extension seam only after a second materially
    different recognizer establishes its required inputs and outcomes. Gaze and
    unconventional hardware need no speculative device framework now.
+
+## Horizontal page reading
+
+The shared native Mask interprets a left swipe as next page and a right swipe
+as previous page, using the same local reading controls as the footer. It never
+constructs a Body interaction or consumes the acknowledged Show. This policy
+is independent of the device and operating system that supplies ordered pointer
+samples; an adapter's availability and physical touchscreen proof are separate.
+
+Recognition retains one press origin, optional tap target and exact Show/view
+basis. Release must travel horizontally at least the greater of 48 logical
+pixels and one fifth of the surface width. Vertical travel over 24 logical
+pixels permanently disqualifies the swipe. Movement over eight pixels or
+leaving the original hit permanently disqualifies the tap, even if the pointer
+returns. Losing a tap does not prevent completing a horizontal page swipe.
+There is at most one page turn per release, and the first/last page never wrap.
+
+Swipes are eligible only where the existing local page controls are available:
+not during editing, a local notice, or diagram reading. Input loss, changed
+Show/view and competing keyboard input cancel the pending gesture; held samples
+cannot rearm it. No timer, velocity estimator, history buffer or extra rendering
+budget is introduced. The existing footer and keyboard routes remain available.
