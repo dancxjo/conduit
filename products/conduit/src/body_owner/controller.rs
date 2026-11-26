@@ -526,6 +526,7 @@ impl Owner {
         let control = RunControl::default();
         let mut timer = DeadlineTimer {
             until: Instant::now() + Duration::from_millis(maximum_millis),
+            stop_request: "owner/run-deadline",
             control: control.clone(),
         };
         let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
@@ -615,6 +616,7 @@ impl Write for BoundedOutput {
 }
 struct DeadlineTimer {
     until: Instant,
+    stop_request: &'static str,
     control: RunControl,
 }
 impl TimerAdapter for DeadlineTimer {
@@ -628,7 +630,7 @@ impl TimerAdapter for DeadlineTimer {
         }
         if Instant::now() >= self.until {
             let _ = self.control.request_stop(
-                RunControlRequestId::new("owner/run-deadline").expect("bounded request"),
+                RunControlRequestId::new(self.stop_request).expect("bounded request"),
             );
         }
     }
