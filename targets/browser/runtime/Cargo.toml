@@ -63,7 +63,7 @@ conduit-host-conduitos-make = { path = "../../conduitos/make" }
 conduit-linear-framebuffer-make = { path = "../../../mechanisms/implementations/linear-framebuffer-make" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["raw_value"] }
 sha2 = "0.10"
 qrcode = { version = "0.14.1", default-features = false }
 

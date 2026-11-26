@@ -1596,6 +1596,7 @@ dependencies = [
  "conduit-body",
  "conduit-body-make",
  "conduit-browser-mask-offer",
+ "conduit-browser-runtime",
  "conduit-chat",
  "conduit-commons-plot",
  "conduit-composite",
@@ -1830,6 +1831,7 @@ dependencies = [
  "conduit-todo-face",
  "conduit-todo-plot",
  "serde",
+ "serde_json",
  "sha2 0.10.9",
 ]
 
@@ -2743,6 +2745,7 @@ dependencies = [
  "conduit-bluetooth",
  "conduit-body",
  "conduit-body-make",
+ "conduit-browser-mask-offer",
  "conduit-browser-runtime",
  "conduit-burn-model",
  "conduit-chat",

@@ -22,6 +22,7 @@ pub(super) struct Socket {
     line: NativeWebSocketLine,
     binding: LinkBindingId,
     closed: bool,
+    full_face: bool,
     input: Box<[u8]>,
     output: Box<[u8]>,
 }
@@ -44,6 +45,7 @@ impl Listener {
                 line,
                 binding: LinkBindingId::from(format!("{binding_prefix}/{}", hex(&nonce()?))),
                 closed: false,
+                full_face: false,
                 input: vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES].into_boxed_slice(),
                 output: vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES].into_boxed_slice(),
             })),
@@ -55,6 +57,50 @@ impl Listener {
 impl Socket {
     pub(super) fn binding(&self) -> &LinkBindingId {
         &self.binding
+    }
+
+    /// Select the larger Line only from an authenticated current advertisement
+    /// and the already prepared physical carrier and buffer capacities.
+    pub(super) fn prepare_owner_face_profile(
+        &mut self,
+        snapshot: &BrowserAdmittedSnapshot,
+    ) -> Result<(), String> {
+        let full = snapshot
+            .browser_advertisement
+            .as_deref()
+            .is_some_and(|host| {
+                host.capabilities
+                    .contains(&conduit_browser_mask_offer::full_profile::offer())
+            });
+        if !full {
+            return if self.full_face {
+                Err("carrier-profile-changed".into())
+            } else {
+                Ok(())
+            };
+        }
+        let authorization = snapshot
+            .line_authorization
+            .as_ref()
+            .ok_or("carrier-line-authorization-missing")?;
+        if self.closed
+            || authorization.carrier_binding != self.binding
+            || authorization.credential_id != snapshot.credential.credential_id.as_str()
+        {
+            return Err("carrier-line-authorization-stale".into());
+        }
+        if self.full_face {
+            return Ok(());
+        }
+        let maximum = conduit_host_browser_make::OWNER_FACE_FULL_MAXIMUM_FRAME_BYTES as usize;
+        if self.input.len() < maximum
+            || self.output.len() < maximum
+            || self.line.maximum_message_bytes() < maximum
+        {
+            return Err("carrier-profile-storage-pressure".into());
+        }
+        self.full_face = true;
+        Ok(())
     }
 
     /// Issued only while this accepted WebSocket incarnation is retained.
@@ -83,7 +129,17 @@ impl Socket {
         {
             return Err("carrier-line-authorization-stale".into());
         }
-        let descriptor = &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
+        let descriptor = if self.full_face {
+            if !browser
+                .capabilities
+                .contains(&conduit_browser_mask_offer::full_profile::offer())
+            {
+                return Err("carrier-profile-offer-changed".into());
+            }
+            &conduit_host_browser_make::OWNER_FACE_FULL_LINE
+        } else {
+            &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0]
+        };
         if self.line.maximum_message_bytes() < descriptor.maximum_frame_bytes as usize {
             return Err("carrier-line-frame-limit".into());
         }
@@ -177,7 +233,37 @@ impl Socket {
         )))
     }
     pub(super) fn send(&mut self, frame: &BrowserAdmissionEgress) -> Result<(), String> {
-        let length = encode_browser_admission_frame(frame, &mut self.output).map_err(debug)?;
+        let selected_full = match frame {
+            BrowserAdmissionEgress::FaceSnapshotResponse {
+                response:
+                    conduit_face::OwnerFaceSnapshotResponse::Snapshot {
+                        route: Some(route), ..
+                    },
+                ..
+            } => conduit_browser_mask_offer::full_profile::selected(&route.planned_mask),
+            _ => false,
+        };
+        let length = if selected_full {
+            if !self.full_face {
+                return Err("carrier-profile-not-prepared".into());
+            }
+            use conduit_host_browser_make as bounds;
+            let profile = conduit_std_host::browser_admission::OwnerFaceEgressProfile {
+                execution_profile_id: conduit_browser_mask_offer::full_profile::PROFILE,
+                maximum_face_bytes: bounds::OWNER_FACE_FULL_MAXIMUM_FACE_BYTES as usize,
+                maximum_route_bytes: bounds::OWNER_FACE_FULL_MAXIMUM_ROUTE_BYTES as usize,
+                maximum_response_bytes: bounds::OWNER_FACE_FULL_MAXIMUM_RESPONSE_BYTES as usize,
+                maximum_frame_bytes: bounds::OWNER_FACE_FULL_MAXIMUM_FRAME_BYTES as usize,
+            };
+            conduit_std_host::browser_admission::encode_browser_admission_face_frame_for_profile(
+                frame,
+                &profile,
+                &mut self.output,
+            )
+            .map_err(debug)?
+        } else {
+            encode_browser_admission_frame(frame, &mut self.output).map_err(debug)?
+        };
         self.line.send_binary(&self.output[..length]).map_err(debug)
     }
     pub(super) fn close(&mut self) {

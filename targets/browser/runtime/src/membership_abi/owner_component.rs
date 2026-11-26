@@ -29,6 +29,15 @@ pub(super) fn freeze() {
     PROFILE.with(|profile| profile.borrow_mut().exported = true);
 }
 
+pub(super) fn invalidate_snapshot() -> Result<(), String> {
+    PROFILE.with(|p| {
+        if p.borrow().exported {
+            Err("browser profile already frozen".into())
+        } else {
+            Ok(())
+        }
+    })
+}
 pub(crate) fn current_advertisement(
     host: HostId,
     boot: BootId,
@@ -48,6 +57,7 @@ pub(crate) fn current_advertisement(
         if PROFILE.with(|profile| profile.borrow().admitted) {
             advertisement.capabilities.push(owner_component_offer()?);
         }
+        super::owner_full_profile::extend(&mut advertisement)?;
         advertisement
             .capabilities
             .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));

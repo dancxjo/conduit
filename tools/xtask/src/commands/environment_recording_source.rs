@@ -174,6 +174,17 @@ pub(super) fn owner_mask(root: &Path) -> Result<(), Box<dyn Error>> {
 
 /// Genuine complete64 Owner export and ordinary native pages; CPU proof only.
 pub(super) fn owner64(root: &Path) -> Result<(), Box<dyn Error>> {
+    owner64_inner(root, false).map(|_| ())
+}
+/// The same genuine Owner with signed membership, actual loopback and native C ABI.
+/// This is CPU protocol proof; Chromium/WASM and physical Show remain separate.
+pub(super) fn owner64_abi(root: &Path) -> Result<(), Box<dyn Error>> {
+    owner64_abi_evidence(root).map(|_| ())
+}
+pub(super) fn owner64_abi_evidence(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
+    owner64_inner(root, true)
+}
+fn owner64_inner(root: &Path, browser: bool) -> Result<std::path::PathBuf, Box<dyn Error>> {
     if !cfg!(target_os = "linux") {
         return Err("complete recording Owner qualification requires Linux".into());
     }
@@ -185,6 +196,14 @@ pub(super) fn owner64(root: &Path) -> Result<(), Box<dyn Error>> {
         .join(format!("owner64-{}-{run}", std::process::id()));
     std::fs::create_dir_all(&directory)?;
     let face = directory.join("owner-face64.json");
+    let proof = directory.join("browser-abi");
+    let mut variables = vec![("CONDUIT_ENVIRONMENT_HISTORY64_OWNER_FACE", face.as_path())];
+    if browser {
+        variables.push((
+            "CONDUIT_ENVIRONMENT_HISTORY64_BROWSER_PROOF_DIR",
+            proof.as_path(),
+        ));
+    }
     tests_with_env(
         root,
         &[
@@ -200,11 +219,28 @@ pub(super) fn owner64(root: &Path) -> Result<(), Box<dyn Error>> {
         ],
         1,
         &["complete_original_sixty_four_recordings_reach_actual_owner_and_native_pages"],
-        &[("CONDUIT_ENVIRONMENT_HISTORY64_OWNER_FACE", face.as_path())],
+        &variables,
     )?;
     if !face.is_file() {
         return Err("complete Owner did not export its fresh genuine Face".into());
     }
+    if browser {
+        for file in [
+            "owner-frame.json",
+            "host-basis.json",
+            "canonical-face.json",
+            "available-view.json",
+            "show-receipt.json",
+            "result.json",
+        ] {
+            if !proof.join(file).is_file() {
+                return Err(
+                    format!("genuine Owner/native ABI proof did not produce {file}").into(),
+                );
+            }
+        }
+        println!("complete_recording_native_abi_proof={}", proof.display());
+    }
     println!("complete_recording_owner_face={}", face.display());
-    Ok(())
+    Ok(proof)
 }

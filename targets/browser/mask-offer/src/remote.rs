@@ -58,26 +58,39 @@ fn planned_owner_mask(
     source: &str,
     name: &str,
 ) -> Result<PlannedMaskPlot, String> {
+    let full = source == crate::MASK_SOURCE
+        && browser.capabilities.contains(&crate::full_profile::offer())
+        && browser
+            .capabilities
+            .iter()
+            .filter(|c| c.kind_id == crate::kind().kind_id)
+            .count()
+            == 1;
+    let websocket = if full {
+        &conduit_host_browser_make::OWNER_FACE_FULL_LINE
+    } else {
+        WEBSOCKET
+    };
     for line in [Some(face_line), Some(return_line), interaction_line]
         .into_iter()
         .flatten()
     {
         let limits = line.binding.limits;
-        if line.binding.base.as_str() != WEBSOCKET.base_implementation_id
-            || line.contract != WEBSOCKET.contract
-            || limits.maximum_in_flight_items > WEBSOCKET.maximum_in_flight_items
-            || limits.maximum_payload_bytes > WEBSOCKET.maximum_payload_bytes
-            || limits.maximum_frame_bytes > WEBSOCKET.maximum_frame_bytes
-            || limits.maximum_buffered_bytes > WEBSOCKET.maximum_buffered_bytes
+        if line.binding.base.as_str() != websocket.base_implementation_id
+            || line.contract != websocket.contract
+            || limits.maximum_in_flight_items > websocket.maximum_in_flight_items
+            || limits.maximum_payload_bytes > websocket.maximum_payload_bytes
+            || limits.maximum_frame_bytes > websocket.maximum_frame_bytes
+            || limits.maximum_buffered_bytes > websocket.maximum_buffered_bytes
         {
             return Err("browser Mask Line is outside the reviewed WebSocket offer".into());
         }
     }
-    let face_bytes = face_line
-        .binding
-        .limits
-        .maximum_payload_bytes
-        .min(MAX_OWNER_FACE_RESPONSE_BYTES as u32);
+    let face_bytes = face_line.binding.limits.maximum_payload_bytes.min(if full {
+        conduit_host_browser_make::OWNER_FACE_FULL_MAXIMUM_FACE_BYTES
+    } else {
+        MAX_OWNER_FACE_RESPONSE_BYTES as u32
+    });
     let show_bytes = return_line
         .binding
         .limits

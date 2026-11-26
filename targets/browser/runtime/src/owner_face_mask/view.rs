@@ -59,7 +59,7 @@ pub(crate) fn local_view_admitted(
     view
 }
 
-fn project_view(
+pub(super) fn project_view(
     body_id: &BodyId,
     face: &Face,
     planned: &conduit_face::PlannedMaskPlot,

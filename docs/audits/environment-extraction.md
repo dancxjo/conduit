@@ -456,8 +456,9 @@ removing the original directory, plus semantic and Make checks and strict hosted
 library lint. The actual product Owner test also passes with all sixty-four
 original readings and both channels, exact quantities, times, gaps, recovery
 metadata, and native primary/Details pages. Its fresh Face is 355,795 bytes.
-This exceeds the ordinary browser route’s current 60 KiB admission; full-reading
-browser transport and rendering remain an explicit unfinished gate.
+This exceeds the legacy browser route’s 60 KiB admission. The additive profile
+below now qualifies full-reading native CPU carrier/Mask composition;
+Chromium/WASM transport and rendering remain an explicit unfinished gate.
 The exact installed-offer refusal check, eight shared Back/custody checks, seven
 funded Ambient checks and the installed funded custody check also pass. Strict
 hosted library/test lint, formatting, evidence retention and all thirty
@@ -471,3 +472,61 @@ these entrances grants producer trust or establishes Chromium/WASM execution,
 live browser membership, physical Show, producer acceptance/retirement or accepted
 release. Exact catalogue runtime qualification is tracked separately. Legacy
 proof services stay until their replacement consumers and acceptance gates pass.
+
+
+## Proposed ordinary full-recording browser profile, 26 November 2026
+
+An additive generic owner Face profile keeps the ordinary raw `face/face@1`
+Fore and Face/Show identities. Its checked Line admits a 512 KiB canonical Face,
+a separately bounded 64 KiB owner route and their exact outer headers. The old
+60 KiB Face response and old Line profiles retain their limits. The owner's
+existing physical admission buffers already hold 2 MiB plus 1 KiB; this change
+selects a larger exact Line within that capacity rather than claiming another
+socket buffer. It introduces no encoded Face under the raw typed port.
+
+Only the generic, unconfigured Mask can select this profile, with its exact
+prepared Back and carrier evidence. Allocation-free JSON census and narrow
+Face/Plan grammar checks precede owning model parsing. Unsupported composition,
+action constructors, rich placement bindings and configured Looks retain their
+existing refusal/selection behavior. They are not removed to fit the profile.
+Selected Line Base identities remain strings distinct from an owning placement
+Base binding; the preparation model accounts for their actual owned storage.
+
+The optional checked Host setup prepares actual ABI buffers before advertising
+its Full Back. A separately charged immutable Boot witness retains canonical
+advertisement bytes and one checked generic template. Two exclusive 16 MiB
+preparation leases fund current/replacement Mask custody; the Boot allowance is
+separate. These are cooperative requested-storage bounds, not allocator or
+hostile-code confinement. The maximum-identity Boot allocation census measured
+4,737,979 requested bytes within its unchanged 16 MiB allowance. Canonical Face,
+complete reading, lifecycle outputs and bounded acknowledgement handling are
+prepared before Play; no spare unused buffer stands in for their ownership.
+
+The genuine selected Source/Owner proof now also performs signed browser
+membership and a real RFC6455 loopback exchange through the production response
+admission and native C ABI. It preserves every original Face byte, all sixty-four
+readings in each channel, scalar/typed facts, actions, relationships and two
+ordinary sixteen-point plots with explicit omitted/unavailable counts. The Owner
+accepts the returned exact Show; foreign Boot and retired membership checks
+refuse. The Face is 355,795 bytes and its delivered frame is 366,209 bytes. The
+independent native primary/Details traversal also passes. This is native CPU
+protocol/ABI evidence, not Chromium, WASM, physical display or installed-release
+acceptance. The three focused egress boundary checks pass, including unchanged
+legacy refusal, changed profile/revision/seal refusal and actual output extent.
+
+`cargo xtask prove environment face-profile-models` owns the portable census,
+Plan-wire and selected-Fore model checks. `face-profile-runtime` owns the browser
+profile storage/acknowledgement checks and focused strict lint.
+`recording-owner64-abi` produces fresh ignored genuine Owner/native ABI evidence.
+The proposed `recording-owner64-browser HANDBOOK-PACKAGE` harness uses a fresh
+WASM Host, ordinary UI Join and the normal Owner control/presence actor; its
+platform run is still unqualified. It must correlate the actual received owner
+frame, canonical Face, complete reading/plots and accepted returned Show, and
+retire through ordinary Lull. A separate fresh native pair is only a typed
+rendering comparison oracle, never a replacement browser Host, Face or view.
+
+The recorder commit-to-authenticated-acceptance/retirement and recovery vertical,
+physical producer custody/wiring, compiler/MCU stack integration and retirement
+of legacy consumers remain separate unfinished acceptance. None of these
+proposed proof entrances grants producer authority or establishes stable release
+acceptance.

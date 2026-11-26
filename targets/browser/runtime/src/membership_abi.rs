@@ -10,6 +10,7 @@ use serde::Deserialize;
 use std::cell::RefCell;
 
 pub(crate) mod owner_component;
+mod owner_full_profile;
 
 const INPUT_CAPACITY: usize = 4_096;
 const OUTPUT_CAPACITY: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
@@ -59,7 +60,10 @@ pub extern "C" fn conduit_browser_membership_output_len() -> u32 {
 /// the signing key and the input buffer is zeroed before returning.
 #[no_mangle]
 pub extern "C" fn conduit_browser_membership_initialize(host_length: u32, boot_length: u32) -> i32 {
-    clear_identity_and_output();
+    if clear_identity_and_output().is_err() {
+        INPUT.with(|i| i.borrow_mut().fill(0));
+        return -266;
+    }
     let host_length = host_length as usize;
     let boot_length = boot_length as usize;
     let Some(identity_length) = host_length.checked_add(boot_length) else {
@@ -237,6 +241,11 @@ pub extern "C" fn conduit_browser_membership_advertisement() -> i32 {
             Ok(encoded) if encoded.len() <= OUTPUT_CAPACITY => encoded,
             _ => return ERROR_ADVERTISEMENT,
         };
+        if owner_full_profile::capture_advertisement(&advertisement, &encoded).is_err()
+            || owner_full_profile::freeze().is_err()
+        {
+            return ERROR_ADVERTISEMENT;
+        }
         OUTPUT.with(|output| output.borrow_mut()[..encoded.len()].copy_from_slice(&encoded));
         OUTPUT_LEN.with(|length| *length.borrow_mut() = encoded.len());
         owner_component::freeze();
@@ -244,10 +253,12 @@ pub extern "C" fn conduit_browser_membership_advertisement() -> i32 {
     })
 }
 
-fn clear_identity_and_output() {
+fn clear_identity_and_output() -> Result<(), String> {
+    owner_full_profile::reset()?;
     owner_component::reset();
     IDENTITY.with(|slot| slot.borrow_mut().take());
     clear_output();
+    Ok(())
 }
 
 fn clear_output() {
@@ -410,7 +421,7 @@ mod tests {
 
     #[test]
     fn abi_refuses_uninitialized_malformed_and_wrong_boot_challenges() {
-        clear_identity_and_output();
+        clear_identity_and_output().unwrap();
         write(b"{}");
         assert_eq!(conduit_browser_membership_prove(2), ERROR_CHALLENGE);
         let mut challenge = initialize();

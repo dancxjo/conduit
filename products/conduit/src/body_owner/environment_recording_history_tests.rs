@@ -1,5 +1,6 @@
 //! Product selected IMAGE → actual service worker → Owner Face → native scene.
-//! CPU preparation only: no sensor, browser membership, Show, ACK or release claim.
+//! Native CPU proof; an optional real membership/carrier/C-ABI check is explicit.
+//! No physical sensor, Chromium/WASM enactment, recorder ACK or release claim.
 use super::*;
 use conduit_face::{
     FacePropertyValue as V, FaceRole, PreparedQuantitySeries, QUANTITY_SERIES_ROLE,
@@ -256,6 +257,7 @@ fn complete_original_sixty_four_recordings_reach_actual_owner_and_native_pages()
     state::retain_session_with_workset_sources(&root, &mut owner.session, &sources, None, None)
         .unwrap();
     let body = owner.session.evidence().body_id.clone();
+    let browser = super::participants::Browser64Proof::prepare_if_requested(&mut owner, &root);
     let mut worker = owner.start_service_run(&root, 30_000, false, 0).unwrap();
     let until = Instant::now() + Duration::from_secs(15);
     let (face, play) = loop {
@@ -401,6 +403,12 @@ fn complete_original_sixty_four_recordings_reach_actual_owner_and_native_pages()
         }
         fs::write(path, &bytes).unwrap();
     }
+    // Browser delivery must use the live worker, before the independent,
+    // deliberately exhaustive native-page CPU traversal can consume its window.
+    if let Some(browser) = browser {
+        assert!(!worker.progress(&mut owner, &root).unwrap());
+        browser.finish(&mut owner, &root);
+    }
     let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
     let mut pages = 0;
     let mut rendered = String::new();
@@ -458,3 +466,7 @@ fn complete_original_sixty_four_recordings_reach_actual_owner_and_native_pages()
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(target_os = "linux")]
+#[path = "environment_recording_history_tests/service.rs"]
+mod service;

@@ -1,7 +1,9 @@
 //! Owner selection of the ordinary browser Mask on its current admitted carrier.
 use super::*;
 mod component_selection;
+mod face_profile;
 mod navigation;
+mod planning;
 use conduit_core::{
     BaseImplementationId, BaseInstanceId, CredentialReferenceId, LineAvailability,
     LinkAuthorityReference, LinkCredentialReference, LinkLimits,
@@ -132,117 +134,6 @@ impl Owner {
         // presentation routes above. They neither replace the workload Plan
         // nor advance the Host already owned by its active worker.
         self.owner_wardrobe_report(owner_plan_id, basis_revision, action)
-    }
-
-    /// Called only by the worker holding the accepted browser socket. The
-    /// serialized owner verifies its exact observed binding again and retains
-    /// the selected route until replacement or browser leave.
-    pub(crate) fn browser_mask_route(
-        &mut self,
-        window_id: &str,
-        credential: &MembershipCredential,
-        binding: &LinkBindingId,
-        evidence: Option<&BrowserCarrierLineEvidence>,
-    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
-        let mut window = self.pending_browser.take().ok_or("window-not-active")?;
-        let result = (|| -> Result<RemoteOwnerMaskRouteSeal, String> {
-            window.check(window_id).map_err(|_| "window-not-active")?;
-            let WindowState::Active {
-                credential: active,
-                observation,
-                line_authorization,
-                line_evidence,
-                route,
-                acknowledged_show,
-                navigation_face,
-                ..
-            } = &mut window.state
-            else {
-                return Err("window-not-active".into());
-            };
-            if active != credential || observation.observed_binding_id != *binding {
-                return Err("browser-route-carrier-mismatch".into());
-            }
-            let current = self.session.evidence().membership.parts.iter().any(|part| {
-                part.part_id == credential.part_id
-                    && part.current.as_ref().is_some_and(|host| {
-                        host.host_id == credential.host_id
-                            && host.boot_id == credential.boot_id
-                            && host.offer_generation == observation.advertisement.offer_generation
-                    })
-            });
-            let admitted = self.admissions.as_ref().is_some_and(|manager| {
-                manager
-                    .receipts
-                    .iter()
-                    .rev()
-                    .find(|receipt| receipt.credential.part_id == credential.part_id)
-                    .is_some_and(|receipt| receipt.credential == *credential)
-            });
-            if !current || !admitted || credential.body_id != self.session.evidence().body_id {
-                return Err("browser-route-part-unavailable".into());
-            }
-            let browser = &observation.advertisement;
-            let (mask_source, mask_root, mask_offer) = match window.component_mask_selection {
-                Some((look, recipe)) => {
-                    let (source, root) = recipe.source_root(look);
-                    (
-                        source,
-                        root,
-                        conduit_browser_mask_offer::owner_component::owner_component_offer()?,
-                    )
-                }
-                None => (
-                    conduit_browser_mask_offer::MASK_SOURCE,
-                    "browser-graphical",
-                    conduit_browser_mask_offer::offer(),
-                ),
-            };
-            if !browser.capabilities.contains(&mask_offer) {
-                return Err("browser-route-mask-back-unavailable".into());
-            }
-            let owner = self.host.advertisement();
-            let evidence = evidence.ok_or("browser-line-evidence-missing")?;
-            validate_carrier_evidence(
-                evidence,
-                line_authorization,
-                window_id,
-                binding,
-                credential,
-                owner,
-                browser,
-            )?;
-            let planned = conduit_browser_mask_offer::planned_owner_face_show_interaction_mask(
-                browser,
-                owner,
-                &evidence.face,
-                &evidence.returned,
-                &evidence.interaction,
-                mask_source,
-                mask_root,
-            )?;
-            let face = self.local_face_snapshot()?;
-            let selected = RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
-                &self.session,
-                &face,
-                owner,
-                browser,
-                &planned,
-                &evidence.face,
-                &evidence.returned,
-                &evidence.interaction,
-            )
-            .map_err(|error| format!("browser-route-refused:{error:?}"))?;
-            *route = Some(Box::new(selected.clone()));
-            *line_evidence = Some(Box::new(evidence.clone()));
-            *acknowledged_show = None;
-            *navigation_face = None;
-            Ok(selected)
-        })();
-        self.pending_browser = Some(window);
-        let selected = result?;
-        self.admit_browser_face_route(&selected)?;
-        Ok(selected)
     }
 
     pub(crate) fn validate_browser_mask_show(
@@ -454,16 +345,26 @@ fn validate_carrier_evidence(
     {
         return Err("browser-line-authority-missing-or-stale".into());
     }
-    let expected_base = BaseImplementationId::from(WEBSOCKET.base_implementation_id);
+    let full = &conduit_host_browser_make::OWNER_FACE_FULL_LINE;
+    let descriptor = if browser
+        .capabilities
+        .contains(&conduit_browser_mask_offer::full_profile::offer())
+        && evidence.face.binding.limits.maximum_payload_bytes == full.maximum_payload_bytes
+    {
+        full
+    } else {
+        WEBSOCKET
+    };
+    let expected_base = BaseImplementationId::from(descriptor.base_implementation_id);
     let expected_instance = BaseInstanceId::from(format!("base-instance/{}", binding.as_str()));
     let expected_credential = LinkCredentialReference::Opaque(CredentialReferenceId::from(
         credential.credential_id.as_str(),
     ));
     let limits = LinkLimits {
-        maximum_in_flight_items: WEBSOCKET.maximum_in_flight_items,
-        maximum_payload_bytes: WEBSOCKET.maximum_payload_bytes,
-        maximum_buffered_bytes: WEBSOCKET.maximum_buffered_bytes,
-        maximum_frame_bytes: WEBSOCKET.maximum_frame_bytes,
+        maximum_in_flight_items: descriptor.maximum_in_flight_items,
+        maximum_payload_bytes: descriptor.maximum_payload_bytes,
+        maximum_buffered_bytes: descriptor.maximum_buffered_bytes,
+        maximum_frame_bytes: descriptor.maximum_frame_bytes,
     };
     for (direction, offer, source, sink, grant) in [
         (
@@ -512,7 +413,7 @@ fn validate_carrier_evidence(
             || offer.binding.credential != expected_credential
             || offer.binding.authority != LinkAuthorityReference::Grant(grant.clone())
             || offer.binding.limits != limits
-            || offer.contract != WEBSOCKET.contract
+            || offer.contract != descriptor.contract
         {
             return Err("browser-line-evidence-mismatch".into());
         }

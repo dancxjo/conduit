@@ -140,6 +140,7 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
+conduit-browser-mask-offer = { path = "../browser/mask-offer" }
 conduitos = { path = "../conduitos", features = ["native-compositor-core"] }
 tempfile = "3"
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }

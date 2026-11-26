@@ -12,6 +12,15 @@ pub(crate) fn serve_with_foreground(
 ) -> Result<(), String> {
     serve_inner(state_dir, runtime, Some(foreground))
 }
+/// Test-only bounded foreground custody; uses the exact production dispatch loop.
+#[cfg(test)]
+pub(crate) fn serve_with_test_foreground(
+    state_dir: &Path,
+    runtime: DurableHostRuntime,
+    foreground: &mut ForegroundPoll<'_>,
+) -> Result<(), String> {
+    serve_inner(state_dir, runtime, Some(foreground))
+}
 fn serve_inner(
     state_dir: &Path,
     mut runtime: DurableHostRuntime,

@@ -280,6 +280,12 @@ pub const BROWSER_IMPLEMENTATIONS: &[BrowserImplementationDescriptor] = &[
         &[SECURE_CONTEXT],
     ),
     descriptor(
+        "Lines", "Full owner Face WebSocket", "line/websocket",
+        "browser/websocket-owner-face@1", 4,
+        super::line::OWNER_FACE_FULL_LINE.maximum_buffered_bytes as u64,
+        &[SECURE_CONTEXT],
+    ),
+    descriptor(
         "Lines",
         "WebRTC data channel",
         "line/webrtc-datachannel",
