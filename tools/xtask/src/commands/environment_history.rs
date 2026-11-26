@@ -3,6 +3,7 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "state-fore" => Some(state_fore(root)),
+        [name] if name == "quantity-conversion-fixture" => Some(quantity_conversion_fixture(root)),
         [name] if name == "data-input" => Some(data_input(root, false)),
         [name, scope] if name == "data-input" && scope == "all" => Some(data_input(root, true)),
         [name] if name == "data-target" => Some(data_target(root)),
@@ -16,6 +17,16 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn quantity_conversion_fixture(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit",
+        "--test",
+        "quantity_conversion",
+    ]))
 }
 fn native(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([

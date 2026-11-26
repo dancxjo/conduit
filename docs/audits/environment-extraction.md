@@ -247,3 +247,42 @@ remain unproved by this extraction.
 The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
+
+## Portable computation preparation follow-up, 25 November 2026
+
+The current-dev follow-up extracts expression/selector initialization from
+`appliance/software.rs` into the semantic catalog's `PreparedPortableOperation`.
+Its inputs are one explicitly supplied checked gear, temporal contract and
+selector input/output ceilings. It installs no environmental catalog, publication
+channel, cadence, device provider, advertisement or authority. The environmental
+adapter retains those application choices and exact checked-Fore/offer matching.
+The existing selector Host Call and kernel Backs retain execution and commit
+ownership; there is no new scheduler or forwarding implementation.
+
+`cargo xtask prove environment appliance` includes the shared non-environmental
+increment/refusal tests as well as the application construction and kernel proof.
+This extraction does not complete shared workset preparation, installed recorder
+recovery, ordinary history Mask routing or physical/release acceptance.
+
+Focused hosted qualification passes: the two standalone shared preparation tests,
+seven appliance/kernel tests, one construction test and two payload-extent tests;
+strict Clippy for both focused consumers; and the appliance-only library check.
+Formatting and patch hygiene pass. These are CPU/source checks, without an
+installed Play, physical-device run or accepted-release claim.
+
+The next cut moves retained offer custody into generic `ReadyBacks<T>` in the
+semantic catalog. Exact fragment/placement matching, current Host/Boot and offer
+epoch, one-time transfer, and post-transfer descriptor retirement retain their
+existing algorithms. `ReadySoftwareBacks` remains the application adapter which
+initializes environmental publication, observation and trigger operations; it
+now delegates custody to the shared owner. Borrowed offers move with that owner,
+without an alternate copy of selection or lifetime state in the Body.
+
+A standalone non-environmental test supplies its own operation payload and offer
+identities and proves retained ownership, source inspection and refusal of wrong
+Host, Boot and stale/zero epochs. Existing application tests exercise forged
+selected facts, contract/configuration changes, duplicate projection, replay and
+actual kernel execution through the shared owner. The supported appliance proof
+passes all 13 tests, both focused strict lint passes and the appliance library
+check after this cut. Complete workset/catalog preparation and the remaining
+installed recorder/history acceptance still require their own implementation.

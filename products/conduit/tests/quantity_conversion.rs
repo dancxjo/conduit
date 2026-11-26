@@ -2,7 +2,9 @@
 use serde_json::Value;
 use std::{
     fs,
+    io::Write,
     process::Command,
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -10,15 +12,24 @@ fn source(original: &str, target: &str) -> String {
     format!("# Unicode µ before owned spans\nplot conversion (\n receipt: ExactQuantityConversionReceipt <= 8192B >>\n) {{\n converted: units/convert(source = {original}, to = {target})\n converted.receipt >> receipt\n}}.\n")
 }
 fn check(source: &str, json: bool) -> std::process::Output {
+    // Parallel fixtures must remain distinct even when wall-clock readings repeat.
+    static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
+    let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
     let path = std::env::temp_dir().join(format!(
-        "conduit-quantity-conversion-{}-{nonce}.conduit",
+        "conduit-quantity-conversion-{}-{nonce}-{sequence}.conduit",
         std::process::id()
     ));
-    fs::write(&path, source).unwrap();
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .unwrap();
+    file.write_all(source.as_bytes()).unwrap();
+    drop(file);
     let mut command = Command::new(env!("CARGO_BIN_EXE_conduit"));
     command.arg("check").arg(&path);
     if json {
