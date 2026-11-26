@@ -160,6 +160,7 @@ mod linear_navigation;
 mod local_look;
 mod look;
 pub use local_look::*;
+pub mod json_model_preflight;
 mod look_selection;
 mod manifestation;
 mod manifestation_set;

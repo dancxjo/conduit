@@ -34,7 +34,7 @@ impl Bytes {
 }
 
 /// No heap allocation, validation bypass, or borrowed status-as-authority.
-/// Rich State/fusion/pool/remote/resource-transfer/terminal-profile layouts
+/// Rich State/fusion/pool, remote connections, resource-transfer and terminal-profile layouts
 /// remain available through the ordinary entrances but have no funded receipt
 /// here until their nested owners are accounted independently.
 pub fn fragment_lowering_layout(
@@ -64,10 +64,9 @@ pub fn fragment_lowering_layout(
                     .any(|p| p.placement_id == c.sink_placement_id)
         })
         || fragment.fore_ports.iter().any(|f| {
-            f.selected_line.is_some()
-                || f.value_contract
-                    .as_ref()
-                    .is_some_and(|c| !c.constraints.is_empty())
+            f.value_contract
+                .as_ref()
+                .is_some_and(|c| !c.constraints.is_empty())
                 || fragment
                     .placements
                     .iter()
@@ -182,6 +181,11 @@ pub fn fragment_lowering_layout(
         if let Some(contract) = &fore.value_contract {
             bytes.add(contract.value_kind.as_str().len())?;
         }
+        // Materialization clones this once into LoweredForePort. Its identity
+        // map retains only Fore IDs/kinds, not a second Line or endpoint clone.
+        if let Some(line) = &fore.selected_line {
+            selected_fore_line_bytes(&mut bytes, line)?;
+        }
         refusal = refusal.max(fore.front_port_id.as_str().len());
         slots = slots
             .checked_add(fore.item_capacity)
@@ -209,4 +213,29 @@ pub fn fragment_lowering_layout(
         queue_slots: slots,
         value_bytes: values,
     })
+}
+
+fn selected_fore_line_bytes(bytes: &mut Bytes, line: &AdmittedLine) -> Result<(), LoweringError> {
+    let binding = &line.binding;
+    for value in [
+        line.line_id.as_str(),
+        binding.binding_id.as_str(),
+        binding.source.host_id.as_str(),
+        binding.source.boot_id.as_str(),
+        binding.source.endpoint_id.as_str(),
+        binding.sink.host_id.as_str(),
+        binding.sink.boot_id.as_str(),
+        binding.sink.endpoint_id.as_str(),
+        binding.base.as_str(),
+        binding.base_instance_id.as_str(),
+    ] {
+        bytes.add(value.len())?;
+    }
+    if let conduit_core::LinkCredentialReference::Opaque(id) = &binding.credential {
+        bytes.add(id.as_str().len())?;
+    }
+    if let conduit_core::LinkAuthorityReference::Grant(id) = &binding.authority {
+        bytes.add(id.as_str().len())?;
+    }
+    Ok(())
 }
