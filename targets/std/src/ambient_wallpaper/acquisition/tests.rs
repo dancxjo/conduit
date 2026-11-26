@@ -147,7 +147,7 @@ fn apod_basic_fetches_one_bounded_list_and_only_admitted_assets() {
                 "title": "A real title",
                 "media_type": "image",
                 "hdurl": url,
-                "copyright": "Credit",
+                "copyright": r#"<a href="https://example.invalid/?s=>">Credit</a>"#,
             })
         })
         .collect();
