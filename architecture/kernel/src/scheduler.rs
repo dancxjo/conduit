@@ -153,7 +153,8 @@ pub struct CordSpec {
     pub byte_capacity: u32,
     /// Largest single canonical payload admitted on this Cord. This is the
     /// semantic value envelope, independent of the Cord's aggregate queue
-    /// storage budget.
+    /// storage budget. Zero admits only a zero-byte canonical payload; the
+    /// physical queue still requires positive item and byte capacities.
     pub maximum_value_bytes: u32,
     pub pressure_policy: AssignedPressurePolicy,
     pub track: AssignedConnectionTrack,
@@ -3721,7 +3722,6 @@ fn validate_plan<
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
-            || cord.maximum_value_bytes == 0
             || cord.maximum_value_bytes > cord.byte_capacity
         {
             return Err(SchedulerError::InvalidPlan);
