@@ -458,6 +458,10 @@ original readings and both channels, exact quantities, times, gaps, recovery
 metadata, and native primary/Details pages. Its fresh Face is 355,795 bytes.
 This exceeds the ordinary browser route’s current 60 KiB admission; full-reading
 browser transport and rendering remain an explicit unfinished gate.
+The exact installed-offer refusal check, eight shared Back/custody checks, seven
+funded Ambient checks and the installed funded custody check also pass. Strict
+hosted library/test lint, formatting, evidence retention and all thirty
+standalone lock checks pass; external dependency versions remain unchanged.
 
 The existing `recording-source`, `recording-selected-host` and
 `recording-owner-mask` entrances remain. `reported-generation` checks the new
