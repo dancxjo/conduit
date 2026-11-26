@@ -77,7 +77,23 @@ fn compile_invocation(invocation: &str) -> Result<ApplianceSource, String> {
             }
         }
     }
-    let expanded = p::expand_canonical_plot(&checked, "appliance", &profiles).map_err(debug)?;
+    // Application-selected artifact ceilings, separate from preparation and Play
+    // memory admission. Shared preparation has no environmental defaults.
+    let mut workset = p::prepare_checked_workset(
+        &checked,
+        &profiles,
+        &["appliance"],
+        p::CheckedWorksetBounds {
+            maximum_entries: 1,
+            maximum_nodes_per_entry: 64,
+            maximum_cords_per_entry: 128,
+        },
+    )?;
+    let root = workset.remove(0);
+    if !root.input_bindings.is_empty() || !root.output_bindings.is_empty() {
+        return Err("appliance root has unbound runtime front ports".into());
+    }
+    let expanded = root.expanded;
     let tick = expanded
         .gears
         .iter()
