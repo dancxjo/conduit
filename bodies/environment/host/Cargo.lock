@@ -150,6 +150,7 @@ dependencies = [
  "conduit-dht11-observation",
  "conduit-kernel",
  "conduit-plot",
+ "conduit-resource-snapshot",
  "conduit-semantic-catalog",
  "conduit-tm1637-protocol",
  "conduit-typed-retention",
@@ -252,6 +253,14 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
