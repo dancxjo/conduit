@@ -17,7 +17,11 @@ pub(super) fn prove(root: &Path, handbook_package: &Path) -> Result<()> {
         return Err("recording Owner browser qualification requires Linux".into());
     }
     let handbook = handbook_package.canonicalize()?;
-    for file in ["package.json", "index.html", "browser-runtime/package.json"] {
+    for file in [
+        "application.application.json",
+        "index.html",
+        "sdk/package.json",
+    ] {
         if !handbook.join(file).is_file() {
             return Err(format!("Handbook package is missing {file}").into());
         }
