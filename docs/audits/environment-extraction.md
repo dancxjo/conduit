@@ -247,3 +247,43 @@ remain unproved by this extraction.
 The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
+
+## Proposed selected JSON realization, 26 November 2026
+
+The selected-JSON follow-up adds a Linux realization of the existing
+`resource/publish-json-snapshot` and `resource/read-json-snapshot` contracts.
+Root separately retains a directory descriptor, original authority grant and
+local reference binding. The configured portable reference supplies none of
+that custody. One exact immutable generation uses the existing shared file
+record, publication and directory-synchronization boundary. Provider preparation
+reserves its finite memory from an existing Host pool; selecting a residence
+does not create memory capacity.
+
+An authored Plot publishes JSON, constructs the canonical `ResourceRef?` value
+with ordinary `some`, and commits it through Body-durable State. A fresh process
+with a new Boot identity recovers the same Body/State, explicitly samples its
+Current, projects the reference, collects exactly one value and invokes the
+independently authorized reader. Current output history is separately admitted
+before Play; it is not a larger Cord queue. Escaped output custody is never
+recycled, and exhaustion refuses instead of growing storage.
+
+This composition exposed and repairs three reusable gaps: prepared expressions
+now validate opaque reference atoms through the Core borrowed codec; installed
+State prepares its file paths and record/response buffers before execution; and
+the kernel accepts a zero-byte semantic payload envelope while still requiring
+positive physical queue capacities and enforcing finite item pressure. The
+State file format, commit digest and publication ordering remain unchanged.
+
+On the proposed source, `cargo xtask prove environment json-snapshot` passes
+44 focused tests and strict Std library lint. These are deterministic installed
+kernel, real file and fresh-process tests with explicit fixture authorization;
+successful execution reports zero post-Play allocations. Missing or undersized
+memory, invalid history bounds, malformed JSON, occupied publication and an
+absent recorded reference refuse without advancing committed State.
+
+This is not physical power-loss, membership, producer ACK/retirement, released
+artifact or multi-generation catalog acceptance. Actual environmental producer
+acceptance and retirement still need their own authenticated content/sequence
+contract and application composition. Full recorded-history browser transport
+and replacement of the remaining legacy consumers are separate unfinished
+completion gates above. These services must not be retired from this proof alone.
