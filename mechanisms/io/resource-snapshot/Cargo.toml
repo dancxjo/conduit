@@ -6,3 +6,10 @@ publish = false
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }
+
+[features]
+kernel-step = ["dep:conduit-kernel"]
+
+[dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", features = ["step-test-support"] }
