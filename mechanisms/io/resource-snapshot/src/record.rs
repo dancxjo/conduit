@@ -1,4 +1,4 @@
-//! Exact bounded records at the durable Resource boundary.
+//! Exact bounded immutable records at the Resource boundary.
 //!
 //! Preparation consumes planned residence and authority. This codec neither
 //! selects a generation nor schedules storage; the host executor publishes the
@@ -71,12 +71,14 @@ impl PreparedSnapshotRecord {
                 authority,
             },
             reference,
+            false,
         )
     }
 
     fn prepare_parts(
         selected: SnapshotRecordSelection<'_>,
         reference: &BoundedResourceRef,
+        allow_boot_read: bool,
     ) -> Result<Self, SnapshotRefusal> {
         let SnapshotRecordSelection {
             host,
@@ -105,7 +107,10 @@ impl PreparedSnapshotRecord {
         if reference.lifetime.expires_at.is_some() {
             return Err(SnapshotRefusal::UnsupportedExpiry);
         }
-        if contract.retention != ResourceRetention::ExternalDurable {
+        let boot_read = allow_boot_read
+            && contract.retention == ResourceRetention::Boot
+            && contract.access == ResourceAccessMode::ReadPublished;
+        if contract.retention != ResourceRetention::ExternalDurable && !boot_read {
             return Err(SnapshotRefusal::UnsupportedLifetime);
         }
         if binding.units != 1

@@ -178,3 +178,101 @@ fn retained_directory_custody_survives_path_rename() {
         .unwrap();
     assert!(published_path(&root, &write, &reference).exists());
 }
+
+#[test]
+fn initialization_selection_reopens_only_with_independent_current_read_bindings() {
+    let root = Root::prepare();
+    let directory = root.directory();
+    let (write, reference) = fixture::placement("boot/old", true, 2);
+    PreparedFileSnapshot::prepare(&directory, &write, &reference)
+        .unwrap()
+        .publish(authority(&write), b"[]")
+        .unwrap();
+    let (mut read, _) = fixture::placement("boot/new", false, 2);
+    read.resources[0]
+        .content
+        .as_mut()
+        .unwrap()
+        .contract
+        .retention = c::ResourceRetention::Boot;
+    assert!(matches!(
+        PreparedFileSnapshot::prepare(&directory, &read, &reference),
+        Err(E::Binding(SnapshotRefusal::UnsupportedLifetime))
+    ));
+    // Independent local fixtures fixed before presenting or modifying selection;
+    // these literals are not a production authority-discovery mechanism.
+    let original = c::AuthorityGrant {
+        grant_id: format!("grant/{READ_OPERATION}").into(),
+        contract_id: "authority/resource-snapshot@1".into(),
+        host_call_contract_id: READ_OPERATION.into(),
+        subject_kind: "resource/snapshot-read".into(),
+        host_id: "snapshot-host".into(),
+        boot_id: "boot/new".into(),
+        capability_id: READ_OPERATION.into(),
+    };
+    let local = c::ResourceReferenceBinding {
+        identity: reference.identity,
+        version: reference.lifetime.version,
+        content_profile: reference.content_profile.clone(),
+        access_class: reference.access_class.clone(),
+        handle: "local/selected-snapshot".into(),
+        authority_contract: original.contract_id.clone(),
+        authority_grant: original.grant_id.clone(),
+        maximum_bytes: 2,
+        maximum_items: Some(1),
+        availability: c::ResourceReferenceAvailability::Available,
+    };
+    let selected = || conduit_resource_snapshot::SnapshotRecordSelection {
+        host: &read.host_id,
+        boot: &read.boot_id,
+        kind: &read.kind_id,
+        capability: &read.capability_id,
+        binding: &read.resources[0],
+        host_call: &read.host_calls[0],
+        authority: &read.authority[0],
+    };
+    let mut reader = PreparedFileSnapshot::prepare_selected(
+        &directory,
+        selected(),
+        &reference,
+        &original,
+        &local,
+    )
+    .unwrap();
+    let (_, memory) =
+        allocation_probe::observe(|| assert_eq!(reader.read(authority(&read)).unwrap(), b"[]"));
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let mut stale = original.clone();
+    stale.boot_id = "boot/old".into();
+    assert!(matches!(
+        PreparedFileSnapshot::prepare_selected(&directory, selected(), &reference, &stale, &local),
+        Err(E::Binding(SnapshotRefusal::StaleBoot))
+    ));
+    let mut lost = local.clone();
+    lost.availability = c::ResourceReferenceAvailability::Lost;
+    assert!(matches!(
+        PreparedFileSnapshot::prepare_selected(
+            &directory,
+            selected(),
+            &reference,
+            &original,
+            &lost
+        ),
+        Err(E::Binding(SnapshotRefusal::LocalReference(
+            c::ResourceReferenceAccessRefusal::ResourceLost
+        )))
+    ));
+    let mut foreign = local.clone();
+    foreign.authority_grant = "grant/foreign".into();
+    assert!(matches!(
+        PreparedFileSnapshot::prepare_selected(
+            &directory,
+            selected(),
+            &reference,
+            &original,
+            &foreign
+        ),
+        Err(E::Binding(SnapshotRefusal::AuthorityDenied))
+    ));
+    assert_eq!(fs::read_dir(&root.path).unwrap().count(), 1);
+}
