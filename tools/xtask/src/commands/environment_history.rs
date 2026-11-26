@@ -3,6 +3,8 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "state-fore" => Some(state_fore(root)),
+
+        [name] if name == "recording-quantity" => Some(recording_quantity(root)),
         [name] if name == "data-input" => Some(data_input(root, false)),
         [name, scope] if name == "data-input" && scope == "all" => Some(data_input(root, true)),
         [name] if name == "data-target" => Some(data_target(root)),
@@ -19,6 +21,38 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+// The recorder adapter remains opt-in and independent of the environmental Body.
+fn recording_quantity(root: &Path) -> Result<(), Box<dyn Error>> {
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command.current_dir(root).args([
+            operation,
+            "--locked",
+            "-p",
+            "conduit-dht11-observation",
+            "--all-features",
+            "--all-targets",
+        ]);
+        if operation == "clippy" {
+            command.args(["--", "-D", "warnings"]);
+        }
+        super::execute(&mut command)?;
+    }
+    for target in ["thumbv6m-none-eabi", "wasm32-unknown-unknown"] {
+        super::execute(Command::new("cargo").current_dir(root).args([
+            "check",
+            "--locked",
+            "-p",
+            "conduit-dht11-observation",
+            "--no-default-features",
+            "--all-features",
+            "--lib",
+            "--target",
+            target,
+        ]))?;
+    }
+    Ok(())
 }
 fn native(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([

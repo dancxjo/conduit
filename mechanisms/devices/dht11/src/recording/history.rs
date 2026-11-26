@@ -30,6 +30,13 @@ pub struct PreparedRecordingHistory {
     previous: Option<(u64, u64)>,
 }
 impl PreparedRecordingHistory {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.reader.retained_backing_bytes()
+    }
+    pub fn preparation_backing_bound(contract: &ObservationContract) -> Option<usize> {
+        PreparedRecordingReader::preparation_backing_bound(contract)
+    }
+
     pub fn prepare(
         context: RecordingContext<'_>,
         contract: &ObservationContract,

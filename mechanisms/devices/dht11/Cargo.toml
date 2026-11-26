@@ -6,10 +6,13 @@ publish = false
 
 [features]
 default = []
+recording = []
+quantity-history = ["recording", "dep:conduit-data"]
 kernel-step = ["dep:conduit-kernel"]
 source-capture = ["dep:conduit-pulse-capture"]
 
 [dependencies]
+conduit-data = { path = "../../../semantics/data", default-features = false, optional = true }
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-kernel = { path = "../../../architecture/kernel", optional = true }
