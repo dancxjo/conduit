@@ -145,6 +145,8 @@ mod flow_join_by_key_back;
 mod flow_zip_back;
 mod fore_sign_storage;
 mod json_snapshot_back;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use json_snapshot_back::prepare_json_snapshot_for_allocation_test;
 #[cfg(target_os = "linux")]
 mod json_snapshot_host;
 mod model_infer_back;

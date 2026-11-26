@@ -20,11 +20,18 @@ pub(super) static READ_FACTORY: BackFactory = BackFactory {
 pub(super) struct JsonSnapshotBack {
     input_bytes: u32,
     output_bytes: u32,
+    expected_reference: Box<[u8]>,
+    write: bool,
     pending: bool,
     terminal: bool,
 }
+impl JsonSnapshotBack {
+    pub(super) fn prepared_heap_bytes(&self) -> usize {
+        self.expected_reference.len()
+    }
+}
 impl<const P: usize> StepBack<P> for JsonSnapshotBack {
-    fn step(&mut self, io: &mut StepIo<P>, _: &StepInputBytes<'_, P>) -> StepOutcome {
+    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         if self.terminal {
             return StepOutcome::Complete;
         }
@@ -38,6 +45,19 @@ impl<const P: usize> StepBack<P> for JsonSnapshotBack {
                         || output.value.byte_len > self.output_bytes
                     {
                         return fail(FailureCode::InvalidInput, 2);
+                    }
+                    let Some(bytes) = input.host_output() else {
+                        return fail(FailureCode::InvalidInput, 7);
+                    };
+                    if bytes.len() != output.value.byte_len as usize {
+                        return fail(FailureCode::InvalidInput, 8);
+                    }
+                    if self.write {
+                        if bytes != self.expected_reference.as_ref() {
+                            return fail(FailureCode::InvalidInput, 11);
+                        }
+                    } else if let Err(reason) = conduit_web::validate_json_text(bytes) {
+                        return fail(FailureCode::InvalidInput, 1_000 + reason.detail());
                     }
                     if !io.output_ready(PortId(0)) {
                         return StepOutcome::Await;
@@ -62,11 +82,24 @@ impl<const P: usize> StepBack<P> for JsonSnapshotBack {
             if self.pending {
                 return fail(FailureCode::InvalidLifecycle, 5);
             }
-            let Ok(input) = BoundedValueRef::new(value, self.input_bytes) else {
+            let Ok(bounded) = BoundedValueRef::new(value, self.input_bytes) else {
                 return fail(FailureCode::InvalidInput, 6);
             };
+            let Some(bytes) = input.input(PortId(0)) else {
+                return fail(FailureCode::InvalidInput, 9);
+            };
+            if bytes.len() != value.byte_len as usize {
+                return fail(FailureCode::InvalidInput, 10);
+            }
+            if self.write {
+                if let Err(reason) = conduit_web::validate_json_text(bytes) {
+                    return fail(FailureCode::InvalidInput, 1_000 + reason.detail());
+                }
+            } else if bytes != self.expected_reference.as_ref() {
+                return fail(FailureCode::InvalidInput, 12);
+            }
             io.consume(PortId(0)).expect("present JSON snapshot input");
-            io.request_host_call(RequestId(0), HostCallId(0), input)
+            io.request_host_call(RequestId(0), HostCallId(0), bounded)
                 .expect("admitted JSON snapshot call");
             self.pending = true;
             StepOutcome::Progress
@@ -250,9 +283,15 @@ fn prepare_operation(placement: &PlannedGear, write: bool) -> Result<InstalledBa
         return Err("JSON snapshot factory operation mismatch".into());
     }
     let call = &placement.host_calls[0];
+    let expected_reference = selected_reference(placement)?
+        .encode()
+        .map_err(|why| format!("JSON snapshot expected reference: {why:?}"))?
+        .into_boxed_slice();
     Ok(InstalledBack::JsonSnapshot(JsonSnapshotBack {
         input_bytes: call.maximum_input_bytes,
         output_bytes: call.maximum_output_bytes,
+        expected_reference,
+        write,
         pending: false,
         terminal: false,
     }))
@@ -270,172 +309,18 @@ fn prepare_read(
     prepare_operation(p, false)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_kernel::{HostCallOutcome, ValueRef};
-    fn back() -> JsonSnapshotBack {
-        JsonSnapshotBack {
-            input_bytes: 4096,
-            output_bytes: 512,
-            pending: false,
-            terminal: false,
-        }
-    }
-    fn request(back: &mut JsonSnapshotBack, length: u32) -> StepOutcome {
-        let mut io = StepIo::test_frame(
-            [Some(ValueRef {
-                slot: 0,
-                generation: 1,
-                byte_len: length,
-            })],
-            [false],
-            [Some(512)],
-            None,
-            4096,
-        );
-        back.step(&mut io, &StepInputBytes::test_frame([None], None))
-    }
-    fn completion(
-        back: &mut JsonSnapshotBack,
-        ready: bool,
-        request: u32,
-        length: u32,
-        disposition: HostCallDisposition,
-    ) -> StepOutcome {
-        let mut io = StepIo::test_frame(
-            [None],
-            [false],
-            [ready.then_some(512)],
-            Some((
-                RequestId(request),
-                HostCallOutcome {
-                    disposition,
-                    output: (disposition == HostCallDisposition::Completed).then(|| {
-                        BoundedValueRef::new(
-                            ValueRef {
-                                slot: 1,
-                                generation: 1,
-                                byte_len: length,
-                            },
-                            length.max(512),
-                        )
-                        .unwrap()
-                    }),
-                    failure: matches!(
-                        disposition,
-                        HostCallDisposition::Failed | HostCallDisposition::Denied
-                    )
-                    .then_some(Failure {
-                        code: FailureCode::HostCallDenied,
-                        detail: 77,
-                    }),
-                },
-            )),
-            4096,
-        );
-        back.step(&mut io, &StepInputBytes::test_frame([None], None))
-    }
-    #[test]
-    fn one_shot_waits_under_output_pressure_and_requires_original_completion() {
-        let mut back = back();
-        assert_eq!(request(&mut back, 4), StepOutcome::Progress);
-        assert_eq!(
-            completion(&mut back, false, 0, 16, HostCallDisposition::Completed),
-            StepOutcome::Await
-        );
-        assert!(back.pending);
-        assert!(!back.terminal);
-        assert!(matches!(
-            completion(&mut back, true, 1, 16, HostCallDisposition::Completed),
-            StepOutcome::Fail(Failure {
-                code: FailureCode::InvalidLifecycle,
-                ..
-            })
-        ));
-        assert_eq!(
-            completion(&mut back, true, 0, 16, HostCallDisposition::Completed),
-            StepOutcome::Progress
-        );
-        assert!(back.terminal);
-        assert!(!back.pending);
-        assert_eq!(request(&mut back, 4), StepOutcome::Complete);
-    }
-    #[test]
-    fn bounds_failure_and_cancellation_never_emit_a_success_reference() {
-        assert!(matches!(
-            request(&mut back(), 4097),
-            StepOutcome::Fail(Failure {
-                code: FailureCode::InvalidInput,
-                ..
-            })
-        ));
-        for disposition in [
-            HostCallDisposition::Denied,
-            HostCallDisposition::Failed,
-            HostCallDisposition::Cancelled,
-        ] {
-            let mut back = back();
-            assert_eq!(request(&mut back, 4), StepOutcome::Progress);
-            assert!(matches!(
-                completion(&mut back, true, 0, 16, disposition),
-                StepOutcome::Fail(_)
-            ));
-        }
-        let mut oversized = back();
-        request(&mut oversized, 4);
-        assert!(matches!(
-            completion(&mut oversized, true, 0, 513, HostCallDisposition::Completed),
-            StepOutcome::Fail(Failure {
-                code: FailureCode::InvalidInput,
-                ..
-            })
-        ));
-        <JsonSnapshotBack as StepBack<1>>::cancel(&mut oversized);
-        assert_eq!(request(&mut oversized, 4), StepOutcome::Complete);
-    }
-    #[test]
-    fn binding_roles_are_independent_of_pool_sort_order() {
-        let content = ResourceBinding {
-            pool_id: "z/content".into(),
-            class_id: JSON_SNAPSHOT_ACCESS_CLASS.into(),
-            units: 1,
-            compute: None,
-            protected: None,
-            content: None,
-        };
-        let memory = ResourceBinding {
-            pool_id: "a/memory".into(),
-            class_id: RUNTIME_MEMORY_RESOURCE_CLASS.into(),
-            units: JSON_SNAPSHOT_PREPARATION_BYTES,
-            compute: None,
-            protected: None,
-            content: None,
-        };
-        for resources in [
-            [content.clone(), memory.clone()],
-            [memory.clone(), content.clone()],
-        ] {
-            let (selected, preparation) = selected_bindings(&resources).unwrap();
-            assert_eq!(selected, &content);
-            assert_eq!(preparation, &memory);
-        }
-        assert!(selected_bindings(&[memory.clone(), memory]).is_err());
-        assert!(selected_bindings(&[content]).is_err());
-    }
-    #[test]
-    fn exact_factory_lookup_is_explicit_without_ambient_inventory_changes() {
-        for id in [
-            JSON_SNAPSHOT_PUBLISH_IMPLEMENTATION,
-            JSON_SNAPSHOT_READ_IMPLEMENTATION,
-        ] {
-            assert_eq!(
-                super::super::catalog::factory(&id.into())
-                    .unwrap()
-                    .implementation_id,
-                id
-            );
-        }
-        assert!(super::super::catalog::factory(&"std/unknown-json-snapshot@1".into()).is_none());
-    }
+/// Exercise the actual selected factory without exposing private Back inventory.
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) fn prepare_json_snapshot_for_allocation_test(
+    placement: &PlannedGear,
+    values: &mut conduit_kernel::HostedValueStore,
+) -> Result<(impl Sized, usize), String> {
+    let factory = super::catalog::factory(&placement.implementation_id)
+        .ok_or("selected JSON factory absent")?;
+    let back = (factory.prepare)(placement, values)?;
+    let retained = back.allocation_capacity();
+    Ok((back, retained))
 }
+
+#[cfg(test)]
+mod tests;

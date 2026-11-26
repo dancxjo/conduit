@@ -275,11 +275,15 @@ positive physical queue capacities and enforcing finite item pressure. The
 State file format, commit digest and publication ordering remain unchanged.
 
 On the proposed source, `cargo xtask prove environment json-snapshot` passes
-46 focused tests and strict Std library lint. These are deterministic installed
+50 focused tests and strict Std library lint. These are deterministic installed
 kernel, real file and fresh-process tests with explicit fixture authorization;
 successful execution reports zero post-Play allocations. Missing or undersized
 memory, invalid history bounds, malformed JSON, occupied publication and an
 absent recorded reference refuse without advancing committed State.
+The installed Back independently validates the exact prepared reference and JSON
+bytes before emitting, including under pressure, and accounts for its retained
+reference. The aggregate provider/Host/Back preparation remains within the
+existing finite profile.
 
 This is not physical power-loss, membership, producer ACK/retirement, released
 artifact or multi-generation catalog acceptance. Actual environmental producer
