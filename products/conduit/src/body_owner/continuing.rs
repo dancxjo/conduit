@@ -67,6 +67,7 @@ impl Owner {
         root: &Path,
         maximum_millis: u64,
         authorize_startup_chime: bool,
+        renewals: u16,
     ) -> Result<RunWorker, String> {
         if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
             return Err("service run duration must be 1..900000 milliseconds".into());
@@ -75,6 +76,8 @@ impl Owner {
             return Err("Body already has a current proposal or Play".into());
         }
         self.ensure_execution_retained(root)?;
+        // Each admitted Play can produce a terminal receipt, including the final renewal.
+        state::require_execution_capacity_for(root, usize::from(renewals) + 1)?;
         let sources = super::super::retained_source::workset(root)?
             .ok_or("retained Source workset is unavailable for Body Play")?;
         if sources
@@ -107,7 +110,6 @@ impl Owner {
         // receives the sealed complete Body Plan, never parser contexts.
         drop(borrowed);
         self.persist(root)?;
-        state::require_execution_capacity(root)?;
         let proposed = self
             .session
             .realization()
