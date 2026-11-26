@@ -7,6 +7,8 @@ mod environment_face_publication;
 mod environment_history;
 #[path = "environment_output.rs"]
 mod environment_output;
+#[path = "environment_snapshot.rs"]
+mod environment_snapshot;
 #[path = "environment_source.rs"]
 mod environment_source;
 use std::{error::Error, path::Path, process::Command};
@@ -37,6 +39,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     }
     if arguments == ["source"] {
         return environment_source::prove(&root);
+    }
+    if arguments == ["history-selected-snapshot"] {
+        return environment_snapshot::prove(&root);
     }
     if let Some(result) = environment_history::dispatch(&root, arguments) {
         return result;
