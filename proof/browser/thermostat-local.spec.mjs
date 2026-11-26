@@ -50,7 +50,10 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
   // The full serial suite spent 117 seconds on the 220 acknowledged
   // Heat/Cool pointer actions alone. Leave time for Lull, Wake, and Return.
   testInfo.setTimeout(240_000);
+  const started = performance.now();
+  const phase = name => console.log(`THERMOSTAT_PHASE ${name} ${Math.round(performance.now() - started)}ms`);
   const site = await stageStaticApplications();
+  phase('site-staged');
   const origin = new URL(site.url).origin;
   const url = new URL('handbook/', site.url).href;
   let session = await openStaticProfile(testInfo.outputPath('thermostat-profile'), origin);
@@ -61,6 +64,7 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     const page = await session.context.newPage();
     await page.goto(url);
     const born = await ready(page);
+    phase('first-body-ready');
     receipts.browser = await page.evaluate(() => navigator.userAgent);
     await page.getByLabel('Choose an example', { exact: true }).selectOption('thermostat/main');
     const source = page.getByRole('textbox', { name: 'Plot source', exact: true });
@@ -173,16 +177,15 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     let bounded = receipts.maximum;
     for (let revision = Number(bounded.face.revision) + 1; revision <= 256; ++revision) {
       const mode = selected(bounded.face, 'thermostat.mode.heat') ? 'Cool' : 'Heat';
-      await thermostat.getByRole('group', { name: 'Mode', exact: true })
-        .getByRole('radio', { name: mode, exact: true }).click();
+      const modes = thermostat.getByRole('group', { name: 'Mode', exact: true });
+      await modes.getByRole('radio', { name: mode, exact: true }).click();
       await expect.poll(async () => {
-        const current = await face(page);
-        return { revision: current.face.revision, show: current.view.show_state };
+        bounded = await face(page);
+        return { revision: bounded.face.revision, show: bounded.view.show_state };
       }).toEqual({ revision, show: 'available' });
-      await expect(thermostat.getByRole('group', { name: 'Mode', exact: true })
-        .getByRole('radio', { name: new RegExp(`^${mode}(?:$| )`) })).toBeChecked();
-      bounded = await face(page);
+      await expect(modes.getByRole('radio', { name: new RegExp(`^${mode}(?:$| )`) })).toBeChecked();
     }
+    phase('capacity-actions-complete');
     receipts.exhausted = bounded;
     exactTarget(bounded.face, 30);
     await expect(thermostat.getByRole('radio', { name: /^Heat(?:$| )/ })).toBeDisabled();
@@ -207,6 +210,7 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     await page.locator('.handbook-application').getByText('Your body and browser', { exact: true }).click();
     await page.screenshot({ path: testInfo.outputPath('03-thermostat-patchbay.png'), fullPage: true });
     await page.getByRole('button', { name: 'Return to example', exact: true }).click();
+    phase('patchbay-roundtrip');
     receipts.beforeLull = await truth(page);
     await page.locator('.handbook-controls').getByRole('button', { name: 'Lull', exact: true }).click();
     await expect(page.locator('.handbook-controls').getByRole('button', { name: 'Wake', exact: true })).toBeEnabled();
@@ -219,6 +223,7 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     exactTarget((await face(page)).face, 21);
     await page.reload();
     receipts.recovered = await ready(page);
+    phase('same-body-recovered');
     expect(receipts.recovered.hostId).toBe(playing.hostId);
     expect(receipts.recovered.bodyId).toBe(playing.bodyId);
     expect(receipts.recovered.bootId).not.toBe(playing.bootId);
@@ -228,9 +233,11 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     session.assertClean();
     await session.context.close();
     session = await openStaticProfile(testInfo.outputPath('thermostat-independent-profile'), origin);
+    phase('independent-profile-open');
     const independent = await session.context.newPage();
     await independent.goto(url);
     receipts.independent = await ready(independent);
+    phase('independent-body-ready');
     expect(receipts.independent.hostId).not.toBe(playing.hostId);
     expect(receipts.independent.bodyId).not.toBe(playing.bodyId);
     session.assertClean();
