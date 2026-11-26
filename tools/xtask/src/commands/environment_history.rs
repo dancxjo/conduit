@@ -2,6 +2,7 @@
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
+        [name] if name == "quantity-conversion-fixture" => Some(quantity_conversion_fixture(root)),
         [name] if name == "quantity-rounding" => Some(quantity_rounding(root)),
         [name] if name == "history" => Some(prove(root)),
         [name] if name == "history-commit" => Some(committed(root)),
@@ -12,6 +13,16 @@ pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dy
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn quantity_conversion_fixture(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit",
+        "--test",
+        "quantity_conversion",
+    ]))
 }
 fn native(root: &Path) -> Result<(), Box<dyn Error>> {
     super::execute(Command::new("cargo").current_dir(root).args([
