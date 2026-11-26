@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+critical-section = { version = "1.2", optional = true }
 conduit-core = { path = "../../architecture/core" }
 conduit-time = { path = "../time", default-features = false }
 conduit-plot = { path = "../../architecture/plot" }
@@ -17,6 +18,7 @@ serde_json = { version = "1", default-features = false, features = ["alloc"] }
 miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
 
 [dev-dependencies]
+critical-section = { version = "1.2", features = ["std"] }
 conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-planner = { path = "../../architecture/planner" }
@@ -30,3 +32,4 @@ conduit-time = { path = "../time", default-features = false }
 [features]
 default = ["plot-catalog"]
 plot-catalog = []
+show-custody = ["dep:critical-section"]

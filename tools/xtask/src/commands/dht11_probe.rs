@@ -5,6 +5,8 @@ mod environment_appliance;
 mod environment_face_publication;
 #[path = "environment_history.rs"]
 mod environment_history;
+#[path = "environment_http.rs"]
+mod environment_http;
 #[path = "environment_output.rs"]
 mod environment_output;
 #[path = "environment_snapshot.rs"]
@@ -88,18 +90,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 ),
         );
     }
-    if arguments == ["http"] {
-        return execute(
-            Command::new("cargo")
-                .current_dir(&root)
-                .args([
-                    "test",
-                    "--locked",
-                    "--manifest-path",
-                    "bodies/environment/http/Cargo.toml",
-                ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
-        );
+    if let Some(result) = environment_http::dispatch(&root, arguments) {
+        return result;
     }
     if arguments == ["display-esp32"] {
         let package = root.join("targets/esp32/proof/tm1637");

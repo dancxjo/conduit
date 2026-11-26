@@ -323,6 +323,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-time",
+ "critical-section",
  "miniz_oxide",
  "serde",
  "serde_json",
