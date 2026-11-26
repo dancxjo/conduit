@@ -1,7 +1,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { validateNativeTextEditReceipt } from '../conduitos-text-edit-receipt.mjs';
-import { cargo, cargoArtifact, command, copyFile, digest, xtask } from './targets/common.mjs';
+import { cargo, cargoArtifact, command, copyFile, digest, toolchain, xtask } from './targets/common.mjs';
 import { setup } from './targets/setup.mjs';
 import { browser } from './targets/browser.mjs';
 import { embedded } from './targets/embedded.mjs';
@@ -126,7 +126,12 @@ async function hosted(id, directory) {
 function conduitos(id, directory) {
   const arch = id.slice('conduitos-'.length);
   const profile = arch === 'x86_64' ? 'conduitos-native' : `conduitos-${arch}-${arch === 'ia32' ? 'pc' : 'virt'}`;
-  xtask('make', 'host', 'build', `targets/conduitos/profiles/${profile}.host.conduit`, '--output', directory);
+  const build = ['make', 'host', 'build', `targets/conduitos/profiles/${profile}.host.conduit`, '--output', directory];
+  if (arch === 'x86_64') {
+    command('cargo', [`+${toolchain()}`, 'xtask', ...build, '--locked'], { timeout: 60 * 60_000 });
+  } else {
+    xtask(...build);
+  }
   xtask('make', 'host', 'verify', directory, '--boot');
   if (arch === 'x86_64') xtask('make', 'host', 'verify', directory, '--journey');
   xtask('make', 'host', 'verify', directory);

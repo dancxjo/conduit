@@ -215,7 +215,8 @@ jobs:
     runs-on: ${{ matrix.runner }}
     # Browser proof includes cold host/WASM builds, the serial suite and site QA.
     # The measured cold lane reached 258/260 tests at the former 60-minute bound.
-    timeout-minutes: ${{ matrix.id == 'browser' && 90 || 60 }}
+    # The native x86_64 image also needs room for a cold build, QEMU proof, and retention.
+    timeout-minutes: ${{ (matrix.id == 'browser' || matrix.id == 'conduitos-x86_64') && 90 || 60 }}
     defaults:
       run:
         shell: bash

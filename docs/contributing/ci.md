@@ -351,9 +351,12 @@ and WASM builds, the one-worker/zero-retry Chromium suite, site proof and artifa
 retention. In [the 19 October cold candidate](https://github.com/dancxjo/conduit/actions/runs/39212641215/job/117930615050),
 preparation took about 28 minutes and the suite reached test 258 of 260 before
 the former 60-minute job limit cancelled it. No assertion failure was logged
-before cancellation; that partial run is not acceptance. Other target job limits
-remain 60 minutes. Per-test preparation/response limits and all required proof
-remain unchanged.
+before cancellation; that partial run is not acceptance. ConduitOS x86_64
+also has a 90-minute job limit, with 60 minutes for its image build command.
+[The cold candidate build](https://github.com/dancxjo/conduit/actions/runs/45787782706/job/139801892435)
+was still compiling at the former 45-minute command deadline. Other target jobs
+have 60-minute limits. Emulator and browser assertion deadlines stay independent
+of the build budgets.
 
 
 A lane writes a receipt only after its build and proof succeed. The receipt
