@@ -305,6 +305,7 @@ installed_step_dispatch!(
     TemplateStorage,
     DataSaveText,
     DataLoadText,
+    JsonSnapshot,
     LogicCompareScalar,
     LogicNot,
     LogicSelectScalar,

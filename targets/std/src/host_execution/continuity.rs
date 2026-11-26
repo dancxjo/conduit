@@ -36,6 +36,8 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: Some(sources),
