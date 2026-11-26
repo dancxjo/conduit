@@ -107,7 +107,23 @@ pub(crate) fn run(
                     }
                     DirectSpokenTemplateLook::Expanded
                 };
-                let summary = speech::read(&mut peer, &mut owner, &shown.face, look)?;
+                let summary = match speech::read(&mut peer, &mut owner, &shown.face, look) {
+                    Ok(summary) => summary,
+                    Err(error) if look == DirectSpokenTemplateLook::Expanded => {
+                        writeln!(output, "Face audio refused: {error}").map_err(io_error)?;
+                        let snapshot = owner.refresh()?;
+                        shown = present_current(
+                            &mut peer,
+                            &mut foreground,
+                            output,
+                            &mut owner,
+                            snapshot,
+                        )?;
+                        report(output)?;
+                        continue;
+                    }
+                    Err(error) => return Err(error),
+                };
                 let snapshot = owner.refresh()?;
                 if look == DirectSpokenTemplateLook::Control && snapshot.face != shown.face {
                     return Err("thermostat Face changed during the spoken reading".into());
