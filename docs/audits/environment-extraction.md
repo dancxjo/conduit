@@ -247,3 +247,115 @@ remain unproved by this extraction.
 The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
+
+## Proposed selected JSON realization, 26 November 2026
+
+The selected-JSON follow-up adds a Linux realization of the existing
+`resource/publish-json-snapshot` and `resource/read-json-snapshot` contracts.
+Root separately retains a directory descriptor, original authority grant and
+local reference binding. The configured portable reference supplies none of
+that custody. One exact immutable generation uses the existing shared file
+record, publication and directory-synchronization boundary. Provider preparation
+reserves its finite memory from an existing Host pool; selecting a residence
+does not create memory capacity.
+
+An authored Plot publishes JSON, constructs the canonical `ResourceRef?` value
+with ordinary `some`, and commits it through Body-durable State. A fresh process
+with a new Boot identity recovers the same Body/State, explicitly samples its
+Current, projects the reference, collects exactly one value and invokes the
+independently authorized reader. Current output history is separately admitted
+before Play; it is not a larger Cord queue. Escaped output custody is never
+recycled, and exhaustion refuses instead of growing storage.
+
+This composition exposed and repairs three reusable gaps: prepared expressions
+now validate opaque reference atoms through the Core borrowed codec; installed
+State prepares its file paths and record/response buffers before execution; and
+the kernel accepts a zero-byte semantic payload envelope while still requiring
+positive physical queue capacities and enforcing finite item pressure. The
+State file format, commit digest and publication ordering remain unchanged.
+
+On the proposed source, `cargo xtask prove environment json-snapshot` passes
+50 focused tests and strict Std library lint. These are deterministic installed
+kernel, real file and fresh-process tests with explicit fixture authorization;
+successful execution reports zero post-Play allocations. Missing or undersized
+memory, invalid history bounds, malformed JSON, occupied publication and an
+absent recorded reference refuse without advancing committed State.
+The installed Back independently validates the exact prepared reference and JSON
+bytes before emitting, including under pressure, and accounts for its retained
+reference. The aggregate provider/Host/Back preparation remains within the
+existing finite profile.
+
+This is not physical power-loss, membership, producer ACK/retirement, released
+artifact or multi-generation catalog acceptance. Actual environmental producer
+acceptance and retirement still need their own authenticated content/sequence
+contract and application composition. Full recorded-history browser transport
+and replacement of the remaining legacy consumers are separate unfinished
+completion gates above. These services must not be retired from this proof alone.
+
+## Proposed authored catalogue checkpoint, 26 November 2026
+
+The application checkpoint and read-only seed Sources are recovered unchanged
+from `057f48d32ce3223ce1530ddc1f50f2d53e3affe7`. The checkpoint has one JSON
+input. Its publication's returned ResourceRef passes through a pure `some`
+constructor into the named Body-lived `recorder-catalog` seed, bounded to 1 KiB.
+The read-only Source preserves the exact expanded seed Gear identity, value Type,
+initial `none` and configuration, with no update input. No direct reference-update
+entry or old Make library is restored.
+
+`cargo xtask prove environment catalogue-source` checks those authored cords and
+pure execution against the normal shared Source/compiler APIs. Seven focused
+checks cover the exact opaque returned reference, sole JSON input, shared seed,
+profile/refusal bounds and the original ordered catalogue schema. The original
+sixteen-reference catalogue fits the whole JSON text profile used by snapshot
+publication. The distinct JSON tree profile refuses that text's total string
+budget; the proof does not conflate the two contracts.
+
+The catalogue codec in this proof is an application test fixture, preserving
+validation, ordering and atomic replacement of the previous view. It is not a
+new DHT11 device API or an installed catalogue reader. Catalogue validation
+precedes the test's Source input; references alone prove neither prior chunk
+publication nor storage admission. This is #6359's Source/expansion/pure-operation
+boundary. Actual committed catalogue identity, old-seed preservation on failure,
+fresh-process recovery, authenticated producer acceptance and retirement remain
+runtime acceptance gates under the recorder owners.
+
+On current `dev` plus the opaque-reference expression prerequisite, all seven
+checks and strict focused lint pass. Workspace and standalone proof formatting,
+evidence retention and all thirty standalone lock checks also pass. The lock
+delta adds only three existing local test-dependency edges.
+
+## Proposed catalogue runtime CPU qualification, 26 November 2026
+
+`cargo xtask prove environment catalogue-runtime` exercises the actual authored
+checkpoint and read-only Sources with the selected JSON file executor and the
+finite Fore Body-durable runner. The sixteen-reference application catalogue is
+validated before delivery. The exact publication result reaches the 1 KiB
+Body-lived seed; a fresh child process under a different fixture Boot recovers
+that exact reference. An independently authorized new-Boot read then resolves
+it against the actual original catalogue file and rechecks every reference in
+order. A distinct Body starts at `none`.
+
+Malformed JSON, an occupied immutable generation and ordinary precancellation
+preserve the committed catalogue and old seed. The occupied case retains exactly
+one staged candidate, as required by the existing publication protocol; it is
+not selected as the committed generation and remains separate Root reconciliation
+work. Readback still returns the original catalogue. No automatic retry or
+candidate deletion is added. Queue capacity stays one; Current history is
+explicitly admitted as two values for publication and one for recovery.
+
+Four focused checks (two application runtime cases and two shared catalogue
+fixture checks), including separate publish/recovery child executions, pass with
+strict focused lint. A calling-thread allocation probe uses the public installed
+Play markers: successful measured Play intervals make no allocation requests,
+and value-store capacities remain unchanged. Preparation, other threads, peak
+RSS and hostile-code confinement are separate claims.
+
+Advertisements, grants and Body admission here are explicit CPU fixtures. File,
+process and kernel behavior is exercised, but this is not installed CLI/resident
+acceptance, machine-power-loss durability, proof of the listed prior chunks,
+producer authentication/ACK/retirement, live membership or accepted release.
+The qualification adds no production API or dependency and does not retire the
+legacy recorder or services.
+
+Formatting, evidence retention and all thirty standalone lock checks pass for
+this qualification. It adds no manifest or lock changes.

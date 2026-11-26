@@ -25,6 +25,8 @@ pub use episode_loop::*;
 
 mod flow_state;
 pub use flow_state::*;
+mod json_snapshot;
+pub use json_snapshot::*;
 mod durable_text;
 pub use durable_text::*;
 mod data_text;

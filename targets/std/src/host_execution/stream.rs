@@ -51,11 +51,14 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: None,
                 attach_live: false,
                 external_fore: Some(ExternalForeRun {
+                    current_output_capacity: None,
                     inputs,
                     output: output_adapter,
                     sequential: true,

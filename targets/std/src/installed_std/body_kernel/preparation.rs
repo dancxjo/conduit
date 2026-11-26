@@ -28,6 +28,19 @@ impl<'a> BodyKernel<'a> {
         }) {
             fragments.push(fragment?);
         }
+        if fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|placement| {
+                [
+                    conduit_std_offers::JSON_SNAPSHOT_PUBLISH_IMPLEMENTATION,
+                    conduit_std_offers::JSON_SNAPSHOT_READ_IMPLEMENTATION,
+                ]
+                .contains(&placement.implementation_id.as_str())
+            })
+        {
+            return Err("Body partition JSON snapshots require an explicitly supplied residence; use the finite selected caller".into());
+        }
         // Activation coordinators belong to the whole sealed Plan. Bind each
         // entry to its exact local fragment before lowering ordinary nodes.
         let activations = bind_body_activations(partitions, &fragments)?;
