@@ -327,6 +327,7 @@ fn retain_inner(
             root,
             &installation.host_id,
             biography.body_id.as_str(),
+            1,
         )?;
     }
     let execution_custody = execution_custody::prepare(
@@ -454,13 +455,16 @@ pub(super) fn execution_history(root: &Path) -> Result<serde_json::Value, String
     execution_custody::history(root, &installation.host_id, &binding.body_id)
 }
 pub(super) fn require_execution_capacity(root: &Path) -> Result<(), String> {
+    require_execution_capacity_for(root, 1)
+}
+pub(super) fn require_execution_capacity_for(root: &Path, outcomes: usize) -> Result<(), String> {
     recover(root)?;
     let installation = read_installation(&root.join("installation.json"))?;
     let binding = installation
         .body_state
         .as_ref()
         .ok_or("execution custody requires a retained Body")?;
-    execution_custody::require_capacity(root, &installation.host_id, &binding.body_id)
+    execution_custody::require_capacity(root, &installation.host_id, &binding.body_id, outcomes)
 }
 fn new_play_started(root: &Path, biography: &BodyBiographyEvidence) -> Result<bool, String> {
     let file = root.join("body/biography.json");
