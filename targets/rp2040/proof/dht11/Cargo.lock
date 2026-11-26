@@ -300,20 +300,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-environment-runtime"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-dht11-observation",
- "conduit-kernel",
- "conduit-plot",
- "conduit-resource-snapshot",
- "conduit-semantic-catalog",
- "conduit-tm1637-protocol",
- "conduit-typed-retention",
-]
-
-[[package]]
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
@@ -383,7 +369,6 @@ dependencies = [
  "conduit-embedded-build",
  "conduit-environment-face",
  "conduit-environment-http",
- "conduit-environment-runtime",
  "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
@@ -471,14 +456,6 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
-]
-
-[[package]]
-name = "conduit-resource-snapshot"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
 ]
 
 [[package]]
@@ -580,24 +557,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-tm1637-protocol"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
-]
-
-[[package]]
 name = "conduit-tm1637-wire"
 version = "0.1.0"
-
-[[package]]
-name = "conduit-typed-retention"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
-]
 
 [[package]]
 name = "conduit-web"

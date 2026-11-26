@@ -247,3 +247,20 @@ remain unproved by this extraction.
 The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
+
+## RP2040 proof adapter cleanup, current development
+
+The extraction branch's DHT11 proof now composes its local Back enum directly
+from the shared expression, selector, observation and Host Call Backs. Its
+ordinary and build-time environmental runtime dependencies are removed; the
+existing inert Body-owned planning test fixture remains explicitly included and
+tracked. Bounds, lifecycle delegation, authored sources and raw Host Call
+plumbing are unchanged. The kernel and HTTP feature graphs no longer require
+the environmental runtime or its retention/TM1637 protocol dependencies.
+
+`cargo xtask prove dht11 check` and `cargo xtask prove environment source` pass.
+Both `cargo xtask prove dht11 build-kernel` and `build-http` compile and convert
+the Cortex-M0+ diagnostic image to UF2. This establishes compilation and CPU
+contract compatibility, not physical execution. The historical branch-only
+shared MCU/compiler migration described above is absent from this checkout;
+this proof cleanup does not claim to have delivered that separate work.
