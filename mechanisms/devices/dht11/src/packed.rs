@@ -15,6 +15,20 @@ pub struct PreparedObservationQuantityForms {
     observation: Composer,
 }
 impl PreparedObservationQuantityForms {
+    /// Reachable retained heap capacities, excluding inline Self and allocator overhead.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.validator
+            .retained_backing_bytes()?
+            .checked_add(self.temperature.prepared_heap_bytes())?
+            .checked_add(self.humidity.prepared_heap_bytes())?
+            .checked_add(self.observation.prepared_heap_bytes())
+    }
+    /// Finite preparation peak from the caller's already admitted exact contract.
+    #[cfg(feature = "recording")]
+    pub fn preparation_backing_bound(contract: &ObservationContract) -> Option<usize> {
+        crate::recording_backing::forms_preparation_bound(contract)
+    }
+
     pub const TEMPERATURE_FORM_ID: &'static str = forms::DeviceDht11TemperatureForm::IDENTITY;
     pub const HUMIDITY_FORM_ID: &'static str = forms::DeviceDht11HumidityForm::IDENTITY;
     /// Temperature Form followed by humidity Form, two bytes each. No rounding.

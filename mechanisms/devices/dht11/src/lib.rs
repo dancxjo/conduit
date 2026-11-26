@@ -2,6 +2,10 @@
 //! The authored Forms lift decoder coordinates into first-class quantities.
 //! Checksum/range/negative decoding stays in the protocol Source.
 extern crate alloc;
+#[cfg(feature = "quantity-history")]
+pub mod quantity_history;
+#[cfg(feature = "quantity-history")]
+mod quantity_history_backing;
 #[cfg(feature = "recording")]
 pub mod recording;
 use alloc::vec;
@@ -17,6 +21,8 @@ mod forms {
 #[cfg(feature = "kernel-step")]
 mod back;
 mod packed;
+#[cfg(feature = "recording")]
+mod recording_backing;
 mod source_frame;
 #[cfg(feature = "kernel-step")]
 pub use back::ObservationBack;

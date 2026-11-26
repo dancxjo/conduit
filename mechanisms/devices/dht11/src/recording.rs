@@ -69,6 +69,20 @@ pub struct PreparedRecordingChunk {
     sealed: bool,
 }
 impl PreparedRecordingChunk {
+    /// Heap capacities only; the fixed sample table is inline in Self.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.quantities
+            .retained_backing_bytes()?
+            .checked_add(self.prefix.capacity())?
+            .checked_add(self.output.capacity())
+    }
+    /// Includes both requested 4096-byte strings, including the temporary
+    /// output that reader preparation drops. Contract custody is separate.
+    pub fn preparation_backing_bound(contract: &ObservationContract) -> Option<usize> {
+        PreparedObservationQuantityForms::preparation_backing_bound(contract)?
+            .checked_add(2 * MAXIMUM_CHUNK_BYTES)
+    }
+
     pub fn prepare(
         context: RecordingContext<'_>,
         contract: &ObservationContract,

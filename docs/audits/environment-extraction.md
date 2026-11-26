@@ -266,3 +266,35 @@ dependency, catalog registration, execution gate, authority or durable receipt.
 existing Body chunk/recovery/publication tests. This entrance establishes CPU
 behavior; installed recorder, restart, physical and release acceptance remain
 separate. Related responsibility owners remain #6354, #6358, #6359, #6360 and #6465.
+
+## Proposed recorded quantity adapter, 26 November 2026
+
+The separate `quantity-history` device feature converts the original sealed
+recording bytes into the shared reported-quantity contract. It uses the same
+ordered reader and an independently supplied exact producer context. Both
+quantities, sequence, producer Boot time, explicit gaps and each unavailable
+outcome survive conversion. A caller selects a tail of one to sixteen samples
+from the latest loaded chunk; previously recovered samples outside that view
+remain explicitly counted. Malformed, foreign or out-of-order input preserves
+the previous view. An oversized encoding refuses rather than shrinking the
+selected window.
+
+This is hosted allocating preparation with an explicit backing model, not
+recurring Step work, another history store or proof of allocator confinement.
+The original catalog/schema preparation, input/file custody, inline storage and
+allocator overhead require their own admission. Default and recording-only
+consumers do not enable the optional Data dependency. The focused entrance is
+`cargo xtask prove environment recording-quantity`; its tests use actual shared
+recording content and independently check the resulting Data encoding.
+On the proposed source, all seventeen device/adapter tests, strict device lint
+and no-default-feature Thumb/WASM checks pass. The ordinary recording entrance
+also passes all twenty device/Body codec and publication tests. Both default
+and recording-only normal dependency graphs leave Data disabled. Formatting,
+evidence retention and all thirty standalone lock checks pass; the lock delta
+adds only the optional local Data edge in the workspace graph.
+
+The adapter is a prerequisite for refreshing the recorded-history Source
+consumer, not that consumer's installed acceptance. Its sixteen-sample view
+does not replace the existing full sixty-four-sample reading. Ordinary browser
+and native routing, exact recorder commit/ACK/restart, released artifacts and
+legacy-service retirement remain unfinished gates. Related: #6461 and #6465.

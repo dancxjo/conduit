@@ -2017,6 +2017,7 @@ name = "conduit-dht11-observation"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-data",
  "conduit-kernel",
  "conduit-plot",
  "conduit-pulse-capture",
