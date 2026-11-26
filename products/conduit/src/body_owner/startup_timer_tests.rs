@@ -7,6 +7,7 @@ fn deadline_timer_forwards_preparation_bound_and_exact_basis_sampling() {
     let boot = conduit_core::BootId::from("boot/startup-owner");
     let mut timer = DeadlineTimer {
         until: Instant::now() + Duration::from_secs(1),
+        stop_request: "owner/run-deadline",
         control: RunControl::default(),
     };
     assert_eq!(
