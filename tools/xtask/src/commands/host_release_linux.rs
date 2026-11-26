@@ -190,6 +190,10 @@ fn seal_x86_64(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
     for (source_name, image_name) in [
         ("linux-ambient.host.conduit", "linux-ambient.image.json"),
         (
+            "linux-ambient-photo.host.conduit",
+            "linux-ambient-photo.image.json",
+        ),
+        (
             "linux-ambient-clock.host.conduit",
             "linux-ambient-clock.image.json",
         ),

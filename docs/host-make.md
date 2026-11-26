@@ -253,6 +253,11 @@ packaged profile uses Pacific civil time and admits only the loopback weather
 provider. If that provider is absent, the clock continues and weather is
 unavailable. Photo acquisition is disabled in this profile.
 
+To opt in to live NASA Astronomy Picture of the Day photographs, substitute
+`linux-ambient-photo.host.conduit` and `linux-ambient-photo.image.json` in
+the configure command. Select the same Ambient Home and Patchbay Plots. If
+the photo provider is unavailable, the clock and Patchbay remain usable.
+
 To reproduce the installed journey in pinned Chromium from a checkout, pass
 the exact installer bundle and the extracted browser product's
 `site/handbook` directory. The proof retains a fresh Body, restarts its
