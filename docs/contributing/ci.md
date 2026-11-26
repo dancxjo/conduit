@@ -241,7 +241,7 @@ package requiring a vendor repository is unsupported and fails resolution.
 Each acquisition uses private source configuration and fresh indices, leaving
 host sources and lists untouched. Unrelated vendor outages cannot affect that
 scope. When an official archive serves an index whose size disagrees with the
-signed metadata, APT makes one refresh with a new private index directory and
+signed metadata or a selected package returns 404, APT makes one refresh with a new private index directory and
 requests uncached HTTPS responses. The acquisition report records a successful
 refresh. An unresolved required archive update fails acquisition, including on
 cache hits. All repository authentication and package checks still apply.

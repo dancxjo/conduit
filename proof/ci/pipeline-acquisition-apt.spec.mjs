@@ -363,3 +363,22 @@ test('a persistent official archive index mismatch refuses before package operat
   assert.equal(state.calls.filter(([, args]) => args.includes('update')).length, 2);
   assert.ok(!state.calls.some(([, args]) => args.includes('install')));
 });
+
+test('refreshes signed indices and resolves again after an official package returns 404', t => {
+  const { state, options } = fixture(t);
+  const privileged = options.privileged;
+  let downloads = 0;
+  acquireApt(['tool'], {
+    ...options,
+    privileged(program, args) {
+      if (args.includes('--download-only') && ++downloads === 1) {
+        throw new Error('E: Failed to fetch https://security.ubuntu.com/ubuntu/pool/main/t/tool/tool_1.2_amd64.deb  404  Not Found');
+      }
+      return privileged(program, args);
+    },
+  });
+  assert.equal(downloads, 2);
+  const simulations = state.calls.filter(([, args]) => args.includes('--simulate'));
+  assert.match(simulations[0][1].join(' '), /\/lists /);
+  assert.ok(simulations.slice(1).every(([, args]) => args.some(arg => arg.endsWith('/retry-lists'))));
+});

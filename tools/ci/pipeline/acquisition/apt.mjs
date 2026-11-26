@@ -12,6 +12,7 @@ import path from 'node:path';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const mirrorIndexSizeMismatch = /^E: Failed to fetch https:\/\/(?:archive|security)\.ubuntu\.com\/ubuntu\/dists\/\S+\s+File has unexpected size \(\d+ != \d+\)\. Mirror sync in progress\?/m;
+const mirrorPackageMissing = /^E: Failed to fetch https:\/\/(?:archive|security)\.ubuntu\.com\/ubuntu\/pool\/\S+\.deb\s+404\s+Not Found/m;
 function execute(program, args, { input } = {}) {
   const result = spawnSync(program, args, { encoding: 'utf8', input, env: { ...process.env, LC_ALL: 'C' }, timeout: 20 * 60_000, maxBuffer: 32 * 1024 * 1024 });
   if (result.error || result.status !== 0) throw new Error(`${program} ${args.join(' ')} failed: ${result.error?.message ?? `${result.stdout}\n${result.stderr}`}`);
@@ -95,6 +96,12 @@ export function acquireApt(requested, options = {}) {
       assertAptResolution(simulation, before, arch,
         (next, previous) => run('dpkg', ['--compare-versions', next, 'ge', previous]));
     };
+    const refreshIndexes = () => {
+      lists = path.join(attempt, 'retry-lists');
+      mkdirSync(lists);
+      privileged('apt-get', [...aptOptions(), '-o', 'Acquire::https::No-Cache=true', 'update']);
+      report.mirrorIndexRefreshed = true;
+    };
     try {
       privileged('apt-get', [...aptOptions(), 'update']);
     } catch (error) {
@@ -106,10 +113,7 @@ export function acquireApt(requested, options = {}) {
         privileged('apt-get', [...aptOptions(), 'update']);
       } else if (mirrorIndexSizeMismatch.test(error?.message ?? String(error))) {
         // Discard the failed index set and request fresh authenticated metadata.
-        lists = path.join(attempt, 'retry-lists');
-        mkdirSync(lists);
-        privileged('apt-get', [...aptOptions(), '-o', 'Acquire::https::No-Cache=true', 'update']);
-        report.mirrorIndexRefreshed = true;
+        refreshIndexes();
       } else {
         throw error;
       }
@@ -124,8 +128,17 @@ export function acquireApt(requested, options = {}) {
       // An incomplete acquisition is not a valid warm cache. APT validates any
       // partial archive against its authenticated index before reusing it.
       const preexistingDebs = readdirSync(archives).filter(name => name.endsWith('.deb'));
-      validateResolution(missing);
-      privileged('apt-get', [...aptOptions(), 'install', '--download-only', '-y', '--no-install-recommends', ...missing]);
+      const download = () => {
+        validateResolution(missing);
+        privileged('apt-get', [...aptOptions(), 'install', '--download-only', '-y', '--no-install-recommends', ...missing]);
+      };
+      try {
+        download();
+      } catch (error) {
+        if (dns || report.mirrorIndexRefreshed || !mirrorPackageMissing.test(error?.message ?? String(error))) throw error;
+        refreshIndexes();
+        download();
+      }
       const debs = readdirSync(archives).filter(name => name.endsWith('.deb')).sort().map(file => {
         const full = path.join(archives, file);
         assertFile(full);
