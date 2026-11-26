@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{collections::BTreeSet, fs, path::Path};
 
-pub(super) const MAX_RECEIPTS: usize = 64;
+pub(super) const MAX_RECEIPTS: usize = 128;
 pub(super) const MAX_RECEIPT_BYTES: u64 = 128 * 1024;
 const MAX_INDEX_BYTES: u64 = 192 * 1024;
 const MAX_RECORD_BYTES: u64 = MAX_RECEIPT_BYTES + 1024;
@@ -332,9 +332,14 @@ pub(super) fn history(root: &Path, host: &str, body: &str) -> Result<Value, Stri
         "archive_records_committed":prepared.additions.is_empty(), "receipt_digests":prepared.index.history, "receipts":values}),
     )
 }
-pub(super) fn require_capacity(root: &Path, host: &str, body: &str) -> Result<(), String> {
+pub(super) fn require_capacity(
+    root: &Path,
+    host: &str,
+    body: &str,
+    outcomes: usize,
+) -> Result<(), String> {
     let prepared = prepare(root, host, body, None)?;
-    if prepared.index.history.len() >= MAX_RECEIPTS {
+    if outcomes > MAX_RECEIPTS.saturating_sub(prepared.index.history.len()) {
         return Err("execution custody capacity exhausted before Play".into());
     }
     Ok(())

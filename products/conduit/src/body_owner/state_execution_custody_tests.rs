@@ -142,10 +142,25 @@ fn corruption_cross_body_and_stale_history_refuse_without_erasing_prior_outcomes
 #[test]
 fn finite_capacity_refuses_before_play_and_never_evicts_old_receipts() {
     let (root, bio) = fixture();
-    for n in 0..execution_custody::MAX_RECEIPTS {
-        require_execution_capacity(&root).unwrap();
+    const PREVIOUS_CAPACITY: usize = 64;
+    for n in 0..PREVIOUS_CAPACITY {
         retain(&root, &bio, Some(&receipt(&bio, n)), None).unwrap();
     }
+    recover(&root).unwrap();
+    let previous = execution_history(&root).unwrap();
+    for n in PREVIOUS_CAPACITY..execution_custody::MAX_RECEIPTS {
+        require_execution_capacity(&root).unwrap();
+        let remaining = execution_custody::MAX_RECEIPTS - n;
+        require_execution_capacity_for(&root, remaining).unwrap();
+        assert!(require_execution_capacity_for(&root, remaining + 1).is_err());
+        retain(&root, &bio, Some(&receipt(&bio, n)), None).unwrap();
+    }
+    recover(&root).unwrap();
+    let extended = execution_history(&root).unwrap();
+    assert_eq!(
+        &extended["receipt_digests"].as_array().unwrap()[..PREVIOUS_CAPACITY],
+        previous["receipt_digests"].as_array().unwrap()
+    );
     let before = fs::read(root.join("body/owner-execution.json")).unwrap();
     assert!(require_execution_capacity(&root)
         .unwrap_err()

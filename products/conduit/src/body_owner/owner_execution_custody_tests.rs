@@ -113,7 +113,10 @@ fn terminal_receipt_survives_publication_failure_and_retry_does_not_replay_effec
 fn full_custody_refuses_normal_owner_start_before_checkpoint_effects() {
     let (mut owner, source, plot, grant, root, checkpoint) = fixture();
     // Fill the declared metadata profile, without pretending these are kernel runs.
-    for ordinal in 0..64 {
+    let capacity = state::execution_history(&root).unwrap()["capacity"]
+        .as_u64()
+        .unwrap();
+    for ordinal in 0..capacity {
         state::retain(
             &root,
             owner.session.evidence(),
@@ -136,7 +139,7 @@ fn full_custody_refuses_normal_owner_start_before_checkpoint_effects() {
     println!(
         "{}",
         serde_json::json!({"case":"normal-owner-custody-capacity-before-effects",
-        "capacity":64,"fixture_receipts":true,"retained_count":history["receipts"].as_array().unwrap().len(),
+        "capacity":capacity,"fixture_receipts":true,"retained_count":history["receipts"].as_array().unwrap().len(),
         "refusal":error,"host_started":owner.host.is_playing(),"checkpoint_files":checkpoint_files(&checkpoint).len()})
     );
     fs::remove_dir_all(root).unwrap();
