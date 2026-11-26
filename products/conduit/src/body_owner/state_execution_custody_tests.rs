@@ -150,6 +150,9 @@ fn finite_capacity_refuses_before_play_and_never_evicts_old_receipts() {
     let previous = execution_history(&root).unwrap();
     for n in PREVIOUS_CAPACITY..execution_custody::MAX_RECEIPTS {
         require_execution_capacity(&root).unwrap();
+        let remaining = execution_custody::MAX_RECEIPTS - n;
+        require_execution_capacity_for(&root, remaining).unwrap();
+        assert!(require_execution_capacity_for(&root, remaining + 1).is_err());
         retain(&root, &bio, Some(&receipt(&bio, n)), None).unwrap();
     }
     recover(&root).unwrap();
