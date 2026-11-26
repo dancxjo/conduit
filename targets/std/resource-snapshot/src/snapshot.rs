@@ -1,6 +1,10 @@
 use crate::directory::{Name, SnapshotDirectory};
-use conduit_core::{AuthorityBinding, BoundedResourceRef, PlannedGear};
-use conduit_resource_snapshot::{PreparedSnapshotRecord, SnapshotRefusal, MAXIMUM_RECORD_BYTES};
+use conduit_core::{
+    AuthorityBinding, AuthorityGrant, BoundedResourceRef, PlannedGear, ResourceReferenceBinding,
+};
+use conduit_resource_snapshot::{
+    PreparedSnapshotRecord, SnapshotRecordSelection, SnapshotRefusal, MAXIMUM_RECORD_BYTES,
+};
 use std::{io, os::fd::AsRawFd};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,7 +67,35 @@ impl<'a> PreparedFileSnapshot<'a> {
         placement: &PlannedGear,
         reference: &BoundedResourceRef,
     ) -> Result<Self, FileSnapshotRefusal> {
-        let record = PreparedSnapshotRecord::prepare(placement, reference)?;
+        Self::from_record(
+            directory,
+            PreparedSnapshotRecord::prepare(placement, reference)?,
+        )
+    }
+    /// Prepare from independently retained selections during funded initialization.
+    /// Descriptors and references do not supply the original read/write authority.
+    /// Root still owns actual admission, current possession and directory custody.
+    pub fn prepare_selected(
+        directory: &'a SnapshotDirectory,
+        selected: SnapshotRecordSelection<'_>,
+        reference: &BoundedResourceRef,
+        original: &AuthorityGrant,
+        local_reference: &ResourceReferenceBinding,
+    ) -> Result<Self, FileSnapshotRefusal> {
+        Self::from_record(
+            directory,
+            PreparedSnapshotRecord::prepare_selected(
+                selected,
+                reference,
+                original,
+                local_reference,
+            )?,
+        )
+    }
+    fn from_record(
+        directory: &'a SnapshotDirectory,
+        record: PreparedSnapshotRecord,
+    ) -> Result<Self, FileSnapshotRefusal> {
         let published =
             Name::prepare(record.storage_key(), false).ok_or(FileSnapshotRefusal::InvalidKey)?;
         let candidate =
