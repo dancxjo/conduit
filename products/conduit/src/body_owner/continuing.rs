@@ -23,6 +23,15 @@ pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
 // worker stack. This is one service worker per owned Body Play, never a pool.
 const SERVICE_DEADLINE_REQUEST: &str = "owner/service-deadline";
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
+
+fn service_deadline_timer(until: Instant, control: RunControl) -> DeadlineTimer {
+    DeadlineTimer {
+        until,
+        stop_request: SERVICE_DEADLINE_REQUEST,
+        control,
+    }
+}
+
 enum RunReport {
     Reference(BodyRunReport),
     Image(ImageBodyRunReport),
@@ -144,10 +153,10 @@ impl Owner {
             .spawn(move || {
                 let mut host = host;
                 let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
-                let mut timer = DeadlineTimer {
-                    until: Instant::now() + Duration::from_millis(maximum_millis),
-                    control: worker_control.clone(),
-                };
+                let mut timer = service_deadline_timer(
+                    Instant::now() + Duration::from_millis(maximum_millis),
+                    worker_control.clone(),
+                );
                 let result = thread::scope(|scope| {
                     let (finished, receiver) = mpsc::sync_channel::<()>(1);
                     let deadline_control = worker_control.clone();

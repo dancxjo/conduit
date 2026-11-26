@@ -6,6 +6,7 @@ mod speech;
 mod wire;
 use conduit_face::{Face, MaskShow};
 use conduit_std_host::{
+    direct_spoken_template_mask::DirectSpokenTemplateLook,
     hosted_terminal_mask_host::{receive_terminal_frame_and_ack, TerminalFrameReceipt},
     terminal_face_mask::TerminalMaskExecution,
     terminal_mask_execution::HostedTerminalMaskExecution,
@@ -91,17 +92,49 @@ pub(crate) fn run(
                 }
                 output.flush().map_err(io_error)?;
             }
-            "read settings" => {
+            "read settings" | "read face" => {
                 if shown.execution.has_pending_play() {
                     shown.execution.close_without_input().map_err(debug_error)?;
                 }
-                let summary = speech::read(&mut peer, &mut owner, &shown.face)?;
+                let look = if command == "read settings" {
+                    DirectSpokenTemplateLook::Control
+                } else {
+                    let snapshot = owner.refresh()?;
+                    shown = present(&mut peer, &mut foreground, output, snapshot)?;
+                    owner.acknowledge(&shown.show)?;
+                    if shown.execution.has_pending_play() {
+                        shown.execution.close_without_input().map_err(debug_error)?;
+                    }
+                    DirectSpokenTemplateLook::Expanded
+                };
+                let summary = match speech::read(&mut peer, &mut owner, &shown.face, look) {
+                    Ok(summary) => summary,
+                    Err(error) if look == DirectSpokenTemplateLook::Expanded => {
+                        writeln!(output, "\nFace audio refused: {error}").map_err(io_error)?;
+                        let snapshot = owner.refresh()?;
+                        shown = present_current(
+                            &mut peer,
+                            &mut foreground,
+                            output,
+                            &mut owner,
+                            snapshot,
+                        )?;
+                        report(output)?;
+                        continue;
+                    }
+                    Err(error) => return Err(error),
+                };
                 let snapshot = owner.refresh()?;
-                if snapshot.face != shown.face {
+                if look == DirectSpokenTemplateLook::Control && snapshot.face != shown.face {
                     return Err("thermostat Face changed during the spoken reading".into());
                 }
                 last_spoken = Some(summary);
-                writeln!(output, "Settings audio artifacts are ready.").map_err(io_error)?;
+                let audio_ready = if look == DirectSpokenTemplateLook::Control {
+                    "Settings audio artifacts are ready."
+                } else {
+                    "Face audio artifacts are ready."
+                };
+                writeln!(output, "{audio_ready}").map_err(io_error)?;
                 shown = present_current(&mut peer, &mut foreground, output, &mut owner, snapshot)?;
                 report(output)?;
             }
@@ -144,7 +177,7 @@ pub(crate) fn run(
                     shown = present_current(&mut peer, &mut foreground, output, &mut owner, next)?;
                     report(output)?;
                 } else {
-                    writeln!(output, "Enter actions, action <identity> [value], apply <value>, show, read settings, evidence, or quit.").map_err(io_error)?;
+                    writeln!(output, "Enter actions, action <identity> [value], apply <value>, show, read settings, read face, evidence, or quit.").map_err(io_error)?;
                 }
             }
         }
@@ -211,7 +244,7 @@ fn present(
 fn report(output: &mut impl Write) -> Result<(), String> {
     writeln!(
         output,
-        "\nTerminal ready. Enter actions, action <identity> [value], show, read settings, evidence, or quit."
+        "\nTerminal ready. Enter actions, action <identity> [value], show, read settings, read face, evidence, or quit."
     )
     .map_err(io_error)?;
     output.flush().map_err(io_error)

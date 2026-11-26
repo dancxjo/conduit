@@ -23,6 +23,9 @@ impl PreparedSnapshotRecord {
     /// trusted composition root, never reconstructed from incoming descriptors.
     /// Core checks exact reference identity/version, availability and ceilings;
     /// the original authority grant checks operation, subject and current Boot.
+    /// ReadPublished may use a Boot-scoped residence without promising durable
+    /// storage. Publication still requires ExternalDurable. The rich planned
+    /// entrance retains its original durable-only lifetime policy.
     /// No table revocation, active Play or flash-window witness is minted here.
     /// Preparation allocates bounded codec/authority/reference-check workspace;
     /// callers must fund it before execution. Existing rich prepare is unchanged
@@ -66,7 +69,7 @@ impl PreparedSnapshotRecord {
         required
             .admit(reference, local_reference)
             .map_err(SnapshotRefusal::LocalReference)?;
-        Self::prepare_parts(selected, reference)
+        Self::prepare_parts(selected, reference, true)
     }
 }
 
