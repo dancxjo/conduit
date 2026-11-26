@@ -3,6 +3,8 @@ use super::*;
 use conduit_core::{seal_plan_with_activation_entries, PlotIdentity};
 use conduit_face::{PlannedMaskPlot, RemoteOwnerMaskRouteSeal};
 
+pub(super) const CARRIER_BYTES: u32 = 64 * 1024;
+
 /// A finite planning proposal, never evidence of effect authority or delivery.
 /// The owner reproduces this Plan against the offer observed at signed admission;
 /// the executing peer separately rechecks its actual private equipment grants.
@@ -25,8 +27,14 @@ impl RemoteSpokenTemplateSelection {
         if self.face_id != face.identity.as_str() || self.face_revision != face.revision {
             return Err("remote spoken selection has stale Face".into());
         }
-        let expected =
-            super::plan_template_for_offer(face, offer, self.look, self.authority_grants.clone())?;
+        crate::flow_activation::prepare_wording_for_offer(offer, face, self.look.entry())?;
+        let expected = crate::direct_spoken_mask::plan_for_offer_with_boundary(
+            face,
+            offer,
+            self.look.mask_name(),
+            self.authority_grants.clone(),
+            CARRIER_BYTES,
+        )?;
         if expected.plan != self.plan {
             return Err("remote spoken selection differs from the reproduced checked Plan".into());
         }
@@ -36,6 +44,9 @@ impl RemoteSpokenTemplateSelection {
 
 impl PreparedDirectSpokenTemplateMask {
     pub fn remote_selection(&self) -> Result<RemoteSpokenTemplateSelection, String> {
+        if !self.remote {
+            return Err("spoken selection was not prepared for the hosted carrier".into());
+        }
         if self.remote_route.is_some() {
             return Err("remote spoken selection already has an owner route".into());
         }
