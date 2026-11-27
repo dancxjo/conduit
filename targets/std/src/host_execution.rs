@@ -1,5 +1,6 @@
 //! Ordinary host reservation, execution and owned State result handling.
 use super::*;
+mod body_durable;
 pub(crate) mod continuity;
 mod reporting;
 mod spoken_mask;
@@ -161,40 +162,6 @@ impl StdHost {
                 durable_state: None,
             },
         )
-    }
-
-    /// Execute a fragment whose Plan selected the Body-durable State Back.
-    /// The Body identity and host-selected residence enter explicitly here;
-    /// neither is inferred from the Plot, Plan id, or filesystem path.
-    pub fn run_body_durable_fragment_to<W: Write, T: TimerAdapter>(
-        &mut self,
-        body: &conduit_body::BodyId,
-        residence_root: &std::path::Path,
-        fragment: PlanFragment,
-        output: &mut W,
-        timer: &mut T,
-        control: &RunControl,
-    ) -> Result<StdRunReport, String> {
-        self.run_fragment_owned_with_keyboard_to(
-            fragment,
-            output,
-            timer,
-            control,
-            HostRunInputs {
-                keyboard: None,
-                indicator: None,
-                retained: None,
-                attach_live: false,
-                external_fore: None,
-                spoken_mask: None,
-                direct_spoken_mask: None,
-                durable_state: Some(installed_std::DurableStateRun {
-                    body,
-                    root: residence_root,
-                }),
-            },
-        )
-        .map(|run| run.report)
     }
 
     /// Execute one product Play without treating drained work as completion.

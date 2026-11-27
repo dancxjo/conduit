@@ -13,6 +13,7 @@ mod evaluate;
 mod fixed_projection;
 mod native_u64;
 mod quantity_profile;
+mod resource_reference;
 mod scalar_tape;
 use evaluate::evaluate_node;
 pub use native_u64::PreparedNativeU64Expression;
@@ -79,6 +80,7 @@ enum PreparedInput {
         maximum_bytes: Option<u32>,
     },
     Structured(SharedBytes, Option<u32>),
+    ResourceReference(Option<u32>),
 }
 
 impl PreparedInput {
@@ -87,14 +89,16 @@ impl PreparedInput {
             Self::Primitive {
                 quantity_profile, ..
             } => *quantity_profile,
-            Self::Structured(..) => conduit_core::QuantityValueProfile::Decimal,
+            Self::Structured(..) | Self::ResourceReference(_) => {
+                conduit_core::QuantityValueProfile::Decimal
+            }
         }
     }
     fn maximum_bytes(&self) -> Option<u32> {
         match self {
-            Self::Primitive { maximum_bytes, .. } | Self::Structured(_, maximum_bytes) => {
-                *maximum_bytes
-            }
+            Self::Primitive { maximum_bytes, .. }
+            | Self::Structured(_, maximum_bytes)
+            | Self::ResourceReference(maximum_bytes) => *maximum_bytes,
         }
     }
 }
@@ -117,6 +121,7 @@ enum PreparedRoot {
         nominal_type: Option<Vec<u8>>,
     },
     Structured(PreparedStructuredExpression),
+    ResourceReference(resource_reference::PreparedReference),
 }
 
 struct PreparedNode {
@@ -244,6 +249,11 @@ impl PreparedPortableExpressionEvaluator {
         quantity_profile: conduit_core::QuantityValueProfile,
     ) -> Result<Self, Refusal> {
         let input = match program.input_type.shape() {
+            StructuredInfoTypeShape::Leaf(_)
+                if resource_reference::is_reference(&program.input_type) =>
+            {
+                PreparedInput::ResourceReference(program.input_maximum_bytes)
+            }
             StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
                 kind: leaf_kind(&program.input_type)?,
                 info_kind: prepare_info_kind(&program.input_type)?,
@@ -323,6 +333,13 @@ impl PreparedPortableExpressionEvaluator {
             ..program
         };
         let root = match program.output_type.shape() {
+            StructuredInfoTypeShape::Leaf(_)
+                if resource_reference::is_reference(program.output_type) =>
+            {
+                PreparedRoot::ResourceReference(resource_reference::PreparedReference::new(
+                    program, &input,
+                )?)
+            }
             StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. }
                 if leaf_kind(program.output_type).is_ok() =>
             {
@@ -371,6 +388,10 @@ impl PreparedPortableExpressionEvaluator {
         }
         let mut primitive_bytes = input;
         let primitive_input = match &self.input {
+            PreparedInput::ResourceReference(_) => {
+                resource_reference::validate(input)?;
+                None
+            }
             PreparedInput::Primitive {
                 kind,
                 info_kind,
@@ -398,6 +419,7 @@ impl PreparedPortableExpressionEvaluator {
         };
         self.output.clear();
         match &mut self.root {
+            PreparedRoot::ResourceReference(root) => root.evaluate(input, &mut self.output)?,
             PreparedRoot::Primitive { node, nominal_type } => {
                 let value = evaluate_node(node, primitive_bytes, primitive_input)?;
                 if let Some(value_type) = nominal_type {
@@ -434,6 +456,7 @@ impl PreparedPortableExpressionEvaluator {
     // admitted prefix without retaining another identical schema byte buffer.
     fn output_type_prefix(&self) -> Option<&[u8]> {
         match &self.root {
+            PreparedRoot::ResourceReference(_) => None,
             PreparedRoot::Primitive { nominal_type, .. }
             | PreparedRoot::ScalarTape { nominal_type, .. } => nominal_type.as_deref(),
             PreparedRoot::Structured(root) => Some(root.type_prefix()),
