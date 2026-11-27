@@ -162,11 +162,14 @@ name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
  "conduit-body-make",
+ "conduit-core",
  "conduit-face",
  "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-web",
  "serde_json",
 ]
 

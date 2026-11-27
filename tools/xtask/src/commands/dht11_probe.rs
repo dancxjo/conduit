@@ -1,6 +1,8 @@
 //! Focused environmental Body specification, Mask and physical diagnostic proof.
 #[path = "environment_appliance.rs"]
 mod environment_appliance;
+#[path = "environment_catalogue_source.rs"]
+mod environment_catalogue_source;
 #[path = "environment_face_profile.rs"]
 mod environment_face_profile;
 #[path = "environment_face_publication.rs"]
@@ -38,6 +40,9 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["catalogue-source"] {
+        return environment_catalogue_source::prove(&root);
+    }
     if arguments == ["appliance"] {
         return environment_appliance::prove(&root);
     }
