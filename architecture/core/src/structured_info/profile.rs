@@ -1,4 +1,3 @@
-use alloc::format;
 use alloc::string::String;
 
 use crate::KindId;
@@ -22,9 +21,14 @@ impl StructuredInfoProfile {
             encoded.push(char::from(HEX[usize::from(byte >> 4)]));
             encoded.push(char::from(HEX[usize::from(byte & 0x0f)]));
         }
+        let mut name =
+            String::with_capacity("structured-info/profile-".len() + encoded.len() + "@1".len());
+        name.push_str("structured-info/profile-");
+        name.push_str(&encoded);
+        name.push_str("@1");
         Ok(Self {
             value_type,
-            value_kind: KindId::from(format!("structured-info/profile-{encoded}@1")),
+            value_kind: KindId::from(name),
         })
     }
 

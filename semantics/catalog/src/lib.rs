@@ -521,6 +521,12 @@ pub use structured_selector_back::StructuredSelectorBack;
 
 mod pure_expression;
 pub use pure_expression::{pure_expression_contract, pure_filter_contract};
+mod pure_expression_storage;
+pub use pure_expression_storage::{
+    prepare_qualified_resource_reference_some_contract,
+    qualified_resource_reference_some_contract_retained_bytes,
+    QualifiedSomeExpressionContractStorage,
+};
 #[cfg(feature = "kernel-step")]
 mod pure_expression_back;
 #[cfg(feature = "kernel-step")]

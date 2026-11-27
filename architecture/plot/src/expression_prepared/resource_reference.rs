@@ -28,6 +28,12 @@ impl PreparedReference {
     }
 }
 
+impl PreparedReference {
+    pub(super) fn qualified_reference_storage(&self) -> Option<usize> {
+        self.expression.qualified_reference_storage()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -173,10 +173,11 @@ fn lower_local_fragment_set_with(
         }
         if lowered.states.iter().any(|state| {
             state.contract.retained.is_some()
-                || !matches!(
+                || !(matches!(
                     state.contract.lifetime,
                     StateLifetime::Step | StateLifetime::Play
-                )
+                ) || (state.contract.lifetime == StateLifetime::Body
+                    && profile.supports_body_state_residence()))
         }) {
             return Err(FragmentSetError::StateUnsupported);
         }

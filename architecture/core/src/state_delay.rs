@@ -10,6 +10,7 @@ pub const STATE_VALUE_KIND: &str = "state/value";
 pub const STATE_VALUE_REVISION: &str = "conduit.state/value@1";
 
 mod continuity;
+mod owned_backing;
 pub use continuity::RetainedStateProvenance;
 
 /// Exact semantic identity of one retained computational state occurrence.
@@ -228,6 +229,18 @@ pub(crate) fn push_canonical_state(
 }
 
 pub(crate) fn verify_plan_states(plan: &crate::Plan) -> bool {
+    if plan.fragments.len() == 1 {
+        // The qualified local preparation profile borrows identities; the
+        // fragment's resource check already has the same finite pairwise work.
+        let states = &plan.fragments[0].states;
+        return states.iter().enumerate().all(|(index, state)| {
+            !states[..index]
+                .iter()
+                .any(|prior| prior.state_id == state.state_id || prior.gear_id == state.gear_id)
+        });
+    }
+    // Preserve the general multi-Host verifier's original complexity. Its
+    // State-tree scratch is outside the qualified local storage receipt.
     let mut state_ids = alloc::collections::BTreeSet::new();
     let mut gear_ids = alloc::collections::BTreeSet::new();
     plan.fragments

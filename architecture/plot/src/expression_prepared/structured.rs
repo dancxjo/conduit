@@ -391,3 +391,19 @@ pub(super) fn append(output: &mut Vec<u8>, value: &[u8]) -> Result<(), Refusal> 
     output.extend_from_slice(value);
     Ok(())
 }
+
+impl PreparedStructuredExpression {
+    pub(super) fn qualified_reference_storage(&self) -> Option<usize> {
+        let heap = match &self.shape {
+            PreparedShape::Input => 0,
+            PreparedShape::Tape(tape) => {
+                core::mem::size_of_val(&**tape).checked_add(tape.qualified_reference_storage()?)?
+            }
+            _ => return None,
+        };
+        self.type_prefix.capacity().checked_add(heap)
+    }
+    pub(super) fn qualified_some_tape_bound() -> usize {
+        core::mem::size_of::<tape::StructuredTape>() + tape::StructuredTape::qualified_some_bound()
+    }
+}

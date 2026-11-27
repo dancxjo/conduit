@@ -14,6 +14,8 @@ mod borrowed;
 mod canonical;
 mod canonical_length;
 pub use borrowed::*;
+mod initialization_layout;
+pub use initialization_layout::StateInitializationLayout;
 mod inspection;
 mod owned;
 pub use owned::*;
@@ -733,7 +735,12 @@ impl StructuredInfoValue {
     }
 
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, StructuredInfoRefusal> {
-        let mut encoded = self.value_type.canonical_bytes()?;
+        let bytes = canonical_length::encoded_length(&self.value_type)?
+            .checked_add(canonical_length::value_node_length(&self.node)?)
+            .filter(|total| *total <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+            .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)?;
+        let mut encoded = Vec::with_capacity(bytes);
+        encode_type(&self.value_type, &mut encoded);
         encode_value_node(&self.node, &mut encoded);
         check_encoding_size(encoded)
     }

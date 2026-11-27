@@ -112,6 +112,9 @@ pub(crate) fn semantic_laws_for_input(
 ) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
     let mut laws = crate::pure_expression_semantic_laws();
     if let Some(maximum) = bound {
+        // Admit exactly the one additional finite boundary law, rather than
+        // depending on the allocator's implicit Vec growth policy.
+        laws.reserve_exact(1);
         laws.push(KindSemanticLaw::ValueContracts(vec![FrontValueContract {
             location: FrontValueLocation::Input(conduit_core::port_id("input")),
             contract: CheckedValueContract::new(input, maximum, vec![])

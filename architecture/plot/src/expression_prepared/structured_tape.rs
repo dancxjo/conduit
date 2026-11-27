@@ -38,10 +38,14 @@ impl StructuredTape {
         ) {
             return None;
         }
+        // The qualified ordinary opaque-reference constructor has exact finite
+        // tape cardinalities. Reserve these before lowering, preserving the
+        // same instructions and nested evaluator used by the generic path.
+        let exact = super::super::owned_storage::qualifies_view(program);
         let mut tape = Self {
-            code: Vec::new(),
-            constants: Vec::new(),
-            values: Vec::new(),
+            code: Vec::with_capacity(if exact { 2 } else { 0 }),
+            constants: Vec::with_capacity(if exact { 9 } else { 0 }),
+            values: Vec::with_capacity(if exact { 1 } else { 0 }),
         };
         tape.lower(program, program.root, input, 0).ok()?;
         tape.code.shrink_to_fit();
@@ -259,5 +263,32 @@ impl StructuredTape {
             }
         }
         Ok(())
+    }
+}
+
+impl StructuredTape {
+    pub(super) fn qualified_some_bound() -> usize {
+        2 * core::mem::size_of::<Operation>() + 9 + core::mem::size_of::<PreparedChild>()
+    }
+    pub(super) fn qualified_reference_storage(&self) -> Option<usize> {
+        let mut bytes = self
+            .code
+            .capacity()
+            .checked_mul(core::mem::size_of::<Operation>())?
+            .checked_add(self.constants.capacity())?
+            .checked_add(
+                self.values
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<PreparedChild>())?,
+            )?;
+        for child in &self.values {
+            let ChildEvaluator::Dynamic(value) = &child.evaluator else {
+                return None;
+            };
+            bytes = bytes
+                .checked_add(core::mem::size_of_val(&**value))?
+                .checked_add(value.qualified_retained_backing_bytes().ok()?)?;
+        }
+        Some(bytes)
     }
 }

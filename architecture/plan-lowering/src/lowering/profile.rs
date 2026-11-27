@@ -13,6 +13,7 @@ pub struct KernelStorageProfile {
     maximum_ports_per_node: usize,
     state_storage: Option<(u16, u32)>,
     owned_state_continuity: bool,
+    body_state_residence: bool,
     partitioned_regions: bool,
 }
 
@@ -38,6 +39,7 @@ impl KernelStorageProfile {
             maximum_ports_per_node,
             state_storage: None,
             owned_state_continuity: false,
+            body_state_residence: false,
             partitioned_regions: false,
         })
     }
@@ -60,6 +62,17 @@ impl KernelStorageProfile {
     pub const fn with_owned_state_continuity(mut self) -> Self {
         self.owned_state_continuity = true;
         self
+    }
+
+    /// Select only when the Host independently retains a Body-lived State
+    /// residence. This admits no retired-cell transfer or Wake/Boot residence.
+    pub const fn with_body_state_residence(mut self) -> Self {
+        self.body_state_residence = true;
+        self
+    }
+
+    pub const fn supports_body_state_residence(self) -> bool {
+        self.body_state_residence
     }
 
     pub const fn supports_owned_state_continuity(self) -> bool {
@@ -90,6 +103,7 @@ pub const FIXED_KERNEL_STORAGE_PROFILE: KernelStorageProfile = KernelStorageProf
     maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
     state_storage: None,
     owned_state_continuity: false,
+    body_state_residence: false,
     partitioned_regions: false,
 };
 

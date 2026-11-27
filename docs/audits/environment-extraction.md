@@ -248,7 +248,7 @@ The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
 
-## Proposed authored catalogue checkpoint, 26 November 2026
+## Authored catalogue checkpoint, development, 26 November 2026
 
 The application checkpoint and read-only seed Sources are recovered unchanged
 from `057f48d32ce3223ce1530ddc1f50f2d53e3affe7`. The checkpoint has one JSON
@@ -279,3 +279,39 @@ On current `dev` plus the opaque-reference expression prerequisite, all seven
 checks and strict focused lint pass. Workspace and standalone proof formatting,
 evidence retention and all thirty standalone lock checks also pass. The lock
 delta adds only three existing local test-dependency edges.
+
+## Bounded preparation for the Body recorder, in development
+
+The ordinary recorder composition needs explicit owned preparation for fresh
+local State, selected content bindings and its qualified `some(ResourceRef)`
+constructor. This slice adds requested-storage receipts to the existing Core,
+Plot, lowering and semantic-catalog owners. It does not realize a recorder or
+supply a selected filesystem Back.
+
+Canonical Type/value buffers are reserved before serialization, including the
+initial absent optional value. Local State tables reserve their exact count;
+retained State transfer and multi-part State ownership remain outside this
+profile. Content residence strings cloned by lowering have an explicit owner
+and bound. The selected-Fore accounting prerequisite retains borrowed verifier
+inspection and accounts the existing nested Line owners without cloning them
+into temporary validation structures. Remote connections require separate
+accounting and authority.
+
+The authored optional-reference expression retains the original v2/v3 program,
+Type and Kind identities. Its owned decoder/evaluator and qualified contract
+constructor have bounded preparation models; unsupported expression contracts
+remain distinct refusals. These models describe requested storage and do not
+provide allocator confinement, Host authority or durable residence.
+
+`cargo xtask prove environment body-residence-layout` exercises State commitments,
+canonical serialization storage, selected-Fore verification and owned lowering,
+then strict Core/lowering checks and Thumb compilation.
+`cargo xtask prove environment body-residence-expression` exercises the owned
+program and prepared Back plus all three qualified descriptor tests, followed by
+strict Plot/catalog checks. The Linux Body caller, authenticated catalogue
+acceptance, retirement and physical MCU adoption remain separate integrations.
+
+On current `dev` plus this preparation slice, all thirty-nine layout checks and
+eight expression/descriptor checks pass, together with the focused strict
+Core/lowering and Plot/catalog checks and Thumb Core compilation. These are
+preparation and portability results, not Body execution or recorder acceptance.

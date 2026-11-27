@@ -157,7 +157,14 @@ fn expression_definition_from_encoding(
         &encoded_program,
     ]);
     Ok(KindProjection {
-        kind_id: kind_id(&format!("conduitese/pure-expression/{identity}")),
+        kind_id: {
+            let mut id = alloc::string::String::with_capacity(
+                "conduitese/pure-expression/".len() + identity.len(),
+            );
+            id.push_str("conduitese/pure-expression/");
+            id.push_str(&identity);
+            conduit_core::KindId::from(id)
+        },
         kind_contract_revision: KindIdentity::from(PURE_EXPRESSION_REVISION),
         inputs: vec![PortDescriptor {
             port_id: port_id("input"),
@@ -202,7 +209,14 @@ fn expression_identity(fields: &[&str]) -> alloc::string::String {
         }
         digest.update(field.as_bytes());
     }
-    format!("{:x}", digest.finalize())
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let digest = digest.finalize();
+    let mut encoded = alloc::string::String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+        encoded.push(char::from(HEX[usize::from(byte & 15)]));
+    }
+    encoded
 }
 
 #[cfg(test)]

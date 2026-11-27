@@ -193,7 +193,7 @@ fn fore_identity_and_all_intermediate_storage_fit_the_same_layout() {
 }
 #[test]
 fn unsupported_shape_overflow_and_invalid_seal_never_gain_a_lowering_receipt() {
-    let mut state = common::fragment();
+    let mut state = common::retained_fragment();
     state.sign_storage_budget = mandatory_sign_storage_requirement(&state.expected_sign).unwrap();
     let state = common::seal(state);
     let (result, allocation) = allocation_probe::observe(|| {
