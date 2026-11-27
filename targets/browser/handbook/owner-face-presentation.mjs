@@ -315,6 +315,8 @@ export class OwnerFacePresentation {
       heading.dataset.textPurpose = ['Document', 'Body', 'Host'].includes(subject.role) ? 'Title' : 'Heading';
       node.append(heading);
       for (const text of subject.text) node.append(faceNode('p', text));
+      const series = ownerFaceSeries(subject.quantity_series, subject.name);
+      if (series) node.append(series);
       if (subject.values?.length) {
         const values = document.createElement('dl');
         for (const value of subject.values) {
@@ -542,4 +544,64 @@ export class OwnerFacePresentation {
       }
     }
   }
+}
+
+// Display-only realization of the shared prepared series in an acknowledged Face view.
+const seriesText = (tag, value) => {
+  const node = document.createElement(tag);
+  node.textContent = value;
+  return node;
+};
+const seriesSvgNode = (tag, attributes) => {
+  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
+  return node;
+};
+function ownerFaceSeries(series, name) {
+  if (!series) return;
+  const plot = series.plot;
+  if (plot && (!Array.isArray(plot.producer) || plot.producer.length !== 4
+    || plot.producer.some(value => typeof value !== 'string' || value.length > 256)
+    || typeof plot.source !== 'string' || plot.source.length > 256
+    || !Number.isInteger(plot.source_samples) || plot.source_samples < 0 || plot.source_samples > 64
+    || !Number.isInteger(plot.unavailable_samples) || plot.unavailable_samples < 0
+    || !Number.isInteger(plot.omitted_points) || plot.omitted_points < 0
+    || !Array.isArray(plot.points)
+    || plot.points.length + plot.omitted_points + plot.unavailable_samples !== plot.source_samples)) return;
+  const figure = document.createElement('figure');
+  figure.className = 'owner-face-series';
+  if (!series.plot) {
+    figure.append(seriesText('figcaption', 'Plot unavailable; the complete reading remains below.'));
+    if (series.refusal) figure.dataset.refusal = series.refusal;
+    return figure;
+  }
+  if (!Array.isArray(plot.points) || plot.points.length > 16
+    || plot.points.some(point => !Number.isInteger(point.time_millionths)
+      || point.time_millionths < 0 || point.time_millionths > 1000000
+      || !Number.isInteger(point.value_millionths)
+      || point.value_millionths < 0 || point.value_millionths > 1000000
+      || typeof point.sequence !== 'string' || !/^[0-9]{1,20}$/.test(point.sequence)
+      || typeof point.boot_ms !== 'string' || !/^[0-9]{1,20}$/.test(point.boot_ms)
+      || typeof point.value !== 'string' || point.value.length > 1024)) return;
+  const svg = seriesSvgNode('svg', { viewBox: '0 0 1000000 1000000', preserveAspectRatio: 'none', role: 'img', 'aria-label': name });
+  svg.style.width = '100%'; svg.style.height = '10rem';
+  svg.style.color = 'inherit';
+  svg.append(seriesSvgNode('path', { d: 'M20000 20000V980000H980000', fill: 'none', stroke: 'currentColor', 'stroke-width': 5000 }));
+  for (const point of plot.points) {
+    const dot = seriesSvgNode('circle', { cx: 20000 + point.time_millionths * .96,
+      cy: 980000 - point.value_millionths * .96, r: 10000, fill: 'currentColor' });
+    const title = seriesSvgNode('title', {});
+    title.textContent = `Sequence ${point.sequence}; producer Boot ${point.boot_ms} ms; ${point.value}`;
+    dot.append(title);
+    svg.append(dot);
+  }
+  figure.append(svg);
+  figure.append(seriesText('figcaption', `${plot.points.length} observation dots; ${plot.unavailable_samples} unavailable; ${plot.gap_runs} sequence gaps; ${plot.omitted_points} available points omitted from plot; ${plot.omitted_samples} samples outside this view. No interpolation.`));
+  figure.append(seriesText('p', `Producer Boot ms: ${plot.first_boot_ms ?? 'unavailable'} to ${plot.last_boot_ms ?? 'unavailable'}. Value range: ${plot.minimum ?? 'unavailable'} to ${plot.maximum ?? 'unavailable'}.`));
+  const details = document.createElement('details');
+  details.append(seriesText('summary', 'Plot source'));
+  details.append(seriesText('p', `Source ${plot.source}. Host ${plot.producer[0]}; Boot ${plot.producer[1]}; Plan ${plot.producer[2]}; Play ${plot.producer[3]}. Publication evidence: ${plot.publication_evidence ?? 'not supplied'}.`));
+  if (plot.publication_reference) details.append(seriesText('p', `Exact publication reference bytes: ${JSON.stringify(plot.publication_reference)}`));
+  figure.append(details);
+  return figure;
 }

@@ -88,6 +88,12 @@ impl PackedRowInsets {
             insets.inline | (insets.block << 7) | (u16::from(insets.leading != 0) << 14),
         ))
     }
+    pub fn with_region_start(self, region_start: bool) -> Self {
+        Self(self.0 | (u16::from(region_start) << 15))
+    }
+    pub fn region_start(self) -> bool {
+        self.0 >> 15 != 0
+    }
     pub fn inline(self) -> u16 {
         self.0 & 0x7f
     }

@@ -41,6 +41,7 @@ const INDENT_STEP: u16 = 14;
 
 pub(super) struct Row {
     pub continuation: Option<LayoutContinuation>,
+    pub plot: Option<core::num::NonZeroU8>,
     pub text: String,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
@@ -51,7 +52,6 @@ pub(super) struct Row {
     pub region_inset: u16,
     pub page: usize,
     pub bounds: LayoutRect,
-    pub region_start: bool,
     pub insets: PackedRowInsets,
     pub checkbox: Option<bool>,
     pub icon: Option<conduit_face::FaceIconKey>,
@@ -60,6 +60,10 @@ pub(super) struct Row {
 }
 
 impl Row {
+    pub fn region_start(&self) -> bool {
+        self.insets.region_start()
+    }
+
     /// Source-owned primary disclosure becomes a filled action only while available.
     pub fn emphasized(&self) -> bool {
         self.role == GraphicsTextRole::Heading
@@ -223,7 +227,8 @@ pub(super) fn admit_with_expression_selected(
         }
         let mut remaining = item.text.as_str();
         while !remaining.is_empty() {
-            let (end, height) = measure_prefix(
+            let (end, height) = measure_item_prefix(
+                &item,
                 remaining,
                 item.role,
                 text_width,
@@ -236,7 +241,8 @@ pub(super) fn admit_with_expression_selected(
                 typography,
             )
             .or_else(|_| {
-                measure_prefix(
+                measure_item_prefix(
+                    &item,
                     remaining,
                     item.role,
                     text_width,
@@ -271,6 +277,7 @@ pub(super) fn admit_with_expression_selected(
             }
             rows.push(Row {
                 continuation: continuation.take(),
+                plot: item.plot,
                 text: remaining[..end].into(),
                 role: item.role,
                 paint: item.paint,
@@ -279,8 +286,7 @@ pub(super) fn admit_with_expression_selected(
                 region: item.region,
                 region_inset: 0,
                 page,
-                region_start,
-                insets: PackedRowInsets::new(insets)?,
+                insets: PackedRowInsets::new(insets)?.with_region_start(region_start),
                 checkbox: item.checkbox,
                 icon: item.icon,
                 icon_size: super::semantic_icons::size(text_scale_percent),
@@ -321,6 +327,9 @@ fn fit_padding<'a>(
 }
 
 fn row_commands(item: &document::Item, region_start: bool) -> usize {
+    if item.plot.is_some() {
+        return quantity_series::COMMANDS + usize::from(region_start);
+    }
     1 + usize::from(item.icon.is_some())
         + usize::from(item.checkbox.is_some())
         + usize::from(item.control.is_some() && item.checkbox.is_none())
@@ -371,3 +380,21 @@ fn measure_prefix(
 #[cfg(test)]
 #[path = "layout/field_cluster_tests.rs"]
 mod field_cluster_tests;
+
+fn measure_item_prefix(
+    item: &document::Item,
+    remaining: &str,
+    role: GraphicsTextRole,
+    width: u16,
+    maximum_height: u16,
+    scale: u16,
+    typography: Typography,
+) -> Result<(usize, u16), FaceSceneError> {
+    if item.plot.is_some() {
+        if width == 0 || maximum_height == 0 {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        return Ok((remaining.len(), maximum_height.min(48)));
+    }
+    measure_prefix(remaining, role, width, maximum_height, scale, typography)
+}

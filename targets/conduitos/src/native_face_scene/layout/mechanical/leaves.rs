@@ -150,7 +150,8 @@ fn arrange_content(
                 return Err(FaceSceneError::DocumentBound);
             }
             let (end, measured) =
-                measure_prefix(
+                measure_item_prefix(
+                    item,
                     remaining,
                     item.role,
                     text_width,
@@ -165,7 +166,8 @@ fn arrange_content(
                     context.typography,
                 )
                 .or_else(|_| {
-                    measure_prefix(
+                    measure_item_prefix(
+                        item,
                         remaining,
                         item.role,
                         text_width,
@@ -218,6 +220,7 @@ fn arrange_content(
                 extent: None,
                 row: Row {
                     continuation: None,
+                    plot: item.plot,
                     text: remaining[..end].into(),
                     role: item.role,
                     paint: item.paint,
@@ -232,8 +235,7 @@ fn arrange_content(
                         width: item_width,
                         height: box_height,
                     },
-                    region_start: marker,
-                    insets: PackedRowInsets::new(insets)?,
+                    insets: PackedRowInsets::new(insets)?.with_region_start(marker),
                     checkbox: item.checkbox,
                     icon: item.icon,
                     icon_size: super::super::super::semantic_icons::size(context.scale),

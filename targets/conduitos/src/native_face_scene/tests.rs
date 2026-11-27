@@ -1069,7 +1069,7 @@ fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
         scenes[0]
             .primary
             .iter()
-            .filter(|row| row.region_start)
+            .filter(|row| row.region_start())
             .count(),
         1
     );
@@ -1077,7 +1077,7 @@ fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
         scenes[1]
             .primary
             .iter()
-            .filter(|row| row.region_start)
+            .filter(|row| row.region_start())
             .count(),
         2
     );
