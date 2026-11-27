@@ -1,9 +1,14 @@
 //! Requested scratch of the original verifier for the reviewed local structural subset.
 use crate::{FragmentCommitment, Plan, PlannedConnection};
 /// Allocation-free descriptor, not Plan validity or execution authority.
-/// Nested dynamic/state/region/Line ownership remains outside this preparation profile.
+/// Retired State, nested dynamic/region and remote-connection ownership remain outside
+/// this preparation profile. Selected Fore Lines are checked through borrowed
+/// iterators; the verifier does not clone their nested String owners.
 pub fn local_plan_verification_backing_bytes(plan: &Plan) -> Option<usize> {
-    if !plan.activations.is_empty() || !plan.activation_preparations.is_empty() {
+    if !plan.activations.is_empty()
+        || !plan.activation_preparations.is_empty()
+        || (plan.fragments.len() > 1 && plan.fragments.iter().any(|part| !part.states.is_empty()))
+    {
         return None;
     }
     let mut bytes = plan
@@ -20,7 +25,7 @@ pub fn local_plan_verification_backing_bytes(plan: &Plan) -> Option<usize> {
     // Every canonical fingerprint creates exactly one owned 32-byte digest's hex String.
     bytes = bytes.checked_add(plan.fragments.len().checked_add(1)?.checked_mul(64)?)?;
     for part in &plan.fragments {
-        if !part.states.is_empty()
+        if part.states.iter().any(|state| state.retained.is_some())
             || !part.shared_pools.is_empty()
             || !part.execution_regions.is_empty()
             || !part.execution_fusions.is_empty()
@@ -29,10 +34,9 @@ pub fn local_plan_verification_backing_bytes(plan: &Plan) -> Option<usize> {
                 .iter()
                 .any(|c| c.selected_line.is_some() || !c.admitted_lines.is_empty())
             || part.fore_ports.iter().any(|p| {
-                p.selected_line.is_some()
-                    || p.value_contract
-                        .as_ref()
-                        .is_some_and(|c| !c.constraints.is_empty())
+                p.value_contract
+                    .as_ref()
+                    .is_some_and(|c| !c.constraints.is_empty())
             })
             || part
                 .placements

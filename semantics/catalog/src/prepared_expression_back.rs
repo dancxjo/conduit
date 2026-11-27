@@ -198,3 +198,65 @@ impl<const P: usize, E: ExpressionEngine>
         self.complete = false;
     }
 }
+
+impl PreparedExpressionBack {
+    pub fn qualified_resource_reference_some_storage(
+        program: &PortableExpressionProgram,
+    ) -> Result<
+        conduit_plot::QualifiedExpressionStorage,
+        conduit_plot::QualifiedExpressionStorageRefusal,
+    > {
+        let mut receipt =
+            conduit_plot::QualifiedExpressionStorage::for_resource_reference_some(program)?;
+        let extra = core::mem::size_of::<Self>()
+            - core::mem::size_of::<PreparedPortableExpressionEvaluator>();
+        receipt.preparation_bytes += extra;
+        receipt.retained_bytes += extra;
+        Ok(receipt)
+    }
+    /// Exact finite Some(ResourceRef) profile. Caller-owned program decoding is
+    /// separately admitted; preflight refuses before evaluator construction.
+    pub fn prepare_qualified_resource_reference_some(
+        program: &PortableExpressionProgram,
+        temporal: PortTemporal,
+        admitted_bytes: usize,
+    ) -> Result<Self, conduit_plot::QualifiedExpressionStorageRefusal> {
+        use conduit_plot::{QualifiedExpressionStorage, QualifiedExpressionStorageRefusal as E};
+        if !matches!(
+            temporal,
+            PortTemporal::Value | PortTemporal::Flow { closes: true }
+        ) {
+            return Err(E::UnsupportedProgram);
+        }
+        let receipt = QualifiedExpressionStorage::for_resource_reference_some(program)?;
+        let inline_extra = core::mem::size_of::<Self>()
+            - core::mem::size_of::<PreparedPortableExpressionEvaluator>();
+        if admitted_bytes < receipt.preparation_bytes + inline_extra {
+            return Err(E::InsufficientPreparation);
+        }
+        let evaluator = PreparedPortableExpressionEvaluator::new_qualified_resource_reference_some(
+            program,
+            admitted_bytes - inline_extra,
+        )?;
+        let (maximum_input_bytes, maximum_output_bytes) =
+            prepared_expression_bounds(program).map_err(|_| E::InvalidPreparedStorage)?;
+        Ok(Self {
+            evaluator,
+            maximum_input_bytes,
+            maximum_output_bytes,
+            staged: false,
+            closing: false,
+            complete: false,
+            flow: matches!(temporal, PortTemporal::Flow { closes: true }),
+            cancelled: false,
+            committed_values: 0,
+        })
+    }
+    /// Reachable capacities excluding inline Self, including nested evaluator
+    /// objects, tape vectors and every child output/type-prefix buffer.
+    pub fn qualified_retained_backing_bytes(
+        &self,
+    ) -> Result<usize, conduit_plot::QualifiedExpressionStorageRefusal> {
+        self.evaluator.qualified_retained_backing_bytes()
+    }
+}

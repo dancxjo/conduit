@@ -19,29 +19,27 @@ pub(super) fn lower_states(
     fragment: &PlanFragment,
     nodes: &super::PlacementNodes<'_>,
 ) -> Result<Vec<LoweredState>, LoweringError> {
-    fragment
-        .states
-        .iter()
-        .enumerate()
-        .map(|(index, state)| {
-            let placement = fragment
-                .placements
-                .iter()
-                .find(|placement| placement.gear_id == state.gear_id)
-                .ok_or(LoweringError::InvalidFragment)?;
-            // Core validation requires exactly one typed input and output.
-            if placement.inputs.len() != 1 || placement.outputs.len() != 1 {
-                return Err(LoweringError::InvalidFragment);
-            }
-            Ok(LoweredState {
-                slot: u16::try_from(index).map_err(|_| LoweringError::StateStorageExceeded)?,
-                node: nodes
-                    .get(&placement.placement_id)
-                    .ok_or(LoweringError::InvalidFragment)?,
-                next: PortId(0),
-                current: PortId(0),
-                contract: state.clone(),
-            })
-        })
-        .collect()
+    // Result collection otherwise starts a geometrically grown minimum table.
+    // Reserve the admitted exact State count before cloning any contract owner.
+    let mut lowered = Vec::with_capacity(fragment.states.len());
+    for (index, state) in fragment.states.iter().enumerate() {
+        let placement = fragment
+            .placements
+            .iter()
+            .find(|placement| placement.gear_id == state.gear_id)
+            .ok_or(LoweringError::InvalidFragment)?;
+        if placement.inputs.len() != 1 || placement.outputs.len() != 1 {
+            return Err(LoweringError::InvalidFragment);
+        }
+        lowered.push(LoweredState {
+            slot: u16::try_from(index).map_err(|_| LoweringError::StateStorageExceeded)?,
+            node: nodes
+                .get(&placement.placement_id)
+                .ok_or(LoweringError::InvalidFragment)?,
+            next: PortId(0),
+            current: PortId(0),
+            contract: state.clone(),
+        });
+    }
+    Ok(lowered)
 }

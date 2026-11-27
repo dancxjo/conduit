@@ -17,8 +17,7 @@ macro_rules! tables {
 pub fn lowered_local_fragment_set_backing_bytes(value: &LoweredFragmentSet) -> Option<usize> {
     let mut bytes = table(&value.partitions)?;
     for part in &value.partitions {
-        if !part.states.is_empty()
-            || !part.fusions.is_empty()
+        if !part.fusions.is_empty()
             || !part.shared_pools.is_empty()
             || !part.remote_endpoints.is_empty()
             || !part.resource_cords.is_empty()
@@ -74,12 +73,25 @@ pub fn lowered_local_fragment_set_backing_bytes(value: &LoweredFragmentSet) -> O
             add(&mut bytes, id.0.capacity())?;
         }
         for (_, _, binding) in &identity.resources {
-            if binding.protected.is_some() || binding.compute.is_some() || binding.content.is_some()
-            {
+            if binding.protected.is_some() || binding.compute.is_some() {
                 return None;
             }
             add(&mut bytes, binding.pool_id.0.capacity())?;
             add(&mut bytes, binding.class_id.0.capacity())?;
+            if let Some(content) = &binding.content {
+                for capacity in [
+                    content.contract.content_profile.0.capacity(),
+                    content.owner_host.0.capacity(),
+                    content.owner_boot.0.capacity(),
+                    content.base_id.0.capacity(),
+                    content.residence_profile.0.capacity(),
+                ] {
+                    add(&mut bytes, capacity)?;
+                }
+            }
+        }
+        for state in &part.states {
+            add(&mut bytes, state.contract.local_retained_backing_bytes()?)?;
         }
         for node in &part.nodes {
             if !node.terminal_transductions.is_empty() {

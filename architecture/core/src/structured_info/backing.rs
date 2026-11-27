@@ -55,10 +55,14 @@ impl StructuredInfoType {
                 Some(bytes)
             }
         }?;
-        contents.checked_add(Self::node_backing_bytes())
+        contents.checked_add(Self::compound_backing_bytes())
     }
 
-    fn node_backing_bytes() -> usize {
+    /// Heap bytes of one compound schema node's ownership header and inline
+    /// node. Nested names, child boxes and member tables are paid separately.
+    /// Leaf kinds have no compound owner. This describes storage, not a schema
+    /// validity or execution admission decision.
+    pub const fn compound_backing_bytes() -> usize {
         #[cfg(target_has_atomic = "ptr")]
         {
             size_of::<StructuredInfoTypeNode>() + 2 * size_of::<usize>()
@@ -108,13 +112,13 @@ mod tests {
         let mut ty = StructuredInfoType::leaf(KindId(leaf)).unwrap();
         assert_eq!(ty.retained_backing_bytes(), Some(expected));
         ty = StructuredInfoType::collection(ty, Some(2)).unwrap();
-        expected += size_of::<StructuredInfoType>() + StructuredInfoType::node_backing_bytes();
+        expected += size_of::<StructuredInfoType>() + StructuredInfoType::compound_backing_bytes();
         ty = StructuredInfoType::sequence(ty, 3).unwrap();
-        expected += size_of::<StructuredInfoType>() + StructuredInfoType::node_backing_bytes();
+        expected += size_of::<StructuredInfoType>() + StructuredInfoType::compound_backing_bytes();
         let schema = text("fixture/nominal", 83);
         expected += schema.capacity()
             + size_of::<StructuredInfoType>()
-            + StructuredInfoType::node_backing_bytes();
+            + StructuredInfoType::compound_backing_bytes();
         ty = StructuredInfoType::nominal(KindId(schema), ty).unwrap();
         let name = text("input", 71);
         expected += name.capacity();
@@ -123,7 +127,7 @@ mod tests {
         let schema = text("fixture/record", 67);
         expected += schema.capacity()
             + fields.capacity() * size_of::<StructuredFieldType>()
-            + StructuredInfoType::node_backing_bytes();
+            + StructuredInfoType::compound_backing_bytes();
         ty = StructuredInfoType::record(KindId(schema), fields).unwrap();
         assert_eq!(ty.retained_backing_bytes(), Some(expected));
         let tag = text("complete", 61);
@@ -133,7 +137,7 @@ mod tests {
         let schema = text("fixture/variant", 59);
         expected += schema.capacity()
             + cases.capacity() * size_of::<StructuredVariantCase>()
-            + StructuredInfoType::node_backing_bytes();
+            + StructuredInfoType::compound_backing_bytes();
         ty = StructuredInfoType::variant(KindId(schema), cases).unwrap();
         assert_eq!(ty.retained_backing_bytes(), Some(expected));
     }

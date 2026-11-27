@@ -40,6 +40,37 @@ pub(super) fn encoded_length(value: &StructuredInfoType) -> Result<usize, Struct
     }
 }
 
+/// Exact owned value-node bytes; the Type prefix is charged separately.
+pub(super) fn value_node_length(
+    value: &super::StructuredInfoValueNode,
+) -> Result<usize, StructuredInfoRefusal> {
+    use super::StructuredInfoValueNode::*;
+    let add = |left: usize, right: usize| {
+        left.checked_add(right)
+            .filter(|total| *total <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+            .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)
+    };
+    match value {
+        Leaf(bytes) => add(5, bytes.len()),
+        Collection(values) => {
+            let mut bytes = 5;
+            for value in values {
+                bytes = add(bytes, value_node_length(&value.node)?)?;
+            }
+            Ok(bytes)
+        }
+        Record(fields) => {
+            let mut bytes = 5;
+            for field in fields {
+                bytes = add(bytes, add(4, field.name.len())?)?;
+                bytes = add(bytes, value_node_length(&field.value.node)?)?;
+            }
+            Ok(bytes)
+        }
+        Variant { tag, payload } => add(add(5, tag.len())?, value_node_length(&payload.node)?),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::StructuredInfoTypeNode;
