@@ -47,9 +47,10 @@ function requestFor(receipt, id, sequence) {
 }
 
 test('static Handbook Thermostat uses one real local Play, acknowledged Face actions, refusals and recovery', async ({}, testInfo) => {
-  // The full serial suite spent 117 seconds on the 220 acknowledged
-  // Heat/Cool pointer actions alone. Leave time for Lull, Wake, and Return.
-  testInfo.setTimeout(240_000);
+  // A full serial Candidate took 207 seconds through the capacity actions
+  // and 240 seconds through independent Body startup. Budget for the remaining
+  // assertions and cleanup while keeping each action's own deadline.
+  testInfo.setTimeout(360_000);
   const started = performance.now();
   const phase = name => console.log(`THERMOSTAT_PHASE ${name} ${Math.round(performance.now() - started)}ms`);
   const site = await stageStaticApplications();
