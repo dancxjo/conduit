@@ -116,6 +116,19 @@ pub(super) fn runtime(root: &Path) -> Result<(), Box<dyn Error>> {
             minimum,
         )?;
     }
+    // Preserve ordinary Body/Face preparation on the native default stack.
+    // Keep the browser shard's package feature union for these regressions.
+    for filter in [
+        "creche::tests::workspace_handoff::stem_play::foreign_fail_job_calls_preserve_the_original_pending_producer",
+        "face_nucleus::tests::ordinary_browser_plans_execute_layout_and_graphics_through_the_kernel",
+        "plot_runner::application_state::tests::browser_resident_tour_runs_every_chapter_one_exercise_exactly",
+    ] {
+        tests(root, &[
+            "test", "--locked", "-p", "conduit-browser-host", "-p", "conduit-browser-runtime",
+            "-p", "conduit-browser-mask-offer", "--lib", filter,
+            "--", "--exact", "--test-threads=1",
+        ], 1)?;
+    }
     super::execute(Command::new("cargo").current_dir(root).args([
         "clippy",
         "--locked",

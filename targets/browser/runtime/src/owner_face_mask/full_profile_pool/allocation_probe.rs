@@ -1,9 +1,10 @@
-//! Test-only per-thread requested-byte census. Fixed bookkeeping is excluded
+//! Test-only per-thread requested-byte census. Finite bookkeeping is excluded
 //! from measurements; this observes the ordinary System allocator, not a pool.
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::RefCell;
 // The ordinary catalog planner transiently owns more than 8192 allocations.
-// This fixed test-only table is excluded from the measured product storage.
+// Allocate this finite table before observation. Keeping its 1MiB inline in
+// native TLS consumes most of an unrelated test thread's normal stack mapping.
 const SLOTS: usize = 65536;
 #[derive(Clone, Copy)]
 struct Entry {
@@ -12,7 +13,7 @@ struct Entry {
 }
 struct Probe {
     active: bool,
-    entries: [Entry; SLOTS],
+    entries: Vec<Entry>,
     live: usize,
     peak: usize,
     allocations: usize,
@@ -22,10 +23,7 @@ impl Probe {
     const fn new() -> Self {
         Self {
             active: false,
-            entries: [Entry {
-                address: 0,
-                bytes: 0,
-            }; SLOTS],
+            entries: Vec::new(),
             live: 0,
             peak: 0,
             allocations: 0,
@@ -116,6 +114,13 @@ pub(super) fn measure<T>(f: impl FnOnce() -> T) -> (T, usize, usize) {
     PROBE.with(|p| {
         let mut p = p.borrow_mut();
         assert!(!p.active);
+        p.entries.resize(
+            SLOTS,
+            Entry {
+                address: 0,
+                bytes: 0,
+            },
+        );
         p.entries.fill(Entry {
             address: 0,
             bytes: 0,
