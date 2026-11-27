@@ -5,6 +5,22 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| root.join("target"));
     for operation in ["test", "clippy"] {
+        let mut shared = Command::new("cargo");
+        shared
+            .current_dir(root)
+            .env("CARGO_TARGET_DIR", &target)
+            .args([
+                operation,
+                "--locked",
+                "--package",
+                "conduit-plot",
+                "--test",
+                "checked_workset",
+            ]);
+        if operation == "clippy" {
+            shared.args(["--", "-D", "warnings"]);
+        }
+        super::execute(&mut shared)?;
         let mut command = Command::new("cargo");
         command
             .current_dir(root)

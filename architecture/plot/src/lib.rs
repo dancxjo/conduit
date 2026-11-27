@@ -1353,3 +1353,6 @@ mod authored_quantity;
 
 mod configuration_projection;
 use configuration_projection::{projected_startup_parameter, render_value};
+
+mod checked_workset;
+pub use checked_workset::{prepare_checked_workset, CheckedWorksetBounds};
