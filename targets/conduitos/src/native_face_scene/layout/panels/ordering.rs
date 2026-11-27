@@ -55,6 +55,7 @@ mod tests {
 
     fn item(text: &str) -> document::Item {
         document::Item {
+            plot: None,
             part: crate::native_face_scene::layout::NativePart::Content,
             text: text.into(),
             role: GraphicsTextRole::Body,

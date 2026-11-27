@@ -27,7 +27,7 @@ impl BodyKernel<'_> {
         if !state.cancelling && !(control.stop_requested() || cancel_requested) {
             self.poll_creche(creche.as_deref_mut())?;
             if let Some(observer) = state.face_observer.as_deref_mut() {
-                for route in &mut self.home_face_routes {
+                for route in &mut self.face_contribution_routes {
                     if !route.is_retired() || route.is_pending() {
                         route.poll(&mut self.scheduler, observer)?;
                     }
@@ -166,7 +166,7 @@ impl BodyKernel<'_> {
                 == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
                 self.cancel_creche_call(cancellation, creche.as_deref_mut())?;
-            } else if super::super::ambient_home::is_home_face_call(operation) {
+            } else if super::super::face_contributions::is_face_contribution_call(operation) {
                 self.scheduler
                     .complete_host_call(
                         cancellation.node,
@@ -177,7 +177,7 @@ impl BodyKernel<'_> {
                             failure: None,
                         },
                     )
-                    .map_err(|error| format!("Home Face cancellation: {error:?}"))?;
+                    .map_err(|error| format!("Face contribution cancellation: {error:?}"))?;
             } else if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                 state.keys.cancel();
                 self.scheduler
@@ -287,7 +287,10 @@ impl BodyKernel<'_> {
             }
             SchedulerStatus::Idle => {
                 let pending_native = self.native_source_pending()
-                    || self.home_face_routes.iter().any(|route| route.is_pending());
+                    || self
+                        .face_contribution_routes
+                        .iter()
+                        .any(|route| route.is_pending());
                 if state.keys.poll(&mut self.scheduler)?
                     || (if wait && !pending_native {
                         state.deadlines.complete_next(&mut self.scheduler, clock)

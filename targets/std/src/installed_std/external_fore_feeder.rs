@@ -321,14 +321,29 @@ pub(super) fn remote_sign_items(
     ports: &[LoweredForePort],
     input_items: u16,
 ) -> Result<u16, String> {
+    remote_sign_items_with_current_capacity(ports, input_items, None)
+}
+
+/// Current output custody has a separately selected lifetime, not a queue size.
+pub(super) fn remote_sign_items_with_current_capacity(
+    ports: &[LoweredForePort],
+    input_items: u16,
+    current_output_capacity: Option<u16>,
+) -> Result<u16, String> {
     ports.iter().try_fold(0_u16, |total, port| {
         let events = match port.direction {
             PortDirection::Input => port.item_capacity.max(input_items).checked_add(1),
-            PortDirection::Output => port
-                .item_capacity
-                .max(input_items)
-                .checked_mul(3)
-                .and_then(|count| count.checked_add(1)),
+            PortDirection::Output => {
+                let lifetime = if port.temporal == conduit_core::PortTemporal::Current {
+                    current_output_capacity.unwrap_or(input_items)
+                } else {
+                    input_items
+                };
+                port.item_capacity
+                    .max(lifetime)
+                    .checked_mul(3)
+                    .and_then(|count| count.checked_add(1))
+            }
         }
         .ok_or_else(|| "external Fore lifecycle Sign capacity overflow".to_string())?;
         total

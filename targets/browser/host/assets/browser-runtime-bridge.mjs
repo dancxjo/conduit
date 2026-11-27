@@ -15,6 +15,14 @@ const PLOT_OUTPUT_MAX = 1024 * 1024;
 // ceiling to a whole-Body snapshot.
 const WORKSPACE_OUTPUT_MAX = 16 * 2 * 1024 * 1024 + 256 * 1024;
 
+// The large interface exists only after the runtime's explicit profile
+// preparation. A reported capacity alone never selects the larger profile.
+function ownerFaceMaximum(api, canonical = false) {
+  const prepared = typeof api.conduit_browser_owner_face_full_profile_ready === "function"
+    && api.conduit_browser_owner_face_full_profile_ready() === 1;
+  return prepared ? (canonical ? 512 * 1024 : 1024 * 1024) : 64 * 1024;
+}
+
 function exported(api, name, context) {
   const value = api?.[name];
   if (typeof value !== "function") throw new Error(`${context} missing export ${name}`);
@@ -291,13 +299,23 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         label: "owner Face Mask input",
       }, () => {
         const status = call("conduit_browser_owner_face_prepare", basisBytes.length, frameBytes.length);
-        if (status < 0) throw new Error(`owner Face Mask refused (${status})`);
+        if (status < 0) {
+          const error = new Error(`owner Face Mask refused (${status})`);
+          const code = ({
+            '-270': 'OwnerFaceMalformed', '-271': 'OwnerFaceUnsupported',
+            '-272': 'OwnerFaceIdentityMismatch', '-273': 'OwnerFaceInvalidSeal',
+            '-274': 'OwnerFacePressure', '-275': 'OwnerFaceLifecycle',
+            '-276': 'OwnerFacePreparationFailed',
+          })[status];
+          if (code) Object.assign(error, { status, code });
+          throw error;
+        }
         return readJson(api, {
           pointerExport: "conduit_browser_owner_face_output_ptr",
           lengthExport: "conduit_browser_owner_face_output_len",
           capacityExport: "conduit_browser_owner_face_output_capacity",
           minimum: 1,
-          maximum: 64 * 1024,
+          maximum: ownerFaceMaximum(api),
           label: "owner Face Mask output",
         });
       }, { retireInput: true });
@@ -316,7 +334,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
           lengthExport: "conduit_browser_owner_face_output_len",
           capacityExport: "conduit_browser_owner_face_output_capacity",
           minimum: 1,
-          maximum: 64 * 1024,
+          maximum: ownerFaceMaximum(api),
           label: "owner Face Show output",
         });
       }, { retireInput: true });
@@ -342,7 +360,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         lengthExport: "conduit_browser_owner_face_output_len",
         capacityExport: "conduit_browser_owner_face_output_capacity",
         minimum: 1,
-        maximum: 64 * 1024,
+        maximum: ownerFaceMaximum(api, true),
         label: "owner canonical Face snapshot",
       });
     },

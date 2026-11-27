@@ -152,6 +152,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -166,6 +174,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-data",
  "conduit-human",
  "conduit-planner",
  "conduit-plot",
@@ -274,6 +283,7 @@ dependencies = [
  "conduit-audio",
  "conduit-core",
  "conduit-data",
+ "conduit-dht11-observation",
  "conduit-education",
  "conduit-face",
  "conduit-human",

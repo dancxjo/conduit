@@ -43,7 +43,7 @@ use fore_route::BodyForeRoute;
 mod diagnostic;
 mod execution;
 pub(crate) use execution::state::BodyExecutionState;
-mod ambient_home;
+mod face_contributions;
 pub(crate) mod funded;
 mod host_calls;
 #[path = "body_kernel/preparation.rs"]
@@ -64,7 +64,7 @@ pub(crate) struct BodyKernel<'a> {
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
     creche: Option<CrecheRoute>,
     native_source: Option<native_source::NativeSourceRoute<'a>>,
-    home_face_routes: Vec<super::ambient_home_route::AmbientHomeRoute>,
+    face_contribution_routes: Vec<super::face_contribution_route::InstalledFaceRoute>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,

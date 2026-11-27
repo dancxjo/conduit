@@ -45,6 +45,12 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+#[cfg(target_os = "linux")]
+pub mod environment_recording_history;
+#[cfg(target_os = "linux")]
+pub mod json_snapshot_file;
+#[cfg(target_os = "linux")]
+mod json_snapshot_selection;
 pub mod numerical_fore;
 mod numerical_host;
 mod pure_filter_installation;

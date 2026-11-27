@@ -33,6 +33,16 @@ pub struct PreparedRecordingReader {
     preceding_sequence: Option<u64>,
 }
 impl PreparedRecordingReader {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.quantities
+            .retained_backing_bytes()?
+            .checked_add(self.prefix.capacity())
+    }
+    /// Reader construction temporarily owns a complete recording chunk.
+    pub fn preparation_backing_bound(contract: &ObservationContract) -> Option<usize> {
+        PreparedRecordingChunk::preparation_backing_bound(contract)
+    }
+
     pub fn prepare(
         context: RecordingContext<'_>,
         contract: &ObservationContract,

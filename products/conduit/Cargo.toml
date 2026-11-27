@@ -63,7 +63,12 @@ getrandom = "0.3"
 sha2 = "0.10"
 socket2 = "0.6"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+conduit-linux-snapshot-store = { path = "../../targets/std/resource-snapshot" }
+
 [dev-dependencies]
+conduit-browser-runtime = { path = "../../targets/browser/runtime" }
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11", features = ["recording"] }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-human = { path = "../../semantics/human" }
 conduitos = { path = "../../targets/conduitos", features = ["native-compositor"] }

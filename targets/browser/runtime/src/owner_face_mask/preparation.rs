@@ -1,9 +1,10 @@
 //! Exact owner-route validation and bounded Mask preparation before Show.
 use super::*;
 
-struct MaskHostContext<'a> {
-    basis: HostBasis,
-    host: &'a conduit_core::HostAdvertisement,
+pub(super) struct MaskHostContext<'a> {
+    pub(super) basis: HostBasis,
+    pub(super) host: Option<&'a conduit_core::HostAdvertisement>,
+    pub(super) full: Option<super::full_preparation::Admission>,
 }
 
 impl OwnerBrowserMask {
@@ -45,7 +46,11 @@ impl OwnerBrowserMask {
             route.interaction_line.clone(),
         );
         Self::prepare_with_host(
-            MaskHostContext { basis, host: &host },
+            MaskHostContext {
+                basis,
+                host: Some(&host),
+                full: None,
+            },
             face,
             route.planned_mask,
             Some(inspection),
@@ -104,7 +109,11 @@ impl OwnerBrowserMask {
             basis.boot_id.clone(),
         );
         Self::prepare_with_host(
-            MaskHostContext { basis, host: &host },
+            MaskHostContext {
+                basis,
+                host: Some(&host),
+                full: None,
+            },
             face,
             planned,
             route,
@@ -114,7 +123,7 @@ impl OwnerBrowserMask {
         )
     }
 
-    fn prepare_with_host(
+    pub(super) fn prepare_with_host<E>(
         context: MaskHostContext<'_>,
         face: Face,
         planned: conduit_face::PlannedMaskPlot,
@@ -126,10 +135,20 @@ impl OwnerBrowserMask {
         )>,
         play_sequence: u64,
         interactions_admitted: bool,
-    ) -> Result<Self, String> {
-        let MaskHostContext { basis, host } = context;
+    ) -> Result<Self, E>
+    where
+        E: From<String> + From<&'static str> + From<super::full_refusal::FullPreparationRefusal>,
+    {
+        let MaskHostContext {
+            basis,
+            host,
+            mut full,
+        } = context;
         let requires_full_visual_snapshot = component::requires_full_snapshot(&basis);
-        let component = component::prepare(&basis, &planned, &face, host)?;
+        let component = match host {
+            Some(host) => component::prepare(&basis, &planned, &face, host)?,
+            None => None,
+        };
         let terminal = planned.show_placement();
         let play = bind_active_play(
             &planned.plan.plan_id,
@@ -181,7 +200,33 @@ impl OwnerBrowserMask {
                 return Err("browser Mask lowered a different selected carrier Line".into());
             }
         }
-        let bytes = serde_json::to_vec(&face).map_err(|error| error.to_string())?;
+        let full_outputs = if let Some(admission) = full.as_ref() {
+            let kernel = execution::single_face_storage_bytes(&lowered)?;
+            admission.lease.admit(
+                admission
+                    .input_charge
+                    .checked_add(kernel)
+                    .ok_or(super::full_refusal::FullPreparationRefusal::Pressure)?,
+            )?;
+            Some(super::full_outputs::Outputs::prepare(
+                super::full_outputs::Basis {
+                    body: &basis.body_id,
+                    face: &face,
+                    planned: &planned,
+                    play: &play,
+                    show: &show,
+                    route: route.as_ref(),
+                    interactions_admitted,
+                },
+                admission.lease.clone(),
+            )?)
+        } else {
+            None
+        };
+        let bytes = match full.take() {
+            Some(admission) => admission.canonical,
+            None => serde_json::to_vec(&face).map_err(|error| error.to_string())?,
+        };
         let mut scheduler = execution::single_face_scheduler(fragment, &lowered, &bytes)?;
         let pending = loop {
             if let Some(request) = scheduler.next_host_request() {
@@ -193,9 +238,9 @@ impl OwnerBrowserMask {
             {
                 SchedulerStatus::Progress { .. } => {}
                 other => {
-                    return Err(format!(
-                        "owner Face Mask did not request DOM face: {other:?}"
-                    ));
+                    return Err(
+                        format!("owner Face Mask did not request DOM face: {other:?}").into(),
+                    );
                 }
             }
         };
@@ -206,6 +251,7 @@ impl OwnerBrowserMask {
             return Err("browser Mask received a different owner Face".into());
         }
         Ok(Self {
+            full: full_outputs,
             component,
             requires_full_visual_snapshot,
             body_id: basis.body_id,

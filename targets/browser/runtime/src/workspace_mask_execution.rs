@@ -131,6 +131,41 @@ pub(crate) fn mask_scheduler(
         .ok_or("browser Mask value item budget overflow")?;
     prepare_scheduler(fragment, lowered, value_slots)
 }
+/// Requested canonical kernel owners for the closed one-Face protocol.
+/// Inline fixed tables are part of MaskScheduler; hosted value/sign backing
+/// uses the same accounting helpers as its constructors.
+pub(crate) fn single_face_storage_bytes(
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+) -> Result<usize, String> {
+    let remote_items = remote_sign_items(lowered)?;
+    let values = HostedValueStore::canonical_storage_bytes([MASK_BYTES; 3])
+        .map_err(|_| "Mask value preparation extent")?;
+    let signs = HostedSignLog::canonical_storage_bytes(256, remote_items)
+        .ok_or("Mask Sign preparation extent")?;
+    core::mem::size_of::<MaskScheduler>()
+        .checked_add(values)
+        .and_then(|n| n.checked_add(signs))
+        .ok_or_else(|| "Mask preparation storage overflow".into())
+}
+fn remote_sign_items(
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+) -> Result<u16, String> {
+    lowered
+        .fore_ports
+        .iter()
+        .try_fold(0u16, |total, port| {
+            let multiplier = if port.direction == PortDirection::Input {
+                1
+            } else {
+                3
+            };
+            port.item_capacity
+                .checked_mul(multiplier)
+                .and_then(|items| items.checked_add(1))
+                .and_then(|items| total.checked_add(items))
+        })
+        .ok_or_else(|| "browser Mask remote Sign item budget overflow".into())
+}
 fn prepare_scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
@@ -183,21 +218,7 @@ fn prepare_scheduler(
     let sign_bytes = u32::from(SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
         .ok_or("browser Mask Sign budget overflow")?;
-    let remote_items = lowered
-        .fore_ports
-        .iter()
-        .try_fold(0u16, |total, port| {
-            let multiplier = if port.direction == PortDirection::Input {
-                1
-            } else {
-                3
-            };
-            port.item_capacity
-                .checked_mul(multiplier)
-                .and_then(|items| items.checked_add(1))
-                .and_then(|items| total.checked_add(items))
-        })
-        .ok_or("browser Mask remote Sign item budget overflow")?;
+    let remote_items = remote_sign_items(lowered)?;
     let remote_bytes = conduit_kernel::remote_sign_storage_bytes(remote_items)
         .ok_or("browser Mask remote Sign budget overflow")?;
     let signs =

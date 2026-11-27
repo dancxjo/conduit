@@ -79,6 +79,12 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_resident_wallpaper_kinds(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_ambient_home_observation_kind(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_ambient_home_face_kind(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_quantity_observation_face_kind(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_reported_generation_face_kind(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_environment_recording_history_kind(
+        &mut startup,
+        &mut profiles,
+    )?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_pulse_face_catalog(&mut startup, &mut profiles)?;

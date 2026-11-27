@@ -34,6 +34,7 @@
     "README.md",
     "bundle/**",
     "browser-sdk-owner-component.mjs",
+    "browser-sdk-owner-profile.mjs",
     "owner-face-presentation.mjs",
     "owner-face-pointer.mjs"
   ],

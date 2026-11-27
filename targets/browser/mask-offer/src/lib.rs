@@ -18,6 +18,8 @@ use conduit_face::{
 };
 
 mod configured_sources;
+// Explicit opt-in profile; advertised only by a prepared Mask executor.
+pub mod full_profile;
 pub mod owner_component;
 mod remote;
 pub use remote::{planned_owner_face_show_interaction_mask, planned_owner_face_show_mask};

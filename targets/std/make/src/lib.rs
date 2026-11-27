@@ -7,12 +7,15 @@ use std::collections::BTreeMap;
 
 mod ambient_initialization;
 mod builder;
+mod environment_recording_history_initialization;
 #[cfg(target_os = "linux")]
 mod linux_builder;
 mod microphone_initialization;
 mod playback_initialization;
+mod quantity_initialization;
 mod recognition_initialization;
 mod regional_initialization;
+mod reported_generation_initialization;
 pub use builder::*;
 #[cfg(target_os = "linux")]
 pub use linux_builder::*;
@@ -72,6 +75,12 @@ fn package_catalog() -> PackageCatalogContribution {
     let implementations = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
         .chain([
+            conduit_std_offers::environment_recording_history_offer()
+                .expect("shipped original recording Source descriptor"),
+            conduit_std_offers::quantity_observation_face_offer()
+                .expect("shipped reported quantity Face descriptor"),
+            conduit_std_offers::reported_generation_face_offer()
+                .expect("shipped reported generation Face descriptor"),
             conduit_std_offers::body_wake_offer(),
             conduit_std_offers::patchbay_interaction_offer(),
             conduit_std_offers::startup_chime_offer(),
@@ -112,6 +121,21 @@ fn package_catalog() -> PackageCatalogContribution {
                     conduit_std_offers::AMBIENT_HOME_FACE_BASE.into(),
                 ));
             }
+            if implementation == conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION {
+                prerequisites.push(PrerequisiteNode::Base(
+                    conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_BASE.into(),
+                ));
+            }
+            if implementation == conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION {
+                prerequisites.push(PrerequisiteNode::Base(
+                    conduit_std_offers::QUANTITY_OBSERVATION_FACE_BASE.into(),
+                ));
+            }
+            if implementation == conduit_std_offers::REPORTED_GENERATION_FACE_IMPLEMENTATION {
+                prerequisites.push(PrerequisiteNode::Base(
+                    conduit_std_offers::REPORTED_GENERATION_FACE_BASE.into(),
+                ));
+            }
             if matches!(
                 implementation.as_str(),
                 conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
@@ -126,7 +150,10 @@ fn package_catalog() -> PackageCatalogContribution {
             prerequisites.dedup();
             let targets = if matches!(
                 implementation.as_str(),
-                conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
+                conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION
+                    | conduit_std_offers::QUANTITY_OBSERVATION_FACE_IMPLEMENTATION
+                    | conduit_std_offers::REPORTED_GENERATION_FACE_IMPLEMENTATION
+                    | conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_CLOCK_FACE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_WALLPAPER_FACE_IMPLEMENTATION
                     | conduit_std_offers::AMBIENT_HOME_FACE_IMPLEMENTATION
@@ -153,6 +180,18 @@ fn package_catalog() -> PackageCatalogContribution {
         .collect();
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                conduit_std_offers::ENVIRONMENT_RECORDING_HISTORY_IMPLEMENTATION.into(),
+                environment_recording_history_initialization::contract(),
+            ),
+            (
+                conduit_std_offers::QUANTITY_OBSERVATION_FACE_DRIVER.into(),
+                quantity_initialization::contract(),
+            ),
+            (
+                conduit_std_offers::REPORTED_GENERATION_FACE_DRIVER.into(),
+                reported_generation_initialization::contract(),
+            ),
             (
                 conduit_std_offers::AMBIENT_HOME_SOURCE_IMPLEMENTATION.into(),
                 ambient_initialization::contract(),
@@ -276,6 +315,9 @@ impl HostMakePackage for HostedMakePackage {
                 ),
             ],
             offers: vec![
+                environment_recording_history_initialization::offer(),
+                quantity_initialization::offer(),
+                reported_generation_initialization::offer(),
                 regional_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),

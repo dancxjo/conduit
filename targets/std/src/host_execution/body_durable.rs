@@ -20,6 +20,8 @@ impl StdHost {
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: None,
@@ -43,6 +45,8 @@ impl StdHost {
     /// cancellation and State commit/recovery use the existing installed kernel.
     /// This entry accepts one value per exact input boundary; it enables neither
     /// live ingress nor sequential/overlapping streams or recorder ACK policy.
+    /// Current output custody is finite and separate from queue capacity: supply
+    /// the lifetime value count (1..=64); exhaustion refuses without growth.
     #[allow(clippy::too_many_arguments)]
     pub fn run_body_durable_external_plot_controlled_to<W: Write, T: TimerAdapter>(
         &mut self,
@@ -50,22 +54,27 @@ impl StdHost {
         residence_root: &std::path::Path,
         fragment: PlanFragment,
         inputs: &[ExternalForeInput],
+        current_output_capacity: u16,
         output_adapter: &mut dyn ExternalForeOutputAdapter,
         output: &mut W,
         timer: &mut T,
         control: &RunControl,
     ) -> Result<StdRunReport, String> {
+        validate_current_output_capacity(current_output_capacity)?;
         self.run_fragment_owned_with_keyboard_to(
             fragment,
             output,
             timer,
             control,
             HostRunInputs {
+                #[cfg(target_os = "linux")]
+                json_snapshot: None,
                 keyboard: None,
                 indicator: None,
                 retained: None,
                 attach_live: false,
                 external_fore: Some(ExternalForeRun {
+                    current_output_capacity: Some(current_output_capacity),
                     inputs,
                     output: output_adapter,
                     sequential: false,

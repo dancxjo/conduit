@@ -5,8 +5,13 @@ use super::back::InstalledBack;
 impl InstalledBack {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
+            Self::JsonSnapshot(back) => back.prepared_heap_bytes(),
             Self::MeasurementPlot(back) => back.retained_backing_bytes(),
-            Self::AmbientHome(back) => back.retained_backing_bytes().unwrap_or(usize::MAX),
+            Self::AmbientHome(back)
+            | Self::QuantityObservationFace(back)
+            | Self::ReportedGenerationFace(back) => {
+                back.retained_backing_bytes().unwrap_or(usize::MAX)
+            }
             Self::StartupChime(back) => back.retained_backing_bytes(),
             Self::StartupSource(_) => {
                 super::startup_source_back::StartupGate::backing_bytes().unwrap_or(usize::MAX)

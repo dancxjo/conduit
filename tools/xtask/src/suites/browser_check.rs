@@ -47,6 +47,8 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &[
             "--test",
             "targets/browser/host/assets/browser-runtime-bridge.test.mjs",
+            "targets/browser/host/assets/browser-owner-full-profile.test.mjs",
+            "targets/browser/host/assets/browser-owner-full-refusals.test.mjs",
         ],
     ),
     Step::new(
@@ -107,6 +109,7 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
             "targets/browser/sdk/browser-sdk-plots.test.mjs",
             "targets/browser/sdk/browser-sdk-owner-show-state.test.mjs",
             "targets/browser/sdk/browser-sdk-owner-component.test.mjs",
+            "targets/browser/sdk/browser-sdk-owner-profile.test.mjs",
             "targets/browser/sdk/package-browser-bundle.test.mjs",
         ],
     ),

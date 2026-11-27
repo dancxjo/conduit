@@ -117,7 +117,7 @@ fn first_advertisement_freezes_generic_and_initialize_resets_the_profile() {
     initialize("boot/third");
     assert!(!has_component(&exported()));
     assert!(current_advertisement("browser/component-test".into(), "boot/new".into()).is_err());
-    clear_identity_and_output();
+    clear_identity_and_output().unwrap();
     assert_eq!(
         conduit_browser_membership_owner_component_descriptor(),
         ERROR_NOT_INITIALIZED

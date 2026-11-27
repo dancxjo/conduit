@@ -22,6 +22,7 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11", features = ["reported-generation"] }
 image = { version = "=0.25.10", default-features = false, features = ["jpeg", "png"] }
 chrono = { version = "0.4.45", default-features = false }
 chrono-tz = { version = "0.10.4", default-features = false }
@@ -139,6 +140,7 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
+conduit-browser-mask-offer = { path = "../browser/mask-offer" }
 conduitos = { path = "../conduitos", features = ["native-compositor-core"] }
 tempfile = "3"
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }

@@ -25,6 +25,7 @@ impl OwnerBrowserMask {
             }),
         );
         view.component = self.component.clone();
+        super::quantity_series::fit_view(&mut view);
         view
     }
 }
@@ -45,7 +46,7 @@ pub(crate) fn local_view_admitted(
     play: &conduit_core::ActivePlayIdentity,
     admitted: bool,
 ) -> FaceView {
-    project_view(
+    let mut view = project_view(
         body_id,
         face,
         &show.planned_mask,
@@ -53,10 +54,12 @@ pub(crate) fn local_view_admitted(
         show,
         admitted && show.show.lifecycle == ManifestationLifecycle::Available,
         None,
-    )
+    );
+    super::quantity_series::fit_view(&mut view);
+    view
 }
 
-fn project_view(
+pub(super) fn project_view(
     body_id: &BodyId,
     face: &Face,
     planned: &conduit_face::PlannedMaskPlot,
@@ -65,6 +68,7 @@ fn project_view(
     interactions_admitted: bool,
     route: Option<RouteView>,
 ) -> FaceView {
+    let mut series_count = 0;
     FaceView {
         schema: "conduit.browser/owner-face-mask@2",
         component: None,
@@ -92,6 +96,7 @@ fn project_view(
             .subjects
             .iter()
             .map(|subject| SubjectView {
+                quantity_series: super::quantity_series::prepare(face, subject, &mut series_count),
                 identity: subject.identity.clone(),
                 name: subject.name.clone(),
                 role: format!("{:?}", subject.role),

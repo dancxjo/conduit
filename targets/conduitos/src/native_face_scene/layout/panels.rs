@@ -155,7 +155,8 @@ pub(super) fn admit(
                         .checked_sub(inset)
                         .ok_or(FaceSceneError::InvalidExtent)?;
                     let text_width = field_clusters::text_width(&item, width, insets, scale)?;
-                    let (end, height) = measure_prefix(
+                    let (end, height) = measure_item_prefix(
+                        &item,
                         remaining,
                         item.role,
                         text_width,
@@ -176,7 +177,8 @@ pub(super) fn admit(
                         typography,
                     )
                     .or_else(|_| {
-                        measure_prefix(
+                        measure_item_prefix(
+                            &item,
                             remaining,
                             item.role,
                             text_width,
@@ -229,6 +231,7 @@ pub(super) fn admit(
             reading_order.push((original, chunk, index));
             rows.push(Row {
                 continuation: flow.continuation.take(),
+                plot: item.plot,
                 text: remaining[..end].into(),
                 role: item.role,
                 paint: item.paint,
@@ -237,8 +240,7 @@ pub(super) fn admit(
                 region: item.region,
                 region_inset: if flow.span.is_some() { flow.edge } else { 0 },
                 page: flow.page,
-                region_start,
-                insets: PackedRowInsets::new(insets)?,
+                insets: PackedRowInsets::new(insets)?.with_region_start(region_start),
                 checkbox: item.checkbox,
                 icon: item.icon,
                 icon_size: super::super::semantic_icons::size(scale),

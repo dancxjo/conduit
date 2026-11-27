@@ -169,6 +169,13 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   const encoder = new TextEncoder();
   const decoder = new TextDecoder("utf-8", { fatal: true });
   const outputCapacity = api.conduit_browser_membership_output_capacity();
+  const fullFaceReady = typeof api.conduit_browser_owner_face_full_profile_ready === "function"
+    && api.conduit_browser_owner_face_full_profile_ready() === 1;
+  const fullFaceFrameBytes = fullFaceReady && typeof api.conduit_browser_owner_face_full_maximum_frame_bytes === "function"
+    ? api.conduit_browser_owner_face_full_maximum_frame_bytes() : 0;
+  if (fullFaceReady && (!Number.isSafeInteger(fullFaceFrameBytes) || fullFaceFrameBytes < 1
+    || fullFaceFrameBytes > 1024 * 1024)) throw new Error("Full owner Face interface extent refused");
+
   const readOutput = () => {
     const length = api.conduit_browser_membership_output_len();
     if (length < 0 || length > outputCapacity) {
@@ -370,13 +377,16 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     const frameBytes = typeof event.data === "string"
       ? encoder.encode(event.data)
       : new Uint8Array(event.data);
+    // The stock owner protocol already has a separate 2 MiB admission frame
+    // envelope. Keep it independent of either selected Face Line profile.
+    if (frameBytes.length < 1 || frameBytes.length > 2 * 1024 * 1024 + 1024) throw new Error("owner admission frame extent");
     const frame = JSON.parse(decoder.decode(frameBytes));
     if (frame.kind === "face-snapshot-response" && frame.protocol === 1) {
       const pending = pendingFaceSnapshot;
       if (!pending) throw new Error("unsolicited owner Face response");
       clearTimeout(pending.timeout);
       pendingFaceSnapshot = null;
-      if (frameBytes.length < 1 || frameBytes.length > MAX_OWNER_FACE_RESPONSE_BYTES + 256 ||
+      if (frameBytes.length < 1 || frameBytes.length > (fullFaceReady && presenceEstablished ? fullFaceFrameBytes : MAX_OWNER_FACE_RESPONSE_BYTES + 256) ||
           frame.response?.schema !== OWNER_FACE_RESPONSE_SCHEMA ||
           !["snapshot", "unchanged", "refused"].includes(frame.response?.outcome)) {
         pending.reject(new Error("invalid bounded owner Face response"));

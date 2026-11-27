@@ -70,9 +70,9 @@ impl BodyKernel<'_> {
             self.begin_creche(request, creche)?;
             return Ok(());
         }
-        if super::ambient_home::is_home_face_call(operation) {
+        if super::face_contributions::is_face_contribution_call(operation) {
             let route = self
-                .home_face_routes
+                .face_contribution_routes
                 .iter_mut()
                 .find(|route| route.handles(request))
                 .ok_or("Home Face call has no funded route")?;

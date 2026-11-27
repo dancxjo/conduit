@@ -2,16 +2,18 @@
 
 use super::*;
 use std::cell::{Cell, RefCell};
+#[path = "abi/full.rs"]
+mod full;
 
 // The owner frame is bounded separately at 60 KiB; admission basis bytes
 // accompany it at this WASM entrance without crossing the owner Line.
 const INPUT_CAPACITY: usize = 72 * 1024;
-const OUTPUT_CAPACITY: usize = 64 * 1024;
 
 thread_local! {
     static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; INPUT_CAPACITY].into_boxed_slice());
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(OUTPUT_CAPACITY));
     static CURRENT: RefCell<Option<OwnerBrowserMask>> = const { RefCell::new(None) };
+    static FULL_INTERFACE: Cell<bool> = const { Cell::new(false) };
     static NEXT_PLAY_SEQUENCE: Cell<u64> = const { Cell::new(1) };
 }
 
@@ -22,8 +24,82 @@ fn write_output(value: &impl Serialize) -> i32 {
     if bytes.is_empty() || bytes.len() > OUTPUT_CAPACITY {
         return -4;
     }
-    OUTPUT.with(|output| *output.borrow_mut() = bytes);
+    if FULL_INTERFACE.with(Cell::get) {
+        OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
+            output.clear();
+            output.extend_from_slice(&bytes);
+        });
+    } else {
+        OUTPUT.with(|output| *output.borrow_mut() = bytes);
+    }
     0
+}
+fn write_full_output(bytes: &[u8]) -> i32 {
+    OUTPUT.with(|output| {
+        let mut output = output.borrow_mut();
+        if !FULL_INTERFACE.with(Cell::get) || bytes.is_empty() || bytes.len() > output.capacity() {
+            return -4;
+        }
+        output.clear();
+        output.extend_from_slice(bytes);
+        0
+    })
+}
+pub(super) fn prepare_full_interface() -> Result<(), String> {
+    if FULL_INTERFACE.with(Cell::get) || CURRENT.with(|c| c.borrow().is_some()) {
+        return Err("owner Full interface already live".into());
+    }
+    let input = super::full_input::input_capacity();
+    let output = conduit_host_browser_make::OWNER_FACE_FULL_MAXIMUM_VIEW_BYTES as usize;
+    let charge = INPUT_CAPACITY
+        + OUTPUT_CAPACITY
+        + 2 * input
+        + output
+        + core::mem::size_of::<Vec<u8>>()
+        + core::mem::size_of::<Box<[u8]>>();
+    super::full_profile_pool::admit_bootstrap(charge)?;
+    let mut prepared_input = Vec::new();
+    prepared_input
+        .try_reserve_exact(input)
+        .map_err(|_| "Full input preparation unavailable")?;
+    prepared_input.resize(input, 0);
+    let prepared_input = prepared_input.into_boxed_slice();
+    let mut prepared_output = Vec::new();
+    prepared_output
+        .try_reserve_exact(output)
+        .map_err(|_| "Full output preparation unavailable")?;
+    INPUT.with(|i| *i.borrow_mut() = prepared_input);
+    OUTPUT.with(|o| *o.borrow_mut() = prepared_output);
+    FULL_INTERFACE.with(|ready| ready.set(true));
+    super::full_profile_pool::mark_interface_ready(input, output)?;
+    Ok(())
+}
+pub(super) fn reset_full_interface() -> Result<(), String> {
+    if !FULL_INTERFACE.with(Cell::get) {
+        return Ok(());
+    }
+    if CURRENT.with(|c| c.borrow().is_some()) {
+        return Err("owner Mask retains interface custody".into());
+    }
+    if FULL_INTERFACE.with(Cell::get) {
+        INPUT.with(|i| *i.borrow_mut() = vec![0; INPUT_CAPACITY].into_boxed_slice());
+        OUTPUT.with(|o| *o.borrow_mut() = Vec::with_capacity(OUTPUT_CAPACITY));
+        FULL_INTERFACE.with(|ready| ready.set(false));
+    }
+    Ok(())
+}
+#[no_mangle]
+pub extern "C" fn conduit_browser_owner_face_full_profile_ready() -> i32 {
+    i32::from(FULL_INTERFACE.with(Cell::get) && super::full_profile_pool::interface_ready())
+}
+#[no_mangle]
+pub extern "C" fn conduit_browser_owner_face_full_maximum_frame_bytes() -> usize {
+    if conduit_browser_owner_face_full_profile_ready() == 1 {
+        conduit_host_browser_make::OWNER_FACE_FULL_MAXIMUM_FRAME_BYTES as usize
+    } else {
+        0
+    }
 }
 
 #[no_mangle]
@@ -32,7 +108,7 @@ pub extern "C" fn conduit_browser_owner_face_input_ptr() -> usize {
 }
 #[no_mangle]
 pub extern "C" fn conduit_browser_owner_face_input_capacity() -> usize {
-    INPUT_CAPACITY
+    INPUT.with(|i| i.borrow().len())
 }
 #[no_mangle]
 pub extern "C" fn conduit_browser_owner_face_output_ptr() -> usize {
@@ -44,7 +120,11 @@ pub extern "C" fn conduit_browser_owner_face_output_len() -> usize {
 }
 #[no_mangle]
 pub extern "C" fn conduit_browser_owner_face_output_capacity() -> usize {
-    OUTPUT_CAPACITY
+    if FULL_INTERFACE.with(Cell::get) {
+        OUTPUT.with(|o| o.borrow().capacity())
+    } else {
+        OUTPUT_CAPACITY
+    }
 }
 
 #[no_mangle]
@@ -53,8 +133,11 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
     let Some(total_len) = basis_len.checked_add(frame_len) else {
         return -1;
     };
-    if basis_len == 0 || frame_len == 0 || total_len > INPUT_CAPACITY {
+    if basis_len == 0 || frame_len == 0 || total_len > conduit_browser_owner_face_input_capacity() {
         return -1;
+    }
+    if let Some(result) = full::try_prepare(basis_len, frame_len) {
+        return result;
     }
     let decoded = INPUT.with(|input| {
         let mut input = input.borrow_mut();
@@ -159,7 +242,11 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
                     "code": "owner-visual-preferences-require-full-snapshot",
                 }));
             }
-            write_output(&mask.view())
+            if let Some(full) = mask.full.as_ref() {
+                write_full_output(full.view(mask.show.show.lifecycle))
+            } else {
+                write_output(&mask.view())
+            }
         }),
         OwnerFaceSnapshotResponse::Refused { schema, code }
             if schema == OWNER_FACE_RESPONSE_SCHEMA && !code.is_empty() && code.len() <= 128 =>
@@ -205,6 +292,33 @@ pub extern "C" fn conduit_browser_owner_face_ack(length: usize) -> i32 {
     if length == 0 || length > INPUT_CAPACITY {
         return -1;
     }
+    let selected_full = CURRENT.with(|c| c.borrow().as_ref().is_some_and(|m| m.full.is_some()));
+    if selected_full {
+        let result = INPUT.with(|input| {
+            let input = input.borrow();
+            let ack = match super::full_ack::parse(&input[..length]) {
+                Ok(v) => v,
+                Err(_) => return -2,
+            };
+            CURRENT.with(|current| {
+                let mut current = current.borrow_mut();
+                let Some(mask) = current.as_mut() else {
+                    return -6;
+                };
+                if mask.acknowledge_full(ack).is_err() {
+                    return -5;
+                }
+                write_full_output(
+                    mask.full
+                        .as_ref()
+                        .expect("selected Full")
+                        .view(mask.show.show.lifecycle),
+                )
+            })
+        });
+        INPUT.with(|i| i.borrow_mut()[..length].fill(0));
+        return result;
+    }
     let ack = INPUT.with(|input| {
         let mut input = input.borrow_mut();
         let value = serde_json::from_slice::<Acknowledgement>(&input[..length]);
@@ -237,7 +351,11 @@ pub extern "C" fn conduit_browser_owner_face_show_receipt() -> i32 {
         if mask.show.show.lifecycle != ManifestationLifecycle::Available {
             return -5;
         }
-        write_output(&mask.show)
+        if let Some(full) = mask.full.as_ref() {
+            write_full_output(&full.receipt)
+        } else {
+            write_output(&mask.show)
+        }
     })
 }
 
@@ -253,6 +371,9 @@ pub extern "C" fn conduit_browser_owner_face_canonical_snapshot() -> i32 {
         };
         if mask.show.show.lifecycle != ManifestationLifecycle::Available {
             return -5;
+        }
+        if let Some(full) = mask.full.as_ref() {
+            return write_full_output(&full.canonical);
         }
         write_output(&serde_json::json!({
             "schema": "conduit.browser/owner-canonical-face@1",
@@ -275,177 +396,8 @@ pub extern "C" fn conduit_browser_owner_face_clear() {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_body::Body;
-    use conduit_core::{CheckedPlotId, SourceDocumentId};
-    use conduit_face::{BodyFace, FaceContext, FaceFocus};
-
-    pub(super) fn send(basis: &serde_json::Value, response: &OwnerFaceSnapshotResponse) -> i32 {
-        let basis = serde_json::to_vec(basis).unwrap();
-        let frame = serde_json::to_vec(&serde_json::json!({
-            "kind": "face-snapshot-response", "protocol": 1, "response": response,
-        }))
-        .unwrap();
-        assert!(basis.len() + frame.len() <= INPUT_CAPACITY);
-        INPUT.with(|input| {
-            let mut input = input.borrow_mut();
-            input[..basis.len()].copy_from_slice(&basis);
-            input[basis.len()..basis.len() + frame.len()].copy_from_slice(&frame);
-        });
-        conduit_browser_owner_face_prepare(basis.len(), frame.len())
-    }
-
-    #[test]
-    fn canonical_observation_requires_acknowledged_show_and_preserves_original_bytes() {
-        conduit_browser_owner_face_clear();
-        OUTPUT.with(|output| output.borrow_mut().extend_from_slice(b"stale"));
-        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), -6);
-        assert_eq!(conduit_browser_owner_face_output_len(), 0);
-        let body = Body::born(
-            SourceDocumentId::from("source/canonical-observation"),
-            CheckedPlotId::from("checked/canonical-observation"),
-            1,
-            SignId::from("sign/canonical-observation"),
-        )
-        .unwrap();
-        let face = BodyFace::project(
-            &body,
-            None,
-            u64::MAX,
-            FaceContext::Overview,
-            FaceFocus::Body,
-            vec![],
-        )
-        .unwrap()
-        .face;
-        let mask = OwnerBrowserMask::prepare_component_fixture(
-            HostBasis {
-                body_id: body.body_id.clone(),
-                host_id: HostId::from("host/canonical-observation"),
-                boot_id: BootId::from("boot/canonical-observation"),
-                visual_constraints: None,
-            },
-            face.clone(),
-            1,
-            false,
-        )
-        .unwrap();
-        let prepared = mask.view();
-        CURRENT.with(|current| *current.borrow_mut() = Some(mask));
-        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), -5);
-        CURRENT.with(|current| {
-            current
-                .borrow_mut()
-                .as_mut()
-                .unwrap()
-                .acknowledge(Acknowledgement {
-                    show_id: prepared.show_id.clone(),
-                    face_id: prepared.face_id,
-                    face_revision: prepared.face_revision,
-                })
-                .unwrap()
-        });
-        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
-        let bytes = OUTPUT.with(|output| output.borrow().clone());
-        assert!(std::str::from_utf8(&bytes)
-            .unwrap()
-            .contains("18446744073709551615"));
-        let observed: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        let retained: Face = serde_json::from_value(observed["face"].clone()).unwrap();
-        assert_eq!(retained, face);
-        assert_eq!(observed["show_id"], prepared.show_id);
-        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
-        assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
-        // Conditional reuse cannot claim that new Host-local preferences were
-        // applied. The old exact Face/Show remains observable, not restyled.
-        for constraints in [
-            serde_json::json!({"minimum_text_scale_percent":100,"enhanced_contrast":true}),
-            serde_json::json!({"minimum_text_scale_percent":200}),
-            serde_json::json!({"minimum_text_scale_percent":100,"forced_colors":true}),
-            serde_json::json!({"minimum_text_scale_percent":100,"reduced_motion":true}),
-        ] {
-            let basis = serde_json::json!({
-                "body_id": body.body_id, "host_id": "host/canonical-observation",
-                "boot_id": "boot/canonical-observation",
-                "visual_constraints": constraints,
-            });
-            assert_eq!(
-                send(
-                    &basis,
-                    &OwnerFaceSnapshotResponse::Unchanged {
-                        schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                        revision: face.revision,
-                        identity: face.identity.clone(),
-                    }
-                ),
-                0
-            );
-            let refusal: serde_json::Value =
-                OUTPUT.with(|output| serde_json::from_slice(&output.borrow()).unwrap());
-            assert_eq!(refusal["schema"], "conduit.browser/owner-face-refusal@1");
-            assert_eq!(
-                refusal["code"],
-                "owner-visual-preferences-require-full-snapshot"
-            );
-            assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
-            assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
-        }
-        conduit_browser_owner_face_clear();
-    }
-
-    #[test]
-    fn raw_owner_face_frame_refuses_a_snapshot_without_an_owner_route() {
-        conduit_browser_owner_face_clear();
-        let body = Body::born(
-            SourceDocumentId::from("source/browser-owner-abi"),
-            CheckedPlotId::from("checked/browser-owner-abi"),
-            1,
-            SignId::from("sign/browser-owner-abi-birth"),
-        )
-        .unwrap();
-        let revision = 9_007_199_254_740_993;
-        let face = BodyFace::project(
-            &body,
-            None,
-            revision,
-            FaceContext::Overview,
-            FaceFocus::Body,
-            vec![],
-        )
-        .unwrap()
-        .face;
-        let basis = serde_json::json!({
-            "body_id": body.body_id,
-            "host_id": "host/browser-owner-abi",
-            "boot_id": "boot/browser-owner-abi",
-        });
-        assert_eq!(
-            send(
-                &basis,
-                &OwnerFaceSnapshotResponse::Snapshot {
-                    schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                    face: Box::new(face.clone()),
-                    interactions_admitted: false,
-                    route: None,
-                }
-            ),
-            -5
-        );
-        assert_eq!(
-            send(
-                &basis,
-                &OwnerFaceSnapshotResponse::Unchanged {
-                    schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                    revision,
-                    identity: face.identity,
-                }
-            ),
-            -6
-        );
-        conduit_browser_owner_face_clear();
-    }
-}
+#[path = "abi/tests.rs"]
+mod tests;
 
 #[cfg(test)]
 #[path = "abi/visual_preference_tests.rs"]

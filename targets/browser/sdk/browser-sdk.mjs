@@ -1,3 +1,4 @@
+import { prepareOwnerFaceFullProfile } from "./browser-sdk-owner-profile.mjs";
 import { admitOwnerFaceComponentBack } from "./browser-sdk-owner-component.mjs";
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions, ownerVisualPreferencesRequireFullFrame } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
@@ -123,6 +124,13 @@ export class BrowserHost {
 
   admitOwnerFaceComponent(application) { return admitOwnerFaceComponentBack(this.#state, application,
     { fetchAsset, sha256, importModule: url => import(url) }); }
+
+  /** Prepare the explicit large generic owner Face interface before joining. */
+  async admitOwnerFaceFullProfile() {
+    prepareOwnerFaceFullProfile(this.#state);
+    await this.refresh();
+    return Object.freeze({ selected: true, profile: "browser/owner-face-full@1" });
+  }
 
   /** Join this already-admitted Host and Boot to one external Body invitation. */
   async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,
@@ -721,10 +729,17 @@ export const Conduit = Object.freeze({
         boot,
         offers: Object.freeze(boot.offers.map((offer) => Object.freeze({ ...offer }))),
         async refresh() {
-          this.boot = bootModule.refreshBrowserBootTruth(this.boot, await bootModule.observeBrowserHostEnvironment(globalThis));
+          this.boot = bootModule.refreshBrowserBootTruth(this.boot, await bootModule.observeBrowserHostEnvironment(globalThis, {
+            ownerFaceFullProfileReady: typeof this.api.conduit_browser_owner_face_full_profile_ready === "function"
+              && this.api.conduit_browser_owner_face_full_profile_ready() === 1,
+          }));
           this.offers = Object.freeze(this.boot.offers.map((offer) => Object.freeze({ ...offer })));
         },
       };
+      // Optional checked Host setup precedes any advertisement or Body join.
+      // Refused preparation leaves this same initialized legacy Host usable.
+      const fullProfile = prepareOwnerFaceFullProfile(state, { optional: true });
+      if (fullProfile.selected) await state.refresh();
       const host = new BrowserHost(BROWSER_HOST_KEY, state);
       return host;
     } catch (error) {

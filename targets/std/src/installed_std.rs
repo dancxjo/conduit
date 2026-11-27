@@ -44,6 +44,8 @@ mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
+mod face_contribution_back;
+mod face_contribution_route;
 pub(crate) mod factory;
 mod final_normalized_pattern_back;
 mod flow_first_back;
@@ -70,6 +72,11 @@ mod near_back;
 mod numerical_back;
 mod patchbay_interaction_factory;
 mod pcm_clip_frames_back;
+mod prepared_face_route;
+mod quantity_observation_factory;
+mod quantity_observation_route;
+mod reported_generation_factory;
+mod reported_generation_route;
 mod startup_chime_back;
 mod startup_contract;
 mod startup_source_back;
@@ -144,6 +151,11 @@ mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
 mod fore_sign_storage;
+mod json_snapshot_back;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use json_snapshot_back::prepare_json_snapshot_for_allocation_test;
+#[cfg(target_os = "linux")]
+mod json_snapshot_host;
 mod model_infer_back;
 mod model_work_back;
 mod model_work_host;
@@ -325,7 +337,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         durable_state,
         hosted_frame,
     } = lifecycle;
+    let current_output_capacity = external_fore
+        .as_ref()
+        .and_then(|fore| fore.current_output_capacity);
+    if let Some(capacity) = current_output_capacity {
+        crate::host_execution::validate_current_output_capacity(capacity)?;
+    }
     let InstalledRunHost {
+        #[cfg(target_os = "linux")]
+        selected_json_snapshot,
         #[cfg(target_os = "linux")]
         selected_text_file,
         advertisement,
@@ -340,6 +360,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut calendar,
         body_conversation_context,
     } = host;
+    #[cfg(not(target_os = "linux"))]
+    if fragment.placements.iter().any(|placement| {
+        [
+            conduit_std_offers::JSON_SNAPSHOT_PUBLISH_IMPLEMENTATION,
+            conduit_std_offers::JSON_SNAPSHOT_READ_IMPLEMENTATION,
+        ]
+        .contains(&placement.implementation_id.as_str())
+    }) {
+        return Err("selected JSON file snapshots require a Linux Host".into());
+    }
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     fragment_profile::validate(
@@ -503,8 +533,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
     kernel_tables.bind_fusions(fragment, &lowered)?;
     let external_input_items = fore_inputs.input_items();
-    let remote_sign_items =
-        external_fore_feeder::remote_sign_items(&lowered.fore_ports, external_input_items)?;
+    let remote_sign_items = external_fore_feeder::remote_sign_items_with_current_capacity(
+        &lowered.fore_ports,
+        external_input_items,
+        current_output_capacity,
+    )?;
     sign_items = sign_items
         .checked_add(remote_sign_items)
         .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
@@ -557,15 +590,26 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         _output.flush().map_err(|error| error.to_string())?;
     }
     let mut scheduler = kernel_tables.install(drivers, values, sign)?;
-    let mut external_fore_deliveries = Vec::with_capacity(
+    let bounded_current = current_output_capacity.is_some();
+    let mut prepared_fore_outputs = if bounded_current {
+        fore_outputs::PreparedForeOutputs::prepare_bounded_current(
+            &lowered.fore_ports,
+            current_output_capacity.expect("selected finite Current history"),
+        )
+    } else {
+        fore_outputs::PreparedForeOutputs::prepare(&lowered.fore_ports)
+    };
+    let report_capacity = if bounded_current {
+        prepared_fore_outputs.report_capacity()
+    } else {
         lowered
             .fore_ports
             .iter()
             .filter(|port| port.direction == conduit_core::PortDirection::Output)
             .count()
-            .saturating_mul(usize::from(external_input_items)),
-    );
-    let mut prepared_fore_outputs = fore_outputs::PreparedForeOutputs::prepare(&lowered.fore_ports);
+            .saturating_mul(usize::from(external_input_items))
+    };
+    let mut external_fore_deliveries = Vec::with_capacity(report_capacity);
     let mut committed_fore =
         committed_fore::PreparedCommittedFore::prepare(fragment, &lowered, &active_play)?;
     fore_inputs.start(&mut scheduler)?;
@@ -751,6 +795,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .then(template_storage_host::TemplateStorageHost::prepare)
         })
         .collect::<Vec<_>>();
+    #[cfg(target_os = "linux")]
+    let mut json_snapshot = json_snapshot_host::JsonSnapshotHost::prepare(
+        fragment,
+        &lowered.identity,
+        selected_json_snapshot,
+    )?;
     let mut data_text_hosts = data_text_host::DataTextGenerationHosts::prepare(
         fragment,
         &lowered.identity,
@@ -931,9 +981,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 break;
             }
             while let Some((offer, committed)) = committed_fore.offer(&mut scheduler, planned)? {
+                if bounded_current && external_fore_deliveries.len() == report_capacity {
+                    return Err("durable Fore output exceeded its admitted finite history".into());
+                }
                 let borrowed = committed.bytes();
                 let (delivery, adapter_delivery) =
-                    if planned.temporal == conduit_core::PortTemporal::Value {
+                    if bounded_current && planned.temporal == conduit_core::PortTemporal::Current {
+                        let (report, adapter) = prepared_fore_outputs
+                            .take_current(planned, offer.sequence, borrowed)
+                            .map_err(str::to_owned)?;
+                        (report, Some(adapter))
+                    } else if planned.temporal == conduit_core::PortTemporal::Value {
                         let (report, adapter) =
                             prepared_fore_outputs.take(planned, offer.sequence, borrowed)?;
                         (report, Some(adapter))
@@ -1137,12 +1195,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         metadata => host.recover_exact(metadata),
                     }
                 } else {
-                    host.commit(input).map(|receipt| receipt.to_vec())
+                    host.commit(input)
                 };
                 let outcome = match result {
                     Ok(encoded) => {
                         let value = scheduler
-                            .store_host_value(&encoded)
+                            .store_host_value(encoded)
                             .map_err(|error| format!("store durable State receipt: {error:?}"))?;
                         HostCallOutcome {
                             disposition: HostCallDisposition::Completed,
@@ -1612,6 +1670,24 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         },
                     )
                     .map_err(|error| format!("complete bounded template storage: {error:?}"))?;
+                continue;
+            }
+            #[cfg(target_os = "linux")]
+            if json_snapshot
+                .as_ref()
+                .is_some_and(|host| host.contains_node(request.node))
+            {
+                host_calls.record(request)?;
+                let completion = json_snapshot
+                    .as_mut()
+                    .expect("selected exact JSON node")
+                    .execute(request, input);
+                json_snapshot_host::complete(
+                    &mut scheduler,
+                    lowered_operation,
+                    request,
+                    completion,
+                )?;
                 continue;
             }
             if let Some(operation) = data_text_host::operation_for_contract(contract) {

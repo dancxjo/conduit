@@ -41,6 +41,14 @@ impl<'a> PreparedCommittedHistoryFace<'a> {
         contract: &ObservationContract,
         publications: &'a [RecordingCommitObserver],
     ) -> Result<Self, CommittedHistoryRefusal> {
+        Self::prepare_for_subject(context, contract, publications, HISTORY_SUBJECT)
+    }
+    pub fn prepare_for_subject(
+        context: RecordingContext<'_>,
+        contract: &ObservationContract,
+        publications: &'a [RecordingCommitObserver],
+        subject: &str,
+    ) -> Result<Self, CommittedHistoryRefusal> {
         if publications.is_empty() {
             return Err(CommittedHistoryRefusal::Empty);
         }
@@ -60,8 +68,13 @@ impl<'a> PreparedCommittedHistoryFace<'a> {
             generations[index] = generation;
         }
         Ok(Self {
-            history: PreparedHistoryFace::prepare(context, contract, publications.len() as u16)
-                .map_err(CommittedHistoryRefusal::History)?,
+            history: PreparedHistoryFace::prepare_for_subject(
+                context,
+                contract,
+                publications.len() as u16,
+                subject,
+            )
+            .map_err(CommittedHistoryRefusal::History)?,
             publications,
             next: 0,
         })
@@ -107,7 +120,7 @@ impl<'a> PreparedCommittedHistoryFace<'a> {
             .contribution(basis)
             .map_err(CommittedHistoryRefusal::History)?;
         fragment.properties.push(FaceProperty {
-            subject: HISTORY_SUBJECT.into(),
+            subject: self.history.subject().into(),
             name: "publication-evidence".into(),
             value: V::Text(
                 if self.next == 0 {
@@ -124,7 +137,7 @@ impl<'a> PreparedCommittedHistoryFace<'a> {
             .and_then(|index| self.publications.get(index))
         {
             fragment.properties.push(FaceProperty {
-                subject: HISTORY_SUBJECT.into(),
+                subject: self.history.subject().into(),
                 name: "last-publication-reference".into(),
                 value: V::Content(publication.encoded_reference().to_vec()),
             });

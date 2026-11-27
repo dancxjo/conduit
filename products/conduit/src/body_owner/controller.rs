@@ -678,3 +678,7 @@ pub(crate) use tests::member_return_owner_fixture;
 #[cfg(test)]
 #[path = "service_workset_tests.rs"]
 pub(super) mod service_workset_tests;
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "environment_recording_history_tests.rs"]
+mod environment_recording_history_tests;

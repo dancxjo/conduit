@@ -1,12 +1,12 @@
-//! Correlate the admitted Home Face route with the scheduler's actual Back.
+//! Correlate admitted Face projectors with the scheduler's actual installed Backs.
 use super::*;
 use crate::body_execution::face_contribution::FaceContributionContext;
-use crate::installed_std::{ambient_home_factory, ambient_home_route::AmbientHomeRoute};
+use crate::installed_std::face_contribution_route::InstalledFaceRoute;
 use conduit_body::{BodyPlan, BodyPlayIdentity, Wake};
 use conduit_std_offers::AmbientFaceProjection;
 
 impl BodyKernel<'_> {
-    pub(crate) fn prepare_home_face_routes(
+    pub(crate) fn prepare_face_contribution_routes(
         &mut self,
         wake: &Wake,
         plan: &BodyPlan,
@@ -17,9 +17,9 @@ impl BodyKernel<'_> {
         let projects = self
             .operations
             .iter()
-            .filter(|operation| operation.call.0 == 0 && is_home_face_call(operation));
+            .filter(|operation| operation.call.0 == 0 && is_face_contribution_call(operation));
         if !has_observer && projects.clone().next().is_some() {
-            return Err("Home Face requires an installed contribution observer".into());
+            return Err("Face contribution requires an installed observer".into());
         }
         let mut routes = Vec::with_capacity(projects.clone().count());
         for operation in projects {
@@ -31,7 +31,7 @@ impl BodyKernel<'_> {
                         .placement_for_node(operation.node)
                         .map(|placement| (partition, placement))
                 })
-                .ok_or("Home Face project call has no lowered placement")?;
+                .ok_or("Face contribution project call has no lowered placement")?;
             let placement = plan
                 .plots
                 .iter()
@@ -40,13 +40,13 @@ impl BodyKernel<'_> {
                 .filter(|fragment| fragment.fragment_id == partition.fragment_id)
                 .flat_map(|fragment| &fragment.placements)
                 .find(|placement| &placement.placement_id == placement_id)
-                .ok_or("Home Face placement is absent from the current Body Plan")?;
-            let Some(InstalledBack::AmbientHome(back)) =
-                self.scheduler.drivers().get(usize::from(operation.node.0))
-            else {
-                return Err("Home Face project call has no installed Home Back".into());
-            };
-            routes.push(AmbientHomeRoute::prepare(
+                .ok_or("Face contribution placement is absent from the current Body Plan")?;
+            let back = self
+                .scheduler
+                .drivers()
+                .get(usize::from(operation.node.0))
+                .ok_or("Face contribution has no installed Back")?;
+            routes.push(InstalledFaceRoute::prepare(
                 FaceContributionContext {
                     wake,
                     plan,
@@ -57,17 +57,16 @@ impl BodyKernel<'_> {
                     call: operation.call,
                     contract: &operation.contract_id,
                 },
-                back.observation(),
-                ambient_home_factory::label(placement)?,
-                ambient_home_factory::projection(placement)?,
+                placement,
+                back,
             )?);
         }
-        self.home_face_routes = routes;
+        self.face_contribution_routes = routes;
         Ok(())
     }
 }
 
-pub(super) fn is_home_face_call(operation: &LoweredHostCall) -> bool {
+fn is_ambient_call(operation: &LoweredHostCall) -> bool {
     [
         AmbientFaceProjection::Home,
         AmbientFaceProjection::Clock,
@@ -86,6 +85,40 @@ pub(super) fn is_home_face_call(operation: &LoweredHostCall) -> bool {
             .is_some_and(|kind| kind.as_str() == projection.kind())
             && operation.maximum_in_flight == 1
             && operation.binding.maximum_input_bytes == projection.input_bytes()
+            && operation.binding.maximum_output_bytes == 0
+    })
+}
+
+pub(super) fn is_face_contribution_call(operation: &LoweredHostCall) -> bool {
+    if is_ambient_call(operation) {
+        return true;
+    }
+    let contracts = [
+        (
+            conduit_semantic_catalog::QUANTITY_OBSERVATION_FACE_KIND,
+            conduit_std_offers::QUANTITY_OBSERVATION_PROJECT_CALL,
+            conduit_std_offers::QUANTITY_OBSERVATION_CUSTODY_CALL,
+        ),
+        (
+            conduit_semantic_catalog::REPORTED_GENERATION_FACE_KIND,
+            conduit_std_offers::REPORTED_GENERATION_PROJECT_CALL,
+            conduit_std_offers::REPORTED_GENERATION_CUSTODY_CALL,
+        ),
+    ];
+    // Factories validate the complete exact offers before Play. Classification
+    // never reconstructs a schema or admits another operation.
+    contracts.into_iter().any(|(kind, project, custody)| {
+        let expected = match operation.call.0 {
+            0 => project,
+            1 => custody,
+            _ => return false,
+        };
+        operation.contract_id.as_str() == expected
+            && operation
+                .target_kind
+                .as_ref()
+                .is_some_and(|target| target.as_str() == kind)
+            && operation.maximum_in_flight == 1
             && operation.binding.maximum_output_bytes == 0
     })
 }

@@ -43,7 +43,7 @@ pub(in crate::native_face_scene) fn append_region_surfaces(
             count - 1
         };
         let surface = surfaces[index].as_mut().ok_or(FaceSceneError::SceneBound)?;
-        surface.marker |= row.region_start;
+        surface.marker |= row.region_start();
         surface.existing_panel |= row.panel_bounds.is_some();
         let left = surface.bounds.x.min(bounds.x);
         let top = surface.bounds.y.min(bounds.y);

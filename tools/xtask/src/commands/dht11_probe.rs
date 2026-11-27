@@ -3,12 +3,22 @@
 mod environment_appliance;
 #[path = "environment_catalogue_source.rs"]
 mod environment_catalogue_source;
+#[path = "environment_face_profile.rs"]
+mod environment_face_profile;
 #[path = "environment_face_publication.rs"]
 mod environment_face_publication;
 #[path = "environment_history.rs"]
 mod environment_history;
 #[path = "environment_output.rs"]
 mod environment_output;
+#[path = "environment_quantity_face.rs"]
+mod environment_quantity_face;
+#[path = "environment_recording_browser.rs"]
+mod environment_recording_browser;
+#[path = "environment_recording_source.rs"]
+mod environment_recording_source;
+#[path = "environment_reported_generation.rs"]
+mod environment_reported_generation;
 #[path = "environment_snapshot.rs"]
 mod environment_snapshot;
 #[path = "environment_source.rs"]
@@ -39,6 +49,38 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     if arguments == ["face-publication"] {
         return environment_face_publication::prove(&root);
     }
+    if arguments == ["quantity-face"] {
+        return environment_quantity_face::prove(&root);
+    }
+    if arguments == ["face-profile-runtime"] {
+        return environment_face_profile::runtime(&root);
+    }
+    if arguments == ["face-profile-models"] {
+        return environment_face_profile::prove(&root);
+    }
+    if arguments == ["reported-generation"] {
+        return environment_reported_generation::prove(&root);
+    }
+    if arguments == ["recording-source"] {
+        return environment_recording_source::prove(&root, false);
+    }
+    if arguments == ["recording-selected-host"] {
+        return environment_recording_source::prove(&root, true);
+    }
+    if let [name, handbook] = arguments {
+        if name == "recording-owner64-browser" {
+            return environment_recording_browser::prove(&root, Path::new(handbook));
+        }
+    }
+    if arguments == ["recording-owner64-abi"] {
+        return environment_recording_source::owner64_abi(&root);
+    }
+    if arguments == ["recording-owner64"] {
+        return environment_recording_source::owner64(&root);
+    }
+    if arguments == ["recording-owner-mask"] {
+        return environment_recording_source::owner_mask(&root);
+    }
     if arguments == ["display-output"] {
         return environment_output::prove(&root);
     }
@@ -60,8 +102,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "--locked",
                     "--manifest-path",
                     "mechanisms/devices/dht11/Cargo.toml",
-                    "--test",
-                    "observation_forms",
+                    "--features",
+                    "recording",
+                    "--all-targets",
                 ])
                 .env(
                     "CARGO_TARGET_DIR",

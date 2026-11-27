@@ -124,7 +124,7 @@ fn exact_recovery_refuses_drift_and_carries_the_full_text_bound() {
     let mut installed = InstalledDurableStateHost::open(&root, binding()).unwrap();
     let value = vec![b'n'; conduit_data::MAXIMUM_DATA_TEXT_BYTES as usize];
     installed.commit(&value).unwrap();
-    let metadata = installed.recover_metadata().unwrap();
+    let metadata = installed.recover_metadata().unwrap().to_vec();
     assert_eq!(installed.recover_exact(&metadata).unwrap(), value);
 
     installed.commit(b"new generation").unwrap();

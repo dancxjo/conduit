@@ -16,6 +16,8 @@ use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use serde::{Deserialize, Serialize};
 
+const OUTPUT_CAPACITY: usize = 64 * 1024;
+
 #[path = "owner_face_mask/abi.rs"]
 mod abi;
 #[path = "owner_face_mask/component.rs"]
@@ -28,6 +30,30 @@ mod interaction;
 mod preparation;
 #[path = "owner_face_mask/view.rs"]
 pub(crate) mod view;
+
+#[path = "owner_face_mask/full_ack.rs"]
+mod full_ack;
+#[path = "owner_face_mask/full_input.rs"]
+mod full_input;
+#[path = "owner_face_mask/full_lowering.rs"]
+mod full_lowering;
+#[path = "owner_face_mask/full_outputs.rs"]
+mod full_outputs;
+#[path = "owner_face_mask/full_preparation.rs"]
+mod full_preparation;
+#[path = "owner_face_mask/full_profile_pool.rs"]
+pub(crate) mod full_profile_pool;
+#[path = "owner_face_mask/full_refusal.rs"]
+mod full_refusal;
+#[path = "owner_face_mask/view_memory.rs"]
+mod view_memory;
+
+pub(crate) fn prepare_full_interface() -> Result<(), String> {
+    abi::prepare_full_interface()
+}
+pub(crate) fn reset_full_interface() -> Result<(), String> {
+    abi::reset_full_interface()
+}
 
 use crate::installed_browser::dom_mask::MASK_BYTES;
 
@@ -84,6 +110,8 @@ struct InteractionEmission<'a> {
 
 #[derive(Serialize)]
 struct SubjectView {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    quantity_series: Option<quantity_series::SeriesView>,
     identity: String,
     name: String,
     role: String,
@@ -175,6 +203,7 @@ struct RouteView {
 }
 
 struct OwnerBrowserMask {
+    full: Option<full_outputs::Outputs>,
     component: Option<component::ComponentView>,
     requires_full_visual_snapshot: bool,
     body_id: BodyId,
@@ -194,6 +223,16 @@ struct OwnerBrowserMask {
 
 impl OwnerBrowserMask {
     fn acknowledge(&mut self, ack: Acknowledgement) -> Result<(), String> {
+        if self.full.is_some() {
+            return self
+                .acknowledge_full(full_ack::Ack {
+                    show: &ack.show_id,
+                    face: &ack.face_id,
+                    revision: &ack.face_revision,
+                })
+                .map_err(str::to_owned);
+        }
+
         if ack.show_id != self.show.show_id.as_str()
             || ack.face_id != self.face.identity.as_str()
             || ack.face_revision != self.face.revision.to_string()
@@ -313,3 +352,9 @@ mod parsec_agency_tests;
 #[cfg(test)]
 #[path = "owner_face_mask/field_look_reuse_tests.rs"]
 mod field_look_reuse_tests;
+
+mod quantity_series;
+
+#[cfg(test)]
+#[path = "owner_face_mask/environment_history_owner_tests.rs"]
+mod environment_history_owner_tests;

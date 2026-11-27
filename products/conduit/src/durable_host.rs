@@ -47,6 +47,10 @@ mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
 #[path = "durable_host/selected_host_configuration.rs"]
 mod selected_host_configuration;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use selected_host_configuration::environment_recording_history64_host_fixture;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use selected_host_configuration::environment_recording_history_host_fixture;
 pub(crate) use selected_host_configuration::viewer_preferences;
 #[path = "durable_host/selected_model.rs"]
 mod selected_model;

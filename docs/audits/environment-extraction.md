@@ -248,6 +248,315 @@ The supported `cargo xtask prove environment history-target` WASM library check
 also passes with the shared publication mechanism enabled; this is compilation,
 not browser execution or an installed Mask.
 
+## Proposed selected JSON realization, 26 November 2026
+
+The selected-JSON follow-up adds a Linux realization of the existing
+`resource/publish-json-snapshot` and `resource/read-json-snapshot` contracts.
+Root separately retains a directory descriptor, original authority grant and
+local reference binding. The configured portable reference supplies none of
+that custody. One exact immutable generation uses the existing shared file
+record, publication and directory-synchronization boundary. Provider preparation
+reserves its finite memory from an existing Host pool; selecting a residence
+does not create memory capacity.
+
+An authored Plot publishes JSON, constructs the canonical `ResourceRef?` value
+with ordinary `some`, and commits it through Body-durable State. A fresh process
+with a new Boot identity recovers the same Body/State, explicitly samples its
+Current, projects the reference, collects exactly one value and invokes the
+independently authorized reader. Current output history is separately admitted
+before Play; it is not a larger Cord queue. Escaped output custody is never
+recycled, and exhaustion refuses instead of growing storage.
+
+This composition exposed and repairs three reusable gaps: prepared expressions
+now validate opaque reference atoms through the Core borrowed codec; installed
+State prepares its file paths and record/response buffers before execution; and
+the kernel accepts a zero-byte semantic payload envelope while still requiring
+positive physical queue capacities and enforcing finite item pressure. The
+State file format, commit digest and publication ordering remain unchanged.
+
+On the proposed source, `cargo xtask prove environment json-snapshot` passes
+50 focused tests and strict Std library lint. These are deterministic installed
+kernel, real file and fresh-process tests with explicit fixture authorization;
+successful execution reports zero post-Play allocations. Missing or undersized
+memory, invalid history bounds, malformed JSON, occupied publication and an
+absent recorded reference refuse without advancing committed State.
+The installed Back independently validates the exact prepared reference and JSON
+bytes before emitting, including under pressure, and accounts for its retained
+reference. The aggregate provider/Host/Back preparation remains within the
+existing finite profile.
+
+This is not physical power-loss, membership, producer ACK/retirement, released
+artifact or multi-generation catalog acceptance. Actual environmental producer
+acceptance and retirement still need their own authenticated content/sequence
+contract and application composition. Full recorded-history browser transport
+and replacement of the remaining legacy consumers are separate unfinished
+completion gates above. These services must not be retired from this proof alone.
+
+## Shared quantity history route, current development
+
+The environmental history adapter can now contribute explicit producer-specific
+series subjects through the shared `data/quantity-observation-series@1` Face
+semantics. The shared interpreter checks producer Host/Boot/Plan/Play, source
+membership, quantity contracts, actual producer Boot time, sequence gaps and
+unavailability. Independent voltage observations exercise the same interpreter;
+no environmental field names are selected by the shared layer. The original
+Face retains the complete readings and publication reference.
+
+The ordinary browser Mask prepares a finite projection (eight series, sixteen
+available points per series), preserves separate unavailability and omission
+counts, and draws independent observation dots. Exact unit conversion either
+succeeds or produces a distinct refusal; absent readings never become zero.
+`cargo xtask prove environment history` checks the shared interpretation and
+actual environmental adapter. `cargo xtask prove environment history-owner-mask`
+checks the ordinary checked Mask kernel and acknowledgement, then renders its
+result in pinned Chromium with one worker and zero retries. This is CPU Mask
+and browser renderer evidence; it does not establish a WASM Mask, installed
+producer membership, recorder restart, or accepted release.
+
+An installed history producer still needs an explicitly admitted projection Back,
+finite IMAGE funding, kernel commit/custody transfer and the ordinary owner
+contribution route. Existing owner reception checks exact producer identities;
+adding a history-shaped Face directly to the owner would bypass that gate.
+The shared route therefore does not retire the previous environmental proof
+services or complete the extraction acceptance gate above.
+
+`cargo xtask prove environment history-shared-native` separately exercises the
+ordinary native Face renderer. Prepared plot references survive ordinary,
+configured and structured layout; two axes and at most sixteen dots reserve
+eighteen commands before pagination, within the unchanged forty-eight-command
+scene bound. Seven CPU tests cover irregular time, unavailable readings,
+malformed-input fallback, small/high-scale pages, multiple series, selected Look
+and dimension-compatible temperature preferences. Interpretation and retained
+projection storage are prepared before frame drawing. This does not establish
+physical display output or whole-runtime allocation confinement.
+
+The actual history adapter and shared Face layer also pass
+`cargo xtask prove environment history-target` for `wasm32-unknown-unknown`.
+This is cross-compilation, separately from executing a WASM owner Mask.
+
+## Pure recording codec ownership
+
+The opt-in `recording` feature in `mechanisms/devices/dht11` owns the existing
+recording chunk encoder, reader, ordered recovery, fixed-cardinality snapshot
+content and disposition Form. The Body runtime keeps explicit public-path
+reexports and its actual snapshot Host Call Back and kernel commit observer.
+The authored disposition source and its build generator move with the codec;
+JSON bytes, Form identities, sequence/clock checks, fixed bounds, sealing and
+publication behavior remain unchanged. Existing Body history consumers keep
+their current APIs through those reexports.
+
+This is an extraction with real recording/recovery consumers, not a new generic
+quantity adapter, Source, storage executor or Mask route. It adds no Data
+dependency, catalog registration, execution gate, authority or durable receipt.
+`cargo xtask prove environment recording` checks the shared device feature and
+existing Body chunk/recovery/publication tests. This entrance establishes CPU
+behavior; installed recorder, restart, physical and release acceptance remain
+separate. Related responsibility owners remain #6354, #6358, #6359, #6360 and #6465.
+
+## Proposed recorded quantity adapter, 26 November 2026
+
+The separate `quantity-history` device feature converts the original sealed
+recording bytes into the shared reported-quantity contract. It uses the same
+ordered reader and an independently supplied exact producer context. Both
+quantities, sequence, producer Boot time, explicit gaps and each unavailable
+outcome survive conversion. A caller selects a tail of one to sixteen samples
+from the latest loaded chunk; previously recovered samples outside that view
+remain explicitly counted. Malformed, foreign or out-of-order input preserves
+the previous view. An oversized encoding refuses rather than shrinking the
+selected window.
+
+This is hosted allocating preparation with an explicit backing model, not
+recurring Step work, another history store or proof of allocator confinement.
+The original catalog/schema preparation, input/file custody, inline storage and
+allocator overhead require their own admission. Default and recording-only
+consumers do not enable the optional Data dependency. The focused entrance is
+`cargo xtask prove environment recording-quantity`; its tests use actual shared
+recording content and independently check the resulting Data encoding.
+On the proposed source, all seventeen device/adapter tests, strict device lint
+and no-default-feature Thumb/WASM checks pass. The ordinary recording entrance
+also passes all twenty device/Body codec and publication tests. Both default
+and recording-only normal dependency graphs leave Data disabled. Formatting,
+evidence retention and all thirty standalone lock checks pass; the lock delta
+adds only the optional local Data edge in the workspace graph.
+
+The adapter is a prerequisite for refreshing the recorded-history Source
+consumer, not that consumer's installed acceptance. Its sixteen-sample view
+does not replace the existing full sixty-four-sample reading. Ordinary browser
+and native routing, exact recorder commit/ACK/restart, released artifacts and
+legacy-service retirement remain unfinished gates. Related: #6461 and #6465.
+
+## Proposed reported-quantity Face projector, 26 November 2026
+
+The shared Face layer gains prepared projection of the exact Data batch and
+two-channel snapshot profiles into an inspection contribution. Reported producer
+Host/Boot/Plan/Play remain distinct from the inspecting contribution's checked
+Plot, Plan and Play. Producer Boot-relative times, exact quantities, gaps and
+unavailable reasons survive projection; unrelated arrival time supplies none
+of those facts. The semantic Kind accepts the exact snapshot profile, not a
+single batch or an untyped recording string.
+
+Retained input validation and allocating projection workspace have separate
+finite backing models. The closed inspection visitor refuses unsupported
+action, temporal and semantic-composition ownership instead of silently omitting
+it. The existing Ambient visitor and its behavior remain unchanged. These are
+preparation contracts, not allocation-free Step or hostile-code confinement
+claims.
+
+`cargo xtask prove environment quantity-face` checks the pure contribution and
+semantic Source contracts, strict focused lint and no-default-feature WASM
+compilation. All eight focused tests and those checks pass on the proposed
+source. This does not install a projection Back, fund an IMAGE, attach an
+environmental Source or qualify browser/native output. The selected contribution
+route and original-recording consumer remain the next application wiring cuts;
+recorder ACK/restart, full-history transport, release acceptance and legacy
+retirement retain their separate gates.
+
+## Proposed complete original-recording Source, 26 November 2026
+
+The selected Linux Source now preserves the complete latest original generation,
+up to sixty-four samples. A new opt-in DHT recording domain Info carries the
+unchanged sealed JSON plus bounded reported context, channel metadata, recovery
+counts and the immediate preceding boundary. Its canonical ceiling is derived
+from the exact Type and field limits: 7,143 bytes. This is not a merged or
+resealed chunk, another history store, a generic raw-JSON fallback or a larger
+generic Data profile. Earlier accepted chunks affect reported recovery/outside
+counts; the visible reading still contains only the latest loaded chunk, matching
+the legacy consumer.
+
+The separate generic Data adapter retains its existing sixteen-sample/4 KiB
+member profile and extent refusal. The shared Face builder now also accepts
+separately checked typed inputs up to sixty-four samples per channel, with its
+own preparation model. Its existing Data16 API, fact ordering, backing ceilings
+and initialized resource requirements remain unchanged. The concrete Std domain
+projector adapts the checked recording Info into those ordinary quantity-series
+facts; Face itself imports no DHT mechanism and decodes no recording JSON.
+
+Root opens the explicitly selected existing directory and independently supplies
+current Host/Boot read authority and Source-use authority. Producer metadata
+supplies neither. Checked Make/IMAGE selection funds the worker, conversion and
+projection before capture. Preparation freezes one exact original generation;
+recurring Source calls copy its bytes without reopening files or allocating.
+The common installed contribution route retains kernel commit, exact Owner
+custody, finite escaped slots and retirement. Its extraction preserves Ambient.
+
+The draft Source contract revision is now `@2`, with exact reported-generation
+output and fifteen explicit initialization fields. There is no Source-level tail
+selection. This replaces the unmerged draft's limited generic snapshot output;
+it introduces no released compatibility alias. Missing fields, stale `tail`,
+foreign identities, malformed records and unfunded or conflicting selections
+refuse. Empty directory/reference values remain limited to the trusted unsafe
+external-selection initializer; product Root requires actual selected custody.
+
+Pure qualification passes six domain codec checks, three typed-builder checks,
+six existing Data projection checks and two concrete Std projector checks, with
+strict focused lint. The domain feature compiles without defaults for Thumb and
+WASM; Face compiles without defaults for WASM. The focused Source gate passes
+thirteen checks, including a closed selected-IMAGE sixty-four-reading run after
+removing the original directory, plus semantic and Make checks and strict hosted
+library lint. The actual product Owner test also passes with all sixty-four
+original readings and both channels, exact quantities, times, gaps, recovery
+metadata, and native primary/Details pages. Its fresh Face is 355,795 bytes.
+This exceeds the legacy browser route’s 60 KiB admission. The additive profile
+below now qualifies full-reading native CPU carrier/Mask composition.
+The fresh Chromium/WASM transport and rendering proof below now passes.
+The exact installed-offer refusal check, eight shared Back/custody checks, seven
+funded Ambient checks and the installed funded custody check also pass. Strict
+hosted library/test lint, formatting, evidence retention and all thirty
+standalone lock checks pass; external dependency versions remain unchanged.
+
+The existing `recording-source`, `recording-selected-host` and
+`recording-owner-mask` entrances remain. `reported-generation` checks the new
+pure/typed projection and portability contracts; `recording-owner64` produces a
+fresh actual full-reading Owner/native CPU proof and ignored export. None of
+these entrances grants producer trust or establishes Chromium/WASM execution,
+live browser membership, physical Show, producer acceptance/retirement or accepted
+release. Exact catalogue runtime qualification is tracked separately. Legacy
+proof services stay until their replacement consumers and acceptance gates pass.
+
+
+## Proposed ordinary full-recording browser profile, 26 November 2026
+
+An additive generic owner Face profile keeps the ordinary raw `face/face@1`
+Fore and Face/Show identities. Its checked Line admits a 512 KiB canonical Face,
+a separately bounded 64 KiB owner route and their exact outer headers. The old
+60 KiB Face response and old Line profiles retain their limits. The owner's
+existing physical admission buffers already hold 2 MiB plus 1 KiB; this change
+selects a larger exact Line within that capacity rather than claiming another
+socket buffer. It introduces no encoded Face under the raw typed port.
+
+Only the generic, unconfigured Mask can select this profile, with its exact
+prepared Back and carrier evidence. Allocation-free JSON census and narrow
+Face/Plan grammar checks precede owning model parsing. Unsupported composition,
+action constructors, rich placement bindings and configured Looks retain their
+existing refusal/selection behavior. They are not removed to fit the profile.
+Selected Line Base identities remain strings distinct from an owning placement
+Base binding; the preparation model accounts for their actual owned storage.
+
+The optional checked Host setup prepares actual ABI buffers before advertising
+its Full Back. A separately charged immutable Boot witness retains canonical
+advertisement bytes and one checked generic template. Two exclusive 16 MiB
+preparation leases fund current/replacement Mask custody; the Boot allowance is
+separate. These are cooperative requested-storage bounds, not allocator or
+hostile-code confinement. The maximum-identity Boot allocation census measured
+4,737,979 requested bytes within its unchanged 16 MiB allowance. Canonical Face,
+complete reading, lifecycle outputs and bounded acknowledgement handling are
+prepared before Play; no spare unused buffer stands in for their ownership.
+
+The genuine selected Source/Owner proof now also performs signed browser
+membership and a real RFC6455 loopback exchange through the production response
+admission and native C ABI. It preserves every original Face byte, all sixty-four
+readings in each channel, scalar/typed facts, actions, relationships and two
+ordinary sixteen-point plots with explicit omitted/unavailable counts. The Owner
+accepts the returned exact Show; foreign Boot and retired membership checks
+refuse. The Face is 355,795 bytes and its delivered frame is 366,209 bytes. The
+independent native primary/Details traversal also passes. This is native CPU
+protocol/ABI evidence, not Chromium, WASM, physical display or installed-release
+acceptance. The three focused egress boundary checks pass, including unchanged
+legacy refusal, changed profile/revision/seal refusal and actual output extent.
+The Full ABI also retains distinct machine codes for malformed input, unsupported
+shape/Look, identity mismatch, invalid seal, pressure, lifecycle and other
+preparation failure. Seven focused cases preserve the old acknowledged Current
+through failed preparation, and verify unchanged positively unselected legacy
+refusals. All forty-four runnable Owner Mask tests pass; six artifact-dependent
+cases remain explicitly ignored. Strict browser Make/offer/runtime lint and 105
+focused JavaScript checks pass. The SDK's explicit setup entry reuses the same
+verified default preparation without reinitializing live interfaces.
+
+
+`cargo xtask prove environment face-profile-models` owns the portable census,
+Plan-wire and selected-Fore model checks. `face-profile-runtime` owns the browser
+profile storage/acknowledgement checks and focused strict lint.
+`recording-owner64-abi` produces fresh ignored genuine Owner/native ABI evidence.
+The `recording-owner64-browser HANDBOOK-PACKAGE` harness uses a fresh
+WASM Host, ordinary UI Join and the normal Owner control/presence actor. Its
+fresh pinned Chromium run now passes with one worker and zero retries. The
+first retained run reached the ordinary WebSocket and advertised its exact inventory, then the Owner refused candidate
+admission: the prepared Full Back plus the optional component Back produced 145
+entries against the previous 144-entry collection bound. The finite
+bound is now 145, with existing exact-limit acceptance and next-item refusal
+checks included in this qualification entrance. This changes neither the
+independent advertisement-byte bound nor membership authority. The Handbook
+selects the Full WebSocket implementation alone for its Line Kind, preserving
+Make's one-implementation-per-Kind rule. A second demonstrated refusal came
+from the Handbook's legacy-only renderer artifact check after successful WASM
+preparation; it now admits the exact Full generic artifact through the same
+packaged presentation, while configured components retain exact selection.
+The passing run correlates the actual 366,461-byte received owner frame,
+canonical Face, all 138 subjects, 393 relationships and five actions, both
+complete sixty-four-reading series, and the exact returned Show accepted by the
+Owner. Both plots have sixteen points, sixteen omitted points and thirty-two
+unavailable samples. The actual revision exceeds JavaScript's safe integer range
+and remains exact. Ordinary Lull and same-Owner retirement pass. This is browser
+protocol/rendering proof using original sealed-recording CPU inputs, not physical
+capture, producer acceptance or stable-release acceptance. A separate fresh
+native pair is only a typed rendering comparison oracle, never a replacement browser Host, Face or view.
+
+The recorder commit-to-authenticated-acceptance/retirement and recovery vertical,
+physical producer custody/wiring, compiler/MCU stack integration and retirement
+of legacy consumers remain separate unfinished acceptance. None of these
+proposed proof entrances grants producer authority or establishes stable release
+acceptance.
+
 ## Proposed authored catalogue checkpoint, 26 November 2026
 
 The application checkpoint and read-only seed Sources are recovered unchanged

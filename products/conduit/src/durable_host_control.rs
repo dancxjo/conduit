@@ -88,6 +88,8 @@ pub(crate) mod browser;
 #[cfg(unix)]
 #[path = "durable_host_control/client_frame.rs"]
 mod client_frame;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) mod environment_history_fixture;
 // The complete typed original-counter ingress owner is not yet implemented.
 // Do not expose this preparation fixture as an installed decoder.
 #[cfg(unix)]

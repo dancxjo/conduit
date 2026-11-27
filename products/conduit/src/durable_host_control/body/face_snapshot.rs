@@ -10,6 +10,9 @@ impl DurableHostRuntime {
             return Err("installed Host does not own a live Body session".into());
         };
         let face = owner.face_snapshot(request)?;
+        let maximum = owner
+            .browser_face_response_bytes(request, &face)
+            .unwrap_or_else(|| owner.native_face_response_bytes(request));
         let response = if request.last_seen_revision == Some(face.revision)
             && request.last_seen_identity.as_ref() == Some(&face.identity)
         {
@@ -28,7 +31,7 @@ impl DurableHostRuntime {
         };
         let encoded = serde_json::to_vec(&response)
             .map_err(|error| format!("encode owner Face snapshot: {error}"))?;
-        if encoded.len() > owner.native_face_response_bytes(request) {
+        if encoded.len() > maximum {
             return Err("face-frame-pressure".into());
         }
         Ok(response)

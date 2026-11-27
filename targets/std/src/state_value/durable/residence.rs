@@ -25,66 +25,8 @@ pub struct FileDurableStateResidence {
     directory: PathBuf,
 }
 
-pub(crate) struct InstalledDurableStateHost {
-    residence: FileDurableStateResidence,
-    generation: u64,
-}
-
-impl InstalledDurableStateHost {
-    pub(crate) fn open(
-        root: impl AsRef<Path>,
-        binding: DurableStateBinding,
-    ) -> Result<Self, DurableStateRefusal> {
-        Ok(Self {
-            residence: FileDurableStateResidence::open(root, binding)?,
-            generation: 0,
-        })
-    }
-
-    pub(crate) fn recover_metadata(&mut self) -> Result<Vec<u8>, DurableStateRefusal> {
-        let (disposition, encoded) = self.residence.recover()?;
-        match disposition {
-            RecoveryDisposition::Absent => {
-                self.generation = 0;
-                Ok(encoded)
-            }
-            RecoveryDisposition::Recovered { .. } => Ok(encoded[..RECOVERY_HEADER_BYTES].to_vec()),
-        }
-    }
-
-    pub(crate) fn recover_exact(
-        &mut self,
-        expected_metadata: &[u8],
-    ) -> Result<Vec<u8>, DurableStateRefusal> {
-        if expected_metadata.len() != RECOVERY_HEADER_BYTES
-            || expected_metadata[0] != 1
-            || expected_metadata[1] != 1
-        {
-            return Err(DurableStateRefusal::InvalidReceipt);
-        }
-        let (disposition, encoded) = self.residence.recover()?;
-        match disposition {
-            RecoveryDisposition::Absent => Err(DurableStateRefusal::StaleRecovery),
-            RecoveryDisposition::Recovered { generation }
-                if &encoded[..RECOVERY_HEADER_BYTES] == expected_metadata =>
-            {
-                self.generation = generation;
-                Ok(encoded[RECOVERY_HEADER_BYTES..].to_vec())
-            }
-            RecoveryDisposition::Recovered { .. } => Err(DurableStateRefusal::StaleRecovery),
-        }
-    }
-
-    pub(crate) fn commit(&mut self, value: &[u8]) -> Result<[u8; 41], DurableStateRefusal> {
-        let generation = self
-            .generation
-            .checked_add(1)
-            .ok_or(DurableStateRefusal::GenerationGap)?;
-        let receipt = self.residence.commit(generation, value)?;
-        self.generation = generation;
-        Ok(receipt)
-    }
-}
+mod installed;
+pub(crate) use installed::InstalledDurableStateHost;
 
 impl FileDurableStateResidence {
     pub fn open(
@@ -158,19 +100,8 @@ impl FileDurableStateResidence {
             return Err(DurableStateRefusal::ValueTooLarge);
         }
         let value_digest = digest(value);
-        match self.read_current_generation()? {
-            Some((current, current_digest)) if current == generation => {
-                return if current_digest == value_digest {
-                    Ok(receipt(generation, value_digest))
-                } else {
-                    Err(DurableStateRefusal::ConflictingDigest)
-                };
-            }
-            Some((current, _)) if current.checked_add(1) != Some(generation) => {
-                return Err(DurableStateRefusal::GenerationGap);
-            }
-            None if generation != 1 => return Err(DurableStateRefusal::GenerationGap),
-            _ => {}
+        if !requires_publication(self.read_current_generation()?, generation, value_digest)? {
+            return Ok(receipt(generation, value_digest));
         }
         self.write_candidate(generation, value)?;
         fs::rename(self.candidate_path(), self.current_path())
@@ -296,14 +227,31 @@ fn encode_generation(
     if generation == 0 || value.len() > binding.maximum_value_bytes as usize {
         return Err(DurableStateRefusal::ValueTooLarge);
     }
-    let mut encoded = Vec::with_capacity(HEADER_BYTES + value.len());
-    encoded.extend_from_slice(MAGIC);
-    encoded.extend_from_slice(&binding_key(binding));
-    encoded.extend_from_slice(&generation.to_be_bytes());
-    encoded.extend_from_slice(&(value.len() as u32).to_be_bytes());
-    encoded.extend_from_slice(&digest(value));
-    encoded.extend_from_slice(value);
+    let mut encoded = vec![0; HEADER_BYTES + value.len()];
+    encode_generation_into(binding, generation, value, &mut encoded)?;
     Ok(encoded)
+}
+
+fn encode_generation_into(
+    binding: &DurableStateBinding,
+    generation: u64,
+    value: &[u8],
+    encoded: &mut [u8],
+) -> Result<usize, DurableStateRefusal> {
+    if generation == 0 || value.len() > binding.maximum_value_bytes as usize {
+        return Err(DurableStateRefusal::ValueTooLarge);
+    }
+    let length = HEADER_BYTES + value.len();
+    let encoded = encoded
+        .get_mut(..length)
+        .ok_or(DurableStateRefusal::ValueTooLarge)?;
+    encoded[..8].copy_from_slice(MAGIC);
+    encoded[8..40].copy_from_slice(&binding_key(binding));
+    encoded[40..48].copy_from_slice(&generation.to_be_bytes());
+    encoded[48..52].copy_from_slice(&(value.len() as u32).to_be_bytes());
+    encoded[52..84].copy_from_slice(&digest(value));
+    encoded[84..].copy_from_slice(value);
+    Ok(length)
 }
 
 fn decode_generation<'a>(
@@ -341,6 +289,27 @@ fn decode_generation<'a>(
         return Err(DurableStateRefusal::Corrupt);
     }
     Ok((generation, &encoded[cursor..]))
+}
+
+fn requires_publication(
+    existing: Option<(u64, [u8; 32])>,
+    generation: u64,
+    value_digest: [u8; 32],
+) -> Result<bool, DurableStateRefusal> {
+    match existing {
+        Some((current, previous)) if current == generation => {
+            if previous == value_digest {
+                Ok(false)
+            } else {
+                Err(DurableStateRefusal::ConflictingDigest)
+            }
+        }
+        Some((current, _)) if current.checked_add(1) != Some(generation) => {
+            Err(DurableStateRefusal::GenerationGap)
+        }
+        None if generation != 1 => Err(DurableStateRefusal::GenerationGap),
+        _ => Ok(true),
+    }
 }
 
 fn receipt(generation: u64, digest: [u8; 32]) -> [u8; 41] {
